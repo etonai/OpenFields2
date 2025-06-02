@@ -6,6 +6,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,11 +14,13 @@ import java.util.List;
 public class UnitMovementGame extends Application {
 
     public static class Unit {
+        private String name;
         private double x, y;
         private double targetX, targetY;
         private final double speed = 2.0;
 
-        public Unit(double x, double y) {
+        public Unit(String name, double x, double y) {
+            this.name = name;
             this.x = x;
             this.y = y;
             this.targetX = x;
@@ -48,6 +51,7 @@ public class UnitMovementGame extends Application {
 
         public double getX() { return x; }
         public double getY() { return y; }
+        public String getName() { return name; }
     }
 
     public static class World {
@@ -79,8 +83,13 @@ public class UnitMovementGame extends Application {
             }
 
             if (UnitMovementGame.selectedUnit != null) {
+                Unit unit = UnitMovementGame.selectedUnit;
                 gc.setStroke(Color.YELLOW);
-                gc.strokeOval(UnitMovementGame.selectedUnit.getX() - 12, UnitMovementGame.selectedUnit.getY() - 12, 24, 24);
+                gc.strokeOval(unit.getX() - 12, unit.getY() - 12, 24, 24);
+
+                gc.setFill(Color.WHITE);
+                gc.setFont(Font.font(14));
+                gc.fillText(unit.getName(), unit.getX() - 20, unit.getY() - 15);
             }
         }
     }
@@ -88,14 +97,15 @@ public class UnitMovementGame extends Application {
     private final World world = new World();
     private final Renderer renderer = new Renderer();
     private static Unit selectedUnit = null;
+    private boolean paused = false;
 
     @Override
     public void start(Stage primaryStage) {
         Canvas canvas = new Canvas(800, 600);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        Unit unit1 = new Unit(100, 100);
-        Unit unit2 = new Unit(300, 200);
+        Unit unit1 = new Unit("Alice", 100, 100);
+        Unit unit2 = new Unit("Bob", 300, 200);
         world.addUnit(unit1);
         world.addUnit(unit2);
 
@@ -109,11 +119,20 @@ public class UnitMovementGame extends Application {
                 for (Unit unit : world.getUnits()) {
                     if (unit.contains(mx, my)) {
                         selectedUnit = unit;
+                        System.out.println("Selected unit: " + unit.getName());
                         break;
                     }
                 }
             } else if (e.getButton() == MouseButton.SECONDARY) {
+                System.out.println("Right-click at: (" + mx + ", " + my + ")");
                 if (selectedUnit != null) {
+                    for (Unit target : world.getUnits()) {
+                        if (target != selectedUnit && target.contains(mx, my)) {
+                            System.out.println(selectedUnit.getName() + " shoots at " + target.getName());
+                            return;
+                        }
+                    }
+                    System.out.println(selectedUnit.getName() + " is moving to: (" + mx + ", " + my + ")");
                     selectedUnit.setTarget(mx, my);
                 }
             }
@@ -121,10 +140,21 @@ public class UnitMovementGame extends Application {
 
         new AnimationTimer() {
             public void handle(long now) {
-                world.update();
+                if (!paused) {
+                    world.update();
+                }
                 renderer.render(gc, world);
             }
         }.start();
+
+        scene.setOnKeyPressed(e -> {
+            switch (e.getCode()) {
+                case SPACE -> {
+                    paused = !paused;
+                    System.out.println(paused ? "Game paused" : "Game resumed");
+                }
+            }
+        });
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("Unit Movement Game");
