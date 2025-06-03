@@ -73,9 +73,16 @@ public class UnitMovementGame extends Application {
     }
 
     public static class Renderer {
-        public void render(GraphicsContext gc, World world) {
+        public void render(GraphicsContext gc, World world, double zoom, double offsetX, double offsetY) {
+            // Reset and clear canvas before scaling
+            gc.setTransform(1, 0, 0, 1, 0, 0);
             gc.setFill(Color.BLACK);
             gc.fillRect(0, 0, gc.getCanvas().getWidth(), gc.getCanvas().getHeight());
+
+            gc.save();
+            gc.scale(zoom, zoom);
+            // apply camera offset after zoom
+            gc.translate(offsetX, offsetY);
 
             gc.setFill(Color.BLUE);
             for (Unit unit : world.getUnits()) {
@@ -91,77 +98,95 @@ public class UnitMovementGame extends Application {
                 gc.setFont(Font.font(14));
                 gc.fillText(unit.getName(), unit.getX() - 20, unit.getY() - 15);
             }
+
+            gc.restore();
         }
     }
 
-    private final World world = new World();
-    private final Renderer renderer = new Renderer();
-    private static Unit selectedUnit = null;
-    private boolean paused = false;
+        private final World world = new World();
+        private final Renderer renderer = new Renderer();
+        private double zoom = 1.0;
+        private static Unit selectedUnit = null;
+        private boolean paused = false;
+        private double offsetX = 0;
+        private double offsetY = 0;
 
-    @Override
-    public void start(Stage primaryStage) {
-        Canvas canvas = new Canvas(800, 600);
-        GraphicsContext gc = canvas.getGraphicsContext2D();
+        @Override
+        public void start(Stage primaryStage) {
+            Canvas canvas = new Canvas(800, 600);
+            GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        Unit unit1 = new Unit("Alice", 100, 100);
-        Unit unit2 = new Unit("Bob", 300, 200);
-        world.addUnit(unit1);
-        world.addUnit(unit2);
+            Unit unit1 = new Unit("Alice", 100, 100);
+            Unit unit2 = new Unit("Bob", 300, 200);
+            world.addUnit(unit1);
+            world.addUnit(unit2);
 
-        Scene scene = new Scene(new StackPane(canvas));
-        scene.setOnMousePressed(e -> {
-            double mx = e.getX();
-            double my = e.getY();
+            Scene scene = new Scene(new StackPane(canvas));
+            scene.setOnMousePressed(e -> {
+                double mx = e.getX();
+                double my = e.getY();
 
-            if (e.getButton() == MouseButton.PRIMARY) {
-                selectedUnit = null;
-                for (Unit unit : world.getUnits()) {
-                    if (unit.contains(mx, my)) {
-                        selectedUnit = unit;
-                        System.out.println("Selected unit: " + unit.getName());
-                        break;
-                    }
-                }
-            } else if (e.getButton() == MouseButton.SECONDARY) {
-                System.out.println("Right-click at: (" + mx + ", " + my + ")");
-                if (selectedUnit != null) {
-                    for (Unit target : world.getUnits()) {
-                        if (target != selectedUnit && target.contains(mx, my)) {
-                            System.out.println(selectedUnit.getName() + " shoots at " + target.getName());
-                            return;
+                if (e.getButton() == MouseButton.PRIMARY) {
+                    selectedUnit = null;
+                    for (Unit unit : world.getUnits()) {
+                        if (unit.contains(mx, my)) {
+                            selectedUnit = unit;
+                            System.out.println("Selected unit: " + unit.getName());
+                            break;
                         }
                     }
-                    System.out.println(selectedUnit.getName() + " is moving to: (" + mx + ", " + my + ")");
-                    selectedUnit.setTarget(mx, my);
+                } else if (e.getButton() == MouseButton.SECONDARY) {
+                    System.out.println("Right-click at: (" + mx + ", " + my + ")");
+                    if (selectedUnit != null) {
+                        for (Unit target : world.getUnits()) {
+                            if (target != selectedUnit && target.contains(mx, my)) {
+                                System.out.println(selectedUnit.getName() + " shoots at " + target.getName());
+                                return;
+                            }
+                        }
+                        System.out.println(selectedUnit.getName() + " is moving to: (" + mx + ", " + my + ")");
+                        selectedUnit.setTarget(mx, my);
+                    }
                 }
-            }
-        });
+            });
 
-        new AnimationTimer() {
-            public void handle(long now) {
-                if (!paused) {
-                    world.update();
+            new AnimationTimer() {
+                public void handle(long now) {
+                    if (!paused) {
+                        world.update();
+                    }
+                    renderer.render(gc, world, zoom, offsetX, offsetY);
                 }
-                renderer.render(gc, world);
-            }
-        }.start();
+            }.start();
 
-        scene.setOnKeyPressed(e -> {
-            switch (e.getCode()) {
-                case SPACE -> {
-                    paused = !paused;
-                    System.out.println(paused ? "Game paused" : "Game resumed");
+            scene.setOnKeyPressed(e -> {
+                double panStep = 20 / zoom;
+                switch (e.getCode()) {
+                    case PLUS, EQUALS -> {
+                        zoom *= 1.1;
+                        System.out.println("Zoom in: " + zoom);
+                    }
+                    case MINUS -> {
+                        zoom /= 1.1;
+                        System.out.println("Zoom out: " + zoom);
+                    }
+                    case UP -> offsetY += panStep;
+                    case DOWN -> offsetY -= panStep;
+                    case LEFT -> offsetX += panStep;
+                    case RIGHT -> offsetX -= panStep;
+                    case SPACE -> {
+                        paused = !paused;
+                        System.out.println(paused ? "Game paused" : "Game resumed");
+                    }
                 }
-            }
-        });
+            });
 
-        primaryStage.setScene(scene);
-        primaryStage.setTitle("Unit Movement Game");
-        primaryStage.show();
+            primaryStage.setScene(scene);
+            primaryStage.setTitle("Unit Movement Game");
+            primaryStage.show();
+        }
+
+        public static void main(String[] args) {
+            launch(args);
+        }
     }
-
-    public static void main(String[] args) {
-        launch(args);
-    }
-}
