@@ -17,9 +17,13 @@ import java.util.List;
 
 public class UnitMovementGame extends Application {
 
+    public static double pixelsToFeet(double pixels) {
+        return pixels / 7.0;
+    }
+
     static final int WIDTH = 800;
     static final int HEIGHT = 600;
-    static final double MOVE_SPEED = 100.0; // pixels per second
+    static final double MOVE_SPEED = 42.0; // pixels per second
 
     private final Canvas canvas = new Canvas(WIDTH, HEIGHT);
     private final List<Unit> units = new ArrayList<>();
@@ -61,7 +65,10 @@ public class UnitMovementGame extends Application {
                         final Unit shooter = selected;
                         final Unit target = u;
                         eventQueue.add(new ScheduledEvent(executeAt, () -> {
-                            System.out.println("*** " + shooter.name + " (ID: " + shooter.id + ") shoots at " + target.name + " (ID: " + target.id + ") (executed at tick " + executeAt + ")");
+                            double dx = target.x - shooter.x;
+                            double dy = target.y - shooter.y;
+                            double distanceFeet = UnitMovementGame.pixelsToFeet(Math.hypot(dx, dy));
+                            System.out.println("*** " + shooter.name + " (ID: " + shooter.id + ") shoots at " + target.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ")");
                         }));
                         System.out.println("DIRECT " + selected.name + " (ID: " + selected.id + ") to shoot at " + u.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
                     }
@@ -182,7 +189,7 @@ class Unit {
 
     public void render(GraphicsContext gc, boolean isSelected) {
         gc.setFill(color);
-        gc.fillOval(x - 10, y - 10, 20, 20);
+        gc.fillOval(x - 10.5, y - 10.5, 21, 21);
         if (isSelected) {
             gc.setStroke(Color.YELLOW);
             gc.setLineWidth(2);
@@ -194,7 +201,7 @@ class Unit {
     }
 
     public boolean contains(double px, double py) {
-        return Math.hypot(px - x, py - y) <= 10;
+        return Math.hypot(px - x, py - y) <= 10.5;
     }
 }
 
