@@ -67,8 +67,32 @@ public class UnitMovementGame extends Application {
                         eventQueue.add(new ScheduledEvent(executeAt, () -> {
                             double dx = target.x - shooter.x;
                             double dy = target.y - shooter.y;
-                            double distanceFeet = UnitMovementGame.pixelsToFeet(Math.hypot(dx, dy));
+                            double distancePixels = Math.hypot(dx, dy);
+                            double distanceFeet = UnitMovementGame.pixelsToFeet(distancePixels);
                             System.out.println("*** " + shooter.name + " (ID: " + shooter.id + ") shoots at " + target.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ")");
+
+                            long paintballTick = executeAt + Math.round(distanceFeet / 300.0 * 60);
+                            System.out.println("--- Paintball event scheduled at tick " + paintballTick);
+                            eventQueue.add(new ScheduledEvent(paintballTick, () -> {
+                                boolean hit = Math.random() < 0.75;
+                                System.out.println("--- Paintball fired at tick " + paintballTick + " (" + (hit ? "hit" : "miss") + ")");
+                                if (hit) {
+                                    System.out.println("--- Paintball hits " + target.name + " (ID: " + target.id + ") at tick " + paintballTick);
+                                    Color originalColor = target.color;
+                                    target.color = Color.YELLOW;
+
+                                    // Schedule a revert after 15 ticks (~0.25 seconds at 60fps)
+                                    eventQueue.add(new ScheduledEvent(gameClock.getCurrentTick() + 15, () -> target.color = originalColor));
+
+                                    GraphicsContext gc = canvas.getGraphicsContext2D();
+                                    gc.save();
+                                    gc.translate(offsetX, offsetY);
+                                    gc.scale(zoom, zoom);
+                                    gc.setFill(Color.BLACK);
+                                    gc.fillOval(target.x - 14, target.y - 14, 28, 28);
+                                    gc.restore();
+                                }
+                            }));
                         }));
                         System.out.println("DIRECT " + selected.name + " (ID: " + selected.id + ") to shoot at " + u.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
                     }
