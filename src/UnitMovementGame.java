@@ -68,13 +68,13 @@ public class UnitMovementGame extends Application {
                             double distanceFeet = UnitMovementGame.pixelsToFeet(distancePixels);
                             System.out.println("*** " + shooter.character.name + " (ID: " + shooter.id + ") shoots at " + target.character.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ")");
 
-                            long paintballTick = executeAt + Math.round(distanceFeet / 30.0 * 60);
+                            long impactTick = executeAt + Math.round(distanceFeet / 30.0 * 60);
                             boolean willHit = Math.random() * 100 < shooter.character.dexterity;
-                            System.out.println("--- Paintball event scheduled at tick " + paintballTick + (willHit ? " (will hit)" : " (will miss)"));
+                            System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
                             final boolean finalWillHit = willHit;
                             final long fireTick = gameClock.getCurrentTick();
-                            eventQueue.add(new ScheduledEvent(paintballTick, () -> {
-                                resolvePaintballHit(shooter, target, paintballTick, fireTick, finalWillHit);
+                            eventQueue.add(new ScheduledEvent(impactTick, () -> {
+                                resolveRangedAttack(shooter, target, impactTick, fireTick, finalWillHit);
                             }));
                         }));
                         System.out.println("DIRECT " + selected.character.name + " (ID: " + selected.id + ") to shoot at " + u.character.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
@@ -140,10 +140,10 @@ public class UnitMovementGame extends Application {
         units.add(u2);
     }
 
-    private void resolvePaintballHit(Unit shooter, Unit target, long impactTick, long fireTick, boolean hit) {
-        System.out.println("--- Paintball fired at tick " + fireTick + ", resolved at tick " + impactTick + " (" + (hit ? "hit" : "miss") + ")");
+    private void resolveRangedAttack(Unit shooter, Unit target, long impactTick, long fireTick, boolean hit) {
+        System.out.println("--- Ranged attack fired at tick " + fireTick + ", resolved at tick " + impactTick + " (" + (hit ? "hit" : "miss") + ")");
         if (hit) {
-            System.out.println(">>> Paintball hit " + target.character.name);
+            System.out.println(">>> Projectile hit " + target.character.name);
             if (!target.isHitHighlighted) {
                 target.isHitHighlighted = true;
                 target.color = Color.YELLOW;
