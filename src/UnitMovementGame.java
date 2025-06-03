@@ -58,6 +58,10 @@ public class UnitMovementGame extends Application {
                         selected = u;
                         System.out.println("Selected: " + u.character.name + " (ID: " + u.id + ")");
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
+                        if (selected.character.health <= 0) {
+                            System.out.println(">>> " + selected.character.name + " is incapacitated and cannot attack.");
+                            return;
+                        }
                         long executeAt = gameClock.getCurrentTick() + 60;
                         final Unit shooter = selected;
                         final Unit target = u;
@@ -66,9 +70,9 @@ public class UnitMovementGame extends Application {
                             double dy = target.y - shooter.y;
                             double distancePixels = Math.hypot(dx, dy);
                             double distanceFeet = UnitMovementGame.pixelsToFeet(distancePixels);
-                            System.out.println("*** " + shooter.character.name + " (ID: " + shooter.id + ") shoots at " + target.character.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ")");
+                            System.out.println("*** " + shooter.character.name + " (ID: " + shooter.id + ") shoots at " + target.character.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ") using " + shooter.character.weapon.name);
 
-                            long impactTick = executeAt + Math.round(distanceFeet / 30.0 * 60);
+                            long impactTick = executeAt + Math.round(distanceFeet / shooter.character.weapon.velocityFeetPerSecond * 60);
                             boolean willHit = Math.random() * 100 < shooter.character.dexterity;
                             System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
                             final boolean finalWillHit = willHit;
@@ -132,8 +136,10 @@ public class UnitMovementGame extends Application {
 
     private void createUnits() {
         int nextId = 1;
-        Character c1 = new Character("Alice", 75, 50);
+        Character c1 = new Character("Alice", 99, 50);
+        c1.weapon = new Weapon("Derringer", 600.0, 50);
         Character c2 = new Character("Bobby", 25, 50);
+        c2.weapon = new Weapon("Paintball Gun", 30.0, 0);
         Unit u1 = new Unit(c1, 100, 100, Color.RED, nextId++);
         Unit u2 = new Unit(c2, 300, 300, Color.BLUE, nextId++);
         units.add(u1);
@@ -144,6 +150,13 @@ public class UnitMovementGame extends Application {
         System.out.println("--- Ranged attack fired at tick " + fireTick + ", resolved at tick " + impactTick + " (" + (hit ? "hit" : "miss") + ")");
         if (hit) {
             System.out.println(">>> Projectile hit " + target.character.name);
+            target.character.health -= shooter.character.weapon.damage;
+            System.out.println(">>> " + target.character.name + " takes " + shooter.character.weapon.damage + " damage. Health now: " + target.character.health);
+            if (target.character.health <= 0) {
+                System.out.println(">>> " + target.character.name + " is incapacitated!");
+                target.character.movementSpeed = 0;
+                eventQueue.removeIf(event -> event.action.toString().contains("ID: " + target.id));
+            }
             if (!target.isHitHighlighted) {
                 target.isHitHighlighted = true;
                 target.color = Color.YELLOW;
@@ -183,11 +196,27 @@ class Character {
     String name;
     int dexterity;
     int health;
+    double movementSpeed;
+    Weapon weapon;
 
     public Character(String name, int dexterity, int health) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
+        // Weapon will be assigned in createUnits
+        this.movementSpeed = 42.0;
+    }
+}
+
+class Weapon {
+    String name;
+    double velocityFeetPerSecond;
+    int damage;
+
+    public Weapon(String name, double velocityFeetPerSecond, int damage) {
+        this.name = name;
+        this.velocityFeetPerSecond = velocityFeetPerSecond;
+        this.damage = damage;
     }
 }
 
@@ -234,8 +263,8 @@ class Unit {
             return;
         }
 
-        double moveX = UnitMovementGame.MOVE_SPEED / 60.0 * (dx / distance);
-        double moveY = UnitMovementGame.MOVE_SPEED / 60.0 * (dy / distance);
+        double moveX = character.movementSpeed / 60.0 * (dx / distance);
+        double moveY = character.movementSpeed / 60.0 * (dy / distance);
 
         if (Math.abs(moveX) > Math.abs(dx)) x = targetX; else x += moveX;
         if (Math.abs(moveY) > Math.abs(dy)) y = targetY; else y += moveY;
