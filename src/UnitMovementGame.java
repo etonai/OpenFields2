@@ -56,7 +56,7 @@ public class UnitMovementGame extends Application {
                     clickedOnUnit = true;
                     if (e.getButton() == MouseButton.PRIMARY) {
                         selected = u;
-                        System.out.println("Selected: " + u.name + " (ID: " + u.id + ")");
+                        System.out.println("Selected: " + u.character.name + " (ID: " + u.id + ")");
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
                         long executeAt = gameClock.getCurrentTick() + 60;
                         final Unit shooter = selected;
@@ -66,41 +66,24 @@ public class UnitMovementGame extends Application {
                             double dy = target.y - shooter.y;
                             double distancePixels = Math.hypot(dx, dy);
                             double distanceFeet = UnitMovementGame.pixelsToFeet(distancePixels);
-                            System.out.println("*** " + shooter.name + " (ID: " + shooter.id + ") shoots at " + target.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ")");
+                            System.out.println("*** " + shooter.character.name + " (ID: " + shooter.id + ") shoots at " + target.character.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ")");
 
-                            long paintballTick = executeAt + Math.round(distanceFeet / 300.0 * 60);
-                            System.out.println("--- Paintball event scheduled at tick " + paintballTick);
+                            long paintballTick = executeAt + Math.round(distanceFeet / 30.0 * 60);
+                            boolean willHit = Math.random() * 100 < shooter.character.dexterity;
+                            System.out.println("--- Paintball event scheduled at tick " + paintballTick + (willHit ? " (will hit)" : " (will miss)"));
+                            final boolean finalWillHit = willHit;
+                            final long fireTick = gameClock.getCurrentTick();
                             eventQueue.add(new ScheduledEvent(paintballTick, () -> {
-                                boolean hit = Math.random() * 100 < shooter.dexterity;
-                                System.out.println("--- Paintball fired at tick " + paintballTick + " (" + (hit ? "hit" : "miss") + ")");
-                                if (hit) {
-                                    System.out.println("--- Paintball hits " + target.name + " (ID: " + target.id + ") at tick " + paintballTick);
-                                    if (!target.isHitHighlighted) {
-                                        target.isHitHighlighted = true;
-                                        target.color = Color.YELLOW;
-                                        eventQueue.add(new ScheduledEvent(gameClock.getCurrentTick() + 15, () -> {
-                                            target.color = target.baseColor;
-                                            target.isHitHighlighted = false;
-                                        }));
-                                    }
-
-                                    GraphicsContext gc = canvas.getGraphicsContext2D();
-                                    gc.save();
-                                    gc.translate(offsetX, offsetY);
-                                    gc.scale(zoom, zoom);
-                                    gc.setFill(Color.BLACK);
-                                    gc.fillOval(target.x - 14, target.y - 14, 28, 28);
-                                    gc.restore();
-                                }
+                                resolvePaintballHit(shooter, target, paintballTick, fireTick, finalWillHit);
                             }));
                         }));
-                        System.out.println("DIRECT " + selected.name + " (ID: " + selected.id + ") to shoot at " + u.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
+                        System.out.println("DIRECT " + selected.character.name + " (ID: " + selected.id + ") to shoot at " + u.character.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
                     }
                 }
             }
             if (!clickedOnUnit && selected != null && e.getButton() == MouseButton.SECONDARY) {
                 selected.setTarget(x, y);
-                System.out.println("MOVE " + selected.name + " to (" + x + ", " + y + ")");
+                System.out.println("MOVE " + selected.character.name + " to (" + x + ", " + y + ")");
             }
         });
 
@@ -149,12 +132,34 @@ public class UnitMovementGame extends Application {
 
     private void createUnits() {
         int nextId = 1;
-        Unit u1 = new Unit("Alice", 100, 100, Color.RED, nextId++);
-        u1.dexterity = 75;
-        Unit u2 = new Unit("Bobby", 300, 300, Color.BLUE, nextId++);
-        u2.dexterity = 25;
+        Character c1 = new Character("Alice", 75);
+        Character c2 = new Character("Bobby", 25);
+        Unit u1 = new Unit(c1, 100, 100, Color.RED, nextId++);
+        Unit u2 = new Unit(c2, 300, 300, Color.BLUE, nextId++);
         units.add(u1);
         units.add(u2);
+    }
+
+    private void resolvePaintballHit(Unit shooter, Unit target, long impactTick, long fireTick, boolean hit) {
+        System.out.println("--- Paintball fired at tick " + fireTick + ", resolved at tick " + impactTick + " (" + (hit ? "hit" : "miss") + ")");
+        if (hit) {
+            System.out.println(">>> Paintball hit " + target.character.name);
+            if (!target.isHitHighlighted) {
+                target.isHitHighlighted = true;
+                target.color = Color.YELLOW;
+                eventQueue.add(new ScheduledEvent(impactTick + 15, () -> {
+                    target.color = target.baseColor;
+                    target.isHitHighlighted = false;
+                }));
+            }
+            GraphicsContext gc = canvas.getGraphicsContext2D();
+            gc.save();
+            gc.translate(offsetX, offsetY);
+            gc.scale(zoom, zoom);
+            gc.setFill(Color.BLACK);
+            gc.fillOval(target.x - 14, target.y - 14, 28, 28);
+            gc.restore();
+        }
     }
 
     private void render() {
@@ -174,10 +179,19 @@ public class UnitMovementGame extends Application {
     }
 }
 
-class Unit {
-    int dexterity;
-    public final int id;
+class Character {
     String name;
+    int dexterity;
+
+    public Character(String name, int dexterity) {
+        this.name = name;
+        this.dexterity = dexterity;
+    }
+}
+
+class Unit {
+    public final int id;
+    Character character;
     double x, y;
     double targetX, targetY;
     boolean hasTarget = false;
@@ -186,16 +200,15 @@ class Unit {
     boolean isHitHighlighted = false;
     long lastTickUpdated = -1;
 
-    public Unit(String name, double x, double y, Color color, int id) {
+    public Unit(Character character, double x, double y, Color color, int id) {
         this.id = id;
-        this.name = name;
+        this.character = character;
         this.x = x;
         this.y = y;
         this.targetX = x;
         this.targetY = y;
         this.color = color;
         this.baseColor = color;
-        this.dexterity = 50; // default
     }
 
     public void setTarget(double x, double y) {
@@ -235,7 +248,7 @@ class Unit {
             gc.strokeOval(x - 12, y - 12, 24, 24);
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(12));
-            gc.fillText(name, x - 15, y - 15);
+            gc.fillText(character.name, x - 15, y - 15);
         }
     }
 
