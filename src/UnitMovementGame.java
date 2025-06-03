@@ -29,7 +29,7 @@ public class UnitMovementGame extends Application {
     private double zoom = 1.0;
     private boolean paused = true;
     private final GameClock gameClock = new GameClock();
-    private final java.util.PriorityQueue<ScheduledEvent> actionQueue = new java.util.PriorityQueue<>();
+    private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
 
     public static void main(String[] args) {
         launch(args);
@@ -37,8 +37,9 @@ public class UnitMovementGame extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Unit u1 = new Unit("Alice", 100, 100, Color.RED);
-        Unit u2 = new Unit("Bobby", 300, 300, Color.BLUE);
+        int nextId = 1;
+        Unit u1 = new Unit("Alice", 100, 100, Color.RED, nextId++);
+        Unit u2 = new Unit("Bobby", 300, 300, Color.BLUE, nextId++);
         units.add(u1);
         units.add(u2);
 
@@ -54,13 +55,15 @@ public class UnitMovementGame extends Application {
                     clickedOnUnit = true;
                     if (e.getButton() == MouseButton.PRIMARY) {
                         selected = u;
-                        System.out.println("Selected: " + u.name);
+                        System.out.println("Selected: " + u.name + " (ID: " + u.id + ")");
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
                         long executeAt = gameClock.getCurrentTick() + 60;
-                        actionQueue.add(new ScheduledEvent(executeAt, () -> {
-                            System.out.println("*** " + selected.name + " shoots at " + u.name + " (executed at tick " + executeAt + ")");
+                        final Unit shooter = selected;
+                        final Unit target = u;
+                        eventQueue.add(new ScheduledEvent(executeAt, () -> {
+                            System.out.println("*** " + shooter.name + " (ID: " + shooter.id + ") shoots at " + target.name + " (ID: " + target.id + ") (executed at tick " + executeAt + ")");
                         }));
-                        System.out.println("DIRECT " + selected.name + " to shoot at " + u.name + " (executes at tick " + executeAt + ")");
+                        System.out.println("DIRECT " + selected.name + " (ID: " + selected.id + ") to shoot at " + u.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
                     }
                 }
             }
@@ -103,8 +106,8 @@ public class UnitMovementGame extends Application {
     private void run() {
         if (!paused) {
             gameClock.advanceTick();
-            while (!actionQueue.isEmpty() && actionQueue.peek().tick <= gameClock.getCurrentTick()) {
-                actionQueue.poll().action.run();
+            while (!eventQueue.isEmpty() && eventQueue.peek().tick <= gameClock.getCurrentTick()) {
+                eventQueue.poll().action.run();
             }
             for (Unit u : units) {
                 u.update(gameClock.getCurrentTick());
@@ -131,6 +134,7 @@ public class UnitMovementGame extends Application {
 }
 
 class Unit {
+    public final int id;
     String name;
     double x, y;
     double targetX, targetY;
@@ -138,7 +142,8 @@ class Unit {
     Color color;
     long lastTickUpdated = -1;
 
-    public Unit(String name, double x, double y, Color color) {
+    public Unit(String name, double x, double y, Color color, int id) {
+        this.id = id;
         this.name = name;
         this.x = x;
         this.y = y;
