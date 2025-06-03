@@ -41,11 +41,8 @@ public class UnitMovementGame extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        int nextId = 1;
-        Unit u1 = new Unit("Alice", 100, 100, Color.RED, nextId++);
-        Unit u2 = new Unit("Bobby", 300, 300, Color.BLUE, nextId++);
-        units.add(u1);
-        units.add(u2);
+        createUnits();
+
 
         Pane root = new Pane(canvas);
         Scene scene = new Scene(root);
@@ -74,15 +71,18 @@ public class UnitMovementGame extends Application {
                             long paintballTick = executeAt + Math.round(distanceFeet / 300.0 * 60);
                             System.out.println("--- Paintball event scheduled at tick " + paintballTick);
                             eventQueue.add(new ScheduledEvent(paintballTick, () -> {
-                                boolean hit = Math.random() < 0.75;
+                                boolean hit = Math.random() * 100 < shooter.dexterity;
                                 System.out.println("--- Paintball fired at tick " + paintballTick + " (" + (hit ? "hit" : "miss") + ")");
                                 if (hit) {
                                     System.out.println("--- Paintball hits " + target.name + " (ID: " + target.id + ") at tick " + paintballTick);
-                                    Color originalColor = target.color;
-                                    target.color = Color.YELLOW;
-
-                                    // Schedule a revert after 15 ticks (~0.25 seconds at 60fps)
-                                    eventQueue.add(new ScheduledEvent(gameClock.getCurrentTick() + 15, () -> target.color = originalColor));
+                                    if (!target.isHitHighlighted) {
+                                        target.isHitHighlighted = true;
+                                        target.color = Color.YELLOW;
+                                        eventQueue.add(new ScheduledEvent(gameClock.getCurrentTick() + 15, () -> {
+                                            target.color = target.baseColor;
+                                            target.isHitHighlighted = false;
+                                        }));
+                                    }
 
                                     GraphicsContext gc = canvas.getGraphicsContext2D();
                                     gc.save();
@@ -147,6 +147,16 @@ public class UnitMovementGame extends Application {
         render();
     }
 
+    private void createUnits() {
+        int nextId = 1;
+        Unit u1 = new Unit("Alice", 100, 100, Color.RED, nextId++);
+        u1.dexterity = 75;
+        Unit u2 = new Unit("Bobby", 300, 300, Color.BLUE, nextId++);
+        u2.dexterity = 25;
+        units.add(u1);
+        units.add(u2);
+    }
+
     private void render() {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setFill(Color.LIGHTGRAY);
@@ -165,12 +175,15 @@ public class UnitMovementGame extends Application {
 }
 
 class Unit {
+    int dexterity;
     public final int id;
     String name;
     double x, y;
     double targetX, targetY;
     boolean hasTarget = false;
     Color color;
+    final Color baseColor;
+    boolean isHitHighlighted = false;
     long lastTickUpdated = -1;
 
     public Unit(String name, double x, double y, Color color, int id) {
@@ -181,6 +194,8 @@ class Unit {
         this.targetX = x;
         this.targetY = y;
         this.color = color;
+        this.baseColor = color;
+        this.dexterity = 50; // default
     }
 
     public void setTarget(double x, double y) {
