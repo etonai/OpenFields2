@@ -29,7 +29,7 @@ public class UnitMovementGame extends Application {
     private double zoom = 1.0;
     private boolean paused = true;
     private final GameClock gameClock = new GameClock();
-    private final java.util.PriorityQueue<ScheduledAction> actionQueue = new java.util.PriorityQueue<>();
+    private final java.util.PriorityQueue<ScheduledEvent> actionQueue = new java.util.PriorityQueue<>();
 
     public static void main(String[] args) {
         launch(args);
@@ -57,7 +57,7 @@ public class UnitMovementGame extends Application {
                         System.out.println("Selected: " + u.name);
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
                         long executeAt = gameClock.getCurrentTick() + 60;
-                        actionQueue.add(new ScheduledAction(executeAt, () -> {
+                        actionQueue.add(new ScheduledEvent(executeAt, () -> {
                             System.out.println("*** " + selected.name + " shoots at " + u.name + " (executed at tick " + executeAt + ")");
                         }));
                         System.out.println("DIRECT " + selected.name + " to shoot at " + u.name + " (executes at tick " + executeAt + ")");
@@ -193,17 +193,17 @@ class Unit {
     }
 }
 
-class ScheduledAction implements Comparable<ScheduledAction> {
+class ScheduledEvent implements Comparable<ScheduledEvent> {
     final long tick;
     final Runnable action;
 
-    public ScheduledAction(long tick, Runnable action) {
+    public ScheduledEvent(long tick, Runnable action) {
         this.tick = tick;
         this.action = action;
     }
 
     @Override
-    public int compareTo(ScheduledAction other) {
+    public int compareTo(ScheduledEvent other) {
         return Long.compare(this.tick, other.tick);
     }
 }
