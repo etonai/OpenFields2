@@ -132,8 +132,8 @@ public class UnitMovementGame extends Application {
 
     private void createUnits() {
         int nextId = 1;
-        Character c1 = new Character("Alice", 75);
-        Character c2 = new Character("Bobby", 25);
+        Character c1 = new Character("Alice", 75, 50);
+        Character c2 = new Character("Bobby", 25, 50);
         Unit u1 = new Unit(c1, 100, 100, Color.RED, nextId++);
         Unit u2 = new Unit(c2, 300, 300, Color.BLUE, nextId++);
         units.add(u1);
@@ -182,10 +182,12 @@ public class UnitMovementGame extends Application {
 class Character {
     String name;
     int dexterity;
+    int health;
 
-    public Character(String name, int dexterity) {
+    public Character(String name, int dexterity, int health) {
         this.name = name;
         this.dexterity = dexterity;
+        this.health = health;
     }
 }
 
