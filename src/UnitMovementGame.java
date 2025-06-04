@@ -1,6 +1,7 @@
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -8,12 +9,12 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.PriorityQueue;
 
 public class UnitMovementGame extends Application {
 
@@ -33,7 +34,7 @@ public class UnitMovementGame extends Application {
     private double zoom = 1.0;
     private boolean paused = true;
     private final GameClock gameClock = new GameClock();
-    private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
+    private final PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
 
     public static void main(String[] args) {
         launch(args);
@@ -159,8 +160,18 @@ public class UnitMovementGame extends Application {
                 eventQueue.add(new ScheduledEvent(impactTick + 15, () -> {
                     target.color = target.baseColor;
                     target.isHitHighlighted = false;
+                    Platform.runLater(this::render);
                 }));
             }
+            Platform.runLater(() -> {
+                GraphicsContext gc = canvas.getGraphicsContext2D();
+                gc.save();
+                gc.translate(offsetX, offsetY);
+                gc.scale(zoom, zoom);
+                gc.setFill(Color.BLACK);
+                gc.fillOval(target.x - 14, target.y - 14, 28, 28);
+                gc.restore();
+            });
         }
     }
 
@@ -175,152 +186,5 @@ public class UnitMovementGame extends Application {
             u.render(gc, u == selected);
         }
         gc.restore();
-    }
-}
-
-class Character {
-    String name;
-    int dexterity;
-    int health;
-    double movementSpeed;
-    Weapon weapon;
-
-    public Character(String name, int dexterity, int health) {
-        this.name = name;
-        this.dexterity = dexterity;
-        this.health = health;
-        this.movementSpeed = 42.0;
-    }
-}
-
-class Weapon {
-    String name;
-    double velocityFeetPerSecond;
-    int damage;
-
-    public Weapon(String name, double velocityFeetPerSecond, int damage) {
-        this.name = name;
-        this.velocityFeetPerSecond = velocityFeetPerSecond;
-        this.damage = damage;
-    }
-}
-
-class WeaponState {
-    String state;
-    String action;
-    int ticks;
-
-    public WeaponState(String state, String action, int ticks) {
-        this.state = state;
-        this.action = action;
-        this.ticks = ticks;
-    }
-
-    @Override
-    public String toString() {
-        return "WeaponState{" +
-                "state='" + state + '\'' +
-                ", action='" + action + '\'' +
-                ", ticks=" + ticks +
-                '}';
-    }
-}
-
-class Unit {
-    public final int id;
-    Character character;
-    double x, y;
-    double targetX, targetY;
-    boolean hasTarget = false;
-    Color color;
-    final Color baseColor;
-    boolean isHitHighlighted = false;
-    long lastTickUpdated = -1;
-
-    public Unit(Character character, double x, double y, Color color, int id) {
-        this.id = id;
-        this.character = character;
-        this.x = x;
-        this.y = y;
-        this.targetX = x;
-        this.targetY = y;
-        this.color = color;
-        this.baseColor = color;
-    }
-
-    public void setTarget(double x, double y) {
-        this.targetX = x;
-        this.targetY = y;
-        this.hasTarget = true;
-    }
-
-    public void update(long currentTick) {
-        if (currentTick == lastTickUpdated) return;
-        lastTickUpdated = currentTick;
-
-        if (!hasTarget) return;
-
-        double dx = targetX - x;
-        double dy = targetY - y;
-        double distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 1) {
-            hasTarget = false;
-            return;
-        }
-
-        double moveX = character.movementSpeed / 60.0 * (dx / distance);
-        double moveY = character.movementSpeed / 60.0 * (dy / distance);
-
-        if (Math.abs(moveX) > Math.abs(dx)) x = targetX; else x += moveX;
-        if (Math.abs(moveY) > Math.abs(dy)) y = targetY; else y += moveY;
-    }
-
-    public void render(GraphicsContext gc, boolean isSelected) {
-        gc.setFill(color);
-        gc.fillOval(x - 10.5, y - 10.5, 21, 21);
-        if (isSelected) {
-            gc.setStroke(Color.YELLOW);
-            gc.setLineWidth(2);
-            gc.strokeOval(x - 12, y - 12, 24, 24);
-            gc.setFill(Color.BLACK);
-            gc.setFont(Font.font(12));
-            gc.fillText(character.name, x - 15, y - 15);
-        }
-    }
-
-    public boolean contains(double px, double py) {
-        return Math.hypot(px - x, py - y) <= 10.5;
-    }
-}
-
-class ScheduledEvent implements Comparable<ScheduledEvent> {
-    final long tick;
-    final Runnable action;
-
-    public ScheduledEvent(long tick, Runnable action) {
-        this.tick = tick;
-        this.action = action;
-    }
-
-    @Override
-    public int compareTo(ScheduledEvent other) {
-        return Long.compare(this.tick, other.tick);
-    }
-}
-
-class GameClock {
-    private long currentTick = 0;
-
-    public void advanceTick() {
-        currentTick++;
-    }
-
-    public long getCurrentTick() {
-        return currentTick;
-    }
-
-    public void reset() {
-        currentTick = 0;
     }
 }
