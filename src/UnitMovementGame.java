@@ -23,7 +23,7 @@ public class UnitMovementGame extends Application {
 
     static final int WIDTH = 800;
     static final int HEIGHT = 600;
-    static final double MOVE_SPEED = 42.0; // pixels per second
+    static final double MOVE_SPEED = 42.0;
 
     private final Canvas canvas = new Canvas(WIDTH, HEIGHT);
     private final List<Unit> units = new ArrayList<>();
@@ -42,8 +42,6 @@ public class UnitMovementGame extends Application {
     @Override
     public void start(Stage primaryStage) {
         createUnits();
-
-
         Pane root = new Pane(canvas);
         Scene scene = new Scene(root);
 
@@ -140,10 +138,8 @@ public class UnitMovementGame extends Application {
         c1.weapon = new Weapon("Derringer", 600.0, 50);
         Character c2 = new Character("Bobby", 25, 50);
         c2.weapon = new Weapon("Paintball Gun", 30.0, 0);
-        Unit u1 = new Unit(c1, 100, 100, Color.RED, nextId++);
-        Unit u2 = new Unit(c2, 300, 300, Color.BLUE, nextId++);
-        units.add(u1);
-        units.add(u2);
+        units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
+        units.add(new Unit(c2, 300, 300, Color.BLUE, nextId++));
     }
 
     private void resolveRangedAttack(Unit shooter, Unit target, long impactTick, long fireTick, boolean hit) {
@@ -165,13 +161,6 @@ public class UnitMovementGame extends Application {
                     target.isHitHighlighted = false;
                 }));
             }
-            GraphicsContext gc = canvas.getGraphicsContext2D();
-            gc.save();
-            gc.translate(offsetX, offsetY);
-            gc.scale(zoom, zoom);
-            gc.setFill(Color.BLACK);
-            gc.fillOval(target.x - 14, target.y - 14, 28, 28);
-            gc.restore();
         }
     }
 
@@ -179,15 +168,12 @@ public class UnitMovementGame extends Application {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setFill(Color.LIGHTGRAY);
         gc.fillRect(0, 0, WIDTH, HEIGHT);
-
         gc.save();
         gc.translate(offsetX, offsetY);
         gc.scale(zoom, zoom);
-
         for (Unit u : units) {
             u.render(gc, u == selected);
         }
-
         gc.restore();
     }
 }
@@ -203,7 +189,6 @@ class Character {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
-        // Weapon will be assigned in createUnits
         this.movementSpeed = 42.0;
     }
 }
@@ -217,6 +202,27 @@ class Weapon {
         this.name = name;
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
+    }
+}
+
+class WeaponState {
+    String state;
+    String action;
+    int ticks;
+
+    public WeaponState(String state, String action, int ticks) {
+        this.state = state;
+        this.action = action;
+        this.ticks = ticks;
+    }
+
+    @Override
+    public String toString() {
+        return "WeaponState{" +
+                "state='" + state + '\'' +
+                ", action='" + action + '\'' +
+                ", ticks=" + ticks +
+                '}';
     }
 }
 
@@ -309,8 +315,6 @@ class GameClock {
     public void advanceTick() {
         currentTick++;
     }
-
-
 
     public long getCurrentTick() {
         return currentTick;
