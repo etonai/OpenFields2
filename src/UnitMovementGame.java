@@ -135,10 +135,23 @@ public class UnitMovementGame extends Application {
 
     private void createUnits() {
         int nextId = 1;
+
         Character c1 = new Character("Alice", 99, 50);
-        c1.weapon = new Weapon("Derringer", 600.0, 50);
+        List<WeaponState> derringerStates = new ArrayList<>();
+        derringerStates.add(new WeaponState("Holstered", "Draw", 60));
+        derringerStates.add(new WeaponState("Ready", "Aim", 60));
+        derringerStates.add(new WeaponState("Aimed", "Fire", 5));
+        Weapon derringer = new Weapon("Derringer", 600.0, 50, derringerStates, "Ready");
+        c1.weapon = derringer;
+
         Character c2 = new Character("Bobby", 25, 50);
-        c2.weapon = new Weapon("Paintball Gun", 30.0, 0);
+        List<WeaponState> paintballStates = new ArrayList<>();
+        paintballStates.add(new WeaponState("Holstered", "Draw", 60));
+        paintballStates.add(new WeaponState("Ready", "Aim", 60));
+        paintballStates.add(new WeaponState("Aimed", "Fire", 5));
+        Weapon paintballGun = new Weapon("Paintball Gun", 30.0, 0, paintballStates);
+        c2.weapon = paintballGun;
+
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
         units.add(new Unit(c2, 300, 300, Color.BLUE, nextId++));
     }
