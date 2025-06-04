@@ -64,22 +64,7 @@ public class UnitMovementGame extends Application {
                         long executeAt = gameClock.getCurrentTick() + 60;
                         final Unit shooter = selected;
                         final Unit target = u;
-                        eventQueue.add(new ScheduledEvent(executeAt, () -> {
-                            double dx = target.x - shooter.x;
-                            double dy = target.y - shooter.y;
-                            double distancePixels = Math.hypot(dx, dy);
-                            double distanceFeet = UnitMovementGame.pixelsToFeet(distancePixels);
-                            System.out.println("*** " + shooter.character.name + " (ID: " + shooter.id + ") shoots at " + target.character.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ") using " + shooter.character.weapon.name);
-
-                            long impactTick = executeAt + Math.round(distanceFeet / shooter.character.weapon.velocityFeetPerSecond * 60);
-                            boolean willHit = Math.random() * 100 < shooter.character.dexterity;
-                            System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
-                            final boolean finalWillHit = willHit;
-                            final long fireTick = gameClock.getCurrentTick();
-                            eventQueue.add(new ScheduledEvent(impactTick, () -> {
-                                resolveRangedAttack(shooter, target, impactTick, fireTick, finalWillHit);
-                            }));
-                        }));
+                        selected.character.weapon.resolveRangedAttack(selected, u, gameClock, eventQueue);
                         System.out.println("DIRECT " + selected.character.name + " (ID: " + selected.id + ") to shoot at " + u.character.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
                     }
                 }
