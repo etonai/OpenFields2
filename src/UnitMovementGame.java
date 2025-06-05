@@ -20,7 +20,7 @@ public class UnitMovementGame extends Application {
     double zoom = 1.0;
     double offsetX = 0;
     double offsetY = 0;
-    GameClock gameClock = new GameClock();
+    GameClock gameClock = new GameClock(true);
     PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
 
     @Override
@@ -96,8 +96,9 @@ public class UnitMovementGame extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        new Thread(() -> {
+        Thread gameLoop = new Thread(() -> {
             while (true) {
+                render();
                 if (!gameClock.isPaused()) {
                     gameClock.tick();
                     while (!eventQueue.isEmpty() && eventQueue.peek().getTick() <= gameClock.getCurrentTick()) {
@@ -107,7 +108,6 @@ public class UnitMovementGame extends Application {
                     for (Unit u : units) {
                         u.update(gameClock.getCurrentTick());
                     }
-                    render();
                 }
                 try {
                     Thread.sleep(16);
@@ -115,7 +115,9 @@ public class UnitMovementGame extends Application {
                     ex.printStackTrace();
                 }
             }
-        }).start();
+        });
+        gameLoop.setDaemon(true);
+        gameLoop.start();
     }
 
     private void createUnits() {
