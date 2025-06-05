@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
 
-public class UnitMovementGame extends Application {
+public class OpenFields2 extends Application {
     Canvas canvas = new Canvas(800, 600);
     boolean debugMode = false;
     GraphicsContext gc = canvas.getGraphicsContext2D();
