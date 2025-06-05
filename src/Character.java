@@ -12,5 +12,10 @@ class Character {
         this.weapon = weapon;
         this.movementSpeed = 42.0;
     }
+
+    public String getName() {
+        return name;
+    }
+
 }
 

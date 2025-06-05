@@ -70,4 +70,26 @@ public class Unit {
     public boolean contains(double px, double py) {
         return Math.hypot(px - x, py - y) <= 10.5;
     }
+
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public void setSelected(boolean selected) {
+        // This could also change the color or outline
+        this.color = selected ? Color.YELLOW : baseColor;
+    }
+
+    public void moveTo(double x, double y) {
+        setTarget(x, y);
+    }
+
+    public Character getCharacter() {
+        return character;
+    }
+
 }
