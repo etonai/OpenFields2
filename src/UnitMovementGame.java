@@ -1,44 +1,27 @@
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
 
 public class UnitMovementGame extends Application {
-
-    public static double pixelsToFeet(double pixels) {
-        return pixels / 7.0;
-    }
-
-    static final int WIDTH = 800;
-    static final int HEIGHT = 600;
-    static final double MOVE_SPEED = 42.0;
-
-    private final Canvas canvas = new Canvas(WIDTH, HEIGHT);
-    private final List<Unit> units = new ArrayList<>();
-    private Unit selected = null;
-    private double offsetX = 0;
-    private double offsetY = 0;
-    private double zoom = 1.0;
-    private boolean paused = true;
-    private final GameClock gameClock = new GameClock();
-    private final PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
-
-    public static void main(String[] args) {
-        launch(args);
-    }
+    Canvas canvas = new Canvas(800, 600);
+    boolean debugMode = false;
+    GraphicsContext gc = canvas.getGraphicsContext2D();
+    List<Unit> units = new ArrayList<>();
+    Unit selected = null;
+    double zoom = 1.0;
+    double offsetX = 0;
+    double offsetY = 0;
+    GameClock gameClock = new GameClock();
+    PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
 
     @Override
     public void start(Stage primaryStage) {
@@ -64,8 +47,10 @@ public class UnitMovementGame extends Application {
                         long executeAt = gameClock.getCurrentTick() + 60;
                         final Unit shooter = selected;
                         final Unit target = u;
-                        selected.character.weapon.resolveRangedAttack(selected, u, gameClock, eventQueue);
-                        System.out.println("DIRECT " + selected.character.name + " (ID: " + selected.id + ") to shoot at " + u.character.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
+                        eventQueue.add(new ScheduledEvent(executeAt, () -> {
+                            System.out.println("DIRECT " + shooter.character.name + " (ID: " + shooter.id + ") to shoot at " + target.character.name + " (ID: " + target.id + ") (executes at tick " + executeAt + ")");
+                            shooter.character.weapon.resolveRangedAttack(shooter, target, gameClock, eventQueue);
+                        }, shooter.id));
                     }
                 }
             }
@@ -76,113 +61,108 @@ public class UnitMovementGame extends Application {
         });
 
         scene.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.UP) offsetY += 20;
-            if (e.getCode() == KeyCode.DOWN) offsetY -= 20;
-            if (e.getCode() == KeyCode.LEFT) offsetX += 20;
-            if (e.getCode() == KeyCode.RIGHT) offsetX -= 20;
-            if (e.getCode() == KeyCode.EQUALS || e.getCode() == KeyCode.PLUS) zoom *= 1.1;
-            if (e.getCode() == KeyCode.MINUS) zoom /= 1.1;
-            if (e.getCode() == KeyCode.SPACE) {
-                paused = !paused;
-                if (paused) {
-                    System.out.println("***********************");
-                    System.out.println("*** Game paused at tick " + gameClock.getCurrentTick());
-                    System.out.println("***********************");
-                } else {
-                    System.out.println("***********************");
-                    System.out.println("*** Game resumed");
-                    System.out.println("***********************");
-                }
+            switch (e.getCode()) {
+                case D:
+                    debugMode = !debugMode;
+                    System.out.println("Debug mode: " + (debugMode ? "ON" : "OFF"));
+                    break;
+                case EQUALS:
+                    zoom *= 1.1;
+                    break;
+                case MINUS:
+                    zoom /= 1.1;
+                    break;
+                case UP:
+                    offsetY += 10;
+                    break;
+                case DOWN:
+                    offsetY -= 10;
+                    break;
+                case LEFT:
+                    offsetX += 10;
+                    break;
+                case RIGHT:
+                    offsetX -= 10;
+                    break;
+                case SPACE:
+                    gameClock.togglePause();
+                    System.out.println("Game " + (gameClock.isPaused() ? "paused" : "resumed"));
+                    break;
             }
+            render();
         });
 
-        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.0 / 60), e -> run()));
-        timeline.setCycleCount(Timeline.INDEFINITE);
-        timeline.play();
-
-        primaryStage.setScene(scene);
         primaryStage.setTitle("Unit Movement Game");
+        primaryStage.setScene(scene);
         primaryStage.show();
-    }
 
-    private void run() {
-        if (!paused) {
-            gameClock.advanceTick();
-            while (!eventQueue.isEmpty() && eventQueue.peek().tick <= gameClock.getCurrentTick()) {
-                eventQueue.poll().action.run();
+        new Thread(() -> {
+            while (true) {
+                if (!gameClock.isPaused()) {
+                    gameClock.tick();
+                    while (!eventQueue.isEmpty() && eventQueue.peek().getTick() <= gameClock.getCurrentTick()) {
+                        ScheduledEvent event = eventQueue.poll();
+                        event.getAction().run();
+                    }
+                    for (Unit u : units) {
+                        u.update(gameClock.getCurrentTick());
+                    }
+                    render();
+                }
+                try {
+                    Thread.sleep(16);
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
             }
-            for (Unit u : units) {
-                u.update(gameClock.getCurrentTick());
-            }
-        }
-        render();
+        }).start();
     }
 
     private void createUnits() {
-        int nextId = 1;
+        List<WeaponState> gunStates = List.of(
+                new WeaponState("Holstered", "Draw", 60),
+                new WeaponState("Ready", "Aim", 60),
+                new WeaponState("Aimed", "Fire", 5)
+        );
 
-        Character c1 = new Character("Alice", 99, 50);
-        List<WeaponState> derringerStates = new ArrayList<>();
-        derringerStates.add(new WeaponState("Holstered", "Draw", 60));
-        derringerStates.add(new WeaponState("Ready", "Aim", 60));
-        derringerStates.add(new WeaponState("Aimed", "Fire", 5));
-        Weapon derringer = new Weapon("Derringer", 600.0, 50, derringerStates, "Ready");
-        c1.weapon = derringer;
+        Weapon gun1 = new Weapon("Revolver", 900, 15, gunStates, "Holstered");
+        Weapon gun2 = new Weapon("Pistol", 800, 10, gunStates, "Holstered");
 
-        Character c2 = new Character("Bobby", 25, 50);
-        List<WeaponState> paintballStates = new ArrayList<>();
-        paintballStates.add(new WeaponState("Holstered", "Draw", 60));
-        paintballStates.add(new WeaponState("Ready", "Aim", 60));
-        paintballStates.add(new WeaponState("Aimed", "Fire", 5));
-        Weapon paintballGun = new Weapon("Paintball Gun", 30.0, 0, paintballStates);
-        c2.weapon = paintballGun;
+        Character alice = new Character("Alice", 100, 25, gun1);
+        Character bobby = new Character("Bobby", 100, 20, gun2);
 
-        units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
-        units.add(new Unit(c2, 300, 300, Color.BLUE, nextId++));
-    }
+        Unit unit1 = new Unit(alice, 100, 100, Color.RED, 1);
+        Unit unit2 = new Unit(bobby, 300, 300, Color.BLUE, 2);
 
-    private void resolveRangedAttack(Unit shooter, Unit target, long impactTick, long fireTick, boolean hit) {
-        System.out.println("--- Ranged attack fired at tick " + fireTick + ", resolved at tick " + impactTick + " (" + (hit ? "hit" : "miss") + ")");
-        if (hit) {
-            System.out.println(">>> Projectile hit " + target.character.name);
-            target.character.health -= shooter.character.weapon.damage;
-            System.out.println(">>> " + target.character.name + " takes " + shooter.character.weapon.damage + " damage. Health now: " + target.character.health);
-            if (target.character.health <= 0) {
-                System.out.println(">>> " + target.character.name + " is incapacitated!");
-                target.character.movementSpeed = 0;
-                eventQueue.removeIf(event -> event.action.toString().contains("ID: " + target.id));
-            }
-            if (!target.isHitHighlighted) {
-                target.isHitHighlighted = true;
-                target.color = Color.YELLOW;
-                eventQueue.add(new ScheduledEvent(impactTick + 15, () -> {
-                    target.color = target.baseColor;
-                    target.isHitHighlighted = false;
-                    Platform.runLater(this::render);
-                }));
-            }
-            Platform.runLater(() -> {
-                GraphicsContext gc = canvas.getGraphicsContext2D();
-                gc.save();
-                gc.translate(offsetX, offsetY);
-                gc.scale(zoom, zoom);
-                gc.setFill(Color.BLACK);
-                gc.fillOval(target.x - 14, target.y - 14, 28, 28);
-                gc.restore();
-            });
-        }
+        units.add(unit1);
+        units.add(unit2);
     }
 
     private void render() {
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.setFill(Color.LIGHTGRAY);
-        gc.fillRect(0, 0, WIDTH, HEIGHT);
+        gc.setFill(Color.WHITE);
+        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
         gc.save();
         gc.translate(offsetX, offsetY);
         gc.scale(zoom, zoom);
         for (Unit u : units) {
             u.render(gc, u == selected);
         }
+        if (debugMode) {
+            long currentTick = gameClock.getCurrentTick();
+            gc.setFill(Color.BLACK);
+            gc.fillText("Tick: " + currentTick, 10, 20);
+            for (Unit u : units) {
+                gc.fillText("ID: " + u.id, u.x, u.y - 10);
+            }
+        }
         gc.restore();
+    }
+
+    public static double pixelsToFeet(double pixels) {
+        return pixels / 10.0;
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }
