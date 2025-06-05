@@ -44,11 +44,11 @@ public class UnitMovementGame extends Application {
                             System.out.println(">>> " + selected.character.name + " is incapacitated and cannot attack.");
                             return;
                         }
-                        long executeAt = gameClock.getCurrentTick() + 60;
+                        long executeAt = gameClock.getCurrentTick();
                         final Unit shooter = selected;
                         final Unit target = u;
+                        System.out.println("DIRECT " + shooter.character.name + " (ID: " + shooter.id + ") to shoot at " + target.character.name + " (ID: " + target.id + ") (executes at tick " + executeAt + ")");
                         eventQueue.add(new ScheduledEvent(executeAt, () -> {
-                            System.out.println("DIRECT " + shooter.character.name + " (ID: " + shooter.id + ") to shoot at " + target.character.name + " (ID: " + target.id + ") (executes at tick " + executeAt + ")");
                             shooter.character.weapon.resolveRangedAttack(shooter, target, gameClock, eventQueue);
                         }, shooter.id));
                     }
@@ -86,13 +86,15 @@ public class UnitMovementGame extends Application {
                     break;
                 case SPACE:
                     gameClock.togglePause();
-                    System.out.println("Game " + (gameClock.isPaused() ? "paused" : "resumed"));
+                    System.out.println("******************************************************");
+                    System.out.println("Game " + (gameClock.isPaused() ? "paused" : "resumed") + " at tick: " + gameClock.getCurrentTick());
+                    System.out.println("******************************************************");
                     break;
             }
             render();
         });
 
-        primaryStage.setTitle("Unit Movement Game");
+        primaryStage.setTitle("Open Fields 2");
         primaryStage.setScene(scene);
         primaryStage.show();
 
@@ -127,17 +129,21 @@ public class UnitMovementGame extends Application {
                 new WeaponState("Aimed", "Fire", 5)
         );
 
-        Weapon gun1 = new Weapon("Revolver", 900, 15, gunStates, "Holstered");
-        Weapon gun2 = new Weapon("Pistol", 800, 10, gunStates, "Holstered");
+        Weapon gun1 = new Weapon("Revolver", 900, 25, gunStates, "Holstered");
+        Weapon gun2 = new Weapon("Revolver", 900, 25, gunStates, "Holstered");
+        Weapon gun3 = new Weapon("Nerf Pistol", 30, 0, gunStates, "Holstered");
 
         Character alice = new Character("Alice", 100, 25, gun1);
-        Character bobby = new Character("Bobby", 100, 20, gun2);
+        Character bobby = new Character("Bobby", 0, 20, gun2);
+        Character carlo = new Character("Carlo", 50, 20, gun3);
 
         Unit unit1 = new Unit(alice, 100, 100, Color.RED, 1);
         Unit unit2 = new Unit(bobby, 300, 300, Color.BLUE, 2);
+        Unit unit3 = new Unit(carlo, 100, 300, Color.GREEN, 3);
 
         units.add(unit1);
         units.add(unit2);
+        units.add(unit3);
     }
 
     private void render() {
