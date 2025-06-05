@@ -19,6 +19,7 @@ class WeaponState {
 }
 
 class Weapon {
+
     String name;
     double velocityFeetPerSecond;
     int damage;
@@ -74,10 +75,10 @@ class Weapon {
             int finalIndex = i;
             eventQueue.add(new ScheduledEvent(scheduledTick, () -> {
                 weapon.currentState = ws;
-                System.out.println("Weapon transitioned to: " + ws.state);
+                System.out.println(attacker.character.name + " is taking action '" + ws.action + "' with weapon '" + weapon.name + "' at tick " + gameClock.getCurrentTick());
 
                 if ("Fire".equals(ws.action)) {
-                    System.out.println(attacker.character.name + " fires at " + target.character.name);
+                    System.out.println(attacker.character.name + " fires " + weapon.name + " at " + target.character.name + " at tick " + gameClock.getCurrentTick());
 
                     // Compute distance in feet
                     double dx = target.x - attacker.x;
@@ -94,7 +95,15 @@ class Weapon {
                     eventQueue.add(new ScheduledEvent(impactTick, () -> {
                         if (willHit) {
                             target.character.health -= weapon.damage;
-                            System.out.println("*** " + attacker.character.name + " hits " + target.character.name + " for " + weapon.damage + " damage");
+                            System.out.println("*** " + attacker.character.name + " hits " + target.character.name + " with " + weapon.name + " for " + weapon.damage + " damage at tick " + gameClock.getCurrentTick());
+
+                            if (target.character.health <= 0) {
+                                System.out.println(">>> " + target.character.name + " is incapacitated at tick " + gameClock.getCurrentTick());
+                                eventQueue.removeIf(event -> {
+                                    String desc = event.getAction().toString();
+                                    return desc.contains(target.character.name);
+                                });
+                            }
                         } else {
                             System.out.println("*** " + attacker.character.name + " misses " + target.character.name);
                         }
