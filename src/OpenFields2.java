@@ -15,7 +15,7 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UnitMovementGame extends Application {
+public class OpenFields2 extends Application {
 
     public static double pixelsToFeet(double pixels) {
         return pixels / 7.0;
@@ -67,7 +67,7 @@ public class UnitMovementGame extends Application {
                             double dx = target.x - shooter.x;
                             double dy = target.y - shooter.y;
                             double distancePixels = Math.hypot(dx, dy);
-                            double distanceFeet = UnitMovementGame.pixelsToFeet(distancePixels);
+                            double distanceFeet = OpenFields2.pixelsToFeet(distancePixels);
                             System.out.println("*** " + shooter.character.name + " (ID: " + shooter.id + ") shoots at " + target.character.name + " (ID: " + target.id + ") at distance " + String.format("%.2f", distanceFeet) + " feet (executed at tick " + executeAt + ") using " + shooter.character.weapon.name);
 
                             long impactTick = executeAt + Math.round(distanceFeet / shooter.character.weapon.velocityFeetPerSecond * 60);
