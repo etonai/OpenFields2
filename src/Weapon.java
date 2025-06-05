@@ -1,4 +1,5 @@
 import java.util.List;
+import java.util.PriorityQueue;
 
 class WeaponState {
     String state;
@@ -18,6 +19,12 @@ class WeaponState {
 }
 
 class Weapon {
+    String name;
+    double velocityFeetPerSecond;
+    int damage;
+    List<WeaponState> states;
+    WeaponState currentState;
+
     public Weapon(String name, double velocityFeetPerSecond, int damage, List<WeaponState> states) {
         this(name, velocityFeetPerSecond, damage, states, (states != null && !states.isEmpty() ? states.get(0) : null));
     }
@@ -26,12 +33,6 @@ class Weapon {
         this(name, velocityFeetPerSecond, damage, states,
                 states != null ? states.stream().filter(s -> s.state.equals(initialStateName)).findFirst().orElse(states.isEmpty() ? null : states.get(0)) : null);
     }
-
-    String name;
-    double velocityFeetPerSecond;
-    int damage;
-    List<WeaponState> states;
-    WeaponState currentState;
 
     public Weapon(String name, double velocityFeetPerSecond, int damage, List<WeaponState> states, WeaponState initialState) {
         this.name = name;
@@ -45,7 +46,7 @@ class Weapon {
         return states;
     }
 
-    public void resolveRangedAttack(Unit attacker, Unit target, GameClock gameClock, java.util.PriorityQueue<ScheduledEvent> eventQueue) {
+    public void resolveRangedAttack(Unit attacker, Unit target, GameClock gameClock, PriorityQueue<ScheduledEvent> eventQueue) {
         if (attacker == null || attacker.character == null || attacker.character.weapon == null) return;
 
         Weapon weapon = attacker.character.weapon;
@@ -76,10 +77,30 @@ class Weapon {
                 System.out.println("Weapon transitioned to: " + ws.state);
 
                 if ("Fire".equals(ws.action)) {
-                    // Perform the hit effect here
                     System.out.println(attacker.character.name + " fires at " + target.character.name);
 
-                    // Reset weapon state to "Aimed"
+                    // Compute distance in feet
+                    double dx = target.x - attacker.x;
+                    double dy = target.y - attacker.y;
+                    double distancePixels = Math.hypot(dx, dy);
+                    double distanceFeet = distancePixels / 10.0;
+
+                    // Determine hit or miss
+                    boolean willHit = Math.random() * 100 < attacker.character.dexterity;
+                    long impactTick = gameClock.getCurrentTick() + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
+                    System.out.println("--- Impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
+
+                    // Schedule the impact
+                    eventQueue.add(new ScheduledEvent(impactTick, () -> {
+                        if (willHit) {
+                            target.character.health -= weapon.damage;
+                            System.out.println("*** " + attacker.character.name + " hits " + target.character.name + " for " + weapon.damage + " damage");
+                        } else {
+                            System.out.println("*** " + attacker.character.name + " misses " + target.character.name);
+                        }
+                    }));
+
+                    // Reset to Aimed
                     for (WeaponState s : states) {
                         if ("Aimed".equals(s.state)) {
                             weapon.currentState = s;
