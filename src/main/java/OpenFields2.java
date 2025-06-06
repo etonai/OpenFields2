@@ -7,6 +7,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
+import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -34,6 +35,7 @@ public class OpenFields2 extends Application {
     private boolean paused = true;
     private final GameClock gameClock = new GameClock();
     private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
+    private AudioClip gunshotSound;
 
     public static void main(String[] args) {
         launch(args);
@@ -42,6 +44,13 @@ public class OpenFields2 extends Application {
     @Override
     public void start(Stage primaryStage) {
         createUnits();
+        
+        try {
+            gunshotSound = new AudioClip(getClass().getResource("/Slap0002.wav").toExternalForm());
+        } catch (Exception e) {
+            System.out.println("Could not load gunshot sound: " + e.getMessage());
+        }
+        
         Pane root = new Pane(canvas);
         Scene scene = new Scene(root);
 
@@ -343,6 +352,14 @@ class Character {
             } else {
                 weapon.ammunition--;
                 System.out.println("*** " + name + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
+                
+                // Play gunshot sound
+                try {
+                    AudioClip sound = new AudioClip(getClass().getResource("/Slap0002.wav").toExternalForm());
+                    sound.play();
+                } catch (Exception ex) {
+                    // Sound file not found or couldn't play - continue silently
+                }
                 
                 double dx = target.x - shooter.x;
                 double dy = target.y - shooter.y;
