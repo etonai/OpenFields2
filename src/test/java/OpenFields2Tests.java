@@ -25,15 +25,15 @@ public class OpenFields2Tests {
         Unit bobbyUnit = units.get(1);
         Character bobby = bobbyUnit.getCharacter();
         assertEquals("Bobby", bobby.getName());
-        assertEquals(300, bobbyUnit.getX());
-        assertEquals(300, bobbyUnit.getY());
+        assertEquals(400, bobbyUnit.getX());
+        assertEquals(400, bobbyUnit.getY());
         assertEquals("Paintball Gun", bobby.getWeapon().getName());
 
         // Chris
         Unit chrisUnit = units.get(2);
         Character chris = chrisUnit.getCharacter();
         assertEquals("Chris", chris.getName());
-        assertEquals(300, chrisUnit.getX());
+        assertEquals(400, chrisUnit.getX());
         assertEquals(100, chrisUnit.getY());
         assertEquals("Nerf Gun", chris.getWeapon().getName());
     }
