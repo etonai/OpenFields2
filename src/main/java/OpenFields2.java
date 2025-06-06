@@ -126,21 +126,21 @@ public class OpenFields2 extends Application {
     void createUnits() {
         int nextId = 1;
         Character c1 = new Character("Alice", 100, 50);
-        c1.weapon = createStandardWeapon("Derringer", 600.0, 50);
+        c1.weapon = createStandardWeapon("Colt Peacemaker", 600.0, 50, 6);
         c1.currentWeaponState = c1.weapon.getInitialState();
         Character c2 = new Character("Bobby", 50, 50);
-        c2.weapon = createStandardWeapon("Paintball Gun", 300.0, 1);
+        c2.weapon = createStandardWeapon("Paintball Gun", 300.0, 1, 7);
         c2.currentWeaponState = c2.weapon.getInitialState();
         Character c3 = new Character("Chris", 0, 50);
-        c3.weapon = createStandardWeapon("Nerf Gun", 30.0, 0);
+        c3.weapon = createStandardWeapon("Nerf Gun", 30.0, 0, 10);
         c3.currentWeaponState = c3.weapon.getInitialState();
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
         units.add(new Unit(c2, 400, 400, Color.BLUE, nextId++));
         units.add(new Unit(c3, 400, 100, Color.GREEN, nextId++));
     }
     
-    private Weapon createStandardWeapon(String name, double velocity, int damage) {
-        Weapon weapon = new Weapon(name, velocity, damage);
+    private Weapon createStandardWeapon(String name, double velocity, int damage, int ammunition) {
+        Weapon weapon = new Weapon(name, velocity, damage, ammunition);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
@@ -212,6 +212,7 @@ class Character {
     Weapon weapon;
     WeaponState currentWeaponState;
     Unit currentTarget;
+    int queuedShots = 0;
 
     public Character(String name, int dexterity, int health) {
         this.name = name;
@@ -289,6 +290,14 @@ class Character {
         }
         
         currentTarget = target;
+        
+        if (queuedShots > 0) {
+            queuedShots++;
+            System.out.println(name + " queued shot " + queuedShots + " at " + target.character.name);
+            return;
+        }
+        
+        queuedShots = 1;
         scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId);
     }
     
@@ -329,17 +338,23 @@ class Character {
             currentWeaponState = weapon.getStateByName("firing");
             System.out.println(name + " weapon state: firing at tick " + fireTick);
             
-            double dx = target.x - shooter.x;
-            double dy = target.y - shooter.y;
-            double distancePixels = Math.hypot(dx, dy);
-            double distanceFeet = OpenFields2.pixelsToFeet(distancePixels);
-            System.out.println("*** " + name + " shoots at " + target.character.name + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
-            
-            long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
-            boolean willHit = Math.random() * 100 < dexterity;
-            System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
-            
-            eventQueue.add(new ScheduledEvent(impactTick, () -> {
+            if (weapon.ammunition <= 0) {
+                System.out.println("*** " + name + " tries to fire " + weapon.name + " but it's out of ammunition!");
+            } else {
+                weapon.ammunition--;
+                System.out.println("*** " + name + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
+                
+                double dx = target.x - shooter.x;
+                double dy = target.y - shooter.y;
+                double distancePixels = Math.hypot(dx, dy);
+                double distanceFeet = OpenFields2.pixelsToFeet(distancePixels);
+                System.out.println("*** " + name + " shoots at " + target.character.name + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
+                
+                long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
+                boolean willHit = Math.random() * 100 < dexterity;
+                System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
+                
+                eventQueue.add(new ScheduledEvent(impactTick, () -> {
                 if (willHit) {
                     System.out.println(">>> Projectile hit " + target.character.name + " at tick " + impactTick);
                     target.character.health -= weapon.damage;
@@ -362,6 +377,7 @@ class Character {
                     System.out.println(">>> Projectile missed " + target.character.name + " at tick " + impactTick);
                 }
             }, ScheduledEvent.WORLD_OWNER));
+            }
             
             WeaponState firingState = weapon.getStateByName("firing");
             eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks, () -> {
@@ -372,6 +388,12 @@ class Character {
                 eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
                     currentWeaponState = weapon.getStateByName("aiming");
                     System.out.println(name + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
+                    
+                    queuedShots--;
+                    if (queuedShots > 0 && currentTarget != null) {
+                        System.out.println(name + " starting queued shot " + (queuedShots + 1) + " at " + currentTarget.character.name);
+                        scheduleFiring(shooter, currentTarget, fireTick + firingState.ticks + recoveringState.ticks + currentWeaponState.ticks, eventQueue, ownerId);
+                    }
                 }, ownerId));
             }, ownerId));
             
@@ -430,11 +452,13 @@ class Weapon {
     int damage;
     List<WeaponState> states;
     String initialStateName;
+    int ammunition;
 
-    public Weapon(String name, double velocityFeetPerSecond, int damage) {
+    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition) {
         this.name = name;
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
+        this.ammunition = ammunition;
     }
 
     public String getName() {

@@ -19,7 +19,7 @@ public class OpenFields2Tests {
         assertEquals("Alice", alice.getName());
         assertEquals(100, aliceUnit.getX());
         assertEquals(100, aliceUnit.getY());
-        assertEquals("Derringer", alice.getWeapon().getName());
+        assertEquals("Colt Peacemaker", alice.getWeapon().getName());
 
         // Bobby
         Unit bobbyUnit = units.get(1);
