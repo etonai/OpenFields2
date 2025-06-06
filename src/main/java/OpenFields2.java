@@ -55,6 +55,14 @@ public class OpenFields2 extends Application {
                     if (e.getButton() == MouseButton.PRIMARY) {
                         selected = u;
                         System.out.println("Selected: " + u.character.name + " (ID: " + u.id + ")");
+                    } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u == selected) {
+                        if (selected.character.health <= 0) {
+                            System.out.println(">>> " + selected.character.name + " is incapacitated and cannot ready weapon.");
+                            return;
+                        }
+                        
+                        selected.character.startReadyWeaponSequence(selected, gameClock.getCurrentTick(), eventQueue, selected.getId());
+                        System.out.println("READY WEAPON " + selected.character.name + " (ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
                         if (selected.character.health <= 0) {
                             System.out.println(">>> " + selected.character.name + " is incapacitated and cannot attack.");
@@ -276,6 +284,12 @@ class Character {
         scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId);
     }
     
+    public void startReadyWeaponSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        if (weapon == null || currentWeaponState == null) return;
+        
+        scheduleReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
+    }
+    
     private void scheduleAttackFromCurrentState(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         if (weapon == null || currentWeaponState == null) return;
         
@@ -325,6 +339,8 @@ class Character {
                     if (target.character.health <= 0) {
                         System.out.println(">>> " + target.character.name + " is incapacitated!");
                         target.character.movementSpeed = 0;
+                        eventQueue.removeIf(e -> e.getOwnerId() == target.getId());
+                        System.out.println(">>> Removed all scheduled actions for " + target.character.name);
                     }
                     if (!target.isHitHighlighted) {
                         target.isHitHighlighted = true;
@@ -359,6 +375,38 @@ class Character {
         }
         
         return timeToFire;
+    }
+    
+    private void scheduleReadyFromCurrentState(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        if (weapon == null || currentWeaponState == null) return;
+        
+        String currentState = currentWeaponState.getState();
+        
+        if ("ready".equals(currentState)) {
+            System.out.println(name + " weapon is already ready");
+            return;
+        }
+        
+        if ("holstered".equals(currentState)) {
+            scheduleReadyStateTransition("drawing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+        } else if ("drawing".equals(currentState)) {
+            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+        } else if ("aiming".equals(currentState) || "firing".equals(currentState)) {
+            WeaponState readyState = weapon.getStateByName("ready");
+            eventQueue.add(new ScheduledEvent(currentTick + currentWeaponState.ticks, () -> {
+                currentWeaponState = readyState;
+                System.out.println(name + " weapon state: ready at tick " + (currentTick + currentWeaponState.ticks));
+            }, ownerId));
+        }
+    }
+    
+    private void scheduleReadyStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        long transitionTick = currentTick + transitionTickLength;
+        eventQueue.add(new ScheduledEvent(transitionTick, () -> {
+            currentWeaponState = weapon.getStateByName(newStateName);
+            System.out.println(name + " weapon state: " + newStateName + " at tick " + transitionTick);
+            scheduleReadyFromCurrentState(unit, transitionTick, eventQueue, ownerId);
+        }, ownerId));
     }
 }
 
