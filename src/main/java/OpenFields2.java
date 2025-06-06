@@ -283,20 +283,21 @@ class Character {
         long totalTimeToFire = calculateTimeToFire();
         
         if ("holstered".equals(currentState)) {
-            scheduleStateTransition("drawing", currentTick + 0, shooter, target, eventQueue, ownerId);
+            scheduleStateTransition("drawing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId);
         } else if ("drawing".equals(currentState)) {
-            scheduleStateTransition("ready", currentTick + 30, shooter, target, eventQueue, ownerId);
+            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId);
         } else if ("ready".equals(currentState)) {
-            scheduleStateTransition("aiming", currentTick + 15, shooter, target, eventQueue, ownerId);
+            scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId);
         } else if ("aiming".equals(currentState)) {
-            scheduleFiring(shooter, target, currentTick + 60, eventQueue, ownerId);
+            scheduleFiring(shooter, target, currentTick + currentWeaponState.ticks, eventQueue, ownerId);
         }
     }
     
-    private void scheduleStateTransition(String newStateName, long transitionTick, Unit shooter, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit shooter, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        long transitionTick = currentTick + transitionTickLength;
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
             currentWeaponState = weapon.getStateByName(newStateName);
-            System.out.println(name + " weapon state: " + newStateName);
+            System.out.println(name + " weapon state: " + newStateName + " at tick " + transitionTick);
             scheduleAttackFromCurrentState(shooter, target, transitionTick, eventQueue, ownerId);
         }, ownerId));
     }
@@ -304,13 +305,13 @@ class Character {
     private void scheduleFiring(Unit shooter, Unit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         eventQueue.add(new ScheduledEvent(fireTick, () -> {
             currentWeaponState = weapon.getStateByName("firing");
-            System.out.println(name + " weapon state: firing");
+            System.out.println(name + " weapon state: firing at tick " + fireTick);
             
             double dx = target.x - shooter.x;
             double dy = target.y - shooter.y;
             double distancePixels = Math.hypot(dx, dy);
             double distanceFeet = OpenFields2.pixelsToFeet(distancePixels);
-            System.out.println("*** " + name + " shoots at " + target.character.name + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name);
+            System.out.println("*** " + name + " shoots at " + target.character.name + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
             
             long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
             boolean willHit = Math.random() * 100 < dexterity;
@@ -318,7 +319,7 @@ class Character {
             
             eventQueue.add(new ScheduledEvent(impactTick, () -> {
                 if (willHit) {
-                    System.out.println(">>> Projectile hit " + target.character.name);
+                    System.out.println(">>> Projectile hit " + target.character.name + " at tick " + impactTick);
                     target.character.health -= weapon.damage;
                     System.out.println(">>> " + target.character.name + " takes " + weapon.damage + " damage. Health now: " + target.character.health);
                     if (target.character.health <= 0) {
@@ -333,12 +334,15 @@ class Character {
                             target.isHitHighlighted = false;
                         }, ScheduledEvent.WORLD_OWNER));
                     }
+                } else {
+                    System.out.println(">>> Projectile missed " + target.character.name + " at tick " + impactTick);
                 }
             }, ScheduledEvent.WORLD_OWNER));
             
-            eventQueue.add(new ScheduledEvent(fireTick + 5, () -> {
+            WeaponState firingState = weapon.getStateByName("firing");
+            eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks, () -> {
                 currentWeaponState = weapon.getStateByName("ready");
-                System.out.println(name + " weapon state: ready");
+                System.out.println(name + " weapon state: ready at tick " + (fireTick + firingState.ticks));
             }, ownerId));
             
         }, ownerId));
@@ -346,13 +350,15 @@ class Character {
     
     private long calculateTimeToFire() {
         String currentState = currentWeaponState.getState();
-        switch (currentState) {
-            case "holstered": return 30 + 15 + 60;
-            case "drawing": return 15 + 60;
-            case "ready": return 60;
-            case "aiming": return 0;
-            default: return 0;
+        long timeToFire = 0;
+        
+        WeaponState state = currentWeaponState;
+        while (state != null && !"aiming".equals(state.getState())) {
+            timeToFire += state.ticks;
+            state = weapon.getStateByName(state.getAction());
         }
+        
+        return timeToFire;
     }
 }
 
