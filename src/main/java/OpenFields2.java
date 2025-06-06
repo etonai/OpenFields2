@@ -75,10 +75,15 @@ public class OpenFields2 extends Application {
                             System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
                             final boolean finalWillHit = willHit;
                             final long fireTick = gameClock.getCurrentTick();
-                            eventQueue.add(new ScheduledEvent(impactTick, () -> {
-                                resolveRangedAttack(shooter, target, impactTick, fireTick, finalWillHit);
-                            }));
-                        }));
+                            // ED TODO: Not sure if this is the correct owner
+                            eventQueue.add(new ScheduledEvent(impactTick,
+                                    () -> {
+                                        resolveRangedAttack(shooter, target, impactTick, fireTick, finalWillHit);
+                                    },
+                                    ScheduledEvent.WORLD_OWNER
+                                    ));
+                            },
+                                shooter.getId()));
                         System.out.println("DIRECT " + selected.character.name + " (ID: " + selected.id + ") to shoot at " + u.character.name + " (ID: " + u.id + ") (executes at tick " + executeAt + ")");
                     }
                 }
@@ -159,10 +164,13 @@ public class OpenFields2 extends Application {
             if (!target.isHitHighlighted) {
                 target.isHitHighlighted = true;
                 target.color = Color.YELLOW;
-                eventQueue.add(new ScheduledEvent(impactTick + 15, () -> {
-                    target.color = target.baseColor;
-                    target.isHitHighlighted = false;
-                }));
+                eventQueue.add(new ScheduledEvent(impactTick + 15,
+                        () -> {
+                            target.color = target.baseColor;
+                            target.isHitHighlighted = false;
+                        },
+                        ScheduledEvent.WORLD_OWNER
+                        ));
             }
         }
     }
@@ -188,6 +196,10 @@ public class OpenFields2 extends Application {
         return eventQueue;
     }
 
+    public void removeAllEventsForOwner(int ownerId) {
+        eventQueue.removeIf(e -> e.getOwnerId() == ownerId);
+    }
+
 }
 
 class Character {
@@ -196,6 +208,7 @@ class Character {
     int health;
     double movementSpeed;
     Weapon weapon;
+    WeaponState currentWeaponState;
 
     public Character(String name, int dexterity, int health) {
         this.name = name;
@@ -252,12 +265,21 @@ class Character {
         this.weapon = weapon;
     }
 
+    public WeaponState getCurrentWeaponState() {
+        return currentWeaponState;
+    }
+
+    public void setCurrentWeaponState(WeaponState state) {
+        this.currentWeaponState = state;
+    }
 }
 
 class Weapon {
     String name;
     double velocityFeetPerSecond;
     int damage;
+    List<WeaponState> states;
+    String initialStateName;
 
     public Weapon(String name, double velocityFeetPerSecond, int damage) {
         this.name = name;
@@ -276,6 +298,22 @@ class Weapon {
     public int getDamage() {
         return damage;
     }
+
+    public WeaponState getStateByName(String name) {
+        for (WeaponState s : states) {
+            if (s.getState().equals(name)) return s;
+        }
+        return null;
+    }
+
+    public WeaponState getNextState(WeaponState current) {
+        return getStateByName(current.getAction());
+    }
+
+    public WeaponState getInitialState() {
+        return getStateByName(initialStateName);
+    }
+
 }
 
 class WeaponState {
@@ -287,6 +325,13 @@ class WeaponState {
         this.state = state;
         this.action = action;
         this.ticks = ticks;
+    }
+
+    public String getState() {
+        return state;
+    }
+    public String getAction() {
+        return action;
     }
 
     @Override
@@ -319,6 +364,10 @@ class Unit {
         this.targetY = y;
         this.color = color;
         this.baseColor = color;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public Character getCharacter() {
@@ -382,9 +431,34 @@ class ScheduledEvent implements Comparable<ScheduledEvent> {
     final long tick;
     final Runnable action;
 
+    private final int ownerId; // -1 for world-owned events
+
+    public static final int WORLD_OWNER = -1;
+
+    /*
     public ScheduledEvent(long tick, Runnable action) {
         this.tick = tick;
         this.action = action;
+        this.ownerId = WORLD_OWNER;
+    }
+
+     */
+    public ScheduledEvent(long tick, Runnable action, int ownerId) {
+        this.tick = tick;
+        this.action = action;
+        this.ownerId = ownerId;
+    }
+
+    public long getTick() {
+        return tick;
+    }
+
+    public Runnable getAction() {
+        return action;
+    }
+
+    public int getOwnerId() {
+        return ownerId;
     }
 
     @Override
