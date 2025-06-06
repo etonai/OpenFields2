@@ -191,6 +191,55 @@ class Character {
         this.health = health;
         this.movementSpeed = 42.0;
     }
+
+    public Character(String name, int dexterity, int health, Weapon weapon) {
+        this.name = name;
+        this.dexterity = dexterity;
+        this.health = health;
+        this.weapon = weapon;
+        this.movementSpeed = 42.0;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getDexterity() {
+        return dexterity;
+    }
+
+    public void setDexterity(int dexterity) {
+        this.dexterity = dexterity;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public void setHealth(int health) {
+        this.health = health;
+    }
+
+    public double getMovementSpeed() {
+        return movementSpeed;
+    }
+
+    public void setMovementSpeed(double movementSpeed) {
+        this.movementSpeed = movementSpeed;
+    }
+
+    public Weapon getWeapon() {
+        return weapon;
+    }
+
+    public void setWeapon(Weapon weapon) {
+        this.weapon = weapon;
+    }
+
 }
 
 class Weapon {
