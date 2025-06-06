@@ -146,7 +146,8 @@ public class OpenFields2 extends Application {
         weapon.states.add(new WeaponState("drawing", "ready", 30));
         weapon.states.add(new WeaponState("ready", "aiming", 15));
         weapon.states.add(new WeaponState("aiming", "firing", 60));
-        weapon.states.add(new WeaponState("firing", "ready", 5));
+        weapon.states.add(new WeaponState("firing", "recovering", 5));
+        weapon.states.add(new WeaponState("recovering", "aiming", 30));
         weapon.initialStateName = "holstered";
         return weapon;
     }
@@ -210,6 +211,7 @@ class Character {
     double movementSpeed;
     Weapon weapon;
     WeaponState currentWeaponState;
+    Unit currentTarget;
 
     public Character(String name, int dexterity, int health) {
         this.name = name;
@@ -281,6 +283,12 @@ class Character {
     public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         if (weapon == null || currentWeaponState == null) return;
         
+        if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
+            currentWeaponState = weapon.getStateByName("ready");
+            System.out.println(name + " weapon state: ready (target changed) at tick " + currentTick);
+        }
+        
+        currentTarget = target;
         scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId);
     }
     
@@ -357,8 +365,14 @@ class Character {
             
             WeaponState firingState = weapon.getStateByName("firing");
             eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks, () -> {
-                currentWeaponState = weapon.getStateByName("ready");
-                System.out.println(name + " weapon state: ready at tick " + (fireTick + firingState.ticks));
+                currentWeaponState = weapon.getStateByName("recovering");
+                System.out.println(name + " weapon state: recovering at tick " + (fireTick + firingState.ticks));
+                
+                WeaponState recoveringState = weapon.getStateByName("recovering");
+                eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
+                    currentWeaponState = weapon.getStateByName("aiming");
+                    System.out.println(name + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
+                }, ownerId));
             }, ownerId));
             
         }, ownerId));
@@ -391,7 +405,7 @@ class Character {
             scheduleReadyStateTransition("drawing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("drawing".equals(currentState)) {
             scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("aiming".equals(currentState) || "firing".equals(currentState)) {
+        } else if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
             WeaponState readyState = weapon.getStateByName("ready");
             eventQueue.add(new ScheduledEvent(currentTick + currentWeaponState.ticks, () -> {
                 currentWeaponState = readyState;
