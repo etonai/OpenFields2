@@ -132,14 +132,17 @@ public class OpenFields2 extends Application {
         render();
     }
 
-    private void createUnits() {
+    void createUnits() {
         int nextId = 1;
-        Character c1 = new Character("Alice", 99, 50);
+        Character c1 = new Character("Alice", 100, 50);
         c1.weapon = new Weapon("Derringer", 600.0, 50);
-        Character c2 = new Character("Bobby", 25, 50);
-        c2.weapon = new Weapon("Paintball Gun", 30.0, 0);
+        Character c2 = new Character("Bobby", 0, 50);
+        c2.weapon = new Weapon("Paintball Gun", 300.0, 1);
+        Character c3 = new Character("Chris", 50, 50);
+        c3.weapon = new Weapon("Nerf Gun", 30.0, 0);
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
         units.add(new Unit(c2, 300, 300, Color.BLUE, nextId++));
+        units.add(new Unit(c3, 300, 100, Color.GREEN, nextId++));
     }
 
     private void resolveRangedAttack(Unit shooter, Unit target, long impactTick, long fireTick, boolean hit) {
@@ -176,6 +179,15 @@ public class OpenFields2 extends Application {
         }
         gc.restore();
     }
+
+    public List<Unit> getUnits() {
+        return units;
+    }
+
+    public java.util.PriorityQueue<ScheduledEvent> getEventQueue() {
+        return eventQueue;
+    }
+
 }
 
 class Character {
@@ -252,6 +264,18 @@ class Weapon {
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getVelocityFeetPerSecond() {
+        return velocityFeetPerSecond;
+    }
+
+    public int getDamage() {
+        return damage;
+    }
 }
 
 class WeaponState {
@@ -297,6 +321,17 @@ class Unit {
         this.baseColor = color;
     }
 
+    public Character getCharacter() {
+        return character;
+    }
+
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
+    }
     public void setTarget(double x, double y) {
         this.targetX = x;
         this.targetY = y;
