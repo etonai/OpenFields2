@@ -21,6 +21,84 @@ public class OpenFields2 extends Application {
     public static double pixelsToFeet(double pixels) {
         return pixels / 7.0;
     }
+    
+    public static int statToModifier(int stat) {
+        // Clamp stat to valid range
+        stat = Math.max(1, Math.min(100, stat));
+        
+        // Balanced requirements for symmetric distribution:
+        // 1. Perfect symmetry around 50-51: statToModifier(50-i) = -statToModifier(51+i)
+        // 2. Monotonic: each stat >= previous, increase by at most 1
+        // 3. Extremes: 1→-20, 100→+20
+        // 4. Center: 50→0, 51→0
+        // 5. Close approximation to 1-6: -20 to -15 and 95-100: 15-20
+        // 6. Single digits for 21-80 range
+        // 7. All integers -20 to +20 possible
+        
+        // Use a lookup table for perfect control over the distribution
+        // This ensures both symmetry and the specific boundary approximations
+        int[] modifiers = new int[101]; // index 0 unused, 1-100 are valid stats
+        
+        // Define the negative half (1-50), then mirror for positive half (51-100)
+        modifiers[1] = -20;   // Boundary requirement: 1 → -20
+        modifiers[2] = -19;   // Boundary requirement: 2 → -19
+        modifiers[3] = -18;   // Boundary requirement: 3 → -18
+        modifiers[4] = -17;   // Boundary requirement: 4 → -17
+        modifiers[5] = -16;   // Boundary requirement: 5 → -16
+        modifiers[6] = -15;   // Boundary requirement: 6 → -15
+        modifiers[7] = -14;
+        modifiers[8] = -14;
+        modifiers[9] = -13;
+        modifiers[10] = -13;
+        modifiers[11] = -12;
+        modifiers[12] = -12;
+        modifiers[13] = -11;
+        modifiers[14] = -11;
+        modifiers[15] = -10;
+        modifiers[16] = -10;
+        modifiers[17] = -9;
+        modifiers[18] = -9;
+        modifiers[19] = -8;
+        modifiers[20] = -8;
+        modifiers[21] = -7;   // Single digit starts here
+        modifiers[22] = -7;
+        modifiers[23] = -6;
+        modifiers[24] = -6;
+        modifiers[25] = -5;
+        modifiers[26] = -5;
+        modifiers[27] = -5;
+        modifiers[28] = -4;
+        modifiers[29] = -4;
+        modifiers[30] = -4;
+        modifiers[31] = -3;
+        modifiers[32] = -3;
+        modifiers[33] = -3;
+        modifiers[34] = -3;
+        modifiers[35] = -2;
+        modifiers[36] = -2;
+        modifiers[37] = -2;
+        modifiers[38] = -2;
+        modifiers[39] = -2;
+        modifiers[40] = -1;
+        modifiers[41] = -1;
+        modifiers[42] = -1;
+        modifiers[43] = -1;
+        modifiers[44] = -1;
+        modifiers[45] = -1;
+        modifiers[46] = 0;
+        modifiers[47] = 0;
+        modifiers[48] = 0;
+        modifiers[49] = 0;
+        modifiers[50] = 0;    // Center point
+        modifiers[51] = 0;    // Center point
+        
+        // Mirror for the positive half (perfect symmetry)
+        for (int i = 1; i <= 49; i++) {
+            modifiers[51 + i] = -modifiers[50 - i];
+        }
+        
+        return modifiers[stat];
+    }
 
     static final int WIDTH = 800;
     static final int HEIGHT = 600;
@@ -191,7 +269,7 @@ public class OpenFields2 extends Application {
         return weapon;
     }
 
-    private static boolean determineHit(Character shooter, Unit target, double distanceFeet) {
+    private static boolean determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange) {
         return Math.random() * 100 < shooter.dexterity;
     }
     
@@ -208,7 +286,7 @@ public class OpenFields2 extends Application {
     
     void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
         long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
-        boolean willHit = determineHit(shooter.character, target, distanceFeet);
+        boolean willHit = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange);
         System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
         
         eventQueue.add(new ScheduledEvent(impactTick, () -> {
@@ -285,6 +363,7 @@ class Character {
     WeaponState currentWeaponState;
     Unit currentTarget;
     int queuedShots = 0;
+    List<Skill> skills;
 
     public Character(String name, int dexterity, int health, int bravery) {
         this.name = name;
@@ -292,6 +371,7 @@ class Character {
         this.health = health;
         this.bravery = bravery;
         this.baseMovementSpeed = 42.0;
+        this.skills = new ArrayList<>();
     }
 
     public Character(String name, int dexterity, int health, int bravery, Weapon weapon) {
@@ -301,6 +381,26 @@ class Character {
         this.bravery = bravery;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
+        this.skills = new ArrayList<>();
+    }
+    
+    public Character(String name, int dexterity, int health, int bravery, List<Skill> skills) {
+        this.name = name;
+        this.dexterity = dexterity;
+        this.health = health;
+        this.bravery = bravery;
+        this.baseMovementSpeed = 42.0;
+        this.skills = skills != null ? skills : new ArrayList<>();
+    }
+    
+    public Character(String name, int dexterity, int health, int bravery, Weapon weapon, List<Skill> skills) {
+        this.name = name;
+        this.dexterity = dexterity;
+        this.health = health;
+        this.bravery = bravery;
+        this.weapon = weapon;
+        this.baseMovementSpeed = 42.0;
+        this.skills = skills != null ? skills : new ArrayList<>();
     }
 
     public String getName() {
@@ -357,6 +457,32 @@ class Character {
 
     public void setCurrentWeaponState(WeaponState state) {
         this.currentWeaponState = state;
+    }
+    
+    public List<Skill> getSkills() {
+        return skills;
+    }
+    
+    public void setSkills(List<Skill> skills) {
+        this.skills = skills != null ? skills : new ArrayList<>();
+    }
+    
+    public Skill getSkill(String skillName) {
+        for (Skill skill : skills) {
+            if (skill.getSkillName().equals(skillName)) {
+                return skill;
+            }
+        }
+        return null;
+    }
+    
+    public int getSkillLevel(String skillName) {
+        Skill skill = getSkill(skillName);
+        return skill != null ? skill.getLevel() : 0;
+    }
+    
+    public void addSkill(Skill skill) {
+        skills.add(skill);
     }
     
     public boolean canFire() {
@@ -717,5 +843,31 @@ class GameClock {
 
     public void reset() {
         currentTick = 0;
+    }
+}
+
+class Skill {
+    String skillName;
+    int level;
+    
+    public Skill(String skillName, int level) {
+        this.skillName = skillName;
+        this.level = level;
+    }
+    
+    public String getSkillName() {
+        return skillName;
+    }
+    
+    public void setSkillName(String skillName) {
+        this.skillName = skillName;
+    }
+    
+    public int getLevel() {
+        return level;
+    }
+    
+    public void setLevel(int level) {
+        this.level = level;
     }
 }
