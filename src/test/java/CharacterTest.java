@@ -25,7 +25,7 @@ public class CharacterTest {
         assertEquals(42.0, bart.getMovementSpeed());
         assertNull(bart.getWeapon());
 
-        bart.weapon = new Weapon("Airsoft Pistol", 350.0, 1);
+        bart.weapon = new Weapon("Airsoft Pistol", 350.0, 1, 20);
         assertEquals("Airsoft Pistol", bart.getWeapon().getName());
         assertEquals(350.0, bart.getWeapon().getVelocityFeetPerSecond());
         assertEquals(1, bart.getWeapon().getDamage());

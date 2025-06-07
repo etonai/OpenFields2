@@ -11,7 +11,7 @@ public class OpenFields2Tests {
         game.createUnits();
 
         List<Unit> units = game.getUnits();
-        assertEquals(3, units.size(), "Expected 3 units");
+        assertEquals(4, units.size(), "Expected 4 units");
 
         // Alice
         Unit aliceUnit = units.get(0);

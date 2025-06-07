@@ -46,7 +46,7 @@ public class OpenFields2 extends Application {
         createUnits();
         
         try {
-            gunshotSound = new AudioClip(getClass().getResource("/Slap0002.wav").toExternalForm());
+            gunshotSound = new AudioClip(getClass().getResource("/Slap0003.wav").toExternalForm());
         } catch (Exception e) {
             System.out.println("Could not load gunshot sound: " + e.getMessage());
         }
@@ -135,21 +135,25 @@ public class OpenFields2 extends Application {
     void createUnits() {
         int nextId = 1;
         Character c1 = new Character("Alice", 100, 50);
-        c1.weapon = createStandardWeapon("Colt Peacemaker", 600.0, 50, 6);
+        c1.weapon = createStandardWeapon("Colt Peacemaker", 600.0, 50, 6, "/Slap0003.wav");
         c1.currentWeaponState = c1.weapon.getInitialState();
         Character c2 = new Character("Bobby", 50, 50);
-        c2.weapon = createStandardWeapon("Paintball Gun", 300.0, 1, 7);
+        c2.weapon = createStandardWeapon("Paintball Gun", 300.0, 1, 7, "/Slap0003.wav");
         c2.currentWeaponState = c2.weapon.getInitialState();
-        Character c3 = new Character("Chris", 0, 50);
-        c3.weapon = createStandardWeapon("Nerf Gun", 30.0, 0, 10);
+        Character c3 = new Character("Chris", 50, 50);
+        c3.weapon = createStandardWeapon("Nerf Gun", 30.0, 0, 10, "/Slap0003.wav");
         c3.currentWeaponState = c3.weapon.getInitialState();
+        Character c4 = new Character("Drake", 50, 50);
+        c4.weapon = createStandardWeapon("Lasertag Gun", 30000.0, 0, 20, "/placeholder_laser.wav");
+        c4.currentWeaponState = c4.weapon.getInitialState();
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
         units.add(new Unit(c2, 400, 400, Color.BLUE, nextId++));
         units.add(new Unit(c3, 400, 100, Color.GREEN, nextId++));
+        units.add(new Unit(c4, 100, 400, Color.PURPLE, nextId++));
     }
     
-    private Weapon createStandardWeapon(String name, double velocity, int damage, int ammunition) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition);
+    private Weapon createStandardWeapon(String name, double velocity, int damage, int ammunition, String soundFile) {
+        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
@@ -353,9 +357,9 @@ class Character {
                 weapon.ammunition--;
                 System.out.println("*** " + name + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
                 
-                // Play gunshot sound
+                // Play weapon sound
                 try {
-                    AudioClip sound = new AudioClip(getClass().getResource("/Slap0002.wav").toExternalForm());
+                    AudioClip sound = new AudioClip(getClass().getResource(weapon.soundFile).toExternalForm());
                     sound.play();
                 } catch (Exception ex) {
                     // Sound file not found or couldn't play - continue silently
@@ -470,12 +474,14 @@ class Weapon {
     List<WeaponState> states;
     String initialStateName;
     int ammunition;
+    String soundFile;
 
-    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition) {
+    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile) {
         this.name = name;
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
         this.ammunition = ammunition;
+        this.soundFile = soundFile;
     }
 
     public String getName() {
