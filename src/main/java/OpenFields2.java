@@ -111,7 +111,8 @@ public class OpenFields2 extends Application {
     private double offsetY = 0;
     private double zoom = 1.0;
     private boolean paused = true;
-    private static int stressModifier = -10;
+    private static boolean debugMode = false;
+    private static int stressModifier = -20;
     private final GameClock gameClock = new GameClock();
     private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
     private AudioClip gunshotSound;
@@ -187,6 +188,12 @@ public class OpenFields2 extends Application {
                     System.out.println("***********************");
                 }
             }
+            if (e.getCode() == KeyCode.D && e.isControlDown()) {
+                debugMode = !debugMode;
+                System.out.println("***********************");
+                System.out.println("*** Debug mode " + (debugMode ? "ENABLED" : "DISABLED"));
+                System.out.println("***********************");
+            }
         });
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.0 / 60), e -> run()));
@@ -210,20 +217,20 @@ public class OpenFields2 extends Application {
         }
         render();
     }
-
     void createUnits() {
+
         int nextId = 1;
         Character c1 = new Character("Alice", 100, 50, 75);
-        c1.weapon = createPistol("Colt Peacemaker", 600.0, 50, 6, "/Slap0003.wav", 150.0);
+        c1.weapon = createPistol("Colt Peacemaker", 600.0, 50, 6, "/Slap0003.wav", 150.0, 0);
         c1.currentWeaponState = c1.weapon.getInitialState();
-        Character c2 = new Character("Bobby", 50, 50, 60);
-        c2.weapon = createRifle("Emek Paintball Gun", 300.0, 1, 160, "/Slap0003.wav", 300.0);
+        Character c2 = new Character("Bobby", 75, 50, 60);
+        c2.weapon = createRifle("Emek Paintball Gun", 300.0, 1, 160, "/Slap0003.wav", 300.0, -10);
         c2.currentWeaponState = c2.weapon.getInitialState();
-        Character c3 = new Character("Chris", 50, 50, 40);
-        c3.weapon = createPistol("Nerf Pistol", 30.0, 0, 10, "/Slap0003.wav", 50.0);
+        Character c3 = new Character("Chris", 25, 50, 30);
+        c3.weapon = createPistol("Nerf Pistol", 30.0, 0, 10, "/Slap0003.wav", 50.0, -20);
         c3.currentWeaponState = c3.weapon.getInitialState();
         Character c4 = new Character("Drake", 50, 50, 85);
-        c4.weapon = createPistol("Lasertag Gun", 30000.0, 0, 20, "/placeholder_laser.wav", 500.0);
+        c4.weapon = createPistol("Lasertag Gun", 30000.0, 0, 20, "/placeholder_laser.wav", 500.0, 20);
         c4.currentWeaponState = c4.weapon.getInitialState();
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
         units.add(new Unit(c2, 400, 400, Color.BLUE, nextId++));
@@ -231,8 +238,8 @@ public class OpenFields2 extends Application {
         units.add(new Unit(c4, 100, 400, Color.PURPLE, nextId++));
     }
     
-    private Weapon createPistol(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange);
+    private Weapon createPistol(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
+        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
@@ -244,8 +251,8 @@ public class OpenFields2 extends Application {
         return weapon;
     }
     
-    private Weapon createRifle(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange);
+    private Weapon createRifle(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
+        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("slung", "unsling", 0));
         weapon.states.add(new WeaponState("unsling", "ready", 90));
@@ -257,8 +264,8 @@ public class OpenFields2 extends Application {
         return weapon;
     }
     
-    private Weapon createSheathedWeapon(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange);
+    private Weapon createSheathedWeapon(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
+        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("sheathed", "unsheathing", 0));
         weapon.states.add(new WeaponState("unsheathing", "ready", 25));
@@ -270,18 +277,40 @@ public class OpenFields2 extends Application {
         return weapon;
     }
 
-    private static boolean determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange) {
-        double weaponModifier = 0.0;
+    private static boolean determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy) {
+        double weaponModifier = weaponAccuracy;
         double rangeModifier = 0.0;
         double movementModifier = 0.0;
         double targetMovementModifier = 0.0;
         double woundModifier = 0.0;
-        double stressModifier = OpenFields2.stressModifier;
+        double stressModifier = Math.min(0, OpenFields2.stressModifier + statToModifier(shooter.bravery));
         double skillModifier = 0.0;
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
-        double chanceToHit = 50.0 + statToModifier(shooter.dexterity) + stressModifier + rangeModifier + weaponModifier;
-        return Math.random() * 100 < chanceToHit;
+        double chanceToHit = 50.0 + statToModifier(shooter.dexterity) + stressModifier + rangeModifier + weaponModifier + movementModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
+        double randomRoll = Math.random() * 100;
+        
+        if (debugMode) {
+            System.out.println("=== HIT CALCULATION DEBUG ===");
+            System.out.println("Shooter: " + shooter.name + " -> Target: " + target.character.name);
+            System.out.println("Base chance: 50.0");
+            System.out.println("Dexterity modifier: " + statToModifier(shooter.dexterity) + " (dex: " + shooter.dexterity + ")");
+            System.out.println("Stress modifier: " + stressModifier + " (bravery: " + shooter.bravery + ":" + statToModifier(shooter.bravery) + ")");
+            System.out.println("Range modifier: " + rangeModifier);
+            System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
+            System.out.println("Movement modifier: " + movementModifier);
+            System.out.println("Target movement modifier: " + targetMovementModifier);
+            System.out.println("Wound modifier: " + woundModifier);
+            System.out.println("Skill modifier: " + skillModifier);
+            System.out.println("Size modifier: " + sizeModifier);
+            System.out.println("Cover modifier: " + coverModifier);
+            System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");
+            System.out.println("Random roll: " + String.format("%.2f", randomRoll));
+            System.out.println("Result: " + (randomRoll < chanceToHit ? "HIT" : "MISS"));
+            System.out.println("=============================");
+        }
+        
+        return randomRoll < chanceToHit;
     }
     
     void playWeaponSound(Weapon weapon) {
@@ -297,7 +326,7 @@ public class OpenFields2 extends Application {
     
     void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
         long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
-        boolean willHit = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange);
+        boolean willHit = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy);
         System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
         
         eventQueue.add(new ScheduledEvent(impactTick, () -> {
@@ -674,14 +703,16 @@ class Weapon {
     int ammunition;
     String soundFile;
     double maximumRange;
+    int weaponAccuracy;
 
-    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange) {
+    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
         this.name = name;
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
         this.ammunition = ammunition;
         this.soundFile = soundFile;
         this.maximumRange = maximumRange;
+        this.weaponAccuracy = weaponAccuracy;
     }
 
     public String getName() {
