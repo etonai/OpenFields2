@@ -111,6 +111,7 @@ public class OpenFields2 extends Application {
     private double offsetY = 0;
     private double zoom = 1.0;
     private boolean paused = true;
+    private static int stressModifier = -10;
     private final GameClock gameClock = new GameClock();
     private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
     private AudioClip gunshotSound;
@@ -270,7 +271,17 @@ public class OpenFields2 extends Application {
     }
 
     private static boolean determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange) {
-        return Math.random() * 100 < shooter.dexterity;
+        double weaponModifier = 0.0;
+        double rangeModifier = 0.0;
+        double movementModifier = 0.0;
+        double targetMovementModifier = 0.0;
+        double woundModifier = 0.0;
+        double stressModifier = OpenFields2.stressModifier;
+        double skillModifier = 0.0;
+        double sizeModifier = 0.0;
+        double coverModifier = 0.0;
+        double chanceToHit = 50.0 + statToModifier(shooter.dexterity) + stressModifier + rangeModifier + weaponModifier;
+        return Math.random() * 100 < chanceToHit;
     }
     
     void playWeaponSound(Weapon weapon) {
@@ -356,7 +367,9 @@ public class OpenFields2 extends Application {
 class Character {
     String name;
     int dexterity;
+    int currentDexterity;
     int health;
+    int currentHealth;
     int bravery;
     double baseMovementSpeed;
     Weapon weapon;
@@ -364,6 +377,7 @@ class Character {
     Unit currentTarget;
     int queuedShots = 0;
     List<Skill> skills;
+    List<Wound> wounds;
 
     public Character(String name, int dexterity, int health, int bravery) {
         this.name = name;
@@ -372,6 +386,7 @@ class Character {
         this.bravery = bravery;
         this.baseMovementSpeed = 42.0;
         this.skills = new ArrayList<>();
+        this.wounds = new ArrayList<>();
     }
 
     public Character(String name, int dexterity, int health, int bravery, Weapon weapon) {
@@ -382,6 +397,7 @@ class Character {
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
         this.skills = new ArrayList<>();
+        this.wounds = new ArrayList<>();
     }
     
     public Character(String name, int dexterity, int health, int bravery, List<Skill> skills) {
@@ -391,6 +407,7 @@ class Character {
         this.bravery = bravery;
         this.baseMovementSpeed = 42.0;
         this.skills = skills != null ? skills : new ArrayList<>();
+        this.wounds = new ArrayList<>();
     }
     
     public Character(String name, int dexterity, int health, int bravery, Weapon weapon, List<Skill> skills) {
@@ -401,6 +418,7 @@ class Character {
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
         this.skills = skills != null ? skills : new ArrayList<>();
+        this.wounds = new ArrayList<>();
     }
 
     public String getName() {
@@ -483,6 +501,22 @@ class Character {
     
     public void addSkill(Skill skill) {
         skills.add(skill);
+    }
+    
+    public List<Wound> getWounds() {
+        return wounds;
+    }
+    
+    public void setWounds(List<Wound> wounds) {
+        this.wounds = wounds != null ? wounds : new ArrayList<>();
+    }
+    
+    public void addWound(Wound wound) {
+        wounds.add(wound);
+    }
+    
+    public boolean removeWound(Wound wound) {
+        return wounds.remove(wound);
     }
     
     public boolean canFire() {
@@ -843,6 +877,44 @@ class GameClock {
 
     public void reset() {
         currentTick = 0;
+    }
+}
+
+enum BodyPart {
+    HEAD,
+    CHEST,
+    ABDOMEN,
+    LEFT_ARM,
+    RIGHT_ARM,
+    LEFT_LEG,
+    RIGHT_LEG,
+    LEFT_SHOULDER,
+    RIGHT_SHOULDER
+}
+
+class Wound {
+    BodyPart bodyPart;
+    int severity;
+    
+    public Wound(BodyPart bodyPart, int severity) {
+        this.bodyPart = bodyPart;
+        this.severity = severity;
+    }
+    
+    public BodyPart getBodyPart() {
+        return bodyPart;
+    }
+    
+    public void setBodyPart(BodyPart bodyPart) {
+        this.bodyPart = bodyPart;
+    }
+    
+    public int getSeverity() {
+        return severity;
+    }
+    
+    public void setSeverity(int severity) {
+        this.severity = severity;
     }
 }
 
