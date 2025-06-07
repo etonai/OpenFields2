@@ -40,7 +40,7 @@ mvn javafx:run                # Run the JavaFX application
 
 ## Technical Details
 
-- **Java 24** with JavaFX 21.0.2
+- **Java 21** with JavaFX 21.0.2
 - **JUnit 5** for testing
 - **Maven** build system
 - **Tick-based timing**: 60 ticks per second, events scheduled by tick number

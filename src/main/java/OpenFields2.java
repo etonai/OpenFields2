@@ -78,7 +78,7 @@ public class OpenFields2 extends Application {
                             return;
                         }
                         
-                        selected.character.startAttackSequence(selected, u, gameClock.getCurrentTick(), eventQueue, selected.getId());
+                        selected.character.startAttackSequence(selected, u, gameClock.getCurrentTick(), eventQueue, selected.getId(), this);
                         System.out.println("ATTACK " + selected.character.name + " (ID: " + selected.id + ") targets " + u.character.name + " (ID: " + u.id + ") - current state: " + selected.character.currentWeaponState.getState());
                     }
                 }
@@ -191,30 +191,61 @@ public class OpenFields2 extends Application {
         return weapon;
     }
 
-    private void resolveRangedAttack(Unit shooter, Unit target, long impactTick, long fireTick, boolean hit) {
-        System.out.println("--- Ranged attack fired at tick " + fireTick + ", resolved at tick " + impactTick + " (" + (hit ? "hit" : "miss") + ")");
+    private static boolean determineHit(Character shooter, Unit target, double distanceFeet) {
+        return Math.random() * 100 < shooter.dexterity;
+    }
+    
+    void playWeaponSound(Weapon weapon) {
+        try {
+            System.out.println("*** Attempting to play sound: " + weapon.soundFile);
+            AudioClip sound = new AudioClip(getClass().getResource(weapon.soundFile).toExternalForm());
+            System.out.println("*** Sound loaded successfully, playing...");
+            sound.play();
+        } catch (Exception ex) {
+            System.out.println("*** ERROR playing sound: " + ex.getMessage());
+        }
+    }
+    
+    void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
+        long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
+        boolean willHit = determineHit(shooter.character, target, distanceFeet);
+        System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
+        
+        eventQueue.add(new ScheduledEvent(impactTick, () -> {
+            resolveCombatImpact(shooter, target, weapon, impactTick, willHit);
+        }, ScheduledEvent.WORLD_OWNER));
+    }
+    
+    private void resolveCombatImpact(Unit shooter, Unit target, Weapon weapon, long impactTick, boolean hit) {
         if (hit) {
-            System.out.println(">>> Projectile hit " + target.character.name);
-            target.character.health -= shooter.character.weapon.damage;
-            System.out.println(">>> " + target.character.name + " takes " + shooter.character.weapon.damage + " damage. Health now: " + target.character.health);
+            System.out.println(">>> Projectile hit " + target.character.name + " at tick " + impactTick);
+            target.character.health -= weapon.damage;
+            System.out.println(">>> " + target.character.name + " takes " + weapon.damage + " damage. Health now: " + target.character.health);
+            
             if (target.character.health <= 0) {
                 System.out.println(">>> " + target.character.name + " is incapacitated!");
                 target.character.baseMovementSpeed = 0;
-                eventQueue.removeIf(event -> event.action.toString().contains("ID: " + target.id));
+                eventQueue.removeIf(e -> e.getOwnerId() == target.getId());
+                System.out.println(">>> Removed all scheduled actions for " + target.character.name);
             }
-            if (!target.isHitHighlighted) {
-                target.isHitHighlighted = true;
-                target.color = Color.YELLOW;
-                eventQueue.add(new ScheduledEvent(impactTick + 15,
-                        () -> {
-                            target.color = target.baseColor;
-                            target.isHitHighlighted = false;
-                        },
-                        ScheduledEvent.WORLD_OWNER
-                        ));
-            }
+            
+            applyHitHighlight(target, impactTick);
+        } else {
+            System.out.println(">>> Projectile missed " + target.character.name + " at tick " + impactTick);
         }
     }
+    
+    private void applyHitHighlight(Unit target, long impactTick) {
+        if (!target.isHitHighlighted) {
+            target.isHitHighlighted = true;
+            target.color = Color.YELLOW;
+            eventQueue.add(new ScheduledEvent(impactTick + 15, () -> {
+                target.color = target.baseColor;
+                target.isHitHighlighted = false;
+            }, ScheduledEvent.WORLD_OWNER));
+        }
+    }
+    
 
     private void render() {
         GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -332,7 +363,7 @@ class Character {
         return currentWeaponState != null && "aiming".equals(currentWeaponState.getState());
     }
     
-    public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, OpenFields2 game) {
         if (weapon == null || currentWeaponState == null) return;
         
         if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
@@ -349,7 +380,7 @@ class Character {
         }
         
         queuedShots = 1;
-        scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId);
+        scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId, game);
     }
     
     public void startReadyWeaponSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
@@ -358,33 +389,33 @@ class Character {
         scheduleReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
     }
     
-    private void scheduleAttackFromCurrentState(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    private void scheduleAttackFromCurrentState(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, OpenFields2 game) {
         if (weapon == null || currentWeaponState == null) return;
         
         String currentState = currentWeaponState.getState();
         long totalTimeToFire = calculateTimeToFire();
         
         if ("holstered".equals(currentState)) {
-            scheduleStateTransition("drawing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId);
+            scheduleStateTransition("drawing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
         } else if ("drawing".equals(currentState)) {
-            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId);
+            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
         } else if ("ready".equals(currentState)) {
-            scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId);
+            scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
         } else if ("aiming".equals(currentState)) {
-            scheduleFiring(shooter, target, currentTick + currentWeaponState.ticks, eventQueue, ownerId);
+            scheduleFiring(shooter, target, currentTick + currentWeaponState.ticks, eventQueue, ownerId, game);
         }
     }
     
-    private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit shooter, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit shooter, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, OpenFields2 game) {
         long transitionTick = currentTick + transitionTickLength;
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
             currentWeaponState = weapon.getStateByName(newStateName);
             System.out.println(name + " weapon state: " + newStateName + " at tick " + transitionTick);
-            scheduleAttackFromCurrentState(shooter, target, transitionTick, eventQueue, ownerId);
+            scheduleAttackFromCurrentState(shooter, target, transitionTick, eventQueue, ownerId, game);
         }, ownerId));
     }
     
-    private void scheduleFiring(Unit shooter, Unit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    private void scheduleFiring(Unit shooter, Unit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, OpenFields2 game) {
         eventQueue.add(new ScheduledEvent(fireTick, () -> {
             currentWeaponState = weapon.getStateByName("firing");
             System.out.println(name + " weapon state: firing at tick " + fireTick);
@@ -395,15 +426,7 @@ class Character {
                 weapon.ammunition--;
                 System.out.println("*** " + name + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
                 
-                // Play weapon sound
-                try {
-                    System.out.println("*** Attempting to play sound: " + weapon.soundFile);
-                    AudioClip sound = new AudioClip(getClass().getResource(weapon.soundFile).toExternalForm());
-                    System.out.println("*** Sound loaded successfully, playing...");
-                    sound.play();
-                } catch (Exception ex) {
-                    System.out.println("*** ERROR playing sound: " + ex.getMessage());
-                }
+                game.playWeaponSound(weapon);
                 
                 double dx = target.x - shooter.x;
                 double dy = target.y - shooter.y;
@@ -411,33 +434,7 @@ class Character {
                 double distanceFeet = OpenFields2.pixelsToFeet(distancePixels);
                 System.out.println("*** " + name + " shoots at " + target.character.name + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
                 
-                long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
-                boolean willHit = determineHit(target, distanceFeet);
-                System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
-                
-                eventQueue.add(new ScheduledEvent(impactTick, () -> {
-                if (willHit) {
-                    System.out.println(">>> Projectile hit " + target.character.name + " at tick " + impactTick);
-                    target.character.health -= weapon.damage;
-                    System.out.println(">>> " + target.character.name + " takes " + weapon.damage + " damage. Health now: " + target.character.health);
-                    if (target.character.health <= 0) {
-                        System.out.println(">>> " + target.character.name + " is incapacitated!");
-                        target.character.baseMovementSpeed = 0;
-                        eventQueue.removeIf(e -> e.getOwnerId() == target.getId());
-                        System.out.println(">>> Removed all scheduled actions for " + target.character.name);
-                    }
-                    if (!target.isHitHighlighted) {
-                        target.isHitHighlighted = true;
-                        target.color = Color.YELLOW;
-                        eventQueue.add(new ScheduledEvent(impactTick + 15, () -> {
-                            target.color = target.baseColor;
-                            target.isHitHighlighted = false;
-                        }, ScheduledEvent.WORLD_OWNER));
-                    }
-                } else {
-                    System.out.println(">>> Projectile missed " + target.character.name + " at tick " + impactTick);
-                }
-            }, ScheduledEvent.WORLD_OWNER));
+                game.scheduleProjectileImpact(shooter, target, weapon, fireTick, distanceFeet);
             }
             
             WeaponState firingState = weapon.getStateByName("firing");
@@ -453,7 +450,7 @@ class Character {
                     queuedShots--;
                     if (queuedShots > 0 && currentTarget != null) {
                         System.out.println(name + " starting queued shot " + (queuedShots + 1) + " at " + currentTarget.character.name);
-                        scheduleFiring(shooter, currentTarget, fireTick + firingState.ticks + recoveringState.ticks + currentWeaponState.ticks, eventQueue, ownerId);
+                        scheduleFiring(shooter, currentTarget, fireTick + firingState.ticks + recoveringState.ticks + currentWeaponState.ticks, eventQueue, ownerId, game);
                     }
                 }, ownerId));
             }, ownerId));
@@ -474,9 +471,6 @@ class Character {
         return timeToFire;
     }
     
-    private boolean determineHit(Unit target, double distanceFeet) {
-        return Math.random() * 100 < dexterity;
-    }
     
     private void scheduleReadyFromCurrentState(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         if (weapon == null || currentWeaponState == null) return;
