@@ -134,16 +134,16 @@ public class OpenFields2 extends Application {
 
     void createUnits() {
         int nextId = 1;
-        Character c1 = new Character("Alice", 100, 50);
+        Character c1 = new Character("Alice", 100, 50, 75);
         c1.weapon = createStandardWeapon("Colt Peacemaker", 600.0, 50, 6, "/Slap0003.wav");
         c1.currentWeaponState = c1.weapon.getInitialState();
-        Character c2 = new Character("Bobby", 50, 50);
+        Character c2 = new Character("Bobby", 50, 50, 60);
         c2.weapon = createStandardWeapon("Paintball Gun", 300.0, 1, 7, "/Slap0003.wav");
         c2.currentWeaponState = c2.weapon.getInitialState();
-        Character c3 = new Character("Chris", 50, 50);
+        Character c3 = new Character("Chris", 50, 50, 40);
         c3.weapon = createStandardWeapon("Nerf Gun", 30.0, 0, 10, "/Slap0003.wav");
         c3.currentWeaponState = c3.weapon.getInitialState();
-        Character c4 = new Character("Drake", 50, 50);
+        Character c4 = new Character("Drake", 50, 50, 85);
         c4.weapon = createStandardWeapon("Lasertag Gun", 30000.0, 0, 20, "/placeholder_laser.wav");
         c4.currentWeaponState = c4.weapon.getInitialState();
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
@@ -221,25 +221,28 @@ class Character {
     String name;
     int dexterity;
     int health;
-    double movementSpeed;
+    int bravery;
+    double baseMovementSpeed;
     Weapon weapon;
     WeaponState currentWeaponState;
     Unit currentTarget;
     int queuedShots = 0;
 
-    public Character(String name, int dexterity, int health) {
+    public Character(String name, int dexterity, int health, int bravery) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
-        this.movementSpeed = 42.0;
+        this.bravery = bravery;
+        this.baseMovementSpeed = 42.0;
     }
 
-    public Character(String name, int dexterity, int health, Weapon weapon) {
+    public Character(String name, int dexterity, int health, int bravery, Weapon weapon) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
+        this.bravery = bravery;
         this.weapon = weapon;
-        this.movementSpeed = 42.0;
+        this.baseMovementSpeed = 42.0;
     }
 
     public String getName() {
@@ -266,12 +269,20 @@ class Character {
         this.health = health;
     }
 
-    public double getMovementSpeed() {
-        return movementSpeed;
+    public double getBaseMovementSpeed() {
+        return baseMovementSpeed;
     }
 
-    public void setMovementSpeed(double movementSpeed) {
-        this.movementSpeed = movementSpeed;
+    public void setBaseMovementSpeed(double baseMovementSpeed) {
+        this.baseMovementSpeed = baseMovementSpeed;
+    }
+
+    public int getBravery() {
+        return bravery;
+    }
+
+    public void setBravery(int bravery) {
+        this.bravery = bravery;
     }
 
     public Weapon getWeapon() {
@@ -382,7 +393,7 @@ class Character {
                     System.out.println(">>> " + target.character.name + " takes " + weapon.damage + " damage. Health now: " + target.character.health);
                     if (target.character.health <= 0) {
                         System.out.println(">>> " + target.character.name + " is incapacitated!");
-                        target.character.movementSpeed = 0;
+                        target.character.baseMovementSpeed = 0;
                         eventQueue.removeIf(e -> e.getOwnerId() == target.getId());
                         System.out.println(">>> Removed all scheduled actions for " + target.character.name);
                     }
@@ -599,8 +610,8 @@ class Unit {
             return;
         }
 
-        double moveX = character.movementSpeed / 60.0 * (dx / distance);
-        double moveY = character.movementSpeed / 60.0 * (dy / distance);
+        double moveX = character.baseMovementSpeed / 60.0 * (dx / distance);
+        double moveY = character.baseMovementSpeed / 60.0 * (dy / distance);
 
         if (Math.abs(moveX) > Math.abs(dx)) x = targetX; else x += moveX;
         if (Math.abs(moveY) > Math.abs(dy)) y = targetY; else y += moveY;
