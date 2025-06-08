@@ -16,7 +16,10 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OpenFields2 extends Application {
+import combat.*;
+import game.*;
+
+public class OpenFields2 extends Application implements GameCallbacks {
 
     public static double pixelsToFeet(double pixels) {
         return pixels / 7.0;
@@ -226,7 +229,7 @@ public class OpenFields2 extends Application {
                     
                     if (!selected.character.wounds.isEmpty()) {
                         System.out.println("--- WOUNDS ---");
-                        for (Wound wound : selected.character.wounds) {
+                        for (combat.Wound wound : selected.character.wounds) {
                             System.out.println(wound.getBodyPart().name().toLowerCase() + ": " + wound.getSeverity().name().toLowerCase());
                         }
                     } else {
@@ -268,16 +271,16 @@ public class OpenFields2 extends Application {
     void createUnits() {
 
         int nextId = 1;
-        Character c1 = new Character("Alice", 100, 11, 75);
+        combat.Character c1 = new combat.Character("Alice", 100, 11, 75);
         c1.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
         c1.currentWeaponState = c1.weapon.getInitialState();
-        Character c2 = new Character("Bobby", 75, 20, 60);
+        combat.Character c2 = new combat.Character("Bobby", 75, 20, 60);
         c2.weapon = createSheathedWeapon("Wand of Magic Bolts", 30.0, 8, 20, "/magic.wav", 100.0, 20);
         c2.currentWeaponState = c2.weapon.getInitialState();
-        Character c3 = new Character("Chris", 25, 8, 30);
+        combat.Character c3 = new combat.Character("Chris", 25, 8, 30);
         c3.weapon = createPistol("Derringer", 600.0, 4, 1, "/Slap0003.wav", 50.0, -10);
         c3.currentWeaponState = c3.weapon.getInitialState();
-        Character c4 = new Character("Drake", 50, 14, 85);
+        combat.Character c4 = new combat.Character("Drake", 50, 14, 85);
         c4.weapon = createPistol("Plasma Pistol", 3000.0, 6, 20, "/placeholder_laser.wav", 500.0, 20);
         c4.currentWeaponState = c4.weapon.getInitialState();
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
@@ -325,7 +328,7 @@ public class OpenFields2 extends Application {
         return weapon;
     }
 
-    private static HitResult determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage) {
+    private static HitResult determineHit(combat.Character shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage) {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = 0.0;
@@ -364,8 +367,8 @@ public class OpenFields2 extends Application {
         }
         
         boolean hit = randomRoll < chanceToHit;
-        BodyPart hitLocation = null;
-        WoundSeverity woundSeverity = null;
+        combat.BodyPart hitLocation = null;
+        combat.WoundSeverity woundSeverity = null;
         int actualDamage = 0;
         
         if (hit) {
@@ -377,29 +380,29 @@ public class OpenFields2 extends Application {
         return new HitResult(hit, hitLocation, woundSeverity, actualDamage);
     }
     
-    private static BodyPart determineHitLocation(double randomRoll, double chanceToHit) {
+    private static combat.BodyPart determineHitLocation(double randomRoll, double chanceToHit) {
         double excellentThreshold = chanceToHit * 0.2;
         double goodThreshold = chanceToHit * 0.7;
         
         if (randomRoll < excellentThreshold) {
-            return BodyPart.CHEST;
+            return combat.BodyPart.CHEST;
         } else if (randomRoll < goodThreshold) {
-            return Math.random() < 0.5 ? BodyPart.CHEST : BodyPart.ABDOMEN;
+            return Math.random() < 0.5 ? combat.BodyPart.CHEST : combat.BodyPart.ABDOMEN;
         } else {
             return getRandomBodyPart();
         }
     }
     
-    private static BodyPart getRandomBodyPart() {
+    private static combat.BodyPart getRandomBodyPart() {
         double roll = Math.random() * 100;
         
-        if (roll < 12) return BodyPart.LEFT_ARM;
-        else if (roll < 24) return BodyPart.RIGHT_ARM;
-        else if (roll < 32) return BodyPart.LEFT_SHOULDER;
-        else if (roll < 40) return BodyPart.RIGHT_SHOULDER;
-        else if (roll < 50) return BodyPart.HEAD;
-        else if (roll < 55) return BodyPart.LEFT_LEG;
-        else return BodyPart.RIGHT_LEG;
+        if (roll < 12) return combat.BodyPart.LEFT_ARM;
+        else if (roll < 24) return combat.BodyPart.RIGHT_ARM;
+        else if (roll < 32) return combat.BodyPart.LEFT_SHOULDER;
+        else if (roll < 40) return combat.BodyPart.RIGHT_SHOULDER;
+        else if (roll < 50) return combat.BodyPart.HEAD;
+        else if (roll < 55) return combat.BodyPart.LEFT_LEG;
+        else return combat.BodyPart.RIGHT_LEG;
     }
     
     private static double calculateRangeModifier(double distanceFeet, double maximumRange) {
@@ -417,12 +420,12 @@ public class OpenFields2 extends Application {
         return rangeModifier;
     }
     
-    private static WoundSeverity determineWoundSeverity(double randomRoll, double chanceToHit, BodyPart hitLocation) {
+    private static combat.WoundSeverity determineWoundSeverity(double randomRoll, double chanceToHit, combat.BodyPart hitLocation) {
         double excellentThreshold = chanceToHit * 0.2;
         
         // Excellent shots are always critical
         if (randomRoll < excellentThreshold) {
-            return WoundSeverity.CRITICAL;
+            return combat.WoundSeverity.CRITICAL;
         }
         
         // Determine wound severity based on hit location
@@ -430,24 +433,24 @@ public class OpenFields2 extends Application {
         
         if (isVitalArea(hitLocation)) {
             // HEAD/CHEST/ABDOMEN: 30% Critical, 40% Serious, 25% Light, 5% Scratch
-            if (severityRoll < 30) return WoundSeverity.CRITICAL;
-            else if (severityRoll < 70) return WoundSeverity.SERIOUS;
-            else if (severityRoll < 95) return WoundSeverity.LIGHT;
-            else return WoundSeverity.SCRATCH;
+            if (severityRoll < 30) return combat.WoundSeverity.CRITICAL;
+            else if (severityRoll < 70) return combat.WoundSeverity.SERIOUS;
+            else if (severityRoll < 95) return combat.WoundSeverity.LIGHT;
+            else return combat.WoundSeverity.SCRATCH;
         } else {
             // ARMS/SHOULDERS/LEGS: 10% Critical, 25% Serious, 45% Light, 20% Scratch
-            if (severityRoll < 10) return WoundSeverity.CRITICAL;
-            else if (severityRoll < 35) return WoundSeverity.SERIOUS;
-            else if (severityRoll < 80) return WoundSeverity.LIGHT;
-            else return WoundSeverity.SCRATCH;
+            if (severityRoll < 10) return combat.WoundSeverity.CRITICAL;
+            else if (severityRoll < 35) return combat.WoundSeverity.SERIOUS;
+            else if (severityRoll < 80) return combat.WoundSeverity.LIGHT;
+            else return combat.WoundSeverity.SCRATCH;
         }
     }
     
-    private static boolean isVitalArea(BodyPart bodyPart) {
-        return bodyPart == BodyPart.HEAD || bodyPart == BodyPart.CHEST || bodyPart == BodyPart.ABDOMEN;
+    private static boolean isVitalArea(combat.BodyPart bodyPart) {
+        return bodyPart == combat.BodyPart.HEAD || bodyPart == combat.BodyPart.CHEST || bodyPart == combat.BodyPart.ABDOMEN;
     }
     
-    private static int calculateActualDamage(int weaponDamage, WoundSeverity woundSeverity) {
+    private static int calculateActualDamage(int weaponDamage, combat.WoundSeverity woundSeverity) {
         switch (woundSeverity) {
             case CRITICAL:
             case SERIOUS:
@@ -461,7 +464,7 @@ public class OpenFields2 extends Application {
         }
     }
     
-    void playWeaponSound(Weapon weapon) {
+    public void playWeaponSound(Weapon weapon) {
         try {
             System.out.println("*** Attempting to play sound: " + weapon.soundFile);
             AudioClip sound = new AudioClip(getClass().getResource(weapon.soundFile).toExternalForm());
@@ -472,7 +475,7 @@ public class OpenFields2 extends Application {
         }
     }
     
-    void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
+    public void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
         long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
         HitResult hitResult = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy, weapon.damage);
         System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
@@ -484,8 +487,8 @@ public class OpenFields2 extends Application {
     
     private void resolveCombatImpact(Unit shooter, Unit target, Weapon weapon, long impactTick, HitResult hitResult) {
         if (hitResult.isHit()) {
-            BodyPart hitLocation = hitResult.getHitLocation();
-            WoundSeverity woundSeverity = hitResult.getWoundSeverity();
+            combat.BodyPart hitLocation = hitResult.getHitLocation();
+            combat.WoundSeverity woundSeverity = hitResult.getWoundSeverity();
             int actualDamage = hitResult.getActualDamage();
             
             System.out.println(">>> Projectile hit " + target.character.name + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick);
@@ -493,11 +496,11 @@ public class OpenFields2 extends Application {
             System.out.println(">>> " + target.character.name + " takes " + actualDamage + " damage. Health now: " + target.character.health);
             
             // Add wound to character's wound list
-            target.character.addWound(new Wound(hitLocation, woundSeverity));
+            target.character.addWound(new combat.Wound(hitLocation, woundSeverity));
             
             // Check for incapacitation
             if (target.character.isIncapacitated()) {
-                if (woundSeverity == WoundSeverity.CRITICAL) {
+                if (woundSeverity == combat.WoundSeverity.CRITICAL) {
                     System.out.println(">>> " + target.character.name + " is incapacitated by critical wound!");
                 } else {
                     System.out.println(">>> " + target.character.name + " is incapacitated!");
@@ -553,656 +556,13 @@ public class OpenFields2 extends Application {
 
 }
 
-class Character {
-    String name;
-    int dexterity;
-    int currentDexterity;
-    int health;
-    int currentHealth;
-    int bravery;
-    double baseMovementSpeed;
-    Weapon weapon;
-    WeaponState currentWeaponState;
-    Unit currentTarget;
-    int queuedShots = 0;
-    List<Skill> skills;
-    List<Wound> wounds;
 
-    public Character(String name, int dexterity, int health, int bravery) {
-        this.name = name;
-        this.dexterity = dexterity;
-        this.health = health;
-        this.bravery = bravery;
-        this.baseMovementSpeed = 42.0;
-        this.skills = new ArrayList<>();
-        this.wounds = new ArrayList<>();
-    }
 
-    public Character(String name, int dexterity, int health, int bravery, Weapon weapon) {
-        this.name = name;
-        this.dexterity = dexterity;
-        this.health = health;
-        this.bravery = bravery;
-        this.weapon = weapon;
-        this.baseMovementSpeed = 42.0;
-        this.skills = new ArrayList<>();
-        this.wounds = new ArrayList<>();
-    }
-    
-    public Character(String name, int dexterity, int health, int bravery, List<Skill> skills) {
-        this.name = name;
-        this.dexterity = dexterity;
-        this.health = health;
-        this.bravery = bravery;
-        this.baseMovementSpeed = 42.0;
-        this.skills = skills != null ? skills : new ArrayList<>();
-        this.wounds = new ArrayList<>();
-    }
-    
-    public Character(String name, int dexterity, int health, int bravery, Weapon weapon, List<Skill> skills) {
-        this.name = name;
-        this.dexterity = dexterity;
-        this.health = health;
-        this.bravery = bravery;
-        this.weapon = weapon;
-        this.baseMovementSpeed = 42.0;
-        this.skills = skills != null ? skills : new ArrayList<>();
-        this.wounds = new ArrayList<>();
-    }
 
-    public String getName() {
-        return name;
-    }
 
-    public void setName(String name) {
-        this.name = name;
-    }
 
-    public int getDexterity() {
-        return dexterity;
-    }
 
-    public void setDexterity(int dexterity) {
-        this.dexterity = dexterity;
-    }
 
-    public int getHealth() {
-        return health;
-    }
 
-    public void setHealth(int health) {
-        this.health = health;
-    }
 
-    public double getBaseMovementSpeed() {
-        return baseMovementSpeed;
-    }
 
-    public void setBaseMovementSpeed(double baseMovementSpeed) {
-        this.baseMovementSpeed = baseMovementSpeed;
-    }
-
-    public int getBravery() {
-        return bravery;
-    }
-
-    public void setBravery(int bravery) {
-        this.bravery = bravery;
-    }
-
-    public Weapon getWeapon() {
-        return weapon;
-    }
-
-    public void setWeapon(Weapon weapon) {
-        this.weapon = weapon;
-    }
-
-    public WeaponState getCurrentWeaponState() {
-        return currentWeaponState;
-    }
-
-    public void setCurrentWeaponState(WeaponState state) {
-        this.currentWeaponState = state;
-    }
-    
-    public List<Skill> getSkills() {
-        return skills;
-    }
-    
-    public void setSkills(List<Skill> skills) {
-        this.skills = skills != null ? skills : new ArrayList<>();
-    }
-    
-    public Skill getSkill(String skillName) {
-        for (Skill skill : skills) {
-            if (skill.getSkillName().equals(skillName)) {
-                return skill;
-            }
-        }
-        return null;
-    }
-    
-    public int getSkillLevel(String skillName) {
-        Skill skill = getSkill(skillName);
-        return skill != null ? skill.getLevel() : 0;
-    }
-    
-    public void addSkill(Skill skill) {
-        skills.add(skill);
-    }
-    
-    public List<Wound> getWounds() {
-        return wounds;
-    }
-    
-    public void setWounds(List<Wound> wounds) {
-        this.wounds = wounds != null ? wounds : new ArrayList<>();
-    }
-    
-    public void addWound(Wound wound) {
-        wounds.add(wound);
-    }
-    
-    public boolean isIncapacitated() {
-        if (health <= 0) {
-            return true;
-        }
-        // Check for any critical wounds
-        for (Wound wound : wounds) {
-            if (wound.getSeverity() == WoundSeverity.CRITICAL) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    public boolean removeWound(Wound wound) {
-        return wounds.remove(wound);
-    }
-    
-    public boolean canFire() {
-        return currentWeaponState != null && "aiming".equals(currentWeaponState.getState());
-    }
-    
-    public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, OpenFields2 game) {
-        if (weapon == null || currentWeaponState == null) return;
-        
-        if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
-            currentWeaponState = weapon.getStateByName("ready");
-            System.out.println(name + " weapon state: ready (target changed) at tick " + currentTick);
-        }
-        
-        currentTarget = target;
-        
-        if (queuedShots > 0) {
-            queuedShots++;
-            System.out.println(name + " queued shot " + queuedShots + " at " + target.character.name);
-            return;
-        }
-        
-        queuedShots = 1;
-        scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId, game);
-    }
-    
-    public void startReadyWeaponSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        if (weapon == null || currentWeaponState == null) return;
-        
-        scheduleReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
-    }
-    
-    private void scheduleAttackFromCurrentState(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, OpenFields2 game) {
-        if (weapon == null || currentWeaponState == null) return;
-        
-        String currentState = currentWeaponState.getState();
-        long totalTimeToFire = calculateTimeToFire();
-        
-        if ("holstered".equals(currentState)) {
-            scheduleStateTransition("drawing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
-        } else if ("drawing".equals(currentState)) {
-            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
-        } else if ("slung".equals(currentState)) {
-            scheduleStateTransition("unsling", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
-        } else if ("unsling".equals(currentState)) {
-            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
-        } else if ("sheathed".equals(currentState)) {
-            scheduleStateTransition("unsheathing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
-        } else if ("unsheathing".equals(currentState)) {
-            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
-        } else if ("ready".equals(currentState)) {
-            scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
-        } else if ("aiming".equals(currentState)) {
-            scheduleFiring(shooter, target, currentTick + currentWeaponState.ticks, eventQueue, ownerId, game);
-        }
-    }
-    
-    private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit shooter, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, OpenFields2 game) {
-        long transitionTick = currentTick + transitionTickLength;
-        eventQueue.add(new ScheduledEvent(transitionTick, () -> {
-            currentWeaponState = weapon.getStateByName(newStateName);
-            System.out.println(name + " weapon state: " + newStateName + " at tick " + transitionTick);
-            scheduleAttackFromCurrentState(shooter, target, transitionTick, eventQueue, ownerId, game);
-        }, ownerId));
-    }
-    
-    private void scheduleFiring(Unit shooter, Unit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, OpenFields2 game) {
-        eventQueue.add(new ScheduledEvent(fireTick, () -> {
-            currentWeaponState = weapon.getStateByName("firing");
-            System.out.println(name + " weapon state: firing at tick " + fireTick);
-            
-            if (weapon.ammunition <= 0) {
-                System.out.println("*** " + name + " tries to fire " + weapon.name + " but it's out of ammunition!");
-            } else {
-                weapon.ammunition--;
-                System.out.println("*** " + name + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
-                
-                game.playWeaponSound(weapon);
-                
-                double dx = target.x - shooter.x;
-                double dy = target.y - shooter.y;
-                double distancePixels = Math.hypot(dx, dy);
-                double distanceFeet = OpenFields2.pixelsToFeet(distancePixels);
-                System.out.println("*** " + name + " shoots at " + target.character.name + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
-                
-                game.scheduleProjectileImpact(shooter, target, weapon, fireTick, distanceFeet);
-            }
-            
-            WeaponState firingState = weapon.getStateByName("firing");
-            eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks, () -> {
-                currentWeaponState = weapon.getStateByName("recovering");
-                System.out.println(name + " weapon state: recovering at tick " + (fireTick + firingState.ticks));
-                
-                WeaponState recoveringState = weapon.getStateByName("recovering");
-                eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
-                    currentWeaponState = weapon.getStateByName("aiming");
-                    System.out.println(name + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
-                    
-                    queuedShots--;
-                    if (queuedShots > 0 && currentTarget != null) {
-                        System.out.println(name + " starting queued shot " + (queuedShots + 1) + " at " + currentTarget.character.name);
-                        scheduleFiring(shooter, currentTarget, fireTick + firingState.ticks + recoveringState.ticks + currentWeaponState.ticks, eventQueue, ownerId, game);
-                    }
-                }, ownerId));
-            }, ownerId));
-            
-        }, ownerId));
-    }
-    
-    private long calculateTimeToFire() {
-        String currentState = currentWeaponState.getState();
-        long timeToFire = 0;
-        
-        WeaponState state = currentWeaponState;
-        while (state != null && !"aiming".equals(state.getState())) {
-            timeToFire += state.ticks;
-            state = weapon.getStateByName(state.getAction());
-        }
-        
-        return timeToFire;
-    }
-    
-    
-    private void scheduleReadyFromCurrentState(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        if (weapon == null || currentWeaponState == null) return;
-        
-        String currentState = currentWeaponState.getState();
-        
-        if ("ready".equals(currentState)) {
-            System.out.println(name + " weapon is already ready");
-            return;
-        }
-        
-        if ("holstered".equals(currentState)) {
-            scheduleReadyStateTransition("drawing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("drawing".equals(currentState)) {
-            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("slung".equals(currentState)) {
-            scheduleReadyStateTransition("unsling", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("unsling".equals(currentState)) {
-            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("sheathed".equals(currentState)) {
-            scheduleReadyStateTransition("unsheathing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("unsheathing".equals(currentState)) {
-            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
-            WeaponState readyState = weapon.getStateByName("ready");
-            eventQueue.add(new ScheduledEvent(currentTick + currentWeaponState.ticks, () -> {
-                currentWeaponState = readyState;
-                System.out.println(name + " weapon state: ready at tick " + (currentTick + currentWeaponState.ticks));
-            }, ownerId));
-        }
-    }
-    
-    private void scheduleReadyStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        long transitionTick = currentTick + transitionTickLength;
-        eventQueue.add(new ScheduledEvent(transitionTick, () -> {
-            currentWeaponState = weapon.getStateByName(newStateName);
-            System.out.println(name + " weapon state: " + newStateName + " at tick " + transitionTick);
-            scheduleReadyFromCurrentState(unit, transitionTick, eventQueue, ownerId);
-        }, ownerId));
-    }
-}
-
-class Weapon {
-    String name;
-    double velocityFeetPerSecond;
-    int damage;
-    List<WeaponState> states;
-    String initialStateName;
-    int ammunition;
-    String soundFile;
-    double maximumRange;
-    int weaponAccuracy;
-
-    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
-        this.name = name;
-        this.velocityFeetPerSecond = velocityFeetPerSecond;
-        this.damage = damage;
-        this.ammunition = ammunition;
-        this.soundFile = soundFile;
-        this.maximumRange = maximumRange;
-        this.weaponAccuracy = weaponAccuracy;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public double getVelocityFeetPerSecond() {
-        return velocityFeetPerSecond;
-    }
-
-    public int getDamage() {
-        return damage;
-    }
-
-    public WeaponState getStateByName(String name) {
-        for (WeaponState s : states) {
-            if (s.getState().equals(name)) return s;
-        }
-        return null;
-    }
-
-    public WeaponState getNextState(WeaponState current) {
-        return getStateByName(current.getAction());
-    }
-
-    public WeaponState getInitialState() {
-        return getStateByName(initialStateName);
-    }
-
-}
-
-class WeaponState {
-    String state;
-    String action;
-    int ticks;
-
-    public WeaponState(String state, String action, int ticks) {
-        this.state = state;
-        this.action = action;
-        this.ticks = ticks;
-    }
-
-    public String getState() {
-        return state;
-    }
-    public String getAction() {
-        return action;
-    }
-
-    @Override
-    public String toString() {
-        return "WeaponState{" +
-                "state='" + state + '\'' +
-                ", action='" + action + '\'' +
-                ", ticks=" + ticks +
-                '}';
-    }
-}
-
-class Unit {
-    public final int id;
-    Character character;
-    double x, y;
-    double targetX, targetY;
-    boolean hasTarget = false;
-    Color color;
-    final Color baseColor;
-    boolean isHitHighlighted = false;
-    long lastTickUpdated = -1;
-
-    public Unit(Character character, double x, double y, Color color, int id) {
-        this.id = id;
-        this.character = character;
-        this.x = x;
-        this.y = y;
-        this.targetX = x;
-        this.targetY = y;
-        this.color = color;
-        this.baseColor = color;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public Character getCharacter() {
-        return character;
-    }
-
-    public double getX() {
-        return x;
-    }
-
-    public double getY() {
-        return y;
-    }
-    public void setTarget(double x, double y) {
-        this.targetX = x;
-        this.targetY = y;
-        this.hasTarget = true;
-    }
-
-    public void update(long currentTick) {
-        if (currentTick == lastTickUpdated) return;
-        lastTickUpdated = currentTick;
-
-        if (!hasTarget) return;
-        
-        // Incapacitated characters cannot move
-        if (character.isIncapacitated()) {
-            hasTarget = false;
-            return;
-        }
-
-        double dx = targetX - x;
-        double dy = targetY - y;
-        double distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 1) {
-            hasTarget = false;
-            return;
-        }
-
-        double moveX = character.baseMovementSpeed / 60.0 * (dx / distance);
-        double moveY = character.baseMovementSpeed / 60.0 * (dy / distance);
-
-        if (Math.abs(moveX) > Math.abs(dx)) x = targetX; else x += moveX;
-        if (Math.abs(moveY) > Math.abs(dy)) y = targetY; else y += moveY;
-    }
-
-    public void render(GraphicsContext gc, boolean isSelected) {
-        gc.setFill(color);
-        gc.fillOval(x - 10.5, y - 10.5, 21, 21);
-        if (isSelected) {
-            gc.setStroke(Color.YELLOW);
-            gc.setLineWidth(2);
-            gc.strokeOval(x - 12, y - 12, 24, 24);
-            gc.setFill(Color.BLACK);
-            gc.setFont(Font.font(12));
-            gc.fillText(character.name, x - 15, y - 15);
-        }
-    }
-
-    public boolean contains(double px, double py) {
-        return Math.hypot(px - x, py - y) <= 10.5;
-    }
-}
-
-class ScheduledEvent implements Comparable<ScheduledEvent> {
-    final long tick;
-    final Runnable action;
-
-    private final int ownerId; // -1 for world-owned events
-
-    public static final int WORLD_OWNER = -1;
-
-    /*
-    public ScheduledEvent(long tick, Runnable action) {
-        this.tick = tick;
-        this.action = action;
-        this.ownerId = WORLD_OWNER;
-    }
-
-     */
-    public ScheduledEvent(long tick, Runnable action, int ownerId) {
-        this.tick = tick;
-        this.action = action;
-        this.ownerId = ownerId;
-    }
-
-    public long getTick() {
-        return tick;
-    }
-
-    public Runnable getAction() {
-        return action;
-    }
-
-    public int getOwnerId() {
-        return ownerId;
-    }
-
-    @Override
-    public int compareTo(ScheduledEvent other) {
-        return Long.compare(this.tick, other.tick);
-    }
-}
-
-class GameClock {
-    private long currentTick = 0;
-
-    public void advanceTick() {
-        currentTick++;
-    }
-
-    public long getCurrentTick() {
-        return currentTick;
-    }
-
-    public void reset() {
-        currentTick = 0;
-    }
-}
-
-class HitResult {
-    boolean hit;
-    BodyPart hitLocation;
-    WoundSeverity woundSeverity;
-    int actualDamage;
-    
-    public HitResult(boolean hit, BodyPart hitLocation, WoundSeverity woundSeverity, int actualDamage) {
-        this.hit = hit;
-        this.hitLocation = hitLocation;
-        this.woundSeverity = woundSeverity;
-        this.actualDamage = actualDamage;
-    }
-    
-    public boolean isHit() {
-        return hit;
-    }
-    
-    public BodyPart getHitLocation() {
-        return hitLocation;
-    }
-    
-    public WoundSeverity getWoundSeverity() {
-        return woundSeverity;
-    }
-    
-    public int getActualDamage() {
-        return actualDamage;
-    }
-}
-
-enum BodyPart {
-    HEAD,
-    CHEST,
-    ABDOMEN,
-    LEFT_SHOULDER,
-    RIGHT_SHOULDER,
-    LEFT_ARM,
-    RIGHT_ARM,
-    LEFT_LEG,
-    RIGHT_LEG
-}
-
-enum WoundSeverity {
-    SCRATCH,
-    LIGHT,
-    SERIOUS,
-    CRITICAL
-}
-
-class Wound {
-    BodyPart bodyPart;
-    WoundSeverity severity;
-    
-    public Wound(BodyPart bodyPart, WoundSeverity severity) {
-        this.bodyPart = bodyPart;
-        this.severity = severity;
-    }
-    
-    public BodyPart getBodyPart() {
-        return bodyPart;
-    }
-    
-    public void setBodyPart(BodyPart bodyPart) {
-        this.bodyPart = bodyPart;
-    }
-    
-    public WoundSeverity getSeverity() {
-        return severity;
-    }
-    
-    public void setSeverity(WoundSeverity severity) {
-        this.severity = severity;
-    }
-}
-
-class Skill {
-    String skillName;
-    int level;
-    
-    public Skill(String skillName, int level) {
-        this.skillName = skillName;
-        this.level = level;
-    }
-    
-    public String getSkillName() {
-        return skillName;
-    }
-    
-    public void setSkillName(String skillName) {
-        this.skillName = skillName;
-    }
-    
-    public int getLevel() {
-        return level;
-    }
-    
-    public void setLevel(int level) {
-        this.level = level;
-    }
-}

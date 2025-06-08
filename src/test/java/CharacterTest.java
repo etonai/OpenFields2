@@ -1,6 +1,8 @@
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import combat.Character;
+import combat.Weapon;
 
 import static org.junit.jupiter.api.Assertions.*;
 
