@@ -291,4 +291,51 @@ public class GameMechanicsTest {
         assertEquals(200, testUnit.targetY, "Unit should update to new target Y");
         assertTrue(testUnit.hasTarget, "Unit should still have target");
     }
+    
+    @Test
+    public void testUnit_MovementWithDifferentTypes() {
+        // Test movement with different movement types
+        testUnit.setTarget(200, 100); // Move 100 pixels to the right
+        
+        // Test WALK (default)
+        long currentTick = 1;
+        testUnit.update(currentTick);
+        double walkDistance = testUnit.getX() - 100; // Should be 42/60 = 0.7 pixels
+        assertEquals(42.0 / 60.0, walkDistance, 0.001, "WALK movement should be base speed / 60");
+        
+        // Reset position and test JOG
+        testUnit.x = 100;
+        testCharacter.setCurrentMovementType(combat.MovementType.JOG);
+        testUnit.update(currentTick + 1);
+        double jogDistance = testUnit.getX() - 100; // Should be 63/60 = 1.05 pixels
+        assertEquals(63.0 / 60.0, jogDistance, 0.001, "JOG movement should be 1.5x base speed / 60");
+        
+        // Reset position and test RUN
+        testUnit.x = 100;
+        testCharacter.setCurrentMovementType(combat.MovementType.RUN);
+        testUnit.update(currentTick + 2);
+        double runDistance = testUnit.getX() - 100; // Should be 84/60 = 1.4 pixels
+        assertEquals(84.0 / 60.0, runDistance, 0.001, "RUN movement should be 2.0x base speed / 60");
+        
+        // Reset position and test CRAWL
+        testUnit.x = 100;
+        testCharacter.setCurrentMovementType(combat.MovementType.CRAWL);
+        testUnit.update(currentTick + 3);
+        double crawlDistance = testUnit.getX() - 100; // Should be 10.5/60 = 0.175 pixels
+        assertEquals(10.5 / 60.0, crawlDistance, 0.001, "CRAWL movement should be 0.25x base speed / 60");
+    }
+    
+    @Test
+    public void testUnit_IncapacitatedMovementSpeed() {
+        testCharacter.setHealth(0); // Incapacitate character
+        testUnit.setTarget(200, 100);
+        
+        long currentTick = 1;
+        testUnit.update(currentTick);
+        
+        // Should not move when incapacitated and should clear target
+        assertFalse(testUnit.hasTarget, "Incapacitated unit should clear target");
+        assertEquals(100, testUnit.getX(), "Incapacitated unit should not move");
+        assertEquals(100, testUnit.getY(), "Incapacitated unit should not move");
+    }
 }

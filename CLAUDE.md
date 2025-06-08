@@ -32,11 +32,20 @@ mvn javafx:run                # Run the JavaFX application
 ## Game Mechanics
 
 - **Movement**: Right-click empty space to move selected unit
+- **Movement Types**: W/S keys to increase/decrease movement speed (Crawl, Walk, Jog, Run)
 - **Combat**: Right-click enemy unit to schedule ranged attack
 - **Selection**: Left-click unit to select
 - **Controls**: Arrow keys pan, +/- zoom, Space pauses/resumes
 - **Health system**: Units become incapacitated at 0 health, movement stops
 - **Attack timing**: Projectile travel time based on weapon velocity and distance
+
+### Movement System
+- **Crawl**: 0.25x base speed (10.5 pixels/sec)
+- **Walk**: 1.0x base speed (42 pixels/sec) - default
+- **Jog**: 1.5x base speed (63 pixels/sec)
+- **Run**: 2.0x base speed (84 pixels/sec)
+- **Controls**: W to increase, S to decrease movement type
+- **Display**: Selected unit shows current movement type below name
 
 ## Technical Details
 

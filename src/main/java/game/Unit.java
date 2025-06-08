@@ -71,8 +71,8 @@ public class Unit {
             return;
         }
 
-        double moveX = character.baseMovementSpeed / 60.0 * (dx / distance);
-        double moveY = character.baseMovementSpeed / 60.0 * (dy / distance);
+        double moveX = character.getEffectiveMovementSpeed() / 60.0 * (dx / distance);
+        double moveY = character.getEffectiveMovementSpeed() / 60.0 * (dy / distance);
 
         if (Math.abs(moveX) > Math.abs(dx)) x = targetX; else x += moveX;
         if (Math.abs(moveY) > Math.abs(dy)) y = targetY; else y += moveY;
@@ -88,6 +88,9 @@ public class Unit {
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(12));
             gc.fillText(character.name, x - 15, y - 15);
+            // Display movement type
+            gc.setFont(Font.font(10));
+            gc.fillText(character.getCurrentMovementType().getDisplayName(), x - 15, y + 25);
         }
     }
 

@@ -15,6 +15,7 @@ public class Character {
     public int currentHealth;
     public int bravery;
     public double baseMovementSpeed;
+    public MovementType currentMovementType;
     public Weapon weapon;
     public WeaponState currentWeaponState;
     public Unit currentTarget;
@@ -28,6 +29,7 @@ public class Character {
         this.health = health;
         this.bravery = bravery;
         this.baseMovementSpeed = 42.0;
+        this.currentMovementType = MovementType.WALK;
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -39,6 +41,7 @@ public class Character {
         this.bravery = bravery;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
+        this.currentMovementType = MovementType.WALK;
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -49,6 +52,7 @@ public class Character {
         this.health = health;
         this.bravery = bravery;
         this.baseMovementSpeed = 42.0;
+        this.currentMovementType = MovementType.WALK;
         this.skills = skills != null ? skills : new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -60,6 +64,7 @@ public class Character {
         this.bravery = bravery;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
+        this.currentMovementType = MovementType.WALK;
         this.skills = skills != null ? skills : new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -94,6 +99,33 @@ public class Character {
 
     public void setBaseMovementSpeed(double baseMovementSpeed) {
         this.baseMovementSpeed = baseMovementSpeed;
+    }
+
+    public MovementType getCurrentMovementType() {
+        return currentMovementType;
+    }
+
+    public void setCurrentMovementType(MovementType movementType) {
+        this.currentMovementType = movementType;
+    }
+    
+    public double getEffectiveMovementSpeed() {
+        if (isIncapacitated()) {
+            return 0.0;
+        }
+        return baseMovementSpeed * currentMovementType.getSpeedMultiplier();
+    }
+    
+    public void increaseMovementType() {
+        if (!isIncapacitated()) {
+            this.currentMovementType = currentMovementType.increase();
+        }
+    }
+    
+    public void decreaseMovementType() {
+        if (!isIncapacitated()) {
+            this.currentMovementType = currentMovementType.decrease();
+        }
     }
 
     public int getBravery() {

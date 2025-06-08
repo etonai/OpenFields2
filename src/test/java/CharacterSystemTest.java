@@ -321,4 +321,95 @@ public class CharacterSystemTest {
         
         assertEquals(-10, testCharacter.getSkillLevel("NegativeSkill"));
     }
+    
+    @Test
+    public void testCharacter_DefaultMovementType() {
+        assertEquals(combat.MovementType.WALK, testCharacter.getCurrentMovementType(), "Character should start with WALK movement type");
+    }
+    
+    @Test
+    public void testCharacter_MovementTypeChangeAndSpeed() {
+        // Test increasing movement types
+        testCharacter.increaseMovementType();
+        assertEquals(combat.MovementType.JOG, testCharacter.getCurrentMovementType(), "Should increase from WALK to JOG");
+        assertEquals(63.0, testCharacter.getEffectiveMovementSpeed(), 0.001, "JOG should be 1.5x base speed");
+        
+        testCharacter.increaseMovementType();
+        assertEquals(combat.MovementType.RUN, testCharacter.getCurrentMovementType(), "Should increase from JOG to RUN");
+        assertEquals(84.0, testCharacter.getEffectiveMovementSpeed(), 0.001, "RUN should be 2.0x base speed");
+        
+        // Test maximum limit
+        testCharacter.increaseMovementType();
+        assertEquals(combat.MovementType.RUN, testCharacter.getCurrentMovementType(), "Should remain at RUN when already at maximum");
+        
+        // Test decreasing movement types
+        testCharacter.decreaseMovementType();
+        assertEquals(combat.MovementType.JOG, testCharacter.getCurrentMovementType(), "Should decrease from RUN to JOG");
+        
+        testCharacter.decreaseMovementType();
+        assertEquals(combat.MovementType.WALK, testCharacter.getCurrentMovementType(), "Should decrease from JOG to WALK");
+        assertEquals(42.0, testCharacter.getEffectiveMovementSpeed(), 0.001, "WALK should be 1.0x base speed");
+        
+        testCharacter.decreaseMovementType();
+        assertEquals(combat.MovementType.CRAWL, testCharacter.getCurrentMovementType(), "Should decrease from WALK to CRAWL");
+        assertEquals(10.5, testCharacter.getEffectiveMovementSpeed(), 0.001, "CRAWL should be 0.25x base speed");
+        
+        // Test minimum limit
+        testCharacter.decreaseMovementType();
+        assertEquals(combat.MovementType.CRAWL, testCharacter.getCurrentMovementType(), "Should remain at CRAWL when already at minimum");
+    }
+    
+    @Test
+    public void testCharacter_IncapacitatedMovement() {
+        testCharacter.setHealth(0); // Incapacitate character
+        
+        // Should not be able to change movement type when incapacitated
+        testCharacter.increaseMovementType();
+        assertEquals(combat.MovementType.WALK, testCharacter.getCurrentMovementType(), "Incapacitated character should not change movement type");
+        
+        testCharacter.decreaseMovementType();
+        assertEquals(combat.MovementType.WALK, testCharacter.getCurrentMovementType(), "Incapacitated character should not change movement type");
+        
+        // Effective movement speed should be 0 when incapacitated
+        assertEquals(0.0, testCharacter.getEffectiveMovementSpeed(), 0.001, "Incapacitated character should have 0 movement speed");
+    }
+    
+    @Test
+    public void testCharacter_MovementTypeSettersAndGetters() {
+        testCharacter.setCurrentMovementType(combat.MovementType.RUN);
+        assertEquals(combat.MovementType.RUN, testCharacter.getCurrentMovementType(), "Should be able to set movement type directly");
+        assertEquals(84.0, testCharacter.getEffectiveMovementSpeed(), 0.001, "Effective speed should update with movement type");
+        
+        testCharacter.setCurrentMovementType(combat.MovementType.CRAWL);
+        assertEquals(combat.MovementType.CRAWL, testCharacter.getCurrentMovementType(), "Should be able to set movement type to CRAWL");
+        assertEquals(10.5, testCharacter.getEffectiveMovementSpeed(), 0.001, "Effective speed should update with movement type");
+    }
+    
+    @Test
+    public void testMovementType_EnumProperties() {
+        assertEquals("Crawl", combat.MovementType.CRAWL.getDisplayName());
+        assertEquals(0.25, combat.MovementType.CRAWL.getSpeedMultiplier(), 0.001);
+        
+        assertEquals("Walk", combat.MovementType.WALK.getDisplayName());
+        assertEquals(1.0, combat.MovementType.WALK.getSpeedMultiplier(), 0.001);
+        
+        assertEquals("Jog", combat.MovementType.JOG.getDisplayName());
+        assertEquals(1.5, combat.MovementType.JOG.getSpeedMultiplier(), 0.001);
+        
+        assertEquals("Run", combat.MovementType.RUN.getDisplayName());
+        assertEquals(2.0, combat.MovementType.RUN.getSpeedMultiplier(), 0.001);
+    }
+    
+    @Test
+    public void testMovementType_IncreaseAndDecrease() {
+        assertEquals(combat.MovementType.WALK, combat.MovementType.CRAWL.increase());
+        assertEquals(combat.MovementType.JOG, combat.MovementType.WALK.increase());
+        assertEquals(combat.MovementType.RUN, combat.MovementType.JOG.increase());
+        assertEquals(combat.MovementType.RUN, combat.MovementType.RUN.increase()); // Already at max
+        
+        assertEquals(combat.MovementType.CRAWL, combat.MovementType.CRAWL.decrease()); // Already at min
+        assertEquals(combat.MovementType.CRAWL, combat.MovementType.WALK.decrease());
+        assertEquals(combat.MovementType.WALK, combat.MovementType.JOG.decrease());
+        assertEquals(combat.MovementType.JOG, combat.MovementType.RUN.decrease());
+    }
 }

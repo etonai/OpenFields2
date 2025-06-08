@@ -210,7 +210,9 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("Dexterity: " + selected.character.dexterity + " (modifier: " + statToModifier(selected.character.dexterity) + ")");
                     System.out.println("Health: " + selected.character.health);
                     System.out.println("Bravery: " + selected.character.bravery + " (modifier: " + statToModifier(selected.character.bravery) + ")");
-                    System.out.println("Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
+                    System.out.println("Base Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
+                    System.out.println("Current Movement: " + selected.character.getCurrentMovementType().getDisplayName() + 
+                                     " (" + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
                     System.out.println("Incapacitated: " + (selected.character.isIncapacitated() ? "YES" : "NO"));
                     
                     if (selected.character.weapon != null) {
@@ -239,6 +241,29 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("***********************");
                 } else {
                     System.out.println("*** No character selected - select a character first ***");
+                }
+            }
+            // Movement type controls - W to increase, S to decrease
+            if (e.getCode() == KeyCode.W && selected != null) {
+                combat.MovementType previousType = selected.character.getCurrentMovementType();
+                selected.character.increaseMovementType();
+                combat.MovementType newType = selected.character.getCurrentMovementType();
+                if (previousType != newType) {
+                    System.out.println("*** " + selected.character.getName() + " movement increased to " + newType.getDisplayName() + 
+                                     " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                } else {
+                    System.out.println("*** " + selected.character.getName() + " is already at maximum movement type: " + newType.getDisplayName());
+                }
+            }
+            if (e.getCode() == KeyCode.S && selected != null) {
+                combat.MovementType previousType = selected.character.getCurrentMovementType();
+                selected.character.decreaseMovementType();
+                combat.MovementType newType = selected.character.getCurrentMovementType();
+                if (previousType != newType) {
+                    System.out.println("*** " + selected.character.getName() + " movement decreased to " + newType.getDisplayName() + 
+                                     " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                } else {
+                    System.out.println("*** " + selected.character.getName() + " is already at minimum movement type: " + newType.getDisplayName());
                 }
             }
         });
