@@ -145,7 +145,7 @@ public class OpenFields2 extends Application {
                         selected = u;
                         System.out.println("Selected: " + u.character.name + " (ID: " + u.id + ")");
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u == selected) {
-                        if (selected.character.health <= 0) {
+                        if (selected.character.isIncapacitated()) {
                             System.out.println(">>> " + selected.character.name + " is incapacitated and cannot ready weapon.");
                             return;
                         }
@@ -153,7 +153,7 @@ public class OpenFields2 extends Application {
                         selected.character.startReadyWeaponSequence(selected, gameClock.getCurrentTick(), eventQueue, selected.getId());
                         System.out.println("READY WEAPON " + selected.character.name + " (ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
-                        if (selected.character.health <= 0) {
+                        if (selected.character.isIncapacitated()) {
                             System.out.println(">>> " + selected.character.name + " is incapacitated and cannot attack.");
                             return;
                         }
@@ -164,6 +164,10 @@ public class OpenFields2 extends Application {
                 }
             }
             if (!clickedOnUnit && selected != null && e.getButton() == MouseButton.SECONDARY) {
+                if (selected.character.isIncapacitated()) {
+                    System.out.println(">>> " + selected.character.name + " is incapacitated and cannot move.");
+                    return;
+                }
                 selected.setTarget(x, y);
                 System.out.println("MOVE " + selected.character.name + " to (" + x + ", " + y + ")");
             }
@@ -194,6 +198,46 @@ public class OpenFields2 extends Application {
                 System.out.println("*** Debug mode " + (debugMode ? "ENABLED" : "DISABLED"));
                 System.out.println("***********************");
             }
+            if (e.getCode() == KeyCode.SLASH && e.isShiftDown()) {
+                if (selected != null) {
+                    System.out.println("***********************");
+                    System.out.println("*** CHARACTER STATS ***");
+                    System.out.println("***********************");
+                    System.out.println("Name: " + selected.character.name);
+                    System.out.println("Dexterity: " + selected.character.dexterity + " (modifier: " + statToModifier(selected.character.dexterity) + ")");
+                    System.out.println("Health: " + selected.character.health);
+                    System.out.println("Bravery: " + selected.character.bravery + " (modifier: " + statToModifier(selected.character.bravery) + ")");
+                    System.out.println("Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
+                    System.out.println("Incapacitated: " + (selected.character.isIncapacitated() ? "YES" : "NO"));
+                    
+                    if (selected.character.weapon != null) {
+                        System.out.println("--- WEAPON ---");
+                        System.out.println("Name: " + selected.character.weapon.name);
+                        System.out.println("Damage: " + selected.character.weapon.damage);
+                        System.out.println("Accuracy: " + selected.character.weapon.weaponAccuracy);
+                        System.out.println("Max Range: " + selected.character.weapon.maximumRange + " feet");
+                        System.out.println("Velocity: " + selected.character.weapon.velocityFeetPerSecond + " feet/second");
+                        System.out.println("Ammunition: " + selected.character.weapon.ammunition);
+                        System.out.println("Current State: " + (selected.character.currentWeaponState != null ? selected.character.currentWeaponState.getState() : "None"));
+                    } else {
+                        System.out.println("--- WEAPON ---");
+                        System.out.println("No weapon equipped");
+                    }
+                    
+                    if (!selected.character.wounds.isEmpty()) {
+                        System.out.println("--- WOUNDS ---");
+                        for (Wound wound : selected.character.wounds) {
+                            System.out.println(wound.getBodyPart().name().toLowerCase() + ": " + wound.getSeverity().name().toLowerCase());
+                        }
+                    } else {
+                        System.out.println("--- WOUNDS ---");
+                        System.out.println("No wounds");
+                    }
+                    System.out.println("***********************");
+                } else {
+                    System.out.println("*** No character selected - select a character first ***");
+                }
+            }
         });
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.0 / 60), e -> run()));
@@ -203,6 +247,10 @@ public class OpenFields2 extends Application {
         primaryStage.setScene(scene);
         primaryStage.setTitle("Unit Movement Game");
         primaryStage.show();
+        
+        System.out.println("***********************");
+        System.out.println("*** Game is paused");
+        System.out.println("***********************");
     }
 
     private void run() {
@@ -220,17 +268,17 @@ public class OpenFields2 extends Application {
     void createUnits() {
 
         int nextId = 1;
-        Character c1 = new Character("Alice", 100, 50, 75);
-        c1.weapon = createPistol("Colt Peacemaker", 600.0, 50, 6, "/Slap0003.wav", 150.0, 0);
+        Character c1 = new Character("Alice", 100, 11, 75);
+        c1.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
         c1.currentWeaponState = c1.weapon.getInitialState();
-        Character c2 = new Character("Bobby", 75, 50, 60);
-        c2.weapon = createRifle("Emek Paintball Gun", 300.0, 1, 160, "/Slap0003.wav", 300.0, -10);
+        Character c2 = new Character("Bobby", 75, 20, 60);
+        c2.weapon = createSheathedWeapon("Wand of Magic Bolts", 30.0, 8, 20, "/magic.wav", 100.0, 20);
         c2.currentWeaponState = c2.weapon.getInitialState();
-        Character c3 = new Character("Chris", 25, 50, 30);
-        c3.weapon = createPistol("Nerf Pistol", 30.0, 0, 10, "/Slap0003.wav", 50.0, -20);
+        Character c3 = new Character("Chris", 25, 8, 30);
+        c3.weapon = createPistol("Derringer", 600.0, 4, 1, "/Slap0003.wav", 50.0, -10);
         c3.currentWeaponState = c3.weapon.getInitialState();
-        Character c4 = new Character("Drake", 50, 50, 85);
-        c4.weapon = createPistol("Lasertag Gun", 30000.0, 0, 20, "/placeholder_laser.wav", 500.0, 20);
+        Character c4 = new Character("Drake", 50, 14, 85);
+        c4.weapon = createPistol("Plasma Pistol", 3000.0, 6, 20, "/placeholder_laser.wav", 500.0, 20);
         c4.currentWeaponState = c4.weapon.getInitialState();
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
         units.add(new Unit(c2, 400, 400, Color.BLUE, nextId++));
@@ -277,7 +325,7 @@ public class OpenFields2 extends Application {
         return weapon;
     }
 
-    private static HitResult determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy) {
+    private static HitResult determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage) {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = 0.0;
@@ -317,12 +365,16 @@ public class OpenFields2 extends Application {
         
         boolean hit = randomRoll < chanceToHit;
         BodyPart hitLocation = null;
+        WoundSeverity woundSeverity = null;
+        int actualDamage = 0;
         
         if (hit) {
             hitLocation = determineHitLocation(randomRoll, chanceToHit);
+            woundSeverity = determineWoundSeverity(randomRoll, chanceToHit, hitLocation);
+            actualDamage = calculateActualDamage(weaponDamage, woundSeverity);
         }
         
-        return new HitResult(hit, hitLocation);
+        return new HitResult(hit, hitLocation, woundSeverity, actualDamage);
     }
     
     private static BodyPart determineHitLocation(double randomRoll, double chanceToHit) {
@@ -365,6 +417,50 @@ public class OpenFields2 extends Application {
         return rangeModifier;
     }
     
+    private static WoundSeverity determineWoundSeverity(double randomRoll, double chanceToHit, BodyPart hitLocation) {
+        double excellentThreshold = chanceToHit * 0.2;
+        
+        // Excellent shots are always critical
+        if (randomRoll < excellentThreshold) {
+            return WoundSeverity.CRITICAL;
+        }
+        
+        // Determine wound severity based on hit location
+        double severityRoll = Math.random() * 100;
+        
+        if (isVitalArea(hitLocation)) {
+            // HEAD/CHEST/ABDOMEN: 30% Critical, 40% Serious, 25% Light, 5% Scratch
+            if (severityRoll < 30) return WoundSeverity.CRITICAL;
+            else if (severityRoll < 70) return WoundSeverity.SERIOUS;
+            else if (severityRoll < 95) return WoundSeverity.LIGHT;
+            else return WoundSeverity.SCRATCH;
+        } else {
+            // ARMS/SHOULDERS/LEGS: 10% Critical, 25% Serious, 45% Light, 20% Scratch
+            if (severityRoll < 10) return WoundSeverity.CRITICAL;
+            else if (severityRoll < 35) return WoundSeverity.SERIOUS;
+            else if (severityRoll < 80) return WoundSeverity.LIGHT;
+            else return WoundSeverity.SCRATCH;
+        }
+    }
+    
+    private static boolean isVitalArea(BodyPart bodyPart) {
+        return bodyPart == BodyPart.HEAD || bodyPart == BodyPart.CHEST || bodyPart == BodyPart.ABDOMEN;
+    }
+    
+    private static int calculateActualDamage(int weaponDamage, WoundSeverity woundSeverity) {
+        switch (woundSeverity) {
+            case CRITICAL:
+            case SERIOUS:
+                return weaponDamage;
+            case LIGHT:
+                return Math.max(1, Math.round(weaponDamage * 0.4f));
+            case SCRATCH:
+                return 1;
+            default:
+                return 0;
+        }
+    }
+    
     void playWeaponSound(Weapon weapon) {
         try {
             System.out.println("*** Attempting to play sound: " + weapon.soundFile);
@@ -378,7 +474,7 @@ public class OpenFields2 extends Application {
     
     void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
         long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
-        HitResult hitResult = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy);
+        HitResult hitResult = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy, weapon.damage);
         System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
         
         eventQueue.add(new ScheduledEvent(impactTick, () -> {
@@ -389,12 +485,23 @@ public class OpenFields2 extends Application {
     private void resolveCombatImpact(Unit shooter, Unit target, Weapon weapon, long impactTick, HitResult hitResult) {
         if (hitResult.isHit()) {
             BodyPart hitLocation = hitResult.getHitLocation();
-            System.out.println(">>> Projectile hit " + target.character.name + " in the " + hitLocation.name().toLowerCase() + " at tick " + impactTick);
-            target.character.health -= weapon.damage;
-            System.out.println(">>> " + target.character.name + " takes " + weapon.damage + " damage. Health now: " + target.character.health);
+            WoundSeverity woundSeverity = hitResult.getWoundSeverity();
+            int actualDamage = hitResult.getActualDamage();
             
-            if (target.character.health <= 0) {
-                System.out.println(">>> " + target.character.name + " is incapacitated!");
+            System.out.println(">>> Projectile hit " + target.character.name + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick);
+            target.character.health -= actualDamage;
+            System.out.println(">>> " + target.character.name + " takes " + actualDamage + " damage. Health now: " + target.character.health);
+            
+            // Add wound to character's wound list
+            target.character.addWound(new Wound(hitLocation, woundSeverity));
+            
+            // Check for incapacitation
+            if (target.character.isIncapacitated()) {
+                if (woundSeverity == WoundSeverity.CRITICAL) {
+                    System.out.println(">>> " + target.character.name + " is incapacitated by critical wound!");
+                } else {
+                    System.out.println(">>> " + target.character.name + " is incapacitated!");
+                }
                 target.character.baseMovementSpeed = 0;
                 eventQueue.removeIf(e -> e.getOwnerId() == target.getId());
                 System.out.println(">>> Removed all scheduled actions for " + target.character.name);
@@ -597,6 +704,19 @@ class Character {
         wounds.add(wound);
     }
     
+    public boolean isIncapacitated() {
+        if (health <= 0) {
+            return true;
+        }
+        // Check for any critical wounds
+        for (Wound wound : wounds) {
+            if (wound.getSeverity() == WoundSeverity.CRITICAL) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     public boolean removeWound(Wound wound) {
         return wounds.remove(wound);
     }
@@ -644,6 +764,10 @@ class Character {
         } else if ("slung".equals(currentState)) {
             scheduleStateTransition("unsling", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
         } else if ("unsling".equals(currentState)) {
+            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
+        } else if ("sheathed".equals(currentState)) {
+            scheduleStateTransition("unsheathing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
+        } else if ("unsheathing".equals(currentState)) {
             scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
         } else if ("ready".equals(currentState)) {
             scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
@@ -735,6 +859,10 @@ class Character {
         } else if ("slung".equals(currentState)) {
             scheduleReadyStateTransition("unsling", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("unsling".equals(currentState)) {
+            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+        } else if ("sheathed".equals(currentState)) {
+            scheduleReadyStateTransition("unsheathing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+        } else if ("unsheathing".equals(currentState)) {
             scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
             WeaponState readyState = weapon.getStateByName("ready");
@@ -881,6 +1009,12 @@ class Unit {
         lastTickUpdated = currentTick;
 
         if (!hasTarget) return;
+        
+        // Incapacitated characters cannot move
+        if (character.isIncapacitated()) {
+            hasTarget = false;
+            return;
+        }
 
         double dx = targetX - x;
         double dy = targetY - y;
@@ -975,10 +1109,14 @@ class GameClock {
 class HitResult {
     boolean hit;
     BodyPart hitLocation;
+    WoundSeverity woundSeverity;
+    int actualDamage;
     
-    public HitResult(boolean hit, BodyPart hitLocation) {
+    public HitResult(boolean hit, BodyPart hitLocation, WoundSeverity woundSeverity, int actualDamage) {
         this.hit = hit;
         this.hitLocation = hitLocation;
+        this.woundSeverity = woundSeverity;
+        this.actualDamage = actualDamage;
     }
     
     public boolean isHit() {
@@ -987,6 +1125,14 @@ class HitResult {
     
     public BodyPart getHitLocation() {
         return hitLocation;
+    }
+    
+    public WoundSeverity getWoundSeverity() {
+        return woundSeverity;
+    }
+    
+    public int getActualDamage() {
+        return actualDamage;
     }
 }
 
@@ -1002,11 +1148,18 @@ enum BodyPart {
     RIGHT_LEG
 }
 
+enum WoundSeverity {
+    SCRATCH,
+    LIGHT,
+    SERIOUS,
+    CRITICAL
+}
+
 class Wound {
     BodyPart bodyPart;
-    int severity;
+    WoundSeverity severity;
     
-    public Wound(BodyPart bodyPart, int severity) {
+    public Wound(BodyPart bodyPart, WoundSeverity severity) {
         this.bodyPart = bodyPart;
         this.severity = severity;
     }
@@ -1019,11 +1172,11 @@ class Wound {
         this.bodyPart = bodyPart;
     }
     
-    public int getSeverity() {
+    public WoundSeverity getSeverity() {
         return severity;
     }
     
-    public void setSeverity(int severity) {
+    public void setSeverity(WoundSeverity severity) {
         this.severity = severity;
     }
 }
