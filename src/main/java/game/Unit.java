@@ -64,7 +64,9 @@ public class Unit {
         double dy = targetY - y;
         double distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < 1) {
+        if (distance <= 1) {
+            x = targetX;
+            y = targetY;
             hasTarget = false;
             return;
         }
