@@ -36,3 +36,6 @@ Thumbs.db
 
 # Maven build cache (optional, if you want to be thorough)
 .mvn/timing.properties
+
+# Claude Code
+.claude/
