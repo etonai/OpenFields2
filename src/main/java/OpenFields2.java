@@ -277,9 +277,9 @@ public class OpenFields2 extends Application {
         return weapon;
     }
 
-    private static boolean determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy) {
+    private static HitResult determineHit(Character shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy) {
         double weaponModifier = weaponAccuracy;
-        double rangeModifier = 0.0;
+        double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = 0.0;
         double targetMovementModifier = 0.0;
         double woundModifier = 0.0;
@@ -288,6 +288,11 @@ public class OpenFields2 extends Application {
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
         double chanceToHit = 50.0 + statToModifier(shooter.dexterity) + stressModifier + rangeModifier + weaponModifier + movementModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
+        
+        if (distanceFeet <= maximumRange) {
+            chanceToHit = Math.max(chanceToHit, 0.01);
+        }
+        
         double randomRoll = Math.random() * 100;
         
         if (debugMode) {
@@ -296,7 +301,7 @@ public class OpenFields2 extends Application {
             System.out.println("Base chance: 50.0");
             System.out.println("Dexterity modifier: " + statToModifier(shooter.dexterity) + " (dex: " + shooter.dexterity + ")");
             System.out.println("Stress modifier: " + stressModifier + " (bravery: " + shooter.bravery + ":" + statToModifier(shooter.bravery) + ")");
-            System.out.println("Range modifier: " + rangeModifier);
+            System.out.println("Range modifier: " + String.format("%.2f", rangeModifier) + " (distance: " + String.format("%.2f", distanceFeet) + " feet, max: " + String.format("%.2f", maximumRange) + " feet)");
             System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
             System.out.println("Movement modifier: " + movementModifier);
             System.out.println("Target movement modifier: " + targetMovementModifier);
@@ -310,7 +315,54 @@ public class OpenFields2 extends Application {
             System.out.println("=============================");
         }
         
-        return randomRoll < chanceToHit;
+        boolean hit = randomRoll < chanceToHit;
+        BodyPart hitLocation = null;
+        
+        if (hit) {
+            hitLocation = determineHitLocation(randomRoll, chanceToHit);
+        }
+        
+        return new HitResult(hit, hitLocation);
+    }
+    
+    private static BodyPart determineHitLocation(double randomRoll, double chanceToHit) {
+        double excellentThreshold = chanceToHit * 0.2;
+        double goodThreshold = chanceToHit * 0.7;
+        
+        if (randomRoll < excellentThreshold) {
+            return BodyPart.CHEST;
+        } else if (randomRoll < goodThreshold) {
+            return Math.random() < 0.5 ? BodyPart.CHEST : BodyPart.ABDOMEN;
+        } else {
+            return getRandomBodyPart();
+        }
+    }
+    
+    private static BodyPart getRandomBodyPart() {
+        double roll = Math.random() * 100;
+        
+        if (roll < 12) return BodyPart.LEFT_ARM;
+        else if (roll < 24) return BodyPart.RIGHT_ARM;
+        else if (roll < 32) return BodyPart.LEFT_SHOULDER;
+        else if (roll < 40) return BodyPart.RIGHT_SHOULDER;
+        else if (roll < 50) return BodyPart.HEAD;
+        else if (roll < 55) return BodyPart.LEFT_LEG;
+        else return BodyPart.RIGHT_LEG;
+    }
+    
+    private static double calculateRangeModifier(double distanceFeet, double maximumRange) {
+        double optimalRange = maximumRange * 0.3;
+        double rangeModifier;
+        
+        if (distanceFeet <= optimalRange) {
+            rangeModifier = 10.0 * (1.0 - distanceFeet / optimalRange);
+        } else {
+            double remainingRange = maximumRange - optimalRange;
+            double excessDistance = distanceFeet - optimalRange;
+            rangeModifier = -(excessDistance / remainingRange) * 20.0;
+        }
+        
+        return rangeModifier;
     }
     
     void playWeaponSound(Weapon weapon) {
@@ -326,17 +378,18 @@ public class OpenFields2 extends Application {
     
     void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
         long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
-        boolean willHit = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy);
-        System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (willHit ? " (will hit)" : " (will miss)"));
+        HitResult hitResult = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy);
+        System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
         
         eventQueue.add(new ScheduledEvent(impactTick, () -> {
-            resolveCombatImpact(shooter, target, weapon, impactTick, willHit);
+            resolveCombatImpact(shooter, target, weapon, impactTick, hitResult);
         }, ScheduledEvent.WORLD_OWNER));
     }
     
-    private void resolveCombatImpact(Unit shooter, Unit target, Weapon weapon, long impactTick, boolean hit) {
-        if (hit) {
-            System.out.println(">>> Projectile hit " + target.character.name + " at tick " + impactTick);
+    private void resolveCombatImpact(Unit shooter, Unit target, Weapon weapon, long impactTick, HitResult hitResult) {
+        if (hitResult.isHit()) {
+            BodyPart hitLocation = hitResult.getHitLocation();
+            System.out.println(">>> Projectile hit " + target.character.name + " in the " + hitLocation.name().toLowerCase() + " at tick " + impactTick);
             target.character.health -= weapon.damage;
             System.out.println(">>> " + target.character.name + " takes " + weapon.damage + " damage. Health now: " + target.character.health);
             
@@ -588,6 +641,10 @@ class Character {
             scheduleStateTransition("drawing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
         } else if ("drawing".equals(currentState)) {
             scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
+        } else if ("slung".equals(currentState)) {
+            scheduleStateTransition("unsling", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
+        } else if ("unsling".equals(currentState)) {
+            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
         } else if ("ready".equals(currentState)) {
             scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, game);
         } else if ("aiming".equals(currentState)) {
@@ -674,6 +731,10 @@ class Character {
         if ("holstered".equals(currentState)) {
             scheduleReadyStateTransition("drawing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("drawing".equals(currentState)) {
+            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+        } else if ("slung".equals(currentState)) {
+            scheduleReadyStateTransition("unsling", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+        } else if ("unsling".equals(currentState)) {
             scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
             WeaponState readyState = weapon.getStateByName("ready");
@@ -911,16 +972,34 @@ class GameClock {
     }
 }
 
+class HitResult {
+    boolean hit;
+    BodyPart hitLocation;
+    
+    public HitResult(boolean hit, BodyPart hitLocation) {
+        this.hit = hit;
+        this.hitLocation = hitLocation;
+    }
+    
+    public boolean isHit() {
+        return hit;
+    }
+    
+    public BodyPart getHitLocation() {
+        return hitLocation;
+    }
+}
+
 enum BodyPart {
     HEAD,
     CHEST,
     ABDOMEN,
+    LEFT_SHOULDER,
+    RIGHT_SHOULDER,
     LEFT_ARM,
     RIGHT_ARM,
     LEFT_LEG,
-    RIGHT_LEG,
-    LEFT_SHOULDER,
-    RIGHT_SHOULDER
+    RIGHT_LEG
 }
 
 class Wound {
