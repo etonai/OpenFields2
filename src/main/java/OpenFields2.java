@@ -352,18 +352,32 @@ public class OpenFields2 extends Application implements GameCallbacks {
         weapon.initialStateName = "sheathed";
         return weapon;
     }
+    
+    private static double calculateMovementModifier(Unit shooter) {
+        if (!shooter.isMoving()) {
+            return 0.0; // Stationary = no penalty
+        }
+        
+        switch (shooter.character.getCurrentMovementType()) {
+            case WALK: return -5.0;
+            case CRAWL: return -10.0;
+            case JOG: return -15.0;
+            case RUN: return -25.0;
+            default: return 0.0;
+        }
+    }
 
-    private static HitResult determineHit(combat.Character shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage) {
+    private static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage) {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
-        double movementModifier = 0.0;
+        double movementModifier = calculateMovementModifier(shooter);
         double targetMovementModifier = 0.0;
         double woundModifier = 0.0;
-        double stressModifier = Math.min(0, OpenFields2.stressModifier + statToModifier(shooter.bravery));
+        double stressModifier = Math.min(0, OpenFields2.stressModifier + statToModifier(shooter.character.bravery));
         double skillModifier = 0.0;
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
-        double chanceToHit = 50.0 + statToModifier(shooter.dexterity) + stressModifier + rangeModifier + weaponModifier + movementModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
+        double chanceToHit = 50.0 + statToModifier(shooter.character.dexterity) + stressModifier + rangeModifier + weaponModifier + movementModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
         
         if (distanceFeet <= maximumRange) {
             chanceToHit = Math.max(chanceToHit, 0.01);
@@ -373,10 +387,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
         
         if (debugMode) {
             System.out.println("=== HIT CALCULATION DEBUG ===");
-            System.out.println("Shooter: " + shooter.name + " -> Target: " + target.character.name);
+            System.out.println("Shooter: " + shooter.character.name + " -> Target: " + target.character.name);
             System.out.println("Base chance: 50.0");
-            System.out.println("Dexterity modifier: " + statToModifier(shooter.dexterity) + " (dex: " + shooter.dexterity + ")");
-            System.out.println("Stress modifier: " + stressModifier + " (bravery: " + shooter.bravery + ":" + statToModifier(shooter.bravery) + ")");
+            System.out.println("Dexterity modifier: " + statToModifier(shooter.character.dexterity) + " (dex: " + shooter.character.dexterity + ")");
+            System.out.println("Stress modifier: " + stressModifier + " (bravery: " + shooter.character.bravery + ":" + statToModifier(shooter.character.bravery) + ")");
             System.out.println("Range modifier: " + String.format("%.2f", rangeModifier) + " (distance: " + String.format("%.2f", distanceFeet) + " feet, max: " + String.format("%.2f", maximumRange) + " feet)");
             System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
             System.out.println("Movement modifier: " + movementModifier);
@@ -502,7 +516,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
     
     public void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
         long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
-        HitResult hitResult = determineHit(shooter.character, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy, weapon.damage);
+        HitResult hitResult = determineHit(shooter, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy, weapon.damage);
         System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
         
         eventQueue.add(new ScheduledEvent(impactTick, () -> {

@@ -47,6 +47,15 @@ mvn javafx:run                # Run the JavaFX application
 - **Controls**: W to increase, S to decrease movement type
 - **Display**: Selected unit shows current movement type below name
 
+### Combat Modifiers
+- **Movement Penalties**: Shooting accuracy decreases while moving
+  - **Walking**: -5 modifier
+  - **Crawling**: -10 modifier
+  - **Jogging**: -15 modifier
+  - **Running**: -25 modifier
+  - **Stationary**: No penalty (0 modifier)
+- **Incapacitated units**: Considered stationary (no movement penalty)
+
 ## Technical Details
 
 - **Java 21** with JavaFX 21.0.2

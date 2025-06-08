@@ -97,4 +97,8 @@ public class Unit {
     public boolean contains(double px, double py) {
         return Math.hypot(px - x, py - y) <= 10.5;
     }
+    
+    public boolean isMoving() {
+        return hasTarget && !character.isIncapacitated();
+    }
 }

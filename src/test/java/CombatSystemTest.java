@@ -231,4 +231,72 @@ public class CombatSystemTest {
         assertNull(missResult.getWoundSeverity(), "Miss should have no wound severity");
         assertEquals(0, missResult.getActualDamage(), "Miss should deal no damage");
     }
+    
+    @Test
+    public void testMovementModifier_StationaryUnit() {
+        // Test that stationary units have no movement penalty
+        Unit stationaryUnit = new Unit(testShooter, 100, 100, Color.RED, 1);
+        
+        // Use reflection to test the private calculateMovementModifier method
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateMovementModifier", Unit.class);
+            method.setAccessible(true);
+            double modifier = (Double) method.invoke(null, stationaryUnit);
+            assertEquals(0.0, modifier, 0.001, "Stationary unit should have no movement penalty");
+        } catch (Exception e) {
+            fail("Failed to test calculateMovementModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testMovementModifier_MovingUnits() {
+        // Test movement penalties for different movement types
+        Unit movingUnit = new Unit(testShooter, 100, 100, Color.RED, 1);
+        movingUnit.setTarget(200, 200); // Make unit moving
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateMovementModifier", Unit.class);
+            method.setAccessible(true);
+            
+            // Test WALK movement
+            testShooter.setCurrentMovementType(MovementType.WALK);
+            double walkModifier = (Double) method.invoke(null, movingUnit);
+            assertEquals(-5.0, walkModifier, 0.001, "Walking should have -5 penalty");
+            
+            // Test CRAWL movement
+            testShooter.setCurrentMovementType(MovementType.CRAWL);
+            double crawlModifier = (Double) method.invoke(null, movingUnit);
+            assertEquals(-10.0, crawlModifier, 0.001, "Crawling should have -10 penalty");
+            
+            // Test JOG movement
+            testShooter.setCurrentMovementType(MovementType.JOG);
+            double jogModifier = (Double) method.invoke(null, movingUnit);
+            assertEquals(-15.0, jogModifier, 0.001, "Jogging should have -15 penalty");
+            
+            // Test RUN movement
+            testShooter.setCurrentMovementType(MovementType.RUN);
+            double runModifier = (Double) method.invoke(null, movingUnit);
+            assertEquals(-25.0, runModifier, 0.001, "Running should have -25 penalty");
+            
+        } catch (Exception e) {
+            fail("Failed to test calculateMovementModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testMovementModifier_IncapacitatedUnit() {
+        // Test that incapacitated units are considered stationary
+        Unit incapacitatedUnit = new Unit(testShooter, 100, 100, Color.RED, 1);
+        incapacitatedUnit.setTarget(200, 200); // Try to make unit moving
+        testShooter.setHealth(0); // Incapacitate
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateMovementModifier", Unit.class);
+            method.setAccessible(true);
+            double modifier = (Double) method.invoke(null, incapacitatedUnit);
+            assertEquals(0.0, modifier, 0.001, "Incapacitated unit should have no movement penalty (not moving)");
+        } catch (Exception e) {
+            fail("Failed to test calculateMovementModifier: " + e.getMessage());
+        }
+    }
 }
