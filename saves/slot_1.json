@@ -1,6 +1,6 @@
 {
   "metadata" : {
-    "timestamp" : "2025-06-09T15:33:03.8036719",
+    "timestamp" : "2025-06-09T16:54:45.723559",
     "gameVersion" : "1.0",
     "themeId" : "test_theme",
     "saveSlot" : 1
@@ -17,6 +17,10 @@
   "characters" : [ {
     "id" : 1,
     "name" : "Alice",
+    "nickname" : "Alice",
+    "firstName" : "Alice",
+    "lastName" : "Smith",
+    "birthdate" : "March 16, 1855",
     "themeId" : "test_theme",
     "dexterity" : 75,
     "currentDexterity" : 0,
@@ -27,7 +31,7 @@
     "reflexes" : 70,
     "handedness" : "RIGHT_HANDED",
     "baseMovementSpeed" : 42.0,
-    "currentMovementType" : "WALK",
+    "currentMovementType" : "CRAWL",
     "currentAimingSpeed" : "NORMAL",
     "weaponId" : "wpn_colt_peacemaker",
     "currentWeaponState" : "holstered",
@@ -40,6 +44,10 @@
   }, {
     "id" : 2,
     "name" : "Bobby",
+    "nickname" : "Bobby",
+    "firstName" : "Robert",
+    "lastName" : "Jones",
+    "birthdate" : "June 9, 1860",
     "themeId" : "test_theme",
     "dexterity" : 75,
     "currentDexterity" : 0,
@@ -63,6 +71,10 @@
   }, {
     "id" : 3,
     "name" : "Chris",
+    "nickname" : "Chris",
+    "firstName" : "Christopher",
+    "lastName" : "Brown",
+    "birthdate" : "December 2, 1862",
     "themeId" : "test_theme",
     "dexterity" : 25,
     "currentDexterity" : 0,
@@ -83,6 +95,10 @@
   }, {
     "id" : 4,
     "name" : "Drake",
+    "nickname" : "Drake",
+    "firstName" : "Drake",
+    "lastName" : "Williams",
+    "birthdate" : "August 23, 1858",
     "themeId" : "test_theme",
     "dexterity" : 50,
     "currentDexterity" : 0,
@@ -103,6 +119,10 @@
   }, {
     "id" : 5,
     "name" : "Ethan",
+    "nickname" : "Ethan",
+    "firstName" : "Ethan",
+    "lastName" : "Davis",
+    "birthdate" : "October 11, 1859",
     "themeId" : "test_theme",
     "dexterity" : 75,
     "currentDexterity" : 0,

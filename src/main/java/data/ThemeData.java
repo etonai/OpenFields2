@@ -1,8 +1,10 @@
 package data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Date;
 
 public class ThemeData {
     @JsonProperty("id")
@@ -23,6 +25,10 @@ public class ThemeData {
     @JsonProperty("createdDate")
     public String createdDate;
     
+    @JsonProperty("currentDate")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MMMM d, yyyy")
+    public Date currentDate;
+    
     @JsonProperty("compatibleGameVersion")
     public String compatibleGameVersion;
     
@@ -37,13 +43,14 @@ public class ThemeData {
     }
     
     public ThemeData(String id, String name, String description, String version, String author,
-                    String createdDate, String compatibleGameVersion, List<String> tags, ThemeResources resources) {
+                    String createdDate, Date currentDate, String compatibleGameVersion, List<String> tags, ThemeResources resources) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.version = version;
         this.author = author;
         this.createdDate = createdDate;
+        this.currentDate = currentDate;
         this.compatibleGameVersion = compatibleGameVersion;
         this.tags = tags;
         this.resources = resources;

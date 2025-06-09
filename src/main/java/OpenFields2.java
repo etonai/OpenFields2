@@ -14,6 +14,9 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
+import java.util.Calendar;
+import java.text.SimpleDateFormat;
 
 import combat.*;
 import game.*;
@@ -31,6 +34,12 @@ public class OpenFields2 extends Application implements GameCallbacks {
 
     public static double pixelsToFeet(double pixels) {
         return pixels / 7.0;
+    }
+    
+    private static Date createDate(int year, int month, int day) {
+        Calendar cal = Calendar.getInstance();
+        cal.set(year, month - 1, day); // Calendar months are 0-based
+        return cal.getTime();
     }
     
     public static int statToModifier(int stat) {
@@ -160,19 +169,19 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     clickedOnUnit = true;
                     if (e.getButton() == MouseButton.PRIMARY) {
                         selected = u;
-                        System.out.println("Selected: " + u.character.name + " (Character ID: " + u.character.id + ", Unit ID: " + u.id + ")");
+                        System.out.println("Selected: " + u.character.getDisplayName() + " (Unit ID: " + u.id + ")");
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u == selected) {
                         if (editMode) {
                             System.out.println(">>> Combat actions disabled in edit mode");
                             return;
                         }
                         if (selected.character.isIncapacitated()) {
-                            System.out.println(">>> " + selected.character.name + " is incapacitated and cannot ready weapon.");
+                            System.out.println(">>> " + selected.character.getDisplayName() + " is incapacitated and cannot ready weapon.");
                             return;
                         }
                         
                         selected.character.startReadyWeaponSequence(selected, gameClock.getCurrentTick(), eventQueue, selected.getId());
-                        System.out.println("READY WEAPON " + selected.character.name + " (Character ID: " + selected.character.id + ", Unit ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
+                        System.out.println("READY WEAPON " + selected.character.getDisplayName() + " (Unit ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
                         if (editMode) {
                             // Show range information in edit mode
@@ -182,7 +191,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                             double distanceFeet = pixelsToFeet(distancePixels);
                             
                             System.out.println("*** RANGE CHECK ***");
-                            System.out.println("Distance from " + selected.character.name + " to " + u.character.name + ": " + 
+                            System.out.println("Distance from " + selected.character.getDisplayName() + " to " + u.character.getDisplayName() + ": " + 
                                              String.format("%.2f", distanceFeet) + " feet");
                             
                             if (selected.character.weapon != null) {
@@ -203,18 +212,18 @@ public class OpenFields2 extends Application implements GameCallbacks {
                             return;
                         }
                         if (selected.character.isIncapacitated()) {
-                            System.out.println(">>> " + selected.character.name + " is incapacitated and cannot attack.");
+                            System.out.println(">>> " + selected.character.getDisplayName() + " is incapacitated and cannot attack.");
                             return;
                         }
                         
                         selected.character.startAttackSequence(selected, u, gameClock.getCurrentTick(), eventQueue, selected.getId(), this);
-                        System.out.println("ATTACK " + selected.character.name + " (Character ID: " + selected.character.id + ", Unit ID: " + selected.id + ") targets " + u.character.name + " (Character ID: " + u.character.id + ", Unit ID: " + u.id + ") - current state: " + selected.character.currentWeaponState.getState());
+                        System.out.println("ATTACK " + selected.character.getDisplayName() + " (Unit ID: " + selected.id + ") targets " + u.character.getDisplayName() + " (Unit ID: " + u.id + ") - current state: " + selected.character.currentWeaponState.getState());
                     }
                 }
             }
             if (!clickedOnUnit && selected != null && e.getButton() == MouseButton.SECONDARY) {
                 if (!editMode && selected.character.isIncapacitated()) {
-                    System.out.println(">>> " + selected.character.name + " is incapacitated and cannot move.");
+                    System.out.println(">>> " + selected.character.getDisplayName() + " is incapacitated and cannot move.");
                     return;
                 }
                 
@@ -226,11 +235,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     selected.targetY = y;
                     selected.hasTarget = false;
                     selected.isStopped = false;
-                    System.out.println("TELEPORT " + selected.character.name + " to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+                    System.out.println("TELEPORT " + selected.character.getDisplayName() + " to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
                 } else {
                     // Normal movement with movement rules
                     selected.setTarget(x, y);
-                    System.out.println("MOVE " + selected.character.name + " to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+                    System.out.println("MOVE " + selected.character.getDisplayName() + " to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
                 }
             }
         });
@@ -276,7 +285,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("***********************");
                     System.out.println("*** CHARACTER STATS ***");
                     System.out.println("***********************");
-                    System.out.println("Name: " + selected.character.name);
+                    System.out.println("ID: " + selected.character.id);
+                    System.out.println("Nickname: " + selected.character.nickname);
+                    System.out.println("Full Name: " + selected.character.getFullName());
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM d, yyyy");
+                    System.out.println("Birthdate: " + dateFormat.format(selected.character.birthdate));
                     System.out.println("Dexterity: " + selected.character.dexterity + " (modifier: " + statToModifier(selected.character.dexterity) + ")");
                     System.out.println("Strength: " + selected.character.strength + " (modifier: " + statToModifier(selected.character.strength) + ")");
                     System.out.println("Reflexes: " + selected.character.reflexes + " (modifier: " + statToModifier(selected.character.reflexes) + ")");
@@ -348,16 +361,16 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 if (selected.isStopped) {
                     selected.resumeMovement();
                     if (previousType != newType) {
-                        System.out.println("*** " + selected.character.getName() + " resumes movement at " + newType.getDisplayName() + 
+                        System.out.println("*** " + selected.character.getDisplayName() + " resumes movement at " + newType.getDisplayName() + 
                                          " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
                     } else {
-                        System.out.println("*** " + selected.character.getName() + " resumes movement at " + newType.getDisplayName());
+                        System.out.println("*** " + selected.character.getDisplayName() + " resumes movement at " + newType.getDisplayName());
                     }
                 } else if (previousType != newType) {
-                    System.out.println("*** " + selected.character.getName() + " movement increased to " + newType.getDisplayName() + 
+                    System.out.println("*** " + selected.character.getDisplayName() + " movement increased to " + newType.getDisplayName() + 
                                      " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
                 } else {
-                    System.out.println("*** " + selected.character.getName() + " is already at maximum movement type: " + newType.getDisplayName());
+                    System.out.println("*** " + selected.character.getDisplayName() + " is already at maximum movement type: " + newType.getDisplayName());
                 }
             }
             if (e.getCode() == KeyCode.S && selected != null) {
@@ -366,16 +379,16 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 // If already at crawling speed and currently moving, stop movement
                 if (previousType == combat.MovementType.CRAWL && selected.isMoving()) {
                     selected.stopMovement();
-                    System.out.println("*** " + selected.character.getName() + " stops moving");
+                    System.out.println("*** " + selected.character.getDisplayName() + " stops moving");
                 } else {
                     // Otherwise, decrease movement type normally
                     selected.character.decreaseMovementType();
                     combat.MovementType newType = selected.character.getCurrentMovementType();
                     if (previousType != newType) {
-                        System.out.println("*** " + selected.character.getName() + " movement decreased to " + newType.getDisplayName() + 
+                        System.out.println("*** " + selected.character.getDisplayName() + " movement decreased to " + newType.getDisplayName() + 
                                          " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
                     } else {
-                        System.out.println("*** " + selected.character.getName() + " is already at minimum movement type: " + newType.getDisplayName());
+                        System.out.println("*** " + selected.character.getDisplayName() + " is already at minimum movement type: " + newType.getDisplayName());
                     }
                 }
             }
@@ -385,10 +398,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 selected.character.increaseAimingSpeed();
                 combat.AimingSpeed newSpeed = selected.character.getCurrentAimingSpeed();
                 if (previousSpeed != newSpeed) {
-                    System.out.println("*** " + selected.character.getName() + " aiming speed increased to " + newSpeed.getDisplayName() + 
+                    System.out.println("*** " + selected.character.getDisplayName() + " aiming speed increased to " + newSpeed.getDisplayName() + 
                                      " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
                 } else {
-                    System.out.println("*** " + selected.character.getName() + " is already at maximum aiming speed: " + newSpeed.getDisplayName());
+                    System.out.println("*** " + selected.character.getDisplayName() + " is already at maximum aiming speed: " + newSpeed.getDisplayName());
                 }
             }
             if (e.getCode() == KeyCode.E && !e.isControlDown() && selected != null) {
@@ -396,10 +409,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 selected.character.decreaseAimingSpeed();
                 combat.AimingSpeed newSpeed = selected.character.getCurrentAimingSpeed();
                 if (previousSpeed != newSpeed) {
-                    System.out.println("*** " + selected.character.getName() + " aiming speed decreased to " + newSpeed.getDisplayName() + 
+                    System.out.println("*** " + selected.character.getDisplayName() + " aiming speed decreased to " + newSpeed.getDisplayName() + 
                                      " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
                 } else {
-                    System.out.println("*** " + selected.character.getName() + " is already at minimum aiming speed: " + newSpeed.getDisplayName());
+                    System.out.println("*** " + selected.character.getDisplayName() + " is already at minimum aiming speed: " + newSpeed.getDisplayName());
                 }
             }
             
@@ -482,29 +495,29 @@ public class OpenFields2 extends Application implements GameCallbacks {
     }
     void createUnits() {
         
-        combat.Character c1 = new combat.Character(nextCharacterId++, "Alice", "test_theme", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
+        combat.Character c1 = new combat.Character(nextCharacterId++, "Alice", "Alice", "Smith", createDate(1855, 3, 15), "test_theme", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
         c1.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
         c1.currentWeaponState = c1.weapon.getInitialState();
         c1.addSkill(new combat.Skill(SkillsManager.PISTOL, 4));
         units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
         
-        combat.Character c2 = new combat.Character(nextCharacterId++, "Bobby", "test_theme", 75, 20, 60, 45, 70, combat.Handedness.LEFT_HANDED);
+        combat.Character c2 = new combat.Character(nextCharacterId++, "Bobby", "Robert", "Jones", createDate(1860, 6, 8), "test_theme", 75, 20, 60, 45, 70, combat.Handedness.LEFT_HANDED);
         c2.weapon = WeaponFactory.createWeapon("wpn_hunting_rifle");
         c2.currentWeaponState = c2.weapon.getInitialState();
         c2.addSkill(new combat.Skill(SkillsManager.RIFLE, 3));
         units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
         
-        combat.Character c3 = new combat.Character(nextCharacterId++, "Chris", "test_theme", 25, 8, 30, 40, 35, combat.Handedness.RIGHT_HANDED);
+        combat.Character c3 = new combat.Character(nextCharacterId++, "Chris", "Christopher", "Brown", createDate(1862, 12, 1), "test_theme", 25, 8, 30, 40, 35, combat.Handedness.RIGHT_HANDED);
         c3.weapon = WeaponFactory.createWeapon("wpn_derringer");
         c3.currentWeaponState = c3.weapon.getInitialState();
         units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
         
-        combat.Character c4 = new combat.Character(nextCharacterId++, "Drake", "test_theme", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
+        combat.Character c4 = new combat.Character(nextCharacterId++, "Drake", "Drake", "Williams", createDate(1858, 8, 22), "test_theme", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
         c4.weapon = WeaponFactory.createWeapon("wpn_plasma_pistol");
         c4.currentWeaponState = c4.weapon.getInitialState();
         units.add(new Unit(c4, 100, 400, Color.PURPLE, nextUnitId++));
         
-        combat.Character c5 = new combat.Character(nextCharacterId++, "Ethan", "test_theme", 75, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
+        combat.Character c5 = new combat.Character(nextCharacterId++, "Ethan", "Ethan", "Davis", createDate(1859, 10, 10), "test_theme", 75, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
         c5.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
         c5.currentWeaponState = c5.weapon.getInitialState();
         c5.addSkill(new combat.Skill(SkillsManager.QUICKDRAW, 4));
@@ -731,7 +744,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         
         if (debugMode) {
             System.out.println("=== HIT CALCULATION DEBUG ===");
-            System.out.println("Shooter: " + shooter.character.name + " -> Target: " + target.character.name);
+            System.out.println("Shooter: " + shooter.character.getDisplayName() + " -> Target: " + target.character.getDisplayName());
             System.out.println("Base chance: 50.0");
             System.out.println("Dexterity modifier: " + statToModifier(shooter.character.dexterity) + " (dex: " + shooter.character.dexterity + ")");
             System.out.println("Stress modifier: " + stressModifier + " (coolness: " + shooter.character.coolness + ":" + statToModifier(shooter.character.coolness) + ")");
@@ -886,9 +899,9 @@ public class OpenFields2 extends Application implements GameCallbacks {
             combat.WoundSeverity woundSeverity = hitResult.getWoundSeverity();
             int actualDamage = hitResult.getActualDamage();
             
-            System.out.println(">>> Projectile hit " + target.character.name + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick);
+            System.out.println(">>> Projectile hit " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick);
             target.character.health -= actualDamage;
-            System.out.println(">>> " + target.character.name + " takes " + actualDamage + " damage. Health now: " + target.character.health);
+            System.out.println(">>> " + target.character.getDisplayName() + " takes " + actualDamage + " damage. Health now: " + target.character.health);
             
             // Add wound to character's wound list
             target.character.addWound(new combat.Wound(hitLocation, woundSeverity));
@@ -896,18 +909,18 @@ public class OpenFields2 extends Application implements GameCallbacks {
             // Check for incapacitation
             if (target.character.isIncapacitated()) {
                 if (woundSeverity == combat.WoundSeverity.CRITICAL) {
-                    System.out.println(">>> " + target.character.name + " is incapacitated by critical wound!");
+                    System.out.println(">>> " + target.character.getDisplayName() + " is incapacitated by critical wound!");
                 } else {
-                    System.out.println(">>> " + target.character.name + " is incapacitated!");
+                    System.out.println(">>> " + target.character.getDisplayName() + " is incapacitated!");
                 }
                 target.character.baseMovementSpeed = 0;
                 eventQueue.removeIf(e -> e.getOwnerId() == target.getId());
-                System.out.println(">>> Removed all scheduled actions for " + target.character.name);
+                System.out.println(">>> Removed all scheduled actions for " + target.character.getDisplayName());
             }
             
             applyHitHighlight(target, impactTick);
         } else {
-            System.out.println(">>> Projectile missed " + target.character.name + " at tick " + impactTick);
+            System.out.println(">>> Projectile missed " + target.character.getDisplayName() + " at tick " + impactTick);
         }
     }
     
@@ -1070,7 +1083,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
     private CharacterData serializeCharacter(combat.Character character) {
         CharacterData data = new CharacterData();
         data.id = character.id;
-        data.name = character.name;
+        data.name = character.nickname; // Legacy field for backward compatibility
+        data.nickname = character.nickname;
+        data.firstName = character.firstName;
+        data.lastName = character.lastName;
+        data.birthdate = character.birthdate;
         data.themeId = character.themeId;
         data.dexterity = character.dexterity;
         data.currentDexterity = character.currentDexterity;
@@ -1182,8 +1199,14 @@ public class OpenFields2 extends Application implements GameCallbacks {
     }
     
     private combat.Character deserializeCharacter(CharacterData data) {
+        // Handle both old and new save formats
+        String nickname = data.nickname != null ? data.nickname : data.name;
+        String firstName = data.firstName != null ? data.firstName : "";
+        String lastName = data.lastName != null ? data.lastName : "";
+        Date birthdate = data.birthdate != null ? data.birthdate : new Date(0); // Default to epoch if null
+        
         combat.Character character = new combat.Character(
-            data.id, data.name, data.themeId, data.dexterity, data.health,
+            data.id, nickname, firstName, lastName, birthdate, data.themeId, data.dexterity, data.health,
             data.coolness, data.strength, data.reflexes, data.handedness
         );
         

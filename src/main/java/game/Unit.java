@@ -126,7 +126,7 @@ public class Unit {
             gc.strokeOval(x - 12, y - 12, 24, 24);
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(12));
-            gc.fillText(character.name, x - 15, y - 15);
+            gc.fillText(character.getDisplayName(), x - 15, y - 15);
             // Display movement type
             gc.setFont(Font.font(10));
             gc.fillText(character.getCurrentMovementType().getDisplayName(), x - 15, y + 25);

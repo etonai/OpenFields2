@@ -1,11 +1,13 @@
 package data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import combat.Handedness;
 import combat.MovementType;
 import combat.AimingSpeed;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Date;
 
 public class CharacterData {
     @JsonProperty("id")
@@ -13,6 +15,19 @@ public class CharacterData {
     
     @JsonProperty("name")
     public String name;
+    
+    @JsonProperty("nickname")
+    public String nickname;
+    
+    @JsonProperty("firstName")
+    public String firstName;
+    
+    @JsonProperty("lastName")
+    public String lastName;
+    
+    @JsonProperty("birthdate")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MMMM d, yyyy")
+    public Date birthdate;
     
     @JsonProperty("themeId")
     public String themeId;

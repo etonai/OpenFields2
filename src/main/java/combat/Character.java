@@ -7,10 +7,14 @@ import data.SkillsManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
 
 public class Character {
     public int id;
-    public String name;
+    public String nickname;
+    public String firstName;
+    public String lastName;
+    public Date birthdate;
     public String themeId;
     public int dexterity;
     public int currentDexterity;
@@ -30,9 +34,49 @@ public class Character {
     public List<Skill> skills;
     public List<Wound> wounds;
 
-    public Character(int id, String name, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
+    // Legacy constructors for backwards compatibility with tests
+    public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
+        this.id = 0;
+        this.nickname = nickname;
+        this.firstName = nickname;
+        this.lastName = "";
+        this.birthdate = new Date();
+        this.themeId = "test_theme";
+        this.dexterity = dexterity;
+        this.health = health;
+        this.coolness = coolness;
+        this.strength = strength;
+        this.reflexes = reflexes;
+        this.handedness = handedness;
+        this.baseMovementSpeed = 42.0;
+        this.currentMovementType = MovementType.WALK;
+        this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.skills = new ArrayList<>();
+        this.wounds = new ArrayList<>();
+    }
+
+    public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
+        this(nickname, dexterity, health, coolness, strength, reflexes, handedness);
+        this.weapon = weapon;
+    }
+
+    public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
+        this(nickname, dexterity, health, coolness, strength, reflexes, handedness);
+        this.skills = skills != null ? skills : new ArrayList<>();
+    }
+
+    public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
+        this(nickname, dexterity, health, coolness, strength, reflexes, handedness);
+        this.weapon = weapon;
+        this.skills = skills != null ? skills : new ArrayList<>();
+    }
+
+    public Character(int id, String nickname, String firstName, String lastName, Date birthdate, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
         this.id = id;
-        this.name = name;
+        this.nickname = nickname;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.birthdate = birthdate;
         this.themeId = themeId;
         this.dexterity = dexterity;
         this.health = health;
@@ -47,9 +91,12 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
 
-    public Character(int id, String name, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
+    public Character(int id, String nickname, String firstName, String lastName, Date birthdate, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
         this.id = id;
-        this.name = name;
+        this.nickname = nickname;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.birthdate = birthdate;
         this.themeId = themeId;
         this.dexterity = dexterity;
         this.health = health;
@@ -65,9 +112,12 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(int id, String name, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
+    public Character(int id, String nickname, String firstName, String lastName, Date birthdate, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
         this.id = id;
-        this.name = name;
+        this.nickname = nickname;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.birthdate = birthdate;
         this.themeId = themeId;
         this.dexterity = dexterity;
         this.health = health;
@@ -82,9 +132,12 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(int id, String name, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
+    public Character(int id, String nickname, String firstName, String lastName, Date birthdate, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
         this.id = id;
-        this.name = name;
+        this.nickname = nickname;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.birthdate = birthdate;
         this.themeId = themeId;
         this.dexterity = dexterity;
         this.health = health;
@@ -104,12 +157,53 @@ public class Character {
         return id;
     }
     
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+    
+    // Legacy methods for backwards compatibility with tests
     public String getName() {
-        return name;
+        return nickname;
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.nickname = name;
+    }
+    
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+    
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+    
+    public Date getBirthdate() {
+        return birthdate;
+    }
+
+    public void setBirthdate(Date birthdate) {
+        this.birthdate = birthdate;
+    }
+    
+    public String getDisplayName() {
+        return id + ":" + nickname;
+    }
+    
+    public String getFullName() {
+        return firstName + " " + lastName;
     }
     
     public String getThemeId() {
@@ -324,14 +418,14 @@ public class Character {
         
         if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
             currentWeaponState = weapon.getStateByName("ready");
-            System.out.println(name + " weapon state: ready (target changed) at tick " + currentTick);
+            System.out.println(getDisplayName() + " weapon state: ready (target changed) at tick " + currentTick);
         }
         
         currentTarget = target;
         
         if (queuedShots > 0) {
             queuedShots++;
-            System.out.println(name + " queued shot " + queuedShots + " at " + target.character.name);
+            System.out.println(getDisplayName() + " queued shot " + queuedShots + " at " + target.character.getDisplayName());
             return;
         }
         
@@ -381,7 +475,7 @@ public class Character {
         long transitionTick = currentTick + transitionTickLength;
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
             currentWeaponState = weapon.getStateByName(newStateName);
-            System.out.println(name + " weapon state: " + newStateName + " at tick " + transitionTick);
+            System.out.println(getDisplayName() + " weapon state: " + newStateName + " at tick " + transitionTick);
             scheduleAttackFromCurrentState(shooter, target, transitionTick, eventQueue, ownerId, gameCallbacks);
         }, ownerId));
     }
@@ -389,13 +483,13 @@ public class Character {
     private void scheduleFiring(Unit shooter, Unit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         eventQueue.add(new ScheduledEvent(fireTick, () -> {
             currentWeaponState = weapon.getStateByName("firing");
-            System.out.println(name + " weapon state: firing at tick " + fireTick);
+            System.out.println(getDisplayName() + " weapon state: firing at tick " + fireTick);
             
             if (weapon.ammunition <= 0) {
-                System.out.println("*** " + name + " tries to fire " + weapon.name + " but it's out of ammunition!");
+                System.out.println("*** " + getDisplayName() + " tries to fire " + weapon.name + " but it's out of ammunition!");
             } else {
                 weapon.ammunition--;
-                System.out.println("*** " + name + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
+                System.out.println("*** " + getDisplayName() + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
                 
                 gameCallbacks.playWeaponSound(weapon);
                 
@@ -403,7 +497,7 @@ public class Character {
                 double dy = target.y - shooter.y;
                 double distancePixels = Math.hypot(dx, dy);
                 double distanceFeet = distancePixels / 7.0; // pixelsToFeet conversion
-                System.out.println("*** " + name + " shoots at " + target.character.name + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
+                System.out.println("*** " + getDisplayName() + " shoots at " + target.character.getDisplayName() + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
                 
                 gameCallbacks.scheduleProjectileImpact(shooter, target, weapon, fireTick, distanceFeet);
             }
@@ -411,16 +505,16 @@ public class Character {
             WeaponState firingState = weapon.getStateByName("firing");
             eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks, () -> {
                 currentWeaponState = weapon.getStateByName("recovering");
-                System.out.println(name + " weapon state: recovering at tick " + (fireTick + firingState.ticks));
+                System.out.println(getDisplayName() + " weapon state: recovering at tick " + (fireTick + firingState.ticks));
                 
                 WeaponState recoveringState = weapon.getStateByName("recovering");
                 eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
                     currentWeaponState = weapon.getStateByName("aiming");
-                    System.out.println(name + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
+                    System.out.println(getDisplayName() + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
                     
                     queuedShots--;
                     if (queuedShots > 0 && currentTarget != null) {
-                        System.out.println(name + " starting queued shot " + (queuedShots + 1) + " at " + currentTarget.character.name);
+                        System.out.println(getDisplayName() + " starting queued shot " + (queuedShots + 1) + " at " + currentTarget.character.getDisplayName());
                         long adjustedAimingTime = Math.round(currentWeaponState.ticks * currentAimingSpeed.getTimingMultiplier());
                         scheduleFiring(shooter, currentTarget, fireTick + firingState.ticks + recoveringState.ticks + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
                     }
@@ -450,7 +544,7 @@ public class Character {
         String currentState = currentWeaponState.getState();
         
         if ("ready".equals(currentState)) {
-            System.out.println(name + " weapon is already ready");
+            System.out.println(getDisplayName() + " weapon is already ready");
             return;
         }
         
@@ -470,7 +564,7 @@ public class Character {
             WeaponState readyState = weapon.getStateByName("ready");
             eventQueue.add(new ScheduledEvent(currentTick + currentWeaponState.ticks, () -> {
                 currentWeaponState = readyState;
-                System.out.println(name + " weapon state: ready at tick " + (currentTick + currentWeaponState.ticks));
+                System.out.println(getDisplayName() + " weapon state: ready at tick " + (currentTick + currentWeaponState.ticks));
             }, ownerId));
         }
     }
@@ -529,7 +623,7 @@ public class Character {
         long transitionTick = currentTick + transitionTickLength;
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
             currentWeaponState = weapon.getStateByName(newStateName);
-            System.out.println(name + " weapon state: " + newStateName + " at tick " + transitionTick);
+            System.out.println(getDisplayName() + " weapon state: " + newStateName + " at tick " + transitionTick);
             scheduleReadyFromCurrentState(unit, transitionTick, eventQueue, ownerId);
         }, ownerId));
     }
