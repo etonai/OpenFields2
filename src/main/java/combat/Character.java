@@ -343,7 +343,7 @@ public class Character {
         } else if ("ready".equals(currentState)) {
             scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
         } else if ("aiming".equals(currentState)) {
-            long adjustedAimingTime = Math.round(currentWeaponState.ticks * currentAimingSpeed.getTimingMultiplier());
+            long adjustedAimingTime = Math.round(currentWeaponState.ticks * currentAimingSpeed.getTimingMultiplier() * calculateAimingSpeedMultiplier());
             scheduleFiring(shooter, target, currentTick + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
         }
     }
@@ -454,12 +454,20 @@ public class Character {
     
     private double calculateWeaponReadySpeedMultiplier() {
         int reflexesModifier = statToModifier(this.reflexes);
-        double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.01);
+        double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.015);
         
         int quickdrawLevel = getSkillLevel(Skills.QUICKDRAW);
-        double quickdrawSpeedMultiplier = 1.0 - (quickdrawLevel * 0.05);
+        double quickdrawSpeedMultiplier = 1.0 - (quickdrawLevel * 0.08);
         
         return reflexesSpeedMultiplier * quickdrawSpeedMultiplier;
+    }
+    
+    private double calculateAimingSpeedMultiplier() {
+        // Apply 25% of the weapon ready speed bonus to aiming
+        double weaponReadyMultiplier = calculateWeaponReadySpeedMultiplier();
+        double speedBonus = 1.0 - weaponReadyMultiplier;
+        double aimingSpeedBonus = speedBonus * 0.25;
+        return 1.0 - aimingSpeedBonus;
     }
     
     private static int statToModifier(int stat) {
@@ -509,5 +517,9 @@ public class Character {
     
     public double getWeaponReadySpeedMultiplier() {
         return calculateWeaponReadySpeedMultiplier();
+    }
+    
+    public double getAimingSpeedMultiplier() {
+        return calculateAimingSpeedMultiplier();
     }
 }

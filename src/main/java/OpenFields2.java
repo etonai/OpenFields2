@@ -389,7 +389,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy, combat.WeaponType.PISTOL);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
-        weapon.states.add(new WeaponState("drawing", "ready", 30));
+        weapon.states.add(new WeaponState("drawing", "ready", 60));
         weapon.states.add(new WeaponState("ready", "aiming", 15));
         weapon.states.add(new WeaponState("aiming", "firing", 30));
         weapon.states.add(new WeaponState("firing", "recovering", 5));
@@ -415,7 +415,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy, combat.WeaponType.OTHER);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("sheathed", "unsheathing", 0));
-        weapon.states.add(new WeaponState("unsheathing", "ready", 25));
+        weapon.states.add(new WeaponState("unsheathing", "ready", 50));
         weapon.states.add(new WeaponState("ready", "aiming", 10));
         weapon.states.add(new WeaponState("aiming", "firing", 25));
         weapon.states.add(new WeaponState("firing", "recovering", 8));
