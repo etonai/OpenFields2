@@ -19,6 +19,13 @@ import combat.*;
 import game.*;
 import data.WeaponFactory;
 import data.SkillsManager;
+import data.SaveGameManager;
+import data.SaveData;
+import data.SaveMetadata;
+import data.GameStateData;
+import data.CharacterData;
+import data.UnitData;
+import data.ThemeManager;
 
 public class OpenFields2 extends Application implements GameCallbacks {
 
@@ -120,6 +127,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
     private final GameClock gameClock = new GameClock();
     private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
     private AudioClip gunshotSound;
+    private final SaveGameManager saveGameManager = SaveGameManager.getInstance();
+    private int nextCharacterId = 1;
+    private int nextUnitId = 1;
+    private boolean waitingForSaveSlot = false;
+    private boolean waitingForLoadSlot = false;
 
     public static void main(String[] args) {
         launch(args);
@@ -333,6 +345,57 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("*** " + selected.character.getName() + " is already at minimum aiming speed: " + newSpeed.getDisplayName());
                 }
             }
+            
+            // Save/Load controls
+            if (e.getCode() == KeyCode.S && e.isControlDown()) {
+                if (!waitingForSaveSlot && !waitingForLoadSlot) {
+                    promptForSaveSlot();
+                }
+            }
+            if (e.getCode() == KeyCode.L && e.isControlDown()) {
+                if (!waitingForSaveSlot && !waitingForLoadSlot) {
+                    promptForLoadSlot();
+                }
+            }
+            
+            // Handle number key input for save/load slot selection
+            if (waitingForSaveSlot || waitingForLoadSlot) {
+                int slotNumber = -1;
+                if (e.getCode() == KeyCode.DIGIT1) slotNumber = 1;
+                else if (e.getCode() == KeyCode.DIGIT2) slotNumber = 2;
+                else if (e.getCode() == KeyCode.DIGIT3) slotNumber = 3;
+                else if (e.getCode() == KeyCode.DIGIT4) slotNumber = 4;
+                else if (e.getCode() == KeyCode.DIGIT5) slotNumber = 5;
+                else if (e.getCode() == KeyCode.DIGIT6) slotNumber = 6;
+                else if (e.getCode() == KeyCode.DIGIT7) slotNumber = 7;
+                else if (e.getCode() == KeyCode.DIGIT8) slotNumber = 8;
+                else if (e.getCode() == KeyCode.DIGIT9) slotNumber = 9;
+                else if (e.getCode() == KeyCode.DIGIT0) slotNumber = 0;
+                else if (e.getCode() == KeyCode.ESCAPE) {
+                    System.out.println("*** Save/Load cancelled ***");
+                    waitingForSaveSlot = false;
+                    waitingForLoadSlot = false;
+                }
+                
+                if (slotNumber >= 0 && slotNumber <= 9) {
+                    if (waitingForSaveSlot) {
+                        if (slotNumber >= 1 && slotNumber <= 9) {
+                            saveGameToSlot(slotNumber);
+                        } else {
+                            System.out.println("*** Invalid save slot. Use 1-9 ***");
+                        }
+                    } else if (waitingForLoadSlot) {
+                        if (slotNumber == 0) {
+                            System.out.println("*** Load cancelled ***");
+                            waitingForLoadSlot = false;
+                        } else if (slotNumber >= 1 && slotNumber <= 9) {
+                            loadGameFromSlot(slotNumber);
+                        } else {
+                            System.out.println("*** Invalid load slot. Use 1-9 or 0 to cancel ***");
+                        }
+                    }
+                }
+            }
         });
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.0 / 60), e -> run()));
@@ -361,9 +424,6 @@ public class OpenFields2 extends Application implements GameCallbacks {
         render();
     }
     void createUnits() {
-
-        int nextCharacterId = 1;
-        int nextUnitId = 1;
         
         combat.Character c1 = new combat.Character(nextCharacterId++, "Alice", "test_theme", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
         c1.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
@@ -830,6 +890,298 @@ public class OpenFields2 extends Application implements GameCallbacks {
 
     public void removeAllEventsForOwner(int ownerId) {
         eventQueue.removeIf(e -> e.getOwnerId() == ownerId);
+    }
+
+    // Save/Load functionality
+    private void promptForSaveSlot() {
+        System.out.println("*** SAVE GAME ***");
+        System.out.println("Enter save slot (1-9): ");
+        waitingForSaveSlot = true;
+        waitingForLoadSlot = false;
+    }
+    
+    private void promptForLoadSlot() {
+        System.out.println("*** LOAD GAME ***");
+        List<SaveGameManager.SaveSlotInfo> availableSlots = saveGameManager.listAvailableSlots();
+        
+        if (availableSlots.isEmpty()) {
+            System.out.println("No save files found.");
+            return;
+        }
+        
+        System.out.println("Available saves:");
+        for (SaveGameManager.SaveSlotInfo slot : availableSlots) {
+            System.out.println(slot.slot + ". slot_" + slot.slot + ".json (" + 
+                             slot.getFormattedTimestamp() + ") - " + 
+                             slot.themeId + ", tick " + slot.currentTick);
+        }
+        System.out.println("Enter slot number (1-9) or 0 to cancel: ");
+        waitingForSaveSlot = false;
+        waitingForLoadSlot = true;
+    }
+    
+    private void saveGameToSlot(int slot) {
+        try {
+            // Pause game during save
+            boolean wasPaused = paused;
+            paused = true;
+            
+            SaveData saveData = captureSaveData(slot);
+            boolean success = saveGameManager.saveToSlot(slot, saveData);
+            
+            if (success) {
+                System.out.println("*** Game saved successfully to slot " + slot + " ***");
+            } else {
+                System.out.println("*** Failed to save game to slot " + slot + " ***");
+            }
+            
+            // Restore pause state
+            paused = wasPaused;
+            
+        } catch (Exception e) {
+            System.err.println("Error during save: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        waitingForSaveSlot = false;
+    }
+    
+    private void loadGameFromSlot(int slot) {
+        try {
+            SaveData saveData = saveGameManager.loadFromSlot(slot);
+            if (saveData != null) {
+                applySaveData(saveData);
+                System.out.println("*** Game loaded successfully from slot " + slot + " ***");
+                System.out.println("*** Loaded at tick " + gameClock.getCurrentTick() + " ***");
+            } else {
+                System.out.println("*** Failed to load game from slot " + slot + " ***");
+            }
+        } catch (Exception e) {
+            System.err.println("Error during load: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        waitingForLoadSlot = false;
+    }
+    
+    private SaveData captureSaveData(int slot) {
+        // Create metadata
+        String currentThemeId = ThemeManager.getInstance().getCurrentThemeId();
+        SaveMetadata metadata = new SaveMetadata("", "1.0", currentThemeId, slot);
+        
+        // Create game state
+        GameStateData gameState = new GameStateData(
+            gameClock.getCurrentTick(),
+            paused,
+            offsetX,
+            offsetY,
+            zoom,
+            nextCharacterId,
+            nextUnitId
+        );
+        
+        // Serialize characters
+        List<CharacterData> characterDataList = new ArrayList<>();
+        for (Unit unit : units) {
+            CharacterData charData = serializeCharacter(unit.character);
+            characterDataList.add(charData);
+        }
+        
+        // Serialize units
+        List<UnitData> unitDataList = new ArrayList<>();
+        for (Unit unit : units) {
+            UnitData unitData = serializeUnit(unit);
+            unitDataList.add(unitData);
+        }
+        
+        return new SaveData(metadata, gameState, characterDataList, unitDataList);
+    }
+    
+    private CharacterData serializeCharacter(combat.Character character) {
+        CharacterData data = new CharacterData();
+        data.id = character.id;
+        data.name = character.name;
+        data.themeId = character.themeId;
+        data.dexterity = character.dexterity;
+        data.currentDexterity = character.currentDexterity;
+        data.health = character.health;
+        data.currentHealth = character.currentHealth;
+        data.coolness = character.coolness;
+        data.strength = character.strength;
+        data.reflexes = character.reflexes;
+        data.handedness = character.handedness;
+        data.baseMovementSpeed = character.baseMovementSpeed;
+        data.currentMovementType = character.currentMovementType;
+        data.currentAimingSpeed = character.currentAimingSpeed;
+        data.queuedShots = character.queuedShots;
+        
+        // Serialize weapon
+        if (character.weapon != null) {
+            // Find weapon ID from weapon name (we'll need to enhance this)
+            data.weaponId = findWeaponId(character.weapon);
+        }
+        
+        // Serialize weapon state
+        if (character.currentWeaponState != null) {
+            data.currentWeaponState = character.currentWeaponState.getState();
+        }
+        
+        // Serialize skills
+        data.skills = new ArrayList<>();
+        for (combat.Skill skill : character.skills) {
+            data.skills.add(new CharacterData.SkillData(skill.getSkillName(), skill.getLevel()));
+        }
+        
+        // Serialize wounds
+        data.wounds = new ArrayList<>();
+        for (combat.Wound wound : character.wounds) {
+            data.wounds.add(new CharacterData.WoundData(wound.getBodyPart().name(), wound.getSeverity().name()));
+        }
+        
+        return data;
+    }
+    
+    private String findWeaponId(combat.Weapon weapon) {
+        // This is a simple approach - in a more complex system, 
+        // we might want to store the weapon ID in the weapon object
+        if (weapon.name.equals("Colt Peacemaker")) return "wpn_colt_peacemaker";
+        if (weapon.name.equals("Hunting Rifle")) return "wpn_hunting_rifle";
+        if (weapon.name.equals("Derringer")) return "wpn_derringer";
+        if (weapon.name.equals("Plasma Pistol")) return "wpn_plasma_pistol";
+        if (weapon.name.equals("Magic Wand")) return "wpn_magic_wand";
+        if (weapon.name.equals("Sheathed Sword")) return "wpn_sheathed_sword";
+        return "wpn_colt_peacemaker"; // default fallback
+    }
+    
+    private UnitData serializeUnit(Unit unit) {
+        return new UnitData(
+            unit.id,
+            unit.character.id,
+            unit.x,
+            unit.y,
+            unit.targetX,
+            unit.targetY,
+            unit.hasTarget,
+            unit.isStopped,
+            colorToString(unit.color),
+            colorToString(unit.baseColor),
+            unit.isHitHighlighted
+        );
+    }
+    
+    private String colorToString(Color color) {
+        if (color.equals(Color.RED)) return "RED";
+        if (color.equals(Color.BLUE)) return "BLUE";
+        if (color.equals(Color.GREEN)) return "GREEN";
+        if (color.equals(Color.PURPLE)) return "PURPLE";
+        if (color.equals(Color.ORANGE)) return "ORANGE";
+        if (color.equals(Color.YELLOW)) return "YELLOW";
+        return "RED"; // default fallback
+    }
+    
+    private void applySaveData(SaveData saveData) {
+        // Clear current game state
+        units.clear();
+        eventQueue.clear();
+        selected = null;
+        
+        // Restore game state
+        gameClock.reset();
+        for (long i = 0; i < saveData.gameState.currentTick; i++) {
+            gameClock.advanceTick();
+        }
+        
+        paused = saveData.gameState.paused;
+        offsetX = saveData.gameState.offsetX;
+        offsetY = saveData.gameState.offsetY;
+        zoom = saveData.gameState.zoom;
+        nextCharacterId = saveData.gameState.nextCharacterId;
+        nextUnitId = saveData.gameState.nextUnitId;
+        
+        // Recreate characters and units
+        for (int i = 0; i < saveData.characters.size() && i < saveData.units.size(); i++) {
+            CharacterData charData = saveData.characters.get(i);
+            UnitData unitData = saveData.units.get(i);
+            
+            combat.Character character = deserializeCharacter(charData);
+            Unit unit = deserializeUnit(unitData, character);
+            units.add(unit);
+        }
+        
+        System.out.println("*** Restored " + units.size() + " units ***");
+    }
+    
+    private combat.Character deserializeCharacter(CharacterData data) {
+        combat.Character character = new combat.Character(
+            data.id, data.name, data.themeId, data.dexterity, data.health,
+            data.coolness, data.strength, data.reflexes, data.handedness
+        );
+        
+        character.currentDexterity = data.currentDexterity;
+        character.currentHealth = data.currentHealth;
+        character.baseMovementSpeed = data.baseMovementSpeed;
+        character.currentMovementType = data.currentMovementType;
+        character.currentAimingSpeed = data.currentAimingSpeed;
+        character.queuedShots = data.queuedShots;
+        
+        // Restore weapon
+        if (data.weaponId != null && !data.weaponId.isEmpty()) {
+            character.weapon = WeaponFactory.createWeapon(data.weaponId);
+            if (character.weapon != null && data.currentWeaponState != null) {
+                character.currentWeaponState = character.weapon.getStateByName(data.currentWeaponState);
+                if (character.currentWeaponState == null) {
+                    character.currentWeaponState = character.weapon.getInitialState();
+                }
+            }
+        }
+        
+        // Restore skills
+        character.skills.clear();
+        for (CharacterData.SkillData skillData : data.skills) {
+            character.addSkill(new combat.Skill(skillData.skillName, skillData.level));
+        }
+        
+        // Restore wounds
+        character.wounds.clear();
+        for (CharacterData.WoundData woundData : data.wounds) {
+            try {
+                combat.BodyPart bodyPart = combat.BodyPart.valueOf(woundData.bodyPart);
+                combat.WoundSeverity severity = combat.WoundSeverity.valueOf(woundData.severity);
+                character.addWound(new combat.Wound(bodyPart, severity));
+            } catch (IllegalArgumentException e) {
+                System.err.println("Warning: Invalid wound data: " + woundData.bodyPart + "/" + woundData.severity);
+            }
+        }
+        
+        return character;
+    }
+    
+    private Unit deserializeUnit(UnitData data, combat.Character character) {
+        Color color = stringToColor(data.color);
+        Color baseColor = stringToColor(data.baseColor);
+        
+        // Create unit with the base color initially, then set current color
+        Unit unit = new Unit(character, data.x, data.y, baseColor, data.id);
+        unit.color = color; // Set the current color (which might be different due to highlighting)
+        unit.targetX = data.targetX;
+        unit.targetY = data.targetY;
+        unit.hasTarget = data.hasTarget;
+        unit.isStopped = data.isStopped;
+        unit.isHitHighlighted = data.isHitHighlighted;
+        
+        return unit;
+    }
+    
+    private Color stringToColor(String colorString) {
+        switch (colorString) {
+            case "RED": return Color.RED;
+            case "BLUE": return Color.BLUE;
+            case "GREEN": return Color.GREEN;
+            case "PURPLE": return Color.PURPLE;
+            case "ORANGE": return Color.ORANGE;
+            case "YELLOW": return Color.YELLOW;
+            default: return Color.RED;
+        }
     }
 
 }
