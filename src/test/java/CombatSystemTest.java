@@ -17,8 +17,8 @@ public class CombatSystemTest {
     
     @BeforeEach
     public void setUp() {
-        testShooter = new combat.Character("TestShooter", 75, 100, 60, 55, 70);
-        combat.Character targetCharacter = new combat.Character("TestTarget", 50, 80, 50, 45, 60);
+        testShooter = new combat.Character("TestShooter", 75, 100, 60, 55, 70, combat.Handedness.RIGHT_HANDED);
+        combat.Character targetCharacter = new combat.Character("TestTarget", 50, 80, 50, 45, 60, combat.Handedness.RIGHT_HANDED);
         testTarget = new Unit(targetCharacter, 200, 200, Color.RED, 1);
         testWeapon = createTestWeapon();
     }

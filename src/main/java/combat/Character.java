@@ -16,6 +16,7 @@ public class Character {
     public int coolness;
     public int strength;
     public int reflexes;
+    public Handedness handedness;
     public double baseMovementSpeed;
     public MovementType currentMovementType;
     public AimingSpeed currentAimingSpeed;
@@ -26,13 +27,14 @@ public class Character {
     public List<Skill> skills;
     public List<Wound> wounds;
 
-    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes) {
+    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
         this.coolness = coolness;
         this.strength = strength;
         this.reflexes = reflexes;
+        this.handedness = handedness;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
@@ -40,13 +42,14 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
 
-    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Weapon weapon) {
+    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
         this.coolness = coolness;
         this.strength = strength;
         this.reflexes = reflexes;
+        this.handedness = handedness;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
@@ -55,13 +58,14 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, List<Skill> skills) {
+    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
         this.coolness = coolness;
         this.strength = strength;
         this.reflexes = reflexes;
+        this.handedness = handedness;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
@@ -69,13 +73,14 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Weapon weapon, List<Skill> skills) {
+    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
         this.coolness = coolness;
         this.strength = strength;
         this.reflexes = reflexes;
+        this.handedness = handedness;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
@@ -185,6 +190,14 @@ public class Character {
 
     public void setReflexes(int reflexes) {
         this.reflexes = reflexes;
+    }
+    
+    public Handedness getHandedness() {
+        return handedness;
+    }
+
+    public void setHandedness(Handedness handedness) {
+        this.handedness = handedness;
     }
 
     public Weapon getWeapon() {

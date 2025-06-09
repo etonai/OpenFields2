@@ -172,8 +172,8 @@ public class OpenFields2Tests {
         System.out.println("Testing perpendicular velocity calculation for stationary unit:");
         
         // Create two units at different positions
-        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
-        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50, combat.Handedness.LEFT_HANDED);
         
         Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
         Unit target = new Unit(char2, 100, 0, Color.BLUE, 2);
@@ -192,8 +192,8 @@ public class OpenFields2Tests {
         System.out.println("Testing perpendicular velocity for direct approach:");
         
         // Create characters with known movement speed
-        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
-        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50, combat.Handedness.LEFT_HANDED);
         char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
         
         Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
@@ -215,8 +215,8 @@ public class OpenFields2Tests {
         System.out.println("Testing perpendicular velocity for direct retreat:");
         
         // Create characters with known movement speed
-        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
-        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50, combat.Handedness.LEFT_HANDED);
         char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
         
         Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
@@ -238,8 +238,8 @@ public class OpenFields2Tests {
         System.out.println("Testing perpendicular velocity for pure perpendicular movement:");
         
         // Create characters with known movement speed
-        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
-        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50, combat.Handedness.LEFT_HANDED);
         char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
         
         Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
@@ -262,8 +262,8 @@ public class OpenFields2Tests {
         System.out.println("Testing perpendicular velocity for diagonal movement:");
         
         // Create characters with known movement speed
-        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
-        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50, combat.Handedness.LEFT_HANDED);
         char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
         
         Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
@@ -288,8 +288,8 @@ public class OpenFields2Tests {
         System.out.println("Testing perpendicular velocity vector mathematics:");
         
         // Create characters with known movement speed
-        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
-        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50, combat.Handedness.LEFT_HANDED);
         char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
         
         Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
@@ -331,7 +331,7 @@ public class OpenFields2Tests {
         System.out.println("Testing velocity vector calculation:");
         
         // Create character with known movement speed
-        Character character = new Character("Test", 100, 50, 50, 50, 50);
+        Character character = new Character("Test", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
         character.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
         
         Unit unit = new Unit(character, 0, 0, Color.RED, 1);
@@ -368,8 +368,8 @@ public class OpenFields2Tests {
         System.out.println("Testing target movement modifier integration:");
         
         // Create test characters
-        Character shooter = new Character("Shooter", 100, 70, 50, 50, 50); // Good dexterity
-        Character target = new Character("Target", 100, 50, 50, 50, 50);
+        Character shooter = new Character("Shooter", 100, 70, 50, 50, 50, combat.Handedness.RIGHT_HANDED); // Good dexterity
+        Character target = new Character("Target", 100, 50, 50, 50, 50, combat.Handedness.LEFT_HANDED);
         target.baseMovementSpeed = 60.0; // Standard movement speed
         
         Unit shooterUnit = new Unit(shooter, 0, 0, Color.RED, 1);

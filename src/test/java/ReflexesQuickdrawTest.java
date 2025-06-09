@@ -16,7 +16,7 @@ public class ReflexesQuickdrawTest {
     
     @BeforeEach
     public void setUp() {
-        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55);
+        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55, combat.Handedness.RIGHT_HANDED);
         testUnit = new Unit(testCharacter, 100, 100, Color.BLUE, 1);
         testWeapon = createTestPistol();
         testCharacter.setWeapon(testWeapon);

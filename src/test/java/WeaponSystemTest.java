@@ -23,7 +23,7 @@ public class WeaponSystemTest {
         pistol = createPistol();
         rifle = createRifle();
         sheathedWeapon = createSheathedWeapon();
-        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55);
+        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55, combat.Handedness.RIGHT_HANDED);
         testUnit = new Unit(testCharacter, 100, 100, Color.BLUE, 1);
         mockCallbacks = new MockGameCallbacks();
     }
@@ -207,7 +207,7 @@ public class WeaponSystemTest {
         testCharacter.weapon = pistol;
         testCharacter.currentWeaponState = pistol.getStateByName("ready");
         
-        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
+        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55, combat.Handedness.RIGHT_HANDED), 200, 200, Color.RED, 2);
         PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
         
         testCharacter.startAttackSequence(testUnit, target, 100, eventQueue, 1, mockCallbacks);
@@ -237,7 +237,7 @@ public class WeaponSystemTest {
         testCharacter.currentWeaponState = pistol.getStateByName("aiming");
         pistol.ammunition = 0; // No ammo
         
-        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
+        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55, combat.Handedness.RIGHT_HANDED), 200, 200, Color.RED, 2);
         PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
         
         testCharacter.startAttackSequence(testUnit, target, 100, eventQueue, 1, mockCallbacks);
@@ -256,7 +256,7 @@ public class WeaponSystemTest {
         testCharacter.weapon = pistol;
         testCharacter.currentWeaponState = pistol.getStateByName("aiming");
         
-        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
+        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55, combat.Handedness.RIGHT_HANDED), 200, 200, Color.RED, 2);
         PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
         
         // Start first attack
@@ -277,8 +277,8 @@ public class WeaponSystemTest {
         testCharacter.weapon = pistol;
         testCharacter.currentWeaponState = pistol.getStateByName("aiming");
         
-        Unit firstTarget = new Unit(new combat.Character("Target1", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
-        Unit secondTarget = new Unit(new combat.Character("Target2", 60, 90, 55, 50, 60), 300, 300, Color.GREEN, 3);
+        Unit firstTarget = new Unit(new combat.Character("Target1", 50, 80, 50, 45, 55, combat.Handedness.RIGHT_HANDED), 200, 200, Color.RED, 2);
+        Unit secondTarget = new Unit(new combat.Character("Target2", 60, 90, 55, 50, 60, combat.Handedness.RIGHT_HANDED), 300, 300, Color.GREEN, 3);
         
         testCharacter.currentTarget = firstTarget;
         
@@ -334,7 +334,7 @@ public class WeaponSystemTest {
         testCharacter.weapon = null;
         testCharacter.currentWeaponState = null;
         
-        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
+        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55, combat.Handedness.RIGHT_HANDED), 200, 200, Color.RED, 2);
         PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
         
         testCharacter.startAttackSequence(testUnit, target, 100, eventQueue, 1, mockCallbacks);

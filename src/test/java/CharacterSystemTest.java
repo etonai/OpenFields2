@@ -14,7 +14,7 @@ public class CharacterSystemTest {
     
     @BeforeEach
     public void setUp() {
-        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55);
+        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55, combat.Handedness.RIGHT_HANDED);
         testWeapon = createTestWeapon();
     }
     
@@ -45,7 +45,7 @@ public class CharacterSystemTest {
     
     @Test
     public void testCharacter_ConstructionWithWeapon() {
-        combat.Character charWithWeapon = new combat.Character("Armed", 80, 90, 70, 60, 75, testWeapon);
+        combat.Character charWithWeapon = new combat.Character("Armed", 80, 90, 70, 60, 75, combat.Handedness.RIGHT_HANDED, testWeapon);
         
         assertEquals("Armed", charWithWeapon.getName());
         assertEquals(testWeapon, charWithWeapon.getWeapon());
@@ -60,7 +60,7 @@ public class CharacterSystemTest {
         skills.add(new Skill("Marksmanship", 75));
         skills.add(new Skill("Athletics", 60));
         
-        combat.Character charWithSkills = new combat.Character("Skilled", 65, 85, 55, 45, 65, skills);
+        combat.Character charWithSkills = new combat.Character("Skilled", 65, 85, 55, 45, 65, combat.Handedness.RIGHT_HANDED, skills);
         
         assertEquals(2, charWithSkills.getSkills().size());
         assertEquals("Marksmanship", charWithSkills.getSkills().get(0).getSkillName());
@@ -72,7 +72,7 @@ public class CharacterSystemTest {
         List<Skill> skills = new ArrayList<>();
         skills.add(new Skill("Combat", 80));
         
-        combat.Character fullyArmed = new combat.Character("Elite", 85, 95, 75, 70, 85, testWeapon, skills);
+        combat.Character fullyArmed = new combat.Character("Elite", 85, 95, 75, 70, 85, combat.Handedness.RIGHT_HANDED, testWeapon, skills);
         
         assertEquals("Elite", fullyArmed.getName());
         assertEquals(testWeapon, fullyArmed.getWeapon());
@@ -82,7 +82,7 @@ public class CharacterSystemTest {
     
     @Test
     public void testCharacter_ConstructionWithNullSkills() {
-        combat.Character charWithNullSkills = new combat.Character("NullSkills", 70, 100, 60, 50, 55, (List<Skill>) null);
+        combat.Character charWithNullSkills = new combat.Character("NullSkills", 70, 100, 60, 50, 55, combat.Handedness.RIGHT_HANDED, (List<Skill>) null);
         
         assertNotNull(charWithNullSkills.getSkills());
         assertTrue(charWithNullSkills.getSkills().isEmpty());
@@ -500,7 +500,7 @@ public class CharacterSystemTest {
     @Test
     public void testCharacter_NewCharactersNoDefaultSkills() {
         // Verify that new characters don't automatically get default skills
-        combat.Character newChar = new combat.Character("NewChar", 50, 80, 55, 45, 60);
+        combat.Character newChar = new combat.Character("NewChar", 50, 80, 55, 45, 60, combat.Handedness.RIGHT_HANDED);
         assertEquals(0, newChar.getSkills().size(), "New characters should not have default skills automatically");
         
         assertFalse(newChar.hasSkill(Skills.PISTOL), "Should not have Pistol skill");

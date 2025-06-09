@@ -211,6 +211,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("Reflexes: " + selected.character.reflexes + " (modifier: " + statToModifier(selected.character.reflexes) + ")");
                     System.out.println("Health: " + selected.character.health);
                     System.out.println("Coolness: " + selected.character.coolness + " (modifier: " + statToModifier(selected.character.coolness) + ")");
+                    System.out.println("Handedness: " + selected.character.handedness.getDisplayName());
                     System.out.println("Base Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
                     System.out.println("Current Movement: " + selected.character.getCurrentMovementType().getDisplayName() + 
                                      " (" + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
@@ -360,20 +361,20 @@ public class OpenFields2 extends Application implements GameCallbacks {
     void createUnits() {
 
         int nextId = 1;
-        combat.Character c1 = new combat.Character("Alice", 100, 11, 75, 65, 90);
+        combat.Character c1 = new combat.Character("Alice", 100, 11, 75, 65, 90, combat.Handedness.RIGHT_HANDED);
         c1.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
         c1.currentWeaponState = c1.weapon.getInitialState();
         c1.addSkill(new combat.Skill(combat.Skills.PISTOL, 4));
-        combat.Character c2 = new combat.Character("Bobby", 75, 20, 60, 45, 70);
+        combat.Character c2 = new combat.Character("Bobby", 75, 20, 60, 45, 70, combat.Handedness.LEFT_HANDED);
         c2.weapon = createSheathedWeapon("Wand of Magic Bolts", 30.0, 8, 20, "/magic.wav", 100.0, 20);
         c2.currentWeaponState = c2.weapon.getInitialState();
-        combat.Character c3 = new combat.Character("Chris", 25, 8, 30, 40, 35);
+        combat.Character c3 = new combat.Character("Chris", 25, 8, 30, 40, 35, combat.Handedness.RIGHT_HANDED);
         c3.weapon = createPistol("Derringer", 600.0, 4, 1, "/Slap0003.wav", 50.0, -10);
         c3.currentWeaponState = c3.weapon.getInitialState();
-        combat.Character c4 = new combat.Character("Drake", 50, 14, 85, 55, 80);
+        combat.Character c4 = new combat.Character("Drake", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
         c4.weapon = createPistol("Plasma Pistol", 3000.0, 6, 20, "/placeholder_laser.wav", 500.0, 20);
         c4.currentWeaponState = c4.weapon.getInitialState();
-        combat.Character c5 = new combat.Character("Ethan", 100, 11, 75, 65, 90);
+        combat.Character c5 = new combat.Character("Ethan", 100, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
         c5.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
         c5.currentWeaponState = c5.weapon.getInitialState();
         c5.addSkill(new combat.Skill(Skills.QUICKDRAW, 4));

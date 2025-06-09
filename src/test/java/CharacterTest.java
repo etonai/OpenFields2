@@ -10,7 +10,7 @@ public class CharacterTest {
 
     @Test
     public void testCharacterInitialization() {
-        Character alan = new Character("Alan", 10, 100, 15, 20, 25);
+        Character alan = new Character("Alan", 10, 100, 15, 20, 25, combat.Handedness.RIGHT_HANDED);
         assertEquals("Alan", alan.getName());
         assertEquals(10, alan.getDexterity());
         assertEquals(100, alan.getHealth());
@@ -20,7 +20,7 @@ public class CharacterTest {
 
     @Test
     public void testCharacterWeapon() {
-        Character bart = new Character("Bart", 70, 40, 25, 65, 50);
+        Character bart = new Character("Bart", 70, 40, 25, 65, 50, combat.Handedness.LEFT_HANDED);
         assertEquals("Bart", bart.getName());
         assertEquals(70, bart.getDexterity());
         assertEquals(40, bart.getHealth());
