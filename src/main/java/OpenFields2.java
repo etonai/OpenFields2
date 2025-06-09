@@ -17,6 +17,8 @@ import java.util.List;
 
 import combat.*;
 import game.*;
+import data.WeaponFactory;
+import data.SkillsManager;
 
 public class OpenFields2 extends Application implements GameCallbacks {
 
@@ -145,7 +147,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     clickedOnUnit = true;
                     if (e.getButton() == MouseButton.PRIMARY) {
                         selected = u;
-                        System.out.println("Selected: " + u.character.name + " (ID: " + u.id + ")");
+                        System.out.println("Selected: " + u.character.name + " (Character ID: " + u.character.id + ", Unit ID: " + u.id + ")");
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u == selected) {
                         if (selected.character.isIncapacitated()) {
                             System.out.println(">>> " + selected.character.name + " is incapacitated and cannot ready weapon.");
@@ -153,7 +155,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                         }
                         
                         selected.character.startReadyWeaponSequence(selected, gameClock.getCurrentTick(), eventQueue, selected.getId());
-                        System.out.println("READY WEAPON " + selected.character.name + " (ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
+                        System.out.println("READY WEAPON " + selected.character.name + " (Character ID: " + selected.character.id + ", Unit ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
                         if (selected.character.isIncapacitated()) {
                             System.out.println(">>> " + selected.character.name + " is incapacitated and cannot attack.");
@@ -161,7 +163,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                         }
                         
                         selected.character.startAttackSequence(selected, u, gameClock.getCurrentTick(), eventQueue, selected.getId(), this);
-                        System.out.println("ATTACK " + selected.character.name + " (ID: " + selected.id + ") targets " + u.character.name + " (ID: " + u.id + ") - current state: " + selected.character.currentWeaponState.getState());
+                        System.out.println("ATTACK " + selected.character.name + " (Character ID: " + selected.character.id + ", Unit ID: " + selected.id + ") targets " + u.character.name + " (Character ID: " + u.character.id + ", Unit ID: " + u.id + ") - current state: " + selected.character.currentWeaponState.getState());
                     }
                 }
             }
@@ -221,7 +223,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     
                     // Show weapon ready speed
                     double readySpeedMultiplier = selected.character.getWeaponReadySpeedMultiplier();
-                    int quickdrawLevel = selected.character.getSkillLevel(combat.Skills.QUICKDRAW);
+                    int quickdrawLevel = selected.character.getSkillLevel(SkillsManager.QUICKDRAW);
                     String quickdrawInfo = quickdrawLevel > 0 ? " (Quickdraw " + quickdrawLevel + ")" : "";
                     System.out.println("Weapon Ready Speed: " + String.format("%.2fx", readySpeedMultiplier) + quickdrawInfo + 
                                      " (reflexes: " + String.format("%+d", statToModifier(selected.character.reflexes)) + ")");
@@ -360,68 +362,36 @@ public class OpenFields2 extends Application implements GameCallbacks {
     }
     void createUnits() {
 
-        int nextId = 1;
-        combat.Character c1 = new combat.Character("Alice", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
-        c1.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
+        int nextCharacterId = 1;
+        int nextUnitId = 1;
+        
+        combat.Character c1 = new combat.Character(nextCharacterId++, "Alice", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
+        c1.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
         c1.currentWeaponState = c1.weapon.getInitialState();
-        c1.addSkill(new combat.Skill(combat.Skills.PISTOL, 4));
-        combat.Character c2 = new combat.Character("Bobby", 75, 20, 60, 45, 70, combat.Handedness.LEFT_HANDED);
-        c2.weapon = createSheathedWeapon("Wand of Magic Bolts", 30.0, 8, 20, "/magic.wav", 100.0, 20);
+        c1.addSkill(new combat.Skill(SkillsManager.PISTOL, 4));
+        units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
+        
+        combat.Character c2 = new combat.Character(nextCharacterId++, "Bobby", 75, 20, 60, 45, 70, combat.Handedness.LEFT_HANDED);
+        c2.weapon = WeaponFactory.createWeapon("wpn_hunting_rifle");
         c2.currentWeaponState = c2.weapon.getInitialState();
-        combat.Character c3 = new combat.Character("Chris", 25, 8, 30, 40, 35, combat.Handedness.RIGHT_HANDED);
-        c3.weapon = createPistol("Derringer", 600.0, 4, 1, "/Slap0003.wav", 50.0, -10);
+        c2.addSkill(new combat.Skill(SkillsManager.RIFLE, 3));
+        units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
+        
+        combat.Character c3 = new combat.Character(nextCharacterId++, "Chris", 25, 8, 30, 40, 35, combat.Handedness.RIGHT_HANDED);
+        c3.weapon = WeaponFactory.createWeapon("wpn_derringer");
         c3.currentWeaponState = c3.weapon.getInitialState();
-        combat.Character c4 = new combat.Character("Drake", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
-        c4.weapon = createPistol("Plasma Pistol", 3000.0, 6, 20, "/placeholder_laser.wav", 500.0, 20);
+        units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
+        
+        combat.Character c4 = new combat.Character(nextCharacterId++, "Drake", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
+        c4.weapon = WeaponFactory.createWeapon("wpn_plasma_pistol");
         c4.currentWeaponState = c4.weapon.getInitialState();
-        combat.Character c5 = new combat.Character("Ethan", 75, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
-        c5.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
+        units.add(new Unit(c4, 100, 400, Color.PURPLE, nextUnitId++));
+        
+        combat.Character c5 = new combat.Character(nextCharacterId++, "Ethan", 75, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
+        c5.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
         c5.currentWeaponState = c5.weapon.getInitialState();
-        c5.addSkill(new combat.Skill(Skills.QUICKDRAW, 4));
-        units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
-        units.add(new Unit(c2, 400, 400, Color.BLUE, nextId++));
-        units.add(new Unit(c3, 400, 100, Color.GREEN, nextId++));
-        units.add(new Unit(c4, 100, 400, Color.PURPLE, nextId++));
-        units.add(new Unit(c5, 600, 100, Color.ORANGE, nextId++));
-    }
-    
-    private Weapon createPistol(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy, combat.WeaponType.PISTOL);
-        weapon.states = new ArrayList<>();
-        weapon.states.add(new WeaponState("holstered", "drawing", 0));
-        weapon.states.add(new WeaponState("drawing", "ready", 60));
-        weapon.states.add(new WeaponState("ready", "aiming", 15));
-        weapon.states.add(new WeaponState("aiming", "firing", 30));
-        weapon.states.add(new WeaponState("firing", "recovering", 5));
-        weapon.states.add(new WeaponState("recovering", "aiming", 30));
-        weapon.initialStateName = "holstered";
-        return weapon;
-    }
-    
-    private Weapon createRifle(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy, combat.WeaponType.RIFLE);
-        weapon.states = new ArrayList<>();
-        weapon.states.add(new WeaponState("slung", "unsling", 0));
-        weapon.states.add(new WeaponState("unsling", "ready", 90));
-        weapon.states.add(new WeaponState("ready", "aiming", 15));
-        weapon.states.add(new WeaponState("aiming", "firing", 30));
-        weapon.states.add(new WeaponState("firing", "recovering", 5));
-        weapon.states.add(new WeaponState("recovering", "aiming", 20));
-        weapon.initialStateName = "slung";
-        return weapon;
-    }
-    
-    private Weapon createSheathedWeapon(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy, combat.WeaponType.OTHER);
-        weapon.states = new ArrayList<>();
-        weapon.states.add(new WeaponState("sheathed", "unsheathing", 0));
-        weapon.states.add(new WeaponState("unsheathing", "ready", 50));
-        weapon.states.add(new WeaponState("ready", "aiming", 10));
-        weapon.states.add(new WeaponState("aiming", "firing", 25));
-        weapon.states.add(new WeaponState("firing", "recovering", 8));
-        weapon.states.add(new WeaponState("recovering", "aiming", 20));
-        weapon.initialStateName = "sheathed";
-        return weapon;
+        c5.addSkill(new combat.Skill(SkillsManager.QUICKDRAW, 4));
+        units.add(new Unit(c5, 600, 100, Color.ORANGE, nextUnitId++));
     }
     
     private static double calculateMovementModifier(Unit shooter) {
@@ -466,10 +436,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
         
         switch (weaponType) {
             case PISTOL:
-                skillName = combat.Skills.PISTOL;
+                skillName = SkillsManager.PISTOL;
                 break;
             case RIFLE:
-                skillName = combat.Skills.RIFLE;
+                skillName = SkillsManager.RIFLE;
                 break;
             case OTHER:
             default:
@@ -490,10 +460,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
         
         switch (weaponType) {
             case PISTOL:
-                skillName = combat.Skills.PISTOL;
+                skillName = SkillsManager.PISTOL;
                 break;
             case RIFLE:
-                skillName = combat.Skills.RIFLE;
+                skillName = SkillsManager.RIFLE;
                 break;
             case OTHER:
             default:

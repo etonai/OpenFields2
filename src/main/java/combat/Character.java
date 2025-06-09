@@ -3,11 +3,13 @@ package combat;
 import game.ScheduledEvent;
 import game.Unit;
 import game.GameCallbacks;
+import data.SkillsManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Character {
+    public int id;
     public String name;
     public int dexterity;
     public int currentDexterity;
@@ -27,7 +29,8 @@ public class Character {
     public List<Skill> skills;
     public List<Wound> wounds;
 
-    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
+    public Character(int id, String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
+        this.id = id;
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
@@ -42,7 +45,8 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
 
-    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
+    public Character(int id, String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
+        this.id = id;
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
@@ -58,7 +62,8 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
+    public Character(int id, String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
+        this.id = id;
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
@@ -73,7 +78,8 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
+    public Character(int id, String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
+        this.id = id;
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
@@ -89,6 +95,10 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
 
+    public int getId() {
+        return id;
+    }
+    
     public String getName() {
         return name;
     }
@@ -248,10 +258,10 @@ public class Character {
     
     public static List<Skill> createDefaultSkills() {
         List<Skill> defaultSkills = new ArrayList<>();
-        defaultSkills.add(new Skill(Skills.PISTOL, 50));
-        defaultSkills.add(new Skill(Skills.RIFLE, 50));
-        defaultSkills.add(new Skill(Skills.QUICKDRAW, 50));
-        defaultSkills.add(new Skill(Skills.MEDICINE, 50));
+        defaultSkills.add(new Skill(SkillsManager.PISTOL, 50));
+        defaultSkills.add(new Skill(SkillsManager.RIFLE, 50));
+        defaultSkills.add(new Skill(SkillsManager.QUICKDRAW, 50));
+        defaultSkills.add(new Skill(SkillsManager.MEDICINE, 50));
         return defaultSkills;
     }
     
@@ -456,7 +466,7 @@ public class Character {
         int reflexesModifier = statToModifier(this.reflexes);
         double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.015);
         
-        int quickdrawLevel = getSkillLevel(Skills.QUICKDRAW);
+        int quickdrawLevel = getSkillLevel(SkillsManager.QUICKDRAW);
         double quickdrawSpeedMultiplier = 1.0 - (quickdrawLevel * 0.08);
         
         return reflexesSpeedMultiplier * quickdrawSpeedMultiplier;
