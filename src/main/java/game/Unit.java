@@ -91,6 +91,8 @@ public class Unit {
             // Display movement type
             gc.setFont(Font.font(10));
             gc.fillText(character.getCurrentMovementType().getDisplayName(), x - 15, y + 25);
+            // Display aiming speed
+            gc.fillText(character.getCurrentAimingSpeed().getDisplayName(), x - 15, y + 35);
         }
     }
 

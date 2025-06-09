@@ -16,6 +16,7 @@ public class Character {
     public int bravery;
     public double baseMovementSpeed;
     public MovementType currentMovementType;
+    public AimingSpeed currentAimingSpeed;
     public Weapon weapon;
     public WeaponState currentWeaponState;
     public Unit currentTarget;
@@ -30,6 +31,7 @@ public class Character {
         this.bravery = bravery;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
+        this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -42,6 +44,7 @@ public class Character {
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
+        this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -53,6 +56,7 @@ public class Character {
         this.bravery = bravery;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
+        this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.skills = skills != null ? skills : new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -65,6 +69,7 @@ public class Character {
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
+        this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.skills = skills != null ? skills : new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -125,6 +130,26 @@ public class Character {
     public void decreaseMovementType() {
         if (!isIncapacitated()) {
             this.currentMovementType = currentMovementType.decrease();
+        }
+    }
+
+    public AimingSpeed getCurrentAimingSpeed() {
+        return currentAimingSpeed;
+    }
+
+    public void setCurrentAimingSpeed(AimingSpeed aimingSpeed) {
+        this.currentAimingSpeed = aimingSpeed;
+    }
+    
+    public void increaseAimingSpeed() {
+        if (!isIncapacitated()) {
+            this.currentAimingSpeed = currentAimingSpeed.increase();
+        }
+    }
+    
+    public void decreaseAimingSpeed() {
+        if (!isIncapacitated()) {
+            this.currentAimingSpeed = currentAimingSpeed.decrease();
         }
     }
 
@@ -258,7 +283,8 @@ public class Character {
         } else if ("ready".equals(currentState)) {
             scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
         } else if ("aiming".equals(currentState)) {
-            scheduleFiring(shooter, target, currentTick + currentWeaponState.ticks, eventQueue, ownerId, gameCallbacks);
+            long adjustedAimingTime = Math.round(currentWeaponState.ticks * currentAimingSpeed.getTimingMultiplier());
+            scheduleFiring(shooter, target, currentTick + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
         }
     }
     
@@ -306,7 +332,8 @@ public class Character {
                     queuedShots--;
                     if (queuedShots > 0 && currentTarget != null) {
                         System.out.println(name + " starting queued shot " + (queuedShots + 1) + " at " + currentTarget.character.name);
-                        scheduleFiring(shooter, currentTarget, fireTick + firingState.ticks + recoveringState.ticks + currentWeaponState.ticks, eventQueue, ownerId, gameCallbacks);
+                        long adjustedAimingTime = Math.round(currentWeaponState.ticks * currentAimingSpeed.getTimingMultiplier());
+                        scheduleFiring(shooter, currentTarget, fireTick + firingState.ticks + recoveringState.ticks + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
                     }
                 }, ownerId));
             }, ownerId));

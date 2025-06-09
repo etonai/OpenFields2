@@ -213,6 +213,9 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("Base Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
                     System.out.println("Current Movement: " + selected.character.getCurrentMovementType().getDisplayName() + 
                                      " (" + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                    System.out.println("Current Aiming Speed: " + selected.character.getCurrentAimingSpeed().getDisplayName() + 
+                                     " (timing: " + String.format("%.2fx", selected.character.getCurrentAimingSpeed().getTimingMultiplier()) + 
+                                     ", accuracy: " + String.format("%+.0f", selected.character.getCurrentAimingSpeed().getAccuracyModifier()) + ")");
                     System.out.println("Incapacitated: " + (selected.character.isIncapacitated() ? "YES" : "NO"));
                     
                     if (selected.character.weapon != null) {
@@ -264,6 +267,29 @@ public class OpenFields2 extends Application implements GameCallbacks {
                                      " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
                 } else {
                     System.out.println("*** " + selected.character.getName() + " is already at minimum movement type: " + newType.getDisplayName());
+                }
+            }
+            // Aiming speed controls - Q to increase, E to decrease
+            if (e.getCode() == KeyCode.Q && selected != null) {
+                combat.AimingSpeed previousSpeed = selected.character.getCurrentAimingSpeed();
+                selected.character.increaseAimingSpeed();
+                combat.AimingSpeed newSpeed = selected.character.getCurrentAimingSpeed();
+                if (previousSpeed != newSpeed) {
+                    System.out.println("*** " + selected.character.getName() + " aiming speed increased to " + newSpeed.getDisplayName() + 
+                                     " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
+                } else {
+                    System.out.println("*** " + selected.character.getName() + " is already at maximum aiming speed: " + newSpeed.getDisplayName());
+                }
+            }
+            if (e.getCode() == KeyCode.E && selected != null) {
+                combat.AimingSpeed previousSpeed = selected.character.getCurrentAimingSpeed();
+                selected.character.decreaseAimingSpeed();
+                combat.AimingSpeed newSpeed = selected.character.getCurrentAimingSpeed();
+                if (previousSpeed != newSpeed) {
+                    System.out.println("*** " + selected.character.getName() + " aiming speed decreased to " + newSpeed.getDisplayName() + 
+                                     " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
+                } else {
+                    System.out.println("*** " + selected.character.getName() + " is already at minimum aiming speed: " + newSpeed.getDisplayName());
                 }
             }
         });
@@ -320,7 +346,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
         weapon.states.add(new WeaponState("ready", "aiming", 15));
-        weapon.states.add(new WeaponState("aiming", "firing", 60));
+        weapon.states.add(new WeaponState("aiming", "firing", 30));
         weapon.states.add(new WeaponState("firing", "recovering", 5));
         weapon.states.add(new WeaponState("recovering", "aiming", 30));
         weapon.initialStateName = "holstered";
@@ -333,7 +359,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         weapon.states.add(new WeaponState("slung", "unsling", 0));
         weapon.states.add(new WeaponState("unsling", "ready", 90));
         weapon.states.add(new WeaponState("ready", "aiming", 15));
-        weapon.states.add(new WeaponState("aiming", "firing", 60));
+        weapon.states.add(new WeaponState("aiming", "firing", 30));
         weapon.states.add(new WeaponState("firing", "recovering", 5));
         weapon.states.add(new WeaponState("recovering", "aiming", 20));
         weapon.initialStateName = "slung";
@@ -346,7 +372,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         weapon.states.add(new WeaponState("sheathed", "unsheathing", 0));
         weapon.states.add(new WeaponState("unsheathing", "ready", 25));
         weapon.states.add(new WeaponState("ready", "aiming", 10));
-        weapon.states.add(new WeaponState("aiming", "firing", 45));
+        weapon.states.add(new WeaponState("aiming", "firing", 25));
         weapon.states.add(new WeaponState("firing", "recovering", 8));
         weapon.states.add(new WeaponState("recovering", "aiming", 20));
         weapon.initialStateName = "sheathed";
@@ -371,13 +397,14 @@ public class OpenFields2 extends Application implements GameCallbacks {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = calculateMovementModifier(shooter);
+        double aimingSpeedModifier = shooter.character.getCurrentAimingSpeed().getAccuracyModifier();
         double targetMovementModifier = 0.0;
         double woundModifier = 0.0;
         double stressModifier = Math.min(0, OpenFields2.stressModifier + statToModifier(shooter.character.bravery));
         double skillModifier = 0.0;
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
-        double chanceToHit = 50.0 + statToModifier(shooter.character.dexterity) + stressModifier + rangeModifier + weaponModifier + movementModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
+        double chanceToHit = 50.0 + statToModifier(shooter.character.dexterity) + stressModifier + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
         
         if (distanceFeet <= maximumRange) {
             chanceToHit = Math.max(chanceToHit, 0.01);
@@ -394,6 +421,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
             System.out.println("Range modifier: " + String.format("%.2f", rangeModifier) + " (distance: " + String.format("%.2f", distanceFeet) + " feet, max: " + String.format("%.2f", maximumRange) + " feet)");
             System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
             System.out.println("Movement modifier: " + movementModifier);
+            System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (" + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
             System.out.println("Target movement modifier: " + targetMovementModifier);
             System.out.println("Wound modifier: " + woundModifier);
             System.out.println("Skill modifier: " + skillModifier);

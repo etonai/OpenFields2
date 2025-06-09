@@ -33,6 +33,7 @@ mvn javafx:run                # Run the JavaFX application
 
 - **Movement**: Right-click empty space to move selected unit
 - **Movement Types**: W/S keys to increase/decrease movement speed (Crawl, Walk, Jog, Run)
+- **Aiming Speed**: Q/E keys to increase/decrease aiming speed (Careful, Normal, Quick)
 - **Combat**: Right-click enemy unit to schedule ranged attack
 - **Selection**: Left-click unit to select
 - **Controls**: Arrow keys pan, +/- zoom, Space pauses/resumes
@@ -47,6 +48,14 @@ mvn javafx:run                # Run the JavaFX application
 - **Controls**: W to increase, S to decrease movement type
 - **Display**: Selected unit shows current movement type below name
 
+### Aiming Speed System
+- **Careful**: 2.0x slower aiming, +15 accuracy bonus - deliberate aimed shots
+- **Normal**: 1.0x baseline aiming timing, no accuracy modifier - standard aiming
+- **Quick**: 0.5x faster aiming, -20 accuracy penalty - rapid aiming
+- **Controls**: Q to increase, E to decrease aiming speed
+- **Display**: Selected unit shows current aiming speed below movement type
+- **Timing**: Only affects aiming phase duration, not other weapon states
+
 ### Combat Modifiers
 - **Movement Penalties**: Shooting accuracy decreases while moving
   - **Walking**: -5 modifier
@@ -54,7 +63,11 @@ mvn javafx:run                # Run the JavaFX application
   - **Jogging**: -15 modifier
   - **Running**: -25 modifier
   - **Stationary**: No penalty (0 modifier)
-- **Incapacitated units**: Considered stationary (no movement penalty)
+- **Aiming Speed Modifiers**: Accuracy affected by aiming technique
+  - **Careful**: +15 accuracy modifier (deliberate aiming)
+  - **Normal**: 0 accuracy modifier (standard aiming)
+  - **Quick**: -20 accuracy modifier (rapid aiming)
+- **Incapacitated units**: Considered stationary (no movement penalty), cannot change aiming speed
 
 ## Technical Details
 
