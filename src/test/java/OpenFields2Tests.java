@@ -409,6 +409,140 @@ public class OpenFields2Tests {
         System.out.println("✅ Target movement modifier integration test passed!");
     }
     
+    @Test
+    public void testWoundModifierCalculation() {
+        System.out.println("Testing wound modifier calculation:");
+        
+        // Test character with right-handed handedness
+        Character rightHanded = new Character("RightHanded", 100, 70, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Unit rightHandedUnit = new Unit(rightHanded, 0, 0, Color.RED, 1);
+        
+        // Test no wounds
+        double noWoundsModifier = calculateWoundModifierPublic(rightHandedUnit);
+        assertEquals(0.0, noWoundsModifier, 0.001, "No wounds should give 0 modifier");
+        System.out.println("No wounds modifier: " + noWoundsModifier);
+        
+        // Test head wound - every point of damage is -1
+        rightHanded.addWound(new combat.Wound(combat.BodyPart.HEAD, combat.WoundSeverity.LIGHT));
+        double headLightModifier = calculateWoundModifierPublic(rightHandedUnit);
+        assertEquals(-3.0, headLightModifier, 0.001, "Head light wound should be -3 (per damage point)");
+        System.out.println("Head light wound modifier: " + headLightModifier);
+        
+        // Clear wounds and test dominant arm (right arm for right-handed)
+        rightHanded.getWounds().clear();
+        rightHanded.addWound(new combat.Wound(combat.BodyPart.RIGHT_ARM, combat.WoundSeverity.SERIOUS));
+        double dominantArmModifier = calculateWoundModifierPublic(rightHandedUnit);
+        assertEquals(-8.0, dominantArmModifier, 0.001, "Dominant arm serious wound should be -8 (per damage point)");
+        System.out.println("Dominant arm serious wound modifier: " + dominantArmModifier);
+        
+        // Test non-dominant arm (left arm for right-handed) - follows severity rules
+        rightHanded.getWounds().clear();
+        rightHanded.addWound(new combat.Wound(combat.BodyPart.LEFT_ARM, combat.WoundSeverity.SERIOUS));
+        double nonDominantArmModifier = calculateWoundModifierPublic(rightHandedUnit);
+        assertEquals(-2.0, nonDominantArmModifier, 0.001, "Non-dominant arm serious wound should be -2 (severity rule)");
+        System.out.println("Non-dominant arm serious wound modifier: " + nonDominantArmModifier);
+        
+        // Test other body parts with different severities
+        rightHanded.getWounds().clear();
+        rightHanded.addWound(new combat.Wound(combat.BodyPart.CHEST, combat.WoundSeverity.LIGHT));
+        double chestLightModifier = calculateWoundModifierPublic(rightHandedUnit);
+        assertEquals(-1.0, chestLightModifier, 0.001, "Chest light wound should be -1");
+        System.out.println("Chest light wound modifier: " + chestLightModifier);
+        
+        rightHanded.getWounds().clear();
+        rightHanded.addWound(new combat.Wound(combat.BodyPart.CHEST, combat.WoundSeverity.CRITICAL));
+        double chestCriticalModifier = calculateWoundModifierPublic(rightHandedUnit);
+        assertEquals(-8.0, chestCriticalModifier, 0.001, "Chest critical wound should be -8 (per damage point)");
+        System.out.println("Chest critical wound modifier: " + chestCriticalModifier);
+        
+        // Test scratch wounds in other parts (should be 0)
+        rightHanded.getWounds().clear();
+        rightHanded.addWound(new combat.Wound(combat.BodyPart.LEFT_LEG, combat.WoundSeverity.SCRATCH));
+        double scratchModifier = calculateWoundModifierPublic(rightHandedUnit);
+        assertEquals(0.0, scratchModifier, 0.001, "Scratch wounds in other parts should be 0");
+        System.out.println("Leg scratch wound modifier: " + scratchModifier);
+        
+        System.out.println("✅ Wound modifier calculation test passed!");
+    }
+    
+    @Test
+    public void testWoundModifierWithLeftHandedness() {
+        System.out.println("Testing wound modifier with left-handedness:");
+        
+        Character leftHanded = new Character("LeftHanded", 100, 70, 50, 50, 50, combat.Handedness.LEFT_HANDED);
+        Unit leftHandedUnit = new Unit(leftHanded, 0, 0, Color.RED, 1);
+        
+        // Test left arm as dominant arm for left-handed character
+        leftHanded.addWound(new combat.Wound(combat.BodyPart.LEFT_ARM, combat.WoundSeverity.LIGHT));
+        double leftDominantModifier = calculateWoundModifierPublic(leftHandedUnit);
+        assertEquals(-3.0, leftDominantModifier, 0.001, "Left arm should be dominant for left-handed character");
+        System.out.println("Left-handed dominant arm light wound modifier: " + leftDominantModifier);
+        
+        // Test right arm as non-dominant for left-handed character
+        leftHanded.getWounds().clear();
+        leftHanded.addWound(new combat.Wound(combat.BodyPart.RIGHT_ARM, combat.WoundSeverity.LIGHT));
+        double leftNonDominantModifier = calculateWoundModifierPublic(leftHandedUnit);
+        assertEquals(-1.0, leftNonDominantModifier, 0.001, "Right arm should be non-dominant for left-handed character");
+        System.out.println("Left-handed non-dominant arm light wound modifier: " + leftNonDominantModifier);
+        
+        System.out.println("✅ Left-handed wound modifier test passed!");
+    }
+    
+    @Test 
+    public void testWoundModifierWithAmbidextrous() {
+        System.out.println("Testing wound modifier with ambidextrous handedness:");
+        
+        Character ambidextrous = new Character("Ambidextrous", 100, 70, 50, 50, 50, combat.Handedness.AMBIDEXTROUS);
+        Unit ambidextrousUnit = new Unit(ambidextrous, 0, 0, Color.RED, 1);
+        
+        // Test right arm as dominant arm for ambidextrous character (per spec)
+        ambidextrous.addWound(new combat.Wound(combat.BodyPart.RIGHT_ARM, combat.WoundSeverity.LIGHT));
+        double rightDominantModifier = calculateWoundModifierPublic(ambidextrousUnit);
+        assertEquals(-3.0, rightDominantModifier, 0.001, "Right arm should be dominant for ambidextrous character");
+        System.out.println("Ambidextrous dominant (right) arm light wound modifier: " + rightDominantModifier);
+        
+        // Test left arm as non-dominant for ambidextrous character
+        ambidextrous.getWounds().clear();
+        ambidextrous.addWound(new combat.Wound(combat.BodyPart.LEFT_ARM, combat.WoundSeverity.LIGHT));
+        double leftNonDominantModifier = calculateWoundModifierPublic(ambidextrousUnit);
+        assertEquals(-1.0, leftNonDominantModifier, 0.001, "Left arm should be non-dominant for ambidextrous character");
+        System.out.println("Ambidextrous non-dominant (left) arm light wound modifier: " + leftNonDominantModifier);
+        
+        System.out.println("✅ Ambidextrous wound modifier test passed!");
+    }
+    
+    @Test
+    public void testMultipleWoundsModifier() {
+        System.out.println("Testing multiple wounds modifier calculation:");
+        
+        Character character = new Character("MultiWounded", 100, 70, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Unit unit = new Unit(character, 0, 0, Color.RED, 1);
+        
+        // Add multiple wounds
+        character.addWound(new combat.Wound(combat.BodyPart.HEAD, combat.WoundSeverity.LIGHT)); // -3
+        character.addWound(new combat.Wound(combat.BodyPart.RIGHT_ARM, combat.WoundSeverity.SCRATCH)); // -1 (dominant arm)
+        character.addWound(new combat.Wound(combat.BodyPart.LEFT_LEG, combat.WoundSeverity.SERIOUS)); // -2
+        character.addWound(new combat.Wound(combat.BodyPart.CHEST, combat.WoundSeverity.SCRATCH)); // 0 (scratch in other part)
+        
+        double multipleWoundsModifier = calculateWoundModifierPublic(unit);
+        double expected = -3.0 + -1.0 + -2.0 + 0.0; // -6.0
+        assertEquals(expected, multipleWoundsModifier, 0.001, "Multiple wounds should accumulate");
+        System.out.println("Multiple wounds modifier: " + multipleWoundsModifier + " (expected: " + expected + ")");
+        
+        System.out.println("✅ Multiple wounds modifier test passed!");
+    }
+    
+    // Helper method to access the private calculateWoundModifier method for testing
+    private static double calculateWoundModifierPublic(Unit shooter) {
+        try {
+            java.lang.reflect.Method method = OpenFields2.class.getDeclaredMethod("calculateWoundModifier", Unit.class);
+            method.setAccessible(true);
+            return (Double) method.invoke(null, shooter);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke calculateWoundModifier", e);
+        }
+    }
+    
     // Helper method to access the private calculateTargetMovementModifier method for testing
     private static double calculateTargetMovementModifierPublic(Unit shooter, Unit target) {
         try {

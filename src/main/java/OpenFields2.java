@@ -504,13 +504,132 @@ public class OpenFields2 extends Application implements GameCallbacks {
         return "(" + skillName + ": " + skillLevel + ")";
     }
 
+    private static double calculateWoundModifier(Unit shooter) {
+        double modifier = 0.0;
+        
+        for (combat.Wound wound : shooter.character.getWounds()) {
+            combat.BodyPart bodyPart = wound.getBodyPart();
+            combat.WoundSeverity severity = wound.getSeverity();
+            
+            // Check for head wounds - every point of damage is -1
+            if (bodyPart == combat.BodyPart.HEAD) {
+                modifier -= getDamageFromSeverity(severity);
+            }
+            // Check for dominant arm wounds - every point of damage is -1
+            else if (isShootingArm(bodyPart, shooter.character.getHandedness())) {
+                modifier -= getDamageFromSeverity(severity);
+            }
+            // Check for other body parts based on severity
+            else {
+                switch (severity) {
+                    case LIGHT:
+                        modifier -= 1.0;
+                        break;
+                    case SERIOUS:
+                        modifier -= 2.0;
+                        break;
+                    case CRITICAL:
+                        // Every point of damage from critical wound in other parts is -1
+                        modifier -= getDamageFromSeverity(severity);
+                        break;
+                    case SCRATCH:
+                        // No modifier for scratches in other parts
+                        break;
+                }
+            }
+        }
+        
+        return modifier;
+    }
+    
+    private static boolean isShootingArm(combat.BodyPart bodyPart, combat.Handedness handedness) {
+        switch (handedness) {
+            case LEFT_HANDED:
+                return bodyPart == combat.BodyPart.LEFT_ARM;
+            case RIGHT_HANDED:
+                return bodyPart == combat.BodyPart.RIGHT_ARM;
+            case AMBIDEXTROUS:
+                // Right arm if ambidextrous
+                return bodyPart == combat.BodyPart.RIGHT_ARM;
+            default:
+                return false;
+        }
+    }
+    
+    private static int getDamageFromSeverity(combat.WoundSeverity severity) {
+        // Since we don't store actual damage with wounds, we use estimated damage values
+        // based on typical weapon damage (around 7-8 damage)
+        switch (severity) {
+            case SCRATCH:
+                return 1; // Always 1 damage
+            case LIGHT:
+                return 3; // Math.max(1, Math.round(7 * 0.4f)) = 3
+            case SERIOUS:
+                return 8; // Full weapon damage estimate
+            case CRITICAL:
+                return 8; // Full weapon damage estimate
+            default:
+                return 0;
+        }
+    }
+
+    private static String getWoundModifierDebugInfo(Unit shooter) {
+        List<combat.Wound> wounds = shooter.character.getWounds();
+        if (wounds.isEmpty()) {
+            return "(no wounds)";
+        }
+        
+        StringBuilder debug = new StringBuilder("(");
+        double totalModifier = 0.0;
+        boolean first = true;
+        
+        for (combat.Wound wound : wounds) {
+            if (!first) debug.append(", ");
+            first = false;
+            
+            combat.BodyPart bodyPart = wound.getBodyPart();
+            combat.WoundSeverity severity = wound.getSeverity();
+            double woundModifier = 0.0;
+            
+            if (bodyPart == combat.BodyPart.HEAD) {
+                woundModifier = -getDamageFromSeverity(severity);
+                debug.append("HEAD ").append(severity.name()).append(": ").append(woundModifier);
+            } else if (isShootingArm(bodyPart, shooter.character.getHandedness())) {
+                woundModifier = -getDamageFromSeverity(severity);
+                String armSide = (bodyPart == combat.BodyPart.LEFT_ARM) ? "LEFT" : "RIGHT";
+                debug.append(armSide).append("_ARM(dominant) ").append(severity.name()).append(": ").append(woundModifier);
+            } else {
+                switch (severity) {
+                    case LIGHT:
+                        woundModifier = -1.0;
+                        break;
+                    case SERIOUS:
+                        woundModifier = -2.0;
+                        break;
+                    case CRITICAL:
+                        woundModifier = -getDamageFromSeverity(severity);
+                        break;
+                    case SCRATCH:
+                        woundModifier = 0.0;
+                        break;
+                }
+                debug.append(bodyPart.name()).append(" ").append(severity.name()).append(": ").append(woundModifier);
+            }
+            
+            totalModifier += woundModifier;
+        }
+        
+        debug.append(" | total: ").append(totalModifier).append(")");
+        return debug.toString();
+    }
+
     private static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage) {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = calculateMovementModifier(shooter);
         double aimingSpeedModifier = shooter.character.getCurrentAimingSpeed().getAccuracyModifier();
         double targetMovementModifier = calculateTargetMovementModifier(shooter, target);
-        double woundModifier = 0.0;
+        double woundModifier = calculateWoundModifier(shooter);
         double stressModifier = Math.min(0, OpenFields2.stressModifier + statToModifier(shooter.character.coolness));
         double skillModifier = calculateSkillModifier(shooter);
         double sizeModifier = 0.0;
@@ -545,7 +664,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 System.out.println("Target movement modifier: " + targetMovementModifier + " (target stationary)");
             }
             
-            System.out.println("Wound modifier: " + woundModifier);
+            System.out.println("Wound modifier: " + String.format("%.1f", woundModifier) + " " + getWoundModifierDebugInfo(shooter));
             System.out.println("Skill modifier: " + String.format("%.1f", skillModifier) + " " + getSkillDebugInfo(shooter));
             System.out.println("Size modifier: " + sizeModifier);
             System.out.println("Cover modifier: " + coverModifier);
