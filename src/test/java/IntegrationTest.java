@@ -23,8 +23,8 @@ public class IntegrationTest {
     @BeforeEach
     public void setUp() {
         game = new OpenFields2();
-        shooter = new combat.Character("Shooter", 80, 100, 70);
-        target = new combat.Character("Target", 60, 80, 50);
+        shooter = new combat.Character("Shooter", 80, 100, 70, 60, 75);
+        target = new combat.Character("Target", 60, 80, 50, 45, 55);
         
         shooterUnit = new Unit(shooter, 100, 100, Color.BLUE, 1);
         targetUnit = new Unit(target, 300, 100, Color.RED, 2);
@@ -236,7 +236,7 @@ public class IntegrationTest {
     
     @Test
     public void testTargetSwitching() {
-        combat.Character newTarget = new combat.Character("NewTarget", 50, 70, 45);
+        combat.Character newTarget = new combat.Character("NewTarget", 50, 70, 45, 40, 50);
         Unit newTargetUnit = new Unit(newTarget, 400, 400, Color.GREEN, 3);
         
         // Start aiming at first target
@@ -349,7 +349,7 @@ public class IntegrationTest {
     @Test
     public void testEventOrderingWithMultipleUnits() {
         // Create multiple units with overlapping events
-        combat.Character secondShooter = new combat.Character("Shooter2", 75, 90, 65);
+        combat.Character secondShooter = new combat.Character("Shooter2", 75, 90, 65, 55, 70);
         secondShooter.weapon = createTestPistol();
         secondShooter.currentWeaponState = secondShooter.weapon.getStateByName("ready");
         Unit secondShooterUnit = new Unit(secondShooter, 200, 200, Color.YELLOW, 4);

@@ -40,6 +40,14 @@ mvn javafx:run                # Run the JavaFX application
 - **Health system**: Units become incapacitated at 0 health, movement stops
 - **Attack timing**: Projectile travel time based on weapon velocity and distance
 
+### Character Stats System
+- **Dexterity** (1-100): Affects shooting accuracy and manual dexterity
+- **Strength** (1-100): Physical power and carrying capacity - *not yet implemented*
+- **Reflexes** (1-100): Reaction time and quick responses - *not yet implemented*
+- **Health**: Current hit points, incapacitated at 0
+- **Coolness** (1-100): Mental composure under stress, affects stress modifier
+- **Stat Modifiers**: Each stat uses a balanced curve from -20 to +20 modifiers
+
 ### Movement System
 - **Crawl**: 0.25x base speed (10.5 pixels/sec)
 - **Walk**: 1.0x base speed (42 pixels/sec) - default
@@ -68,6 +76,22 @@ mvn javafx:run                # Run the JavaFX application
   - **Normal**: 0 accuracy modifier (standard aiming)
   - **Quick**: -20 accuracy modifier (rapid aiming)
 - **Incapacitated units**: Considered stationary (no movement penalty), cannot change aiming speed
+
+### Default Skills System
+- **Pistol**: Handgun proficiency for accuracy and handling - provides +5 accuracy per skill level when using pistol weapons
+- **Rifle**: Long gun proficiency for rifles and similar weapons - provides +5 accuracy per skill level when using rifle weapons
+- **Quickdraw**: Speed of weapon readying and drawing - *not yet implemented*
+- **Medicine**: Healing and wound treatment capabilities - *not yet implemented*
+- **Implementation**: Available via `Character.createDefaultSkills()` but not auto-assigned to characters
+- **Baseline Level**: All default skills start at level 50
+- **Combat Integration**: Pistol and Rifle skills automatically apply to hit calculations based on weapon type
+
+### Weapon Types System
+- **Pistol Type**: Created by `createPistol()` method - handguns with holstered/drawing states
+- **Rifle Type**: Created by `createRifle()` method - long guns with slung/unsling states
+- **Other Type**: Created by `createSheathedWeapon()` method or default constructor - magical items, tools, etc.
+- **Implementation**: `WeaponType` enum with PISTOL, RIFLE, and OTHER values
+- **Display**: Weapon type shown in character stats display (Shift+/)
 
 ## Technical Details
 

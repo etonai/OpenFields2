@@ -23,13 +23,13 @@ public class WeaponSystemTest {
         pistol = createPistol();
         rifle = createRifle();
         sheathedWeapon = createSheathedWeapon();
-        testCharacter = new combat.Character("TestChar", 70, 100, 60);
+        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55);
         testUnit = new Unit(testCharacter, 100, 100, Color.BLUE, 1);
         mockCallbacks = new MockGameCallbacks();
     }
     
     private Weapon createPistol() {
-        Weapon weapon = new Weapon("Test Pistol", 600.0, 7, 6, "/test.wav", 150.0, 0);
+        Weapon weapon = new Weapon("Test Pistol", 600.0, 7, 6, "/test.wav", 150.0, 0, WeaponType.PISTOL);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
@@ -42,7 +42,7 @@ public class WeaponSystemTest {
     }
     
     private Weapon createRifle() {
-        Weapon weapon = new Weapon("Test Rifle", 800.0, 12, 10, "/test.wav", 300.0, 5);
+        Weapon weapon = new Weapon("Test Rifle", 800.0, 12, 10, "/test.wav", 300.0, 5, WeaponType.RIFLE);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("slung", "unsling", 0));
         weapon.states.add(new WeaponState("unsling", "ready", 90));
@@ -55,7 +55,7 @@ public class WeaponSystemTest {
     }
     
     private Weapon createSheathedWeapon() {
-        Weapon weapon = new Weapon("Magic Wand", 30.0, 8, 20, "/magic.wav", 100.0, 20);
+        Weapon weapon = new Weapon("Magic Wand", 30.0, 8, 20, "/magic.wav", 100.0, 20, WeaponType.OTHER);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("sheathed", "unsheathing", 0));
         weapon.states.add(new WeaponState("unsheathing", "ready", 25));
@@ -207,7 +207,7 @@ public class WeaponSystemTest {
         testCharacter.weapon = pistol;
         testCharacter.currentWeaponState = pistol.getStateByName("ready");
         
-        Unit target = new Unit(new combat.Character("Target", 50, 80, 50), 200, 200, Color.RED, 2);
+        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
         PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
         
         testCharacter.startAttackSequence(testUnit, target, 100, eventQueue, 1, mockCallbacks);
@@ -237,7 +237,7 @@ public class WeaponSystemTest {
         testCharacter.currentWeaponState = pistol.getStateByName("aiming");
         pistol.ammunition = 0; // No ammo
         
-        Unit target = new Unit(new combat.Character("Target", 50, 80, 50), 200, 200, Color.RED, 2);
+        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
         PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
         
         testCharacter.startAttackSequence(testUnit, target, 100, eventQueue, 1, mockCallbacks);
@@ -256,7 +256,7 @@ public class WeaponSystemTest {
         testCharacter.weapon = pistol;
         testCharacter.currentWeaponState = pistol.getStateByName("aiming");
         
-        Unit target = new Unit(new combat.Character("Target", 50, 80, 50), 200, 200, Color.RED, 2);
+        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
         PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
         
         // Start first attack
@@ -277,8 +277,8 @@ public class WeaponSystemTest {
         testCharacter.weapon = pistol;
         testCharacter.currentWeaponState = pistol.getStateByName("aiming");
         
-        Unit firstTarget = new Unit(new combat.Character("Target1", 50, 80, 50), 200, 200, Color.RED, 2);
-        Unit secondTarget = new Unit(new combat.Character("Target2", 60, 90, 55), 300, 300, Color.GREEN, 3);
+        Unit firstTarget = new Unit(new combat.Character("Target1", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
+        Unit secondTarget = new Unit(new combat.Character("Target2", 60, 90, 55, 50, 60), 300, 300, Color.GREEN, 3);
         
         testCharacter.currentTarget = firstTarget;
         
@@ -334,7 +334,7 @@ public class WeaponSystemTest {
         testCharacter.weapon = null;
         testCharacter.currentWeaponState = null;
         
-        Unit target = new Unit(new combat.Character("Target", 50, 80, 50), 200, 200, Color.RED, 2);
+        Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 55), 200, 200, Color.RED, 2);
         PriorityQueue<ScheduledEvent> eventQueue = new PriorityQueue<>();
         
         testCharacter.startAttackSequence(testUnit, target, 100, eventQueue, 1, mockCallbacks);
@@ -352,5 +352,36 @@ public class WeaponSystemTest {
         testCharacter.startReadyWeaponSequence(testUnit, 100, eventQueue, 1);
         
         assertTrue(eventQueue.isEmpty(), "No events should be scheduled without weapon");
+    }
+    
+    @Test
+    public void testWeapon_TypesCorrect() {
+        assertEquals(WeaponType.PISTOL, pistol.getWeaponType(), "Pistol should have PISTOL type");
+        assertEquals(WeaponType.RIFLE, rifle.getWeaponType(), "Rifle should have RIFLE type");
+        assertEquals(WeaponType.OTHER, sheathedWeapon.getWeaponType(), "Sheathed weapon should have OTHER type");
+    }
+    
+    @Test
+    public void testWeapon_DefaultConstructorType() {
+        Weapon defaultWeapon = new Weapon("Default", 500.0, 5, 10, "/default.wav", 100.0, 0);
+        assertEquals(WeaponType.OTHER, defaultWeapon.getWeaponType(), "Default constructor should set weapon type to OTHER");
+    }
+    
+    @Test
+    public void testWeapon_ExplicitTypeConstructor() {
+        Weapon pistolWeapon = new Weapon("Custom Pistol", 700.0, 8, 12, "/custom.wav", 200.0, 5, WeaponType.PISTOL);
+        Weapon rifleWeapon = new Weapon("Custom Rifle", 900.0, 15, 8, "/custom.wav", 400.0, 10, WeaponType.RIFLE);
+        Weapon otherWeapon = new Weapon("Custom Other", 400.0, 6, 20, "/custom.wav", 150.0, 0, WeaponType.OTHER);
+        
+        assertEquals(WeaponType.PISTOL, pistolWeapon.getWeaponType(), "Should set PISTOL type correctly");
+        assertEquals(WeaponType.RIFLE, rifleWeapon.getWeaponType(), "Should set RIFLE type correctly");
+        assertEquals(WeaponType.OTHER, otherWeapon.getWeaponType(), "Should set OTHER type correctly");
+    }
+    
+    @Test
+    public void testWeaponType_EnumProperties() {
+        assertEquals("Pistol", WeaponType.PISTOL.getDisplayName());
+        assertEquals("Rifle", WeaponType.RIFLE.getDisplayName());
+        assertEquals("Other", WeaponType.OTHER.getDisplayName());
     }
 }

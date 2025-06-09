@@ -12,6 +12,7 @@ public class Weapon {
     public String soundFile;
     public double maximumRange;
     public int weaponAccuracy;
+    public WeaponType weaponType;
 
     public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
         this.name = name;
@@ -21,6 +22,18 @@ public class Weapon {
         this.soundFile = soundFile;
         this.maximumRange = maximumRange;
         this.weaponAccuracy = weaponAccuracy;
+        this.weaponType = WeaponType.OTHER; // Default to OTHER
+    }
+    
+    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, WeaponType weaponType) {
+        this.name = name;
+        this.velocityFeetPerSecond = velocityFeetPerSecond;
+        this.damage = damage;
+        this.ammunition = ammunition;
+        this.soundFile = soundFile;
+        this.maximumRange = maximumRange;
+        this.weaponAccuracy = weaponAccuracy;
+        this.weaponType = weaponType;
     }
 
     public String getName() {
@@ -33,6 +46,10 @@ public class Weapon {
 
     public int getDamage() {
         return damage;
+    }
+    
+    public WeaponType getWeaponType() {
+        return weaponType;
     }
 
     public WeaponState getStateByName(String name) {

@@ -17,8 +17,8 @@ public class CombatSystemTest {
     
     @BeforeEach
     public void setUp() {
-        testShooter = new combat.Character("TestShooter", 75, 100, 60);
-        combat.Character targetCharacter = new combat.Character("TestTarget", 50, 80, 50);
+        testShooter = new combat.Character("TestShooter", 75, 100, 60, 55, 70);
+        combat.Character targetCharacter = new combat.Character("TestTarget", 50, 80, 50, 45, 60);
         testTarget = new Unit(targetCharacter, 200, 200, Color.RED, 1);
         testWeapon = createTestWeapon();
     }
@@ -297,6 +297,134 @@ public class CombatSystemTest {
             assertEquals(0.0, modifier, 0.001, "Incapacitated unit should have no movement penalty (not moving)");
         } catch (Exception e) {
             fail("Failed to test calculateMovementModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSkillModifier_NoWeapon() {
+        Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
+        testShooter.weapon = null; // No weapon
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateSkillModifier", Unit.class);
+            method.setAccessible(true);
+            double modifier = (Double) method.invoke(null, shooterUnit);
+            assertEquals(0.0, modifier, 0.001, "Should have no skill modifier without weapon");
+        } catch (Exception e) {
+            fail("Failed to test calculateSkillModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSkillModifier_PistolWeaponNoSkill() {
+        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        testShooter.weapon = pistol;
+        Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
+        
+        // Character has no Pistol skill (level 0)
+        assertEquals(0, testShooter.getSkillLevel(Skills.PISTOL), "Should have no Pistol skill initially");
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateSkillModifier", Unit.class);
+            method.setAccessible(true);
+            double modifier = (Double) method.invoke(null, shooterUnit);
+            assertEquals(0.0, modifier, 0.001, "Should have no skill modifier with no skill");
+        } catch (Exception e) {
+            fail("Failed to test calculateSkillModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSkillModifier_PistolWeaponWithSkill() {
+        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        testShooter.weapon = pistol;
+        testShooter.addSkill(new Skill(Skills.PISTOL, 75)); // 75 level pistol skill
+        Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateSkillModifier", Unit.class);
+            method.setAccessible(true);
+            double modifier = (Double) method.invoke(null, shooterUnit);
+            assertEquals(375.0, modifier, 0.001, "Should have 75 * 5 = 375 skill modifier for level 75 Pistol skill");
+        } catch (Exception e) {
+            fail("Failed to test calculateSkillModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSkillModifier_RifleWeaponWithSkill() {
+        Weapon rifle = new Weapon("Test Rifle", 800.0, 12, 10, "/test.wav", 300.0, 5, WeaponType.RIFLE);
+        testShooter.weapon = rifle;
+        testShooter.addSkill(new Skill(Skills.RIFLE, 60)); // 60 level rifle skill
+        Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateSkillModifier", Unit.class);
+            method.setAccessible(true);
+            double modifier = (Double) method.invoke(null, shooterUnit);
+            assertEquals(300.0, modifier, 0.001, "Should have 60 * 5 = 300 skill modifier for level 60 Rifle skill");
+        } catch (Exception e) {
+            fail("Failed to test calculateSkillModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSkillModifier_OtherWeaponType() {
+        Weapon otherWeapon = new Weapon("Magic Wand", 30.0, 8, 20, "/magic.wav", 100.0, 20, WeaponType.OTHER);
+        testShooter.weapon = otherWeapon;
+        testShooter.addSkill(new Skill(Skills.PISTOL, 80)); // Has pistol skill but weapon is OTHER type
+        Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateSkillModifier", Unit.class);
+            method.setAccessible(true);
+            double modifier = (Double) method.invoke(null, shooterUnit);
+            assertEquals(0.0, modifier, 0.001, "Should have no skill modifier for OTHER weapon type");
+        } catch (Exception e) {
+            fail("Failed to test calculateSkillModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSkillModifier_WrongSkillType() {
+        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        testShooter.weapon = pistol;
+        testShooter.addSkill(new Skill(Skills.RIFLE, 90)); // Has rifle skill but weapon is pistol
+        Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateSkillModifier", Unit.class);
+            method.setAccessible(true);
+            double modifier = (Double) method.invoke(null, shooterUnit);
+            assertEquals(0.0, modifier, 0.001, "Should have no skill modifier when weapon type doesn't match skill");
+        } catch (Exception e) {
+            fail("Failed to test calculateSkillModifier: " + e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testSkillModifier_EdgeCases() {
+        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        testShooter.weapon = pistol;
+        Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
+        
+        try {
+            Method method = OpenFields2.class.getDeclaredMethod("calculateSkillModifier", Unit.class);
+            method.setAccessible(true);
+            
+            // Test with skill level 1
+            testShooter.addSkill(new Skill(Skills.PISTOL, 1));
+            double modifier = (Double) method.invoke(null, shooterUnit);
+            assertEquals(5.0, modifier, 0.001, "Should have 1 * 5 = 5 skill modifier for level 1");
+            
+            // Test with skill level 100
+            testShooter.getSkills().clear();
+            testShooter.addSkill(new Skill(Skills.PISTOL, 100));
+            modifier = (Double) method.invoke(null, shooterUnit);
+            assertEquals(500.0, modifier, 0.001, "Should have 100 * 5 = 500 skill modifier for level 100");
+            
+        } catch (Exception e) {
+            fail("Failed to test calculateSkillModifier edge cases: " + e.getMessage());
         }
     }
 }

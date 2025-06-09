@@ -9,7 +9,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -208,8 +207,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("***********************");
                     System.out.println("Name: " + selected.character.name);
                     System.out.println("Dexterity: " + selected.character.dexterity + " (modifier: " + statToModifier(selected.character.dexterity) + ")");
+                    System.out.println("Strength: " + selected.character.strength + " (modifier: " + statToModifier(selected.character.strength) + ")");
+                    System.out.println("Reflexes: " + selected.character.reflexes + " (modifier: " + statToModifier(selected.character.reflexes) + ")");
                     System.out.println("Health: " + selected.character.health);
-                    System.out.println("Bravery: " + selected.character.bravery + " (modifier: " + statToModifier(selected.character.bravery) + ")");
+                    System.out.println("Coolness: " + selected.character.coolness + " (modifier: " + statToModifier(selected.character.coolness) + ")");
                     System.out.println("Base Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
                     System.out.println("Current Movement: " + selected.character.getCurrentMovementType().getDisplayName() + 
                                      " (" + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
@@ -221,6 +222,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     if (selected.character.weapon != null) {
                         System.out.println("--- WEAPON ---");
                         System.out.println("Name: " + selected.character.weapon.name);
+                        System.out.println("Type: " + selected.character.weapon.weaponType.getDisplayName());
                         System.out.println("Damage: " + selected.character.weapon.damage);
                         System.out.println("Accuracy: " + selected.character.weapon.weaponAccuracy);
                         System.out.println("Max Range: " + selected.character.weapon.maximumRange + " feet");
@@ -322,16 +324,16 @@ public class OpenFields2 extends Application implements GameCallbacks {
     void createUnits() {
 
         int nextId = 1;
-        combat.Character c1 = new combat.Character("Alice", 100, 11, 75);
+        combat.Character c1 = new combat.Character("Alice", 100, 11, 75, 65, 90);
         c1.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
         c1.currentWeaponState = c1.weapon.getInitialState();
-        combat.Character c2 = new combat.Character("Bobby", 75, 20, 60);
+        combat.Character c2 = new combat.Character("Bobby", 75, 20, 60, 45, 70);
         c2.weapon = createSheathedWeapon("Wand of Magic Bolts", 30.0, 8, 20, "/magic.wav", 100.0, 20);
         c2.currentWeaponState = c2.weapon.getInitialState();
-        combat.Character c3 = new combat.Character("Chris", 25, 8, 30);
+        combat.Character c3 = new combat.Character("Chris", 25, 8, 30, 40, 35);
         c3.weapon = createPistol("Derringer", 600.0, 4, 1, "/Slap0003.wav", 50.0, -10);
         c3.currentWeaponState = c3.weapon.getInitialState();
-        combat.Character c4 = new combat.Character("Drake", 50, 14, 85);
+        combat.Character c4 = new combat.Character("Drake", 50, 14, 85, 55, 80);
         c4.weapon = createPistol("Plasma Pistol", 3000.0, 6, 20, "/placeholder_laser.wav", 500.0, 20);
         c4.currentWeaponState = c4.weapon.getInitialState();
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
@@ -341,7 +343,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
     }
     
     private Weapon createPistol(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy);
+        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy, combat.WeaponType.PISTOL);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
@@ -354,7 +356,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
     }
     
     private Weapon createRifle(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy);
+        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy, combat.WeaponType.RIFLE);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("slung", "unsling", 0));
         weapon.states.add(new WeaponState("unsling", "ready", 90));
@@ -367,7 +369,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
     }
     
     private Weapon createSheathedWeapon(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
-        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy);
+        Weapon weapon = new Weapon(name, velocity, damage, ammunition, soundFile, maximumRange, weaponAccuracy, combat.WeaponType.OTHER);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("sheathed", "unsheathing", 0));
         weapon.states.add(new WeaponState("unsheathing", "ready", 25));
@@ -392,6 +394,54 @@ public class OpenFields2 extends Application implements GameCallbacks {
             default: return 0.0;
         }
     }
+    
+    private static double calculateSkillModifier(Unit shooter) {
+        if (shooter.character.weapon == null) {
+            return 0.0;
+        }
+        
+        combat.WeaponType weaponType = shooter.character.weapon.getWeaponType();
+        String skillName;
+        
+        switch (weaponType) {
+            case PISTOL:
+                skillName = combat.Skills.PISTOL;
+                break;
+            case RIFLE:
+                skillName = combat.Skills.RIFLE;
+                break;
+            case OTHER:
+            default:
+                return 0.0; // No skill bonus for OTHER weapon types
+        }
+        
+        int skillLevel = shooter.character.getSkillLevel(skillName);
+        return skillLevel * 5.0;
+    }
+    
+    private static String getSkillDebugInfo(Unit shooter) {
+        if (shooter.character.weapon == null) {
+            return "(no weapon)";
+        }
+        
+        combat.WeaponType weaponType = shooter.character.weapon.getWeaponType();
+        String skillName;
+        
+        switch (weaponType) {
+            case PISTOL:
+                skillName = combat.Skills.PISTOL;
+                break;
+            case RIFLE:
+                skillName = combat.Skills.RIFLE;
+                break;
+            case OTHER:
+            default:
+                return "(weapon type: " + weaponType.getDisplayName() + ", no skill bonus)";
+        }
+        
+        int skillLevel = shooter.character.getSkillLevel(skillName);
+        return "(" + skillName + ": " + skillLevel + ")";
+    }
 
     private static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage) {
         double weaponModifier = weaponAccuracy;
@@ -400,8 +450,8 @@ public class OpenFields2 extends Application implements GameCallbacks {
         double aimingSpeedModifier = shooter.character.getCurrentAimingSpeed().getAccuracyModifier();
         double targetMovementModifier = 0.0;
         double woundModifier = 0.0;
-        double stressModifier = Math.min(0, OpenFields2.stressModifier + statToModifier(shooter.character.bravery));
-        double skillModifier = 0.0;
+        double stressModifier = Math.min(0, OpenFields2.stressModifier + statToModifier(shooter.character.coolness));
+        double skillModifier = calculateSkillModifier(shooter);
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
         double chanceToHit = 50.0 + statToModifier(shooter.character.dexterity) + stressModifier + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
@@ -417,14 +467,14 @@ public class OpenFields2 extends Application implements GameCallbacks {
             System.out.println("Shooter: " + shooter.character.name + " -> Target: " + target.character.name);
             System.out.println("Base chance: 50.0");
             System.out.println("Dexterity modifier: " + statToModifier(shooter.character.dexterity) + " (dex: " + shooter.character.dexterity + ")");
-            System.out.println("Stress modifier: " + stressModifier + " (bravery: " + shooter.character.bravery + ":" + statToModifier(shooter.character.bravery) + ")");
+            System.out.println("Stress modifier: " + stressModifier + " (coolness: " + shooter.character.coolness + ":" + statToModifier(shooter.character.coolness) + ")");
             System.out.println("Range modifier: " + String.format("%.2f", rangeModifier) + " (distance: " + String.format("%.2f", distanceFeet) + " feet, max: " + String.format("%.2f", maximumRange) + " feet)");
             System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
             System.out.println("Movement modifier: " + movementModifier);
             System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (" + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
             System.out.println("Target movement modifier: " + targetMovementModifier);
             System.out.println("Wound modifier: " + woundModifier);
-            System.out.println("Skill modifier: " + skillModifier);
+            System.out.println("Skill modifier: " + String.format("%.1f", skillModifier) + " " + getSkillDebugInfo(shooter));
             System.out.println("Size modifier: " + sizeModifier);
             System.out.println("Cover modifier: " + coverModifier);
             System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");

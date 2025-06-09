@@ -14,7 +14,7 @@ public class CharacterSystemTest {
     
     @BeforeEach
     public void setUp() {
-        testCharacter = new combat.Character("TestChar", 70, 100, 60);
+        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55);
         testWeapon = createTestWeapon();
     }
     
@@ -32,7 +32,9 @@ public class CharacterSystemTest {
         assertEquals("TestChar", testCharacter.getName());
         assertEquals(70, testCharacter.getDexterity());
         assertEquals(100, testCharacter.getHealth());
-        assertEquals(60, testCharacter.getBravery());
+        assertEquals(60, testCharacter.getCoolness());
+        assertEquals(50, testCharacter.getStrength());
+        assertEquals(55, testCharacter.getReflexes());
         assertEquals(42.0, testCharacter.getBaseMovementSpeed());
         assertNull(testCharacter.getWeapon());
         assertNotNull(testCharacter.getSkills());
@@ -43,13 +45,13 @@ public class CharacterSystemTest {
     
     @Test
     public void testCharacter_ConstructionWithWeapon() {
-        combat.Character charWithWeapon = new combat.Character("Armed", 80, 90, 70, testWeapon);
+        combat.Character charWithWeapon = new combat.Character("Armed", 80, 90, 70, 60, 75, testWeapon);
         
         assertEquals("Armed", charWithWeapon.getName());
         assertEquals(testWeapon, charWithWeapon.getWeapon());
         assertEquals(80, charWithWeapon.getDexterity());
         assertEquals(90, charWithWeapon.getHealth());
-        assertEquals(70, charWithWeapon.getBravery());
+        assertEquals(70, charWithWeapon.getCoolness());
     }
     
     @Test
@@ -58,7 +60,7 @@ public class CharacterSystemTest {
         skills.add(new Skill("Marksmanship", 75));
         skills.add(new Skill("Athletics", 60));
         
-        combat.Character charWithSkills = new combat.Character("Skilled", 65, 85, 55, skills);
+        combat.Character charWithSkills = new combat.Character("Skilled", 65, 85, 55, 45, 65, skills);
         
         assertEquals(2, charWithSkills.getSkills().size());
         assertEquals("Marksmanship", charWithSkills.getSkills().get(0).getSkillName());
@@ -70,7 +72,7 @@ public class CharacterSystemTest {
         List<Skill> skills = new ArrayList<>();
         skills.add(new Skill("Combat", 80));
         
-        combat.Character fullyArmed = new combat.Character("Elite", 85, 95, 75, testWeapon, skills);
+        combat.Character fullyArmed = new combat.Character("Elite", 85, 95, 75, 70, 85, testWeapon, skills);
         
         assertEquals("Elite", fullyArmed.getName());
         assertEquals(testWeapon, fullyArmed.getWeapon());
@@ -80,7 +82,7 @@ public class CharacterSystemTest {
     
     @Test
     public void testCharacter_ConstructionWithNullSkills() {
-        combat.Character charWithNullSkills = new combat.Character("NullSkills", 70, 100, 60, (List<Skill>) null);
+        combat.Character charWithNullSkills = new combat.Character("NullSkills", 70, 100, 60, 50, 55, (List<Skill>) null);
         
         assertNotNull(charWithNullSkills.getSkills());
         assertTrue(charWithNullSkills.getSkills().isEmpty());
@@ -97,8 +99,14 @@ public class CharacterSystemTest {
         testCharacter.setHealth(75);
         assertEquals(75, testCharacter.getHealth());
         
-        testCharacter.setBravery(80);
-        assertEquals(80, testCharacter.getBravery());
+        testCharacter.setCoolness(80);
+        assertEquals(80, testCharacter.getCoolness());
+        
+        testCharacter.setStrength(85);
+        assertEquals(85, testCharacter.getStrength());
+        
+        testCharacter.setReflexes(75);
+        assertEquals(75, testCharacter.getReflexes());
         
         testCharacter.setBaseMovementSpeed(50.0);
         assertEquals(50.0, testCharacter.getBaseMovementSpeed());
@@ -411,5 +419,117 @@ public class CharacterSystemTest {
         assertEquals(combat.MovementType.CRAWL, combat.MovementType.WALK.decrease());
         assertEquals(combat.MovementType.WALK, combat.MovementType.JOG.decrease());
         assertEquals(combat.MovementType.JOG, combat.MovementType.RUN.decrease());
+    }
+    
+    @Test
+    public void testCharacter_DefaultSkillsCreation() {
+        List<Skill> defaultSkills = combat.Character.createDefaultSkills();
+        
+        assertEquals(4, defaultSkills.size(), "Should create 4 default skills");
+        
+        // Check all default skills are present
+        boolean hasPistol = false, hasRifle = false, hasQuickdraw = false, hasMedicine = false;
+        for (Skill skill : defaultSkills) {
+            assertEquals(50, skill.getLevel(), "All default skills should start at level 50");
+            
+            if (Skills.PISTOL.equals(skill.getSkillName())) hasPistol = true;
+            else if (Skills.RIFLE.equals(skill.getSkillName())) hasRifle = true;
+            else if (Skills.QUICKDRAW.equals(skill.getSkillName())) hasQuickdraw = true;
+            else if (Skills.MEDICINE.equals(skill.getSkillName())) hasMedicine = true;
+        }
+        
+        assertTrue(hasPistol, "Should include Pistol skill");
+        assertTrue(hasRifle, "Should include Rifle skill");
+        assertTrue(hasQuickdraw, "Should include Quickdraw skill");
+        assertTrue(hasMedicine, "Should include Medicine skill");
+    }
+    
+    @Test
+    public void testCharacter_HasSkillMethod() {
+        assertFalse(testCharacter.hasSkill(Skills.PISTOL), "Should not have Pistol skill initially");
+        
+        testCharacter.addSkill(new Skill(Skills.PISTOL, 75));
+        assertTrue(testCharacter.hasSkill(Skills.PISTOL), "Should have Pistol skill after adding");
+        assertFalse(testCharacter.hasSkill(Skills.RIFLE), "Should not have Rifle skill");
+        
+        // Test case sensitivity
+        assertFalse(testCharacter.hasSkill("pistol"), "Should be case sensitive");
+        assertFalse(testCharacter.hasSkill("PISTOL"), "Should be case sensitive");
+    }
+    
+    @Test
+    public void testCharacter_AddDefaultSkills() {
+        // Character should start with no skills
+        assertEquals(0, testCharacter.getSkills().size(), "Should start with no skills");
+        
+        // Add default skills
+        testCharacter.addDefaultSkills();
+        assertEquals(4, testCharacter.getSkills().size(), "Should have 4 skills after adding defaults");
+        
+        // Check all default skills are present
+        assertTrue(testCharacter.hasSkill(Skills.PISTOL), "Should have Pistol skill");
+        assertTrue(testCharacter.hasSkill(Skills.RIFLE), "Should have Rifle skill");
+        assertTrue(testCharacter.hasSkill(Skills.QUICKDRAW), "Should have Quickdraw skill");
+        assertTrue(testCharacter.hasSkill(Skills.MEDICINE), "Should have Medicine skill");
+        
+        // Check skill levels
+        assertEquals(50, testCharacter.getSkillLevel(Skills.PISTOL), "Pistol should be level 50");
+        assertEquals(50, testCharacter.getSkillLevel(Skills.RIFLE), "Rifle should be level 50");
+        assertEquals(50, testCharacter.getSkillLevel(Skills.QUICKDRAW), "Quickdraw should be level 50");
+        assertEquals(50, testCharacter.getSkillLevel(Skills.MEDICINE), "Medicine should be level 50");
+    }
+    
+    @Test
+    public void testCharacter_AddDefaultSkillsNoDuplicates() {
+        // Add a custom Pistol skill first
+        testCharacter.addSkill(new Skill(Skills.PISTOL, 85));
+        assertEquals(1, testCharacter.getSkills().size(), "Should have 1 skill");
+        assertEquals(85, testCharacter.getSkillLevel(Skills.PISTOL), "Custom Pistol skill should be level 85");
+        
+        // Add default skills - should not duplicate Pistol
+        testCharacter.addDefaultSkills();
+        assertEquals(4, testCharacter.getSkills().size(), "Should have 4 total skills");
+        assertEquals(85, testCharacter.getSkillLevel(Skills.PISTOL), "Pistol skill should remain at level 85");
+        
+        // Other skills should be added at default level
+        assertEquals(50, testCharacter.getSkillLevel(Skills.RIFLE), "Rifle should be level 50");
+        assertEquals(50, testCharacter.getSkillLevel(Skills.QUICKDRAW), "Quickdraw should be level 50");
+        assertEquals(50, testCharacter.getSkillLevel(Skills.MEDICINE), "Medicine should be level 50");
+    }
+    
+    @Test
+    public void testCharacter_NewCharactersNoDefaultSkills() {
+        // Verify that new characters don't automatically get default skills
+        combat.Character newChar = new combat.Character("NewChar", 50, 80, 55, 45, 60);
+        assertEquals(0, newChar.getSkills().size(), "New characters should not have default skills automatically");
+        
+        assertFalse(newChar.hasSkill(Skills.PISTOL), "Should not have Pistol skill");
+        assertFalse(newChar.hasSkill(Skills.RIFLE), "Should not have Rifle skill");
+        assertFalse(newChar.hasSkill(Skills.QUICKDRAW), "Should not have Quickdraw skill");
+        assertFalse(newChar.hasSkill(Skills.MEDICINE), "Should not have Medicine skill");
+    }
+    
+    @Test
+    public void testSkills_Constants() {
+        assertEquals("Pistol", Skills.PISTOL);
+        assertEquals("Rifle", Skills.RIFLE);
+        assertEquals("Quickdraw", Skills.QUICKDRAW);
+        assertEquals("Medicine", Skills.MEDICINE);
+        
+        String[] allSkills = Skills.getAllSkillNames();
+        assertEquals(4, allSkills.length, "Should have 4 skill names");
+        
+        boolean hasPistol = false, hasRifle = false, hasQuickdraw = false, hasMedicine = false;
+        for (String skillName : allSkills) {
+            if (Skills.PISTOL.equals(skillName)) hasPistol = true;
+            else if (Skills.RIFLE.equals(skillName)) hasRifle = true;
+            else if (Skills.QUICKDRAW.equals(skillName)) hasQuickdraw = true;
+            else if (Skills.MEDICINE.equals(skillName)) hasMedicine = true;
+        }
+        
+        assertTrue(hasPistol, "All skills array should include Pistol");
+        assertTrue(hasRifle, "All skills array should include Rifle");
+        assertTrue(hasQuickdraw, "All skills array should include Quickdraw");
+        assertTrue(hasMedicine, "All skills array should include Medicine");
     }
 }

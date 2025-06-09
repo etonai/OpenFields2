@@ -16,7 +16,7 @@ public class AimingSpeedTest {
     
     @BeforeEach
     public void setUp() {
-        testCharacter = new combat.Character("TestChar", 70, 100, 60);
+        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55);
         testUnit = new Unit(testCharacter, 100, 100, Color.BLUE, 1);
     }
     
@@ -112,7 +112,7 @@ public class AimingSpeedTest {
             method.setAccessible(true);
             
             Unit shooter = new Unit(testCharacter, 100, 100, Color.RED, 1);
-            Unit target = new Unit(new combat.Character("Target", 50, 80, 50), 200, 200, Color.BLUE, 2);
+            Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 60), 200, 200, Color.BLUE, 2);
             
             // Set up weapon for the test
             Weapon testWeapon = new Weapon("Test Gun", 600.0, 8, 10, "/test.wav", 200.0, 10);
@@ -171,22 +171,22 @@ public class AimingSpeedTest {
     @Test
     public void testAllConstructors_AimingSpeedInitialization() {
         // Test basic constructor
-        combat.Character char1 = new combat.Character("Test1", 70, 100, 60);
+        combat.Character char1 = new combat.Character("Test1", 70, 100, 60, 50, 55);
         assertEquals(AimingSpeed.NORMAL, char1.getCurrentAimingSpeed(), "Basic constructor should initialize NORMAL aiming speed");
         
         // Test constructor with weapon
         Weapon weapon = new Weapon("TestWeapon", 500.0, 8, 10, "/test.wav", 200.0, 5);
-        combat.Character char2 = new combat.Character("Test2", 70, 100, 60, weapon);
+        combat.Character char2 = new combat.Character("Test2", 70, 100, 60, 50, 55, weapon);
         assertEquals(AimingSpeed.NORMAL, char2.getCurrentAimingSpeed(), "Weapon constructor should initialize NORMAL aiming speed");
         
         // Test constructor with skills
         ArrayList<Skill> skills = new ArrayList<>();
         skills.add(new Skill("TestSkill", 75));
-        combat.Character char3 = new combat.Character("Test3", 70, 100, 60, skills);
+        combat.Character char3 = new combat.Character("Test3", 70, 100, 60, 50, 55, skills);
         assertEquals(AimingSpeed.NORMAL, char3.getCurrentAimingSpeed(), "Skills constructor should initialize NORMAL aiming speed");
         
         // Test constructor with weapon and skills
-        combat.Character char4 = new combat.Character("Test4", 70, 100, 60, weapon, skills);
+        combat.Character char4 = new combat.Character("Test4", 70, 100, 60, 50, 55, weapon, skills);
         assertEquals(AimingSpeed.NORMAL, char4.getCurrentAimingSpeed(), "Full constructor should initialize NORMAL aiming speed");
     }
 }

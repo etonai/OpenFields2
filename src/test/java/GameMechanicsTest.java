@@ -17,7 +17,7 @@ public class GameMechanicsTest {
     
     @BeforeEach
     public void setUp() {
-        testCharacter = new combat.Character("TestChar", 70, 100, 60);
+        testCharacter = new combat.Character("TestChar", 70, 100, 60, 50, 55);
         testUnit = new Unit(testCharacter, 100, 100, Color.BLUE, 1);
         gameClock = new GameClock();
         eventQueue = new PriorityQueue<>();

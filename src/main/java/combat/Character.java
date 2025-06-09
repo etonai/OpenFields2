@@ -13,7 +13,9 @@ public class Character {
     public int currentDexterity;
     public int health;
     public int currentHealth;
-    public int bravery;
+    public int coolness;
+    public int strength;
+    public int reflexes;
     public double baseMovementSpeed;
     public MovementType currentMovementType;
     public AimingSpeed currentAimingSpeed;
@@ -24,11 +26,13 @@ public class Character {
     public List<Skill> skills;
     public List<Wound> wounds;
 
-    public Character(String name, int dexterity, int health, int bravery) {
+    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
-        this.bravery = bravery;
+        this.coolness = coolness;
+        this.strength = strength;
+        this.reflexes = reflexes;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
@@ -36,11 +40,13 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
 
-    public Character(String name, int dexterity, int health, int bravery, Weapon weapon) {
+    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Weapon weapon) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
-        this.bravery = bravery;
+        this.coolness = coolness;
+        this.strength = strength;
+        this.reflexes = reflexes;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
@@ -49,11 +55,13 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(String name, int dexterity, int health, int bravery, List<Skill> skills) {
+    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, List<Skill> skills) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
-        this.bravery = bravery;
+        this.coolness = coolness;
+        this.strength = strength;
+        this.reflexes = reflexes;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
@@ -61,11 +69,13 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(String name, int dexterity, int health, int bravery, Weapon weapon, List<Skill> skills) {
+    public Character(String name, int dexterity, int health, int coolness, int strength, int reflexes, Weapon weapon, List<Skill> skills) {
         this.name = name;
         this.dexterity = dexterity;
         this.health = health;
-        this.bravery = bravery;
+        this.coolness = coolness;
+        this.strength = strength;
+        this.reflexes = reflexes;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
@@ -153,12 +163,28 @@ public class Character {
         }
     }
 
-    public int getBravery() {
-        return bravery;
+    public int getCoolness() {
+        return coolness;
     }
 
-    public void setBravery(int bravery) {
-        this.bravery = bravery;
+    public void setCoolness(int coolness) {
+        this.coolness = coolness;
+    }
+    
+    public int getStrength() {
+        return strength;
+    }
+
+    public void setStrength(int strength) {
+        this.strength = strength;
+    }
+    
+    public int getReflexes() {
+        return reflexes;
+    }
+
+    public void setReflexes(int reflexes) {
+        this.reflexes = reflexes;
     }
 
     public Weapon getWeapon() {
@@ -201,6 +227,27 @@ public class Character {
     
     public void addSkill(Skill skill) {
         skills.add(skill);
+    }
+    
+    public boolean hasSkill(String skillName) {
+        return getSkill(skillName) != null;
+    }
+    
+    public static List<Skill> createDefaultSkills() {
+        List<Skill> defaultSkills = new ArrayList<>();
+        defaultSkills.add(new Skill(Skills.PISTOL, 50));
+        defaultSkills.add(new Skill(Skills.RIFLE, 50));
+        defaultSkills.add(new Skill(Skills.QUICKDRAW, 50));
+        defaultSkills.add(new Skill(Skills.MEDICINE, 50));
+        return defaultSkills;
+    }
+    
+    public void addDefaultSkills() {
+        for (Skill defaultSkill : createDefaultSkills()) {
+            if (!hasSkill(defaultSkill.getSkillName())) {
+                addSkill(defaultSkill);
+            }
+        }
     }
     
     public List<Wound> getWounds() {
