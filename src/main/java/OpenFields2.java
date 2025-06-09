@@ -132,6 +132,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
     private int nextUnitId = 1;
     private boolean waitingForSaveSlot = false;
     private boolean waitingForLoadSlot = false;
+    private static boolean editMode = false;
 
     public static void main(String[] args) {
         launch(args);
@@ -161,6 +162,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
                         selected = u;
                         System.out.println("Selected: " + u.character.name + " (Character ID: " + u.character.id + ", Unit ID: " + u.id + ")");
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u == selected) {
+                        if (editMode) {
+                            System.out.println(">>> Combat actions disabled in edit mode");
+                            return;
+                        }
                         if (selected.character.isIncapacitated()) {
                             System.out.println(">>> " + selected.character.name + " is incapacitated and cannot ready weapon.");
                             return;
@@ -169,6 +174,34 @@ public class OpenFields2 extends Application implements GameCallbacks {
                         selected.character.startReadyWeaponSequence(selected, gameClock.getCurrentTick(), eventQueue, selected.getId());
                         System.out.println("READY WEAPON " + selected.character.name + " (Character ID: " + selected.character.id + ", Unit ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
+                        if (editMode) {
+                            // Show range information in edit mode
+                            double dx = u.x - selected.x;
+                            double dy = u.y - selected.y;
+                            double distancePixels = Math.hypot(dx, dy);
+                            double distanceFeet = pixelsToFeet(distancePixels);
+                            
+                            System.out.println("*** RANGE CHECK ***");
+                            System.out.println("Distance from " + selected.character.name + " to " + u.character.name + ": " + 
+                                             String.format("%.2f", distanceFeet) + " feet");
+                            
+                            if (selected.character.weapon != null) {
+                                double maxRange = selected.character.weapon.maximumRange;
+                                System.out.println("Weapon: " + selected.character.weapon.name + " (max range: " + 
+                                                 String.format("%.2f", maxRange) + " feet)");
+                                
+                                if (distanceFeet <= maxRange) {
+                                    System.out.println("Target is WITHIN range");
+                                } else {
+                                    System.out.println("Target is OUT OF RANGE (exceeds by " + 
+                                                     String.format("%.2f", distanceFeet - maxRange) + " feet)");
+                                }
+                            } else {
+                                System.out.println("No weapon equipped");
+                            }
+                            System.out.println("******************");
+                            return;
+                        }
                         if (selected.character.isIncapacitated()) {
                             System.out.println(">>> " + selected.character.name + " is incapacitated and cannot attack.");
                             return;
@@ -180,12 +213,25 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 }
             }
             if (!clickedOnUnit && selected != null && e.getButton() == MouseButton.SECONDARY) {
-                if (selected.character.isIncapacitated()) {
+                if (!editMode && selected.character.isIncapacitated()) {
                     System.out.println(">>> " + selected.character.name + " is incapacitated and cannot move.");
                     return;
                 }
-                selected.setTarget(x, y);
-                System.out.println("MOVE " + selected.character.name + " to (" + x + ", " + y + ")");
+                
+                if (editMode) {
+                    // Instant teleport in edit mode
+                    selected.x = x;
+                    selected.y = y;
+                    selected.targetX = x;
+                    selected.targetY = y;
+                    selected.hasTarget = false;
+                    selected.isStopped = false;
+                    System.out.println("TELEPORT " + selected.character.name + " to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+                } else {
+                    // Normal movement with movement rules
+                    selected.setTarget(x, y);
+                    System.out.println("MOVE " + selected.character.name + " to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+                }
             }
         });
 
@@ -212,6 +258,17 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 debugMode = !debugMode;
                 System.out.println("***********************");
                 System.out.println("*** Debug mode " + (debugMode ? "ENABLED" : "DISABLED"));
+                System.out.println("***********************");
+            }
+            if (e.getCode() == KeyCode.E && e.isControlDown()) {
+                editMode = !editMode;
+                System.out.println("***********************");
+                System.out.println("*** Edit mode " + (editMode ? "ENABLED" : "DISABLED"));
+                if (editMode) {
+                    System.out.println("*** Combat disabled, instant movement enabled");
+                } else {
+                    System.out.println("*** Combat enabled, normal movement rules apply");
+                }
                 System.out.println("***********************");
             }
             if (e.getCode() == KeyCode.SLASH && e.isShiftDown()) {
@@ -334,7 +391,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("*** " + selected.character.getName() + " is already at maximum aiming speed: " + newSpeed.getDisplayName());
                 }
             }
-            if (e.getCode() == KeyCode.E && selected != null) {
+            if (e.getCode() == KeyCode.E && !e.isControlDown() && selected != null) {
                 combat.AimingSpeed previousSpeed = selected.character.getCurrentAimingSpeed();
                 selected.character.decreaseAimingSpeed();
                 combat.AimingSpeed newSpeed = selected.character.getCurrentAimingSpeed();
@@ -895,6 +952,19 @@ public class OpenFields2 extends Application implements GameCallbacks {
     // Save/Load functionality
     private void promptForSaveSlot() {
         System.out.println("*** SAVE GAME ***");
+        List<SaveGameManager.SaveSlotInfo> availableSlots = saveGameManager.listAvailableSlots();
+        
+        if (!availableSlots.isEmpty()) {
+            System.out.println("Existing saves:");
+            for (SaveGameManager.SaveSlotInfo slot : availableSlots) {
+                System.out.println(slot.slot + ". slot_" + slot.slot + ".json (" + 
+                                 slot.getFormattedTimestamp() + ") - " + 
+                                 slot.themeId + ", tick " + slot.currentTick);
+            }
+        } else {
+            System.out.println("No existing saves found.");
+        }
+        
         System.out.println("Enter save slot (1-9): ");
         waitingForSaveSlot = true;
         waitingForLoadSlot = false;
