@@ -43,7 +43,7 @@ mvn javafx:run                # Run the JavaFX application
 ### Character Stats System
 - **Dexterity** (1-100): Affects shooting accuracy and manual dexterity
 - **Strength** (1-100): Physical power and carrying capacity - *not yet implemented*
-- **Reflexes** (1-100): Reaction time and quick responses - *not yet implemented*
+- **Reflexes** (1-100): Reaction time and quick responses - affects weapon readying speed
 - **Health**: Current hit points, incapacitated at 0
 - **Coolness** (1-100): Mental composure under stress, affects stress modifier
 - **Stat Modifiers**: Each stat uses a balanced curve from -20 to +20 modifiers
@@ -80,11 +80,19 @@ mvn javafx:run                # Run the JavaFX application
 ### Default Skills System
 - **Pistol**: Handgun proficiency for accuracy and handling - provides +5 accuracy per skill level when using pistol weapons
 - **Rifle**: Long gun proficiency for rifles and similar weapons - provides +5 accuracy per skill level when using rifle weapons
-- **Quickdraw**: Speed of weapon readying and drawing - *not yet implemented*
+- **Quickdraw**: Speed of weapon readying and drawing - provides 5% speed increase per skill level for weapon preparation
 - **Medicine**: Healing and wound treatment capabilities - *not yet implemented*
 - **Implementation**: Available via `Character.createDefaultSkills()` but not auto-assigned to characters
 - **Baseline Level**: All default skills start at level 50
-- **Combat Integration**: Pistol and Rifle skills automatically apply to hit calculations based on weapon type
+- **Combat Integration**: Pistol and Rifle skills automatically apply to hit calculations; Quickdraw affects weapon readying timing
+
+### Weapon Ready Speed System
+- **Reflexes Impact**: Uses stat modifier (-20 to +20) converted to speed multiplier (1.2x slower to 0.8x faster)
+- **Quickdraw Skill**: Each skill level provides 5% speed improvement (level 4 = 20% faster)
+- **Combined Effect**: Reflexes and Quickdraw stack multiplicatively for total speed bonus
+- **Affected States**: Only weapon preparation states (drawing, unsheathing, unsling, ready transitions)
+- **Example**: Reflexes 90 (+12 mod) + Quickdraw 4 = 0.88 × 0.8 = 0.704x (≈30% faster weapon readying)
+- **Display**: Weapon ready speed shown in character stats (Shift+/) with contributing factors
 
 ### Weapon Types System
 - **Pistol Type**: Created by `createPistol()` method - handguns with holstered/drawing states

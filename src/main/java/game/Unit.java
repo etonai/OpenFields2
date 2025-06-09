@@ -11,6 +11,7 @@ public class Unit {
     public double x, y;
     public double targetX, targetY;
     public boolean hasTarget = false;
+    public boolean isStopped = false;
     public Color color;
     public final Color baseColor;
     public boolean isHitHighlighted = false;
@@ -46,6 +47,17 @@ public class Unit {
         this.targetX = x;
         this.targetY = y;
         this.hasTarget = true;
+        this.isStopped = false;
+    }
+
+    public void stopMovement() {
+        this.isStopped = true;
+    }
+
+    public void resumeMovement() {
+        if (isStopped && hasTarget) {
+            this.isStopped = false;
+        }
     }
 
     public void update(long currentTick) {
@@ -53,6 +65,9 @@ public class Unit {
         lastTickUpdated = currentTick;
 
         if (!hasTarget) return;
+        
+        // Stopped characters don't move but keep their target
+        if (isStopped) return;
         
         // Incapacitated characters cannot move
         if (character.isIncapacitated()) {
@@ -101,6 +116,72 @@ public class Unit {
     }
     
     public boolean isMoving() {
-        return hasTarget && !character.isIncapacitated();
+        return hasTarget && !isStopped && !character.isIncapacitated();
+    }
+    
+    /**
+     * Gets the current velocity vector of this unit
+     * @return double array [vx, vy] representing velocity in pixels per tick
+     */
+    public double[] getVelocityVector() {
+        if (!isMoving()) {
+            return new double[]{0.0, 0.0};
+        }
+        
+        double dx = targetX - x;
+        double dy = targetY - y;
+        double distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance <= 1) {
+            return new double[]{0.0, 0.0};
+        }
+        
+        double vx = character.getEffectiveMovementSpeed() / 60.0 * (dx / distance);
+        double vy = character.getEffectiveMovementSpeed() / 60.0 * (dy / distance);
+        
+        return new double[]{vx, vy};
+    }
+    
+    /**
+     * Calculates the perpendicular velocity component relative to the line of sight to another unit
+     * @param other The other unit (typically the shooter)
+     * @return The magnitude of velocity perpendicular to the line of sight, in pixels per tick
+     */
+    public double getPerpendicularVelocity(Unit other) {
+        if (!isMoving()) {
+            return 0.0;
+        }
+        
+        // Vector from other unit to this unit (line of sight)
+        double losX = x - other.x;
+        double losY = y - other.y;
+        double losDistance = Math.sqrt(losX * losX + losY * losY);
+        
+        if (losDistance == 0) {
+            return 0.0; // Same position, no meaningful line of sight
+        }
+        
+        // Normalize line of sight vector
+        double losUnitX = losX / losDistance;
+        double losUnitY = losY / losDistance;
+        
+        // Get velocity vector
+        double[] velocity = getVelocityVector();
+        double vx = velocity[0];
+        double vy = velocity[1];
+        
+        // Calculate component of velocity perpendicular to line of sight
+        // This is done by subtracting the parallel component from the total velocity
+        // Parallel component = (v · los_unit) * los_unit
+        double parallelComponent = vx * losUnitX + vy * losUnitY;
+        double parallelX = parallelComponent * losUnitX;
+        double parallelY = parallelComponent * losUnitY;
+        
+        // Perpendicular component = v - parallel_component
+        double perpX = vx - parallelX;
+        double perpY = vy - parallelY;
+        
+        // Return magnitude of perpendicular component
+        return Math.sqrt(perpX * perpX + perpY * perpY);
     }
 }

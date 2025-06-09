@@ -336,6 +336,12 @@ public class Character {
     }
     
     private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit shooter, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        // Apply speed multiplier only to weapon preparation states
+        if (isWeaponPreparationState(newStateName)) {
+            double speedMultiplier = calculateWeaponReadySpeedMultiplier();
+            transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
+        }
+        
         long transitionTick = currentTick + transitionTickLength;
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
             currentWeaponState = weapon.getStateByName(newStateName);
@@ -433,12 +439,62 @@ public class Character {
         }
     }
     
+    private double calculateWeaponReadySpeedMultiplier() {
+        int reflexesModifier = statToModifier(this.reflexes);
+        double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.01);
+        
+        int quickdrawLevel = getSkillLevel(Skills.QUICKDRAW);
+        double quickdrawSpeedMultiplier = 1.0 - (quickdrawLevel * 0.05);
+        
+        return reflexesSpeedMultiplier * quickdrawSpeedMultiplier;
+    }
+    
+    private static int statToModifier(int stat) {
+        // Clamp stat to valid range
+        stat = Math.max(1, Math.min(100, stat));
+        
+        // Use a lookup table for perfect control over the distribution
+        int[] modifiers = new int[101]; // index 0 unused, 1-100 are valid stats
+        
+        // Define the negative half (1-50), then mirror for positive half (51-100)
+        modifiers[1] = -20;   modifiers[2] = -19;   modifiers[3] = -18;   modifiers[4] = -17;   modifiers[5] = -16;   modifiers[6] = -15;
+        modifiers[7] = -14;   modifiers[8] = -14;   modifiers[9] = -13;   modifiers[10] = -13;  modifiers[11] = -12;  modifiers[12] = -12;
+        modifiers[13] = -11;  modifiers[14] = -11;  modifiers[15] = -10;  modifiers[16] = -10;  modifiers[17] = -9;   modifiers[18] = -9;
+        modifiers[19] = -8;   modifiers[20] = -8;   modifiers[21] = -7;   modifiers[22] = -7;   modifiers[23] = -6;   modifiers[24] = -6;
+        modifiers[25] = -5;   modifiers[26] = -5;   modifiers[27] = -5;   modifiers[28] = -4;   modifiers[29] = -4;   modifiers[30] = -4;
+        modifiers[31] = -3;   modifiers[32] = -3;   modifiers[33] = -3;   modifiers[34] = -3;   modifiers[35] = -2;   modifiers[36] = -2;
+        modifiers[37] = -2;   modifiers[38] = -2;   modifiers[39] = -2;   modifiers[40] = -1;   modifiers[41] = -1;   modifiers[42] = -1;
+        modifiers[43] = -1;   modifiers[44] = -1;   modifiers[45] = -1;   modifiers[46] = 0;    modifiers[47] = 0;    modifiers[48] = 0;
+        modifiers[49] = 0;    modifiers[50] = 0;    modifiers[51] = 0;
+        
+        // Mirror for the positive half (perfect symmetry)
+        for (int i = 1; i <= 49; i++) {
+            modifiers[51 + i] = -modifiers[50 - i];
+        }
+        
+        return modifiers[stat];
+    }
+    
     private void scheduleReadyStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        // Apply speed multiplier only to weapon preparation states
+        if (isWeaponPreparationState(newStateName)) {
+            double speedMultiplier = calculateWeaponReadySpeedMultiplier();
+            transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
+        }
+        
         long transitionTick = currentTick + transitionTickLength;
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
             currentWeaponState = weapon.getStateByName(newStateName);
             System.out.println(name + " weapon state: " + newStateName + " at tick " + transitionTick);
             scheduleReadyFromCurrentState(unit, transitionTick, eventQueue, ownerId);
         }, ownerId));
+    }
+    
+    private boolean isWeaponPreparationState(String stateName) {
+        return "drawing".equals(stateName) || "unsheathing".equals(stateName) || "unsling".equals(stateName) || "ready".equals(stateName);
+    }
+    
+    public double getWeaponReadySpeedMultiplier() {
+        return calculateWeaponReadySpeedMultiplier();
     }
 }

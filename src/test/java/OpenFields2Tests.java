@@ -1,5 +1,8 @@
 import org.junit.jupiter.api.Test;
 import java.util.List;
+import game.Unit;
+import combat.Character;
+import javafx.scene.paint.Color;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -162,5 +165,258 @@ public class OpenFields2Tests {
         }
         
         System.out.println("✅ Symmetry property verified!");
+    }
+    
+    @Test
+    void testPerpendicularVelocityStationaryUnit() {
+        System.out.println("Testing perpendicular velocity calculation for stationary unit:");
+        
+        // Create two units at different positions
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        
+        Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
+        Unit target = new Unit(char2, 100, 0, Color.BLUE, 2);
+        
+        // Target is stationary (no movement target set)
+        double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+        
+        assertEquals(0.0, perpendicularVelocity, 0.001, 
+                    "Stationary unit should have zero perpendicular velocity");
+        
+        System.out.println("✅ Stationary unit perpendicular velocity test passed!");
+    }
+    
+    @Test
+    void testPerpendicularVelocityDirectApproach() {
+        System.out.println("Testing perpendicular velocity for direct approach:");
+        
+        // Create characters with known movement speed
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
+        
+        Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
+        Unit target = new Unit(char2, 100, 0, Color.BLUE, 2);
+        
+        // Target moves directly toward shooter (parallel to line of sight)
+        target.setTarget(0, 0);
+        
+        double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+        
+        assertEquals(0.0, perpendicularVelocity, 0.001, 
+                    "Direct approach should have zero perpendicular velocity");
+        
+        System.out.println("✅ Direct approach perpendicular velocity test passed!");
+    }
+    
+    @Test
+    void testPerpendicularVelocityDirectRetreat() {
+        System.out.println("Testing perpendicular velocity for direct retreat:");
+        
+        // Create characters with known movement speed
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
+        
+        Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
+        Unit target = new Unit(char2, 100, 0, Color.BLUE, 2);
+        
+        // Target moves directly away from shooter (parallel to line of sight)
+        target.setTarget(200, 0);
+        
+        double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+        
+        assertEquals(0.0, perpendicularVelocity, 0.001, 
+                    "Direct retreat should have zero perpendicular velocity");
+        
+        System.out.println("✅ Direct retreat perpendicular velocity test passed!");
+    }
+    
+    @Test
+    void testPerpendicularVelocityPurePerpendicular() {
+        System.out.println("Testing perpendicular velocity for pure perpendicular movement:");
+        
+        // Create characters with known movement speed
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
+        
+        Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
+        Unit target = new Unit(char2, 100, 0, Color.BLUE, 2);
+        
+        // Target moves perpendicular to line of sight (up)
+        target.setTarget(100, 100);
+        
+        double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+        
+        // Should be approximately 1.0 (the full movement speed)
+        assertEquals(1.0, perpendicularVelocity, 0.001, 
+                    "Pure perpendicular movement should equal movement speed");
+        
+        System.out.println("✅ Pure perpendicular velocity test passed!");
+    }
+    
+    @Test
+    void testPerpendicularVelocityDiagonalMovement() {
+        System.out.println("Testing perpendicular velocity for diagonal movement:");
+        
+        // Create characters with known movement speed
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
+        
+        Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
+        Unit target = new Unit(char2, 100, 0, Color.BLUE, 2);
+        
+        // Target moves diagonally (45 degrees from line of sight)
+        // This creates a movement vector that is 45 degrees from horizontal
+        target.setTarget(200, 100);
+        
+        double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+        
+        // For 45-degree movement, perpendicular component should be sin(45°) * speed
+        // sin(45°) ≈ 0.707, so perpendicular velocity should be about 0.707
+        assertEquals(0.707, perpendicularVelocity, 0.01, 
+                    "45-degree movement should have perpendicular component of ~0.707");
+        
+        System.out.println("✅ Diagonal movement perpendicular velocity test passed!");
+    }
+    
+    @Test
+    void testPerpendicularVelocityVectorMath() {
+        System.out.println("Testing perpendicular velocity vector mathematics:");
+        
+        // Create characters with known movement speed
+        Character char1 = new Character("Shooter", 100, 50, 50, 50, 50);
+        Character char2 = new Character("Target", 100, 50, 50, 50, 50);
+        char2.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
+        
+        Unit shooter = new Unit(char1, 0, 0, Color.RED, 1);
+        Unit target = new Unit(char2, 100, 0, Color.BLUE, 2);
+        
+        // Test that perpendicular^2 + parallel^2 = total^2 (Pythagorean theorem)
+        target.setTarget(150, 50); // Some arbitrary movement
+        
+        double[] velocity = target.getVelocityVector();
+        double totalVelocity = Math.sqrt(velocity[0] * velocity[0] + velocity[1] * velocity[1]);
+        
+        double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+        
+        // Calculate parallel component
+        double losX = target.x - shooter.x;
+        double losY = target.y - shooter.y;
+        double losDistance = Math.sqrt(losX * losX + losY * losY);
+        double losUnitX = losX / losDistance;
+        double losUnitY = losY / losDistance;
+        double parallelComponent = velocity[0] * losUnitX + velocity[1] * losUnitY;
+        
+        // Verify Pythagorean theorem
+        double calculatedTotal = Math.sqrt(perpendicularVelocity * perpendicularVelocity + 
+                                         parallelComponent * parallelComponent);
+        
+        assertEquals(totalVelocity, calculatedTotal, 0.001, 
+                    "Vector decomposition should satisfy Pythagorean theorem");
+        
+        System.out.println("Total velocity: " + String.format("%.3f", totalVelocity));
+        System.out.println("Perpendicular component: " + String.format("%.3f", perpendicularVelocity));
+        System.out.println("Parallel component: " + String.format("%.3f", parallelComponent));
+        System.out.println("Calculated total: " + String.format("%.3f", calculatedTotal));
+        
+        System.out.println("✅ Vector mathematics test passed!");
+    }
+    
+    @Test
+    void testVelocityVectorCalculation() {
+        System.out.println("Testing velocity vector calculation:");
+        
+        // Create character with known movement speed
+        Character character = new Character("Test", 100, 50, 50, 50, 50);
+        character.baseMovementSpeed = 60.0; // 60 pixels per second = 1 pixel per tick
+        
+        Unit unit = new Unit(character, 0, 0, Color.RED, 1);
+        
+        // Test stationary unit
+        double[] stationaryVelocity = unit.getVelocityVector();
+        assertEquals(0.0, stationaryVelocity[0], 0.001, "Stationary unit should have zero X velocity");
+        assertEquals(0.0, stationaryVelocity[1], 0.001, "Stationary unit should have zero Y velocity");
+        
+        // Test unit moving right (positive X direction)
+        unit.setTarget(100, 0);
+        double[] rightVelocity = unit.getVelocityVector();
+        assertEquals(1.0, rightVelocity[0], 0.001, "Moving right should have +1.0 X velocity");
+        assertEquals(0.0, rightVelocity[1], 0.001, "Moving right should have zero Y velocity");
+        
+        // Test unit moving up (positive Y direction)
+        unit.setTarget(0, 100);
+        double[] upVelocity = unit.getVelocityVector();
+        assertEquals(0.0, upVelocity[0], 0.001, "Moving up should have zero X velocity");
+        assertEquals(1.0, upVelocity[1], 0.001, "Moving up should have +1.0 Y velocity");
+        
+        // Test diagonal movement (should maintain speed = 1.0)
+        unit.setTarget(100, 100);
+        double[] diagonalVelocity = unit.getVelocityVector();
+        double diagonalSpeed = Math.sqrt(diagonalVelocity[0] * diagonalVelocity[0] + 
+                                       diagonalVelocity[1] * diagonalVelocity[1]);
+        assertEquals(1.0, diagonalSpeed, 0.001, "Diagonal movement should maintain unit speed");
+        
+        System.out.println("✅ Velocity vector calculation test passed!");
+    }
+    
+    @Test
+    void testTargetMovementModifierIntegration() {
+        System.out.println("Testing target movement modifier integration:");
+        
+        // Create test characters
+        Character shooter = new Character("Shooter", 100, 70, 50, 50, 50); // Good dexterity
+        Character target = new Character("Target", 100, 50, 50, 50, 50);
+        target.baseMovementSpeed = 60.0; // Standard movement speed
+        
+        Unit shooterUnit = new Unit(shooter, 0, 0, Color.RED, 1);
+        Unit targetUnit = new Unit(target, 100, 0, Color.BLUE, 2);
+        
+        // Test 1: Stationary target - should have no modifier
+        double modifierStationary = OpenFields2Tests.calculateTargetMovementModifierPublic(shooterUnit, targetUnit);
+        assertEquals(0.0, modifierStationary, 0.001, "Stationary target should have no movement modifier");
+        System.out.println("Stationary target modifier: " + modifierStationary);
+        
+        // Test 2: Target moving directly toward shooter - should have no modifier
+        targetUnit.setTarget(0, 0);
+        double modifierDirectApproach = OpenFields2Tests.calculateTargetMovementModifierPublic(shooterUnit, targetUnit);
+        assertEquals(0.0, modifierDirectApproach, 0.001, "Direct approach should have no movement modifier");
+        System.out.println("Direct approach modifier: " + modifierDirectApproach);
+        
+        // Test 3: Target moving directly away from shooter - should have no modifier
+        targetUnit.setTarget(200, 0);
+        double modifierDirectRetreat = OpenFields2Tests.calculateTargetMovementModifierPublic(shooterUnit, targetUnit);
+        assertEquals(0.0, modifierDirectRetreat, 0.001, "Direct retreat should have no movement modifier");
+        System.out.println("Direct retreat modifier: " + modifierDirectRetreat);
+        
+        // Test 4: Target moving perpendicular to line of sight - should have negative modifier
+        // With new formula: -2 * perpendicular speed (~8.6 ft/s) = ~-17 modifier
+        targetUnit.setTarget(100, 100);
+        double modifierPerpendicular = OpenFields2Tests.calculateTargetMovementModifierPublic(shooterUnit, targetUnit);
+        assertTrue(modifierPerpendicular < -15.0, "Perpendicular movement should have significant negative modifier");
+        System.out.println("Perpendicular movement modifier: " + modifierPerpendicular);
+        
+        // Test 5: Target moving at 45 degrees - should have moderate negative modifier
+        targetUnit.setTarget(200, 100);
+        double modifierDiagonal = OpenFields2Tests.calculateTargetMovementModifierPublic(shooterUnit, targetUnit);
+        assertTrue(modifierDiagonal < 0.0, "Diagonal movement should have negative modifier");
+        assertTrue(modifierDiagonal > modifierPerpendicular, "Diagonal should be less negative than pure perpendicular");
+        System.out.println("Diagonal movement modifier: " + modifierDiagonal);
+        
+        System.out.println("✅ Target movement modifier integration test passed!");
+    }
+    
+    // Helper method to access the private calculateTargetMovementModifier method for testing
+    private static double calculateTargetMovementModifierPublic(Unit shooter, Unit target) {
+        try {
+            java.lang.reflect.Method method = OpenFields2.class.getDeclaredMethod("calculateTargetMovementModifier", Unit.class, Unit.class);
+            method.setAccessible(true);
+            return (Double) method.invoke(null, shooter, target);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke calculateTargetMovementModifier", e);
+        }
     }
 }

@@ -217,6 +217,14 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("Current Aiming Speed: " + selected.character.getCurrentAimingSpeed().getDisplayName() + 
                                      " (timing: " + String.format("%.2fx", selected.character.getCurrentAimingSpeed().getTimingMultiplier()) + 
                                      ", accuracy: " + String.format("%+.0f", selected.character.getCurrentAimingSpeed().getAccuracyModifier()) + ")");
+                    
+                    // Show weapon ready speed
+                    double readySpeedMultiplier = selected.character.getWeaponReadySpeedMultiplier();
+                    int quickdrawLevel = selected.character.getSkillLevel(combat.Skills.QUICKDRAW);
+                    String quickdrawInfo = quickdrawLevel > 0 ? " (Quickdraw " + quickdrawLevel + ")" : "";
+                    System.out.println("Weapon Ready Speed: " + String.format("%.2fx", readySpeedMultiplier) + quickdrawInfo + 
+                                     " (reflexes: " + String.format("%+d", statToModifier(selected.character.reflexes)) + ")");
+                    
                     System.out.println("Incapacitated: " + (selected.character.isIncapacitated() ? "YES" : "NO"));
                     
                     if (selected.character.weapon != null) {
@@ -232,6 +240,16 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     } else {
                         System.out.println("--- WEAPON ---");
                         System.out.println("No weapon equipped");
+                    }
+                    
+                    if (!selected.character.getSkills().isEmpty()) {
+                        System.out.println("--- SKILLS ---");
+                        for (combat.Skill skill : selected.character.getSkills()) {
+                            System.out.println(skill.getSkillName() + ": " + skill.getLevel());
+                        }
+                    } else {
+                        System.out.println("--- SKILLS ---");
+                        System.out.println("No skills");
                     }
                     
                     if (!selected.character.wounds.isEmpty()) {
@@ -253,7 +271,17 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 combat.MovementType previousType = selected.character.getCurrentMovementType();
                 selected.character.increaseMovementType();
                 combat.MovementType newType = selected.character.getCurrentMovementType();
-                if (previousType != newType) {
+                
+                // Resume movement if stopped and speed was increased
+                if (selected.isStopped) {
+                    selected.resumeMovement();
+                    if (previousType != newType) {
+                        System.out.println("*** " + selected.character.getName() + " resumes movement at " + newType.getDisplayName() + 
+                                         " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                    } else {
+                        System.out.println("*** " + selected.character.getName() + " resumes movement at " + newType.getDisplayName());
+                    }
+                } else if (previousType != newType) {
                     System.out.println("*** " + selected.character.getName() + " movement increased to " + newType.getDisplayName() + 
                                      " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
                 } else {
@@ -262,13 +290,21 @@ public class OpenFields2 extends Application implements GameCallbacks {
             }
             if (e.getCode() == KeyCode.S && selected != null) {
                 combat.MovementType previousType = selected.character.getCurrentMovementType();
-                selected.character.decreaseMovementType();
-                combat.MovementType newType = selected.character.getCurrentMovementType();
-                if (previousType != newType) {
-                    System.out.println("*** " + selected.character.getName() + " movement decreased to " + newType.getDisplayName() + 
-                                     " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                
+                // If already at crawling speed and currently moving, stop movement
+                if (previousType == combat.MovementType.CRAWL && selected.isMoving()) {
+                    selected.stopMovement();
+                    System.out.println("*** " + selected.character.getName() + " stops moving");
                 } else {
-                    System.out.println("*** " + selected.character.getName() + " is already at minimum movement type: " + newType.getDisplayName());
+                    // Otherwise, decrease movement type normally
+                    selected.character.decreaseMovementType();
+                    combat.MovementType newType = selected.character.getCurrentMovementType();
+                    if (previousType != newType) {
+                        System.out.println("*** " + selected.character.getName() + " movement decreased to " + newType.getDisplayName() + 
+                                         " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                    } else {
+                        System.out.println("*** " + selected.character.getName() + " is already at minimum movement type: " + newType.getDisplayName());
+                    }
                 }
             }
             // Aiming speed controls - Q to increase, E to decrease
@@ -327,6 +363,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         combat.Character c1 = new combat.Character("Alice", 100, 11, 75, 65, 90);
         c1.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
         c1.currentWeaponState = c1.weapon.getInitialState();
+        c1.addSkill(new combat.Skill(combat.Skills.PISTOL, 4));
         combat.Character c2 = new combat.Character("Bobby", 75, 20, 60, 45, 70);
         c2.weapon = createSheathedWeapon("Wand of Magic Bolts", 30.0, 8, 20, "/magic.wav", 100.0, 20);
         c2.currentWeaponState = c2.weapon.getInitialState();
@@ -336,10 +373,15 @@ public class OpenFields2 extends Application implements GameCallbacks {
         combat.Character c4 = new combat.Character("Drake", 50, 14, 85, 55, 80);
         c4.weapon = createPistol("Plasma Pistol", 3000.0, 6, 20, "/placeholder_laser.wav", 500.0, 20);
         c4.currentWeaponState = c4.weapon.getInitialState();
+        combat.Character c5 = new combat.Character("Ethan", 100, 11, 75, 65, 90);
+        c5.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
+        c5.currentWeaponState = c5.weapon.getInitialState();
+        c5.addSkill(new combat.Skill(Skills.QUICKDRAW, 4));
         units.add(new Unit(c1, 100, 100, Color.RED, nextId++));
         units.add(new Unit(c2, 400, 400, Color.BLUE, nextId++));
         units.add(new Unit(c3, 400, 100, Color.GREEN, nextId++));
         units.add(new Unit(c4, 100, 400, Color.PURPLE, nextId++));
+        units.add(new Unit(c5, 600, 100, Color.ORANGE, nextId++));
     }
     
     private Weapon createPistol(String name, double velocity, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
@@ -395,6 +437,24 @@ public class OpenFields2 extends Application implements GameCallbacks {
         }
     }
     
+    private static double calculateTargetMovementModifier(Unit shooter, Unit target) {
+        if (!target.isMoving()) {
+            return 0.0; // Stationary target = no modifier
+        }
+        
+        // Get perpendicular velocity component in pixels per tick
+        double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+        
+        // Convert from pixels per tick to feet per second for easier calculation
+        // 7 pixels = 1 foot, 60 ticks = 1 second
+        double perpendicularVelocityFeetPerSecond = (perpendicularVelocity * 60.0) / 7.0;
+        
+        // Simple formula: -2 * perpendicular speed in feet/second
+        // At walking speed (~6 feet/second perpendicular), this gives about -12 modifier
+        // At running speed (~12 feet/second perpendicular), this gives about -24 modifier
+        return -perpendicularVelocityFeetPerSecond * 2.0;
+    }
+    
     private static double calculateSkillModifier(Unit shooter) {
         if (shooter.character.weapon == null) {
             return 0.0;
@@ -448,7 +508,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = calculateMovementModifier(shooter);
         double aimingSpeedModifier = shooter.character.getCurrentAimingSpeed().getAccuracyModifier();
-        double targetMovementModifier = 0.0;
+        double targetMovementModifier = calculateTargetMovementModifier(shooter, target);
         double woundModifier = 0.0;
         double stressModifier = Math.min(0, OpenFields2.stressModifier + statToModifier(shooter.character.coolness));
         double skillModifier = calculateSkillModifier(shooter);
@@ -472,7 +532,18 @@ public class OpenFields2 extends Application implements GameCallbacks {
             System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
             System.out.println("Movement modifier: " + movementModifier);
             System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (" + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
-            System.out.println("Target movement modifier: " + targetMovementModifier);
+            
+            // Enhanced target movement debug info
+            if (target.isMoving()) {
+                double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+                double perpendicularVelocityFeetPerSecond = (perpendicularVelocity * 60.0) / 7.0;
+                System.out.println("Target movement modifier: " + String.format("%.2f", targetMovementModifier) + 
+                                 " (perpendicular velocity: " + String.format("%.2f", perpendicularVelocityFeetPerSecond) + " ft/s, " +
+                                 String.format("%.2f", perpendicularVelocity) + " px/tick)");
+            } else {
+                System.out.println("Target movement modifier: " + targetMovementModifier + " (target stationary)");
+            }
+            
             System.out.println("Wound modifier: " + woundModifier);
             System.out.println("Skill modifier: " + String.format("%.1f", skillModifier) + " " + getSkillDebugInfo(shooter));
             System.out.println("Size modifier: " + sizeModifier);
