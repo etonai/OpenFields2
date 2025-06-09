@@ -13,6 +13,7 @@ import java.util.Map;
 public class DataManager {
     private static DataManager instance;
     private final ObjectMapper objectMapper;
+    private final ThemeManager themeManager;
     
     private Map<String, WeaponData> weapons;
     private Map<WeaponType, WeaponTypeData> weaponTypes;
@@ -20,6 +21,7 @@ public class DataManager {
     
     private DataManager() {
         this.objectMapper = new ObjectMapper();
+        this.themeManager = ThemeManager.getInstance();
         loadAllData();
     }
     
@@ -49,9 +51,10 @@ public class DataManager {
     }
     
     private void loadWeapons() throws IOException {
-        InputStream is = getClass().getResourceAsStream("/data/weapons.json");
+        String themePath = themeManager.getCurrentThemeDataPath();
+        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/weapons.json");
         if (is == null) {
-            throw new IOException("Could not find weapons.json file");
+            throw new IOException("Could not find weapons.json file for theme: " + themeManager.getCurrentThemeId());
         }
         
         JsonNode rootNode = objectMapper.readTree(is);
@@ -70,9 +73,10 @@ public class DataManager {
     }
     
     private void loadWeaponTypes() throws IOException {
-        InputStream is = getClass().getResourceAsStream("/data/weapon-types.json");
+        String themePath = themeManager.getCurrentThemeDataPath();
+        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/weapon-types.json");
         if (is == null) {
-            throw new IOException("Could not find weapon-types.json file");
+            throw new IOException("Could not find weapon-types.json file for theme: " + themeManager.getCurrentThemeId());
         }
         
         JsonNode rootNode = objectMapper.readTree(is);
@@ -91,9 +95,10 @@ public class DataManager {
     }
     
     private void loadSkills() throws IOException {
-        InputStream is = getClass().getResourceAsStream("/data/skills.json");
+        String themePath = themeManager.getCurrentThemeDataPath();
+        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/skills.json");
         if (is == null) {
-            throw new IOException("Could not find skills.json file");
+            throw new IOException("Could not find skills.json file for theme: " + themeManager.getCurrentThemeId());
         }
         
         JsonNode rootNode = objectMapper.readTree(is);

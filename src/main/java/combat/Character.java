@@ -11,6 +11,7 @@ import java.util.List;
 public class Character {
     public int id;
     public String name;
+    public String themeId;
     public int dexterity;
     public int currentDexterity;
     public int health;
@@ -29,9 +30,10 @@ public class Character {
     public List<Skill> skills;
     public List<Wound> wounds;
 
-    public Character(int id, String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
+    public Character(int id, String name, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
         this.id = id;
         this.name = name;
+        this.themeId = themeId;
         this.dexterity = dexterity;
         this.health = health;
         this.coolness = coolness;
@@ -45,9 +47,10 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
 
-    public Character(int id, String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
+    public Character(int id, String name, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
         this.id = id;
         this.name = name;
+        this.themeId = themeId;
         this.dexterity = dexterity;
         this.health = health;
         this.coolness = coolness;
@@ -62,9 +65,10 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(int id, String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
+    public Character(int id, String name, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
         this.id = id;
         this.name = name;
+        this.themeId = themeId;
         this.dexterity = dexterity;
         this.health = health;
         this.coolness = coolness;
@@ -78,9 +82,10 @@ public class Character {
         this.wounds = new ArrayList<>();
     }
     
-    public Character(int id, String name, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
+    public Character(int id, String name, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
         this.id = id;
         this.name = name;
+        this.themeId = themeId;
         this.dexterity = dexterity;
         this.health = health;
         this.coolness = coolness;
@@ -105,6 +110,14 @@ public class Character {
 
     public void setName(String name) {
         this.name = name;
+    }
+    
+    public String getThemeId() {
+        return themeId;
+    }
+
+    public void setThemeId(String themeId) {
+        this.themeId = themeId;
     }
 
     public int getDexterity() {

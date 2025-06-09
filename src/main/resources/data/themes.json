@@ -1,0 +1,13 @@
+{
+  "themes": {
+    "test_theme": {
+      "id": "test_theme",
+      "name": "Test Theme",
+      "description": "Basic testing theme with pistols, rifles, and magical weapons",
+      "version": "1.0",
+      "author": "OpenFields2",
+      "dataPath": "themes/test_theme"
+    }
+  },
+  "defaultTheme": "test_theme"
+}

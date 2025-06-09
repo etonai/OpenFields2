@@ -365,29 +365,29 @@ public class OpenFields2 extends Application implements GameCallbacks {
         int nextCharacterId = 1;
         int nextUnitId = 1;
         
-        combat.Character c1 = new combat.Character(nextCharacterId++, "Alice", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
+        combat.Character c1 = new combat.Character(nextCharacterId++, "Alice", "test_theme", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
         c1.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
         c1.currentWeaponState = c1.weapon.getInitialState();
         c1.addSkill(new combat.Skill(SkillsManager.PISTOL, 4));
         units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
         
-        combat.Character c2 = new combat.Character(nextCharacterId++, "Bobby", 75, 20, 60, 45, 70, combat.Handedness.LEFT_HANDED);
+        combat.Character c2 = new combat.Character(nextCharacterId++, "Bobby", "test_theme", 75, 20, 60, 45, 70, combat.Handedness.LEFT_HANDED);
         c2.weapon = WeaponFactory.createWeapon("wpn_hunting_rifle");
         c2.currentWeaponState = c2.weapon.getInitialState();
         c2.addSkill(new combat.Skill(SkillsManager.RIFLE, 3));
         units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
         
-        combat.Character c3 = new combat.Character(nextCharacterId++, "Chris", 25, 8, 30, 40, 35, combat.Handedness.RIGHT_HANDED);
+        combat.Character c3 = new combat.Character(nextCharacterId++, "Chris", "test_theme", 25, 8, 30, 40, 35, combat.Handedness.RIGHT_HANDED);
         c3.weapon = WeaponFactory.createWeapon("wpn_derringer");
         c3.currentWeaponState = c3.weapon.getInitialState();
         units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
         
-        combat.Character c4 = new combat.Character(nextCharacterId++, "Drake", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
+        combat.Character c4 = new combat.Character(nextCharacterId++, "Drake", "test_theme", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
         c4.weapon = WeaponFactory.createWeapon("wpn_plasma_pistol");
         c4.currentWeaponState = c4.weapon.getInitialState();
         units.add(new Unit(c4, 100, 400, Color.PURPLE, nextUnitId++));
         
-        combat.Character c5 = new combat.Character(nextCharacterId++, "Ethan", 75, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
+        combat.Character c5 = new combat.Character(nextCharacterId++, "Ethan", "test_theme", 75, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
         c5.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
         c5.currentWeaponState = c5.weapon.getInitialState();
         c5.addSkill(new combat.Skill(SkillsManager.QUICKDRAW, 4));
