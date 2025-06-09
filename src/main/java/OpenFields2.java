@@ -361,7 +361,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
     void createUnits() {
 
         int nextId = 1;
-        combat.Character c1 = new combat.Character("Alice", 100, 11, 75, 65, 90, combat.Handedness.RIGHT_HANDED);
+        combat.Character c1 = new combat.Character("Alice", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
         c1.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
         c1.currentWeaponState = c1.weapon.getInitialState();
         c1.addSkill(new combat.Skill(combat.Skills.PISTOL, 4));
@@ -374,7 +374,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         combat.Character c4 = new combat.Character("Drake", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
         c4.weapon = createPistol("Plasma Pistol", 3000.0, 6, 20, "/placeholder_laser.wav", 500.0, 20);
         c4.currentWeaponState = c4.weapon.getInitialState();
-        combat.Character c5 = new combat.Character("Ethan", 100, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
+        combat.Character c5 = new combat.Character("Ethan", 75, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
         c5.weapon = createPistol("Colt Peacemaker", 600.0, 7, 6, "/Slap0003.wav", 150.0, 0);
         c5.currentWeaponState = c5.weapon.getInitialState();
         c5.addSkill(new combat.Skill(Skills.QUICKDRAW, 4));

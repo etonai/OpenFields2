@@ -532,6 +532,114 @@ public class OpenFields2Tests {
         System.out.println("✅ Multiple wounds modifier test passed!");
     }
     
+    @Test
+    public void testIncapacitatedUnitColorChange() {
+        System.out.println("Testing incapacitated unit color change:");
+        
+        Character character = new Character("TestChar", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Unit unit = new Unit(character, 100, 100, Color.BLUE, 1);
+        
+        // Verify initial color
+        assertEquals(Color.BLUE, unit.color, "Unit should start with base color");
+        assertEquals(Color.BLUE, unit.baseColor, "Base color should be preserved");
+        
+        // Incapacitate character by setting health to 0
+        character.setHealth(0);
+        assertTrue(character.isIncapacitated(), "Character should be incapacitated with 0 health");
+        
+        // Update unit to trigger color change
+        unit.update(1);
+        
+        // Verify color changed to dark gray
+        assertEquals(Color.DARKGRAY, unit.color, "Incapacitated unit should be dark gray");
+        assertEquals(Color.BLUE, unit.baseColor, "Base color should remain unchanged");
+        System.out.println("Incapacitated unit color: " + unit.color);
+        
+        // Restore health and update
+        character.setHealth(50);
+        assertFalse(character.isIncapacitated(), "Character should not be incapacitated with positive health");
+        
+        // Update unit to trigger color restoration
+        unit.update(2);
+        
+        // Verify color restored to base color
+        assertEquals(Color.BLUE, unit.color, "Recovered unit should return to base color");
+        System.out.println("Recovered unit color: " + unit.color);
+        
+        System.out.println("✅ Incapacitated unit color change test passed!");
+    }
+    
+    @Test
+    public void testIncapacitatedUnitWithCriticalWound() {
+        System.out.println("Testing incapacitated unit color change with critical wound:");
+        
+        Character character = new Character("TestChar", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Unit unit = new Unit(character, 100, 100, Color.RED, 1);
+        
+        // Add critical wound to incapacitate character
+        character.addWound(new combat.Wound(combat.BodyPart.HEAD, combat.WoundSeverity.CRITICAL));
+        assertTrue(character.isIncapacitated(), "Character should be incapacitated with critical wound");
+        
+        // Update unit to trigger color change
+        unit.update(1);
+        
+        // Verify color changed to dark gray
+        assertEquals(Color.DARKGRAY, unit.color, "Unit with critical wound should be dark gray");
+        assertEquals(Color.RED, unit.baseColor, "Base color should remain unchanged");
+        System.out.println("Critically wounded unit color: " + unit.color);
+        
+        // Remove critical wound
+        character.getWounds().clear();
+        assertFalse(character.isIncapacitated(), "Character should not be incapacitated without critical wounds");
+        
+        // Update unit to trigger color restoration
+        unit.update(2);
+        
+        // Verify color restored
+        assertEquals(Color.RED, unit.color, "Healed unit should return to base color");
+        System.out.println("Healed unit color: " + unit.color);
+        
+        System.out.println("✅ Critical wound incapacitation color test passed!");
+    }
+    
+    @Test
+    public void testIncapacitatedUnitPreservesHitHighlight() {
+        System.out.println("Testing incapacitated unit preserves hit highlight logic:");
+        
+        Character character = new Character("TestChar", 100, 50, 50, 50, 50, combat.Handedness.RIGHT_HANDED);
+        Unit unit = new Unit(character, 100, 100, Color.GREEN, 1);
+        
+        // Simulate hit highlighting
+        unit.isHitHighlighted = true;
+        unit.color = Color.YELLOW;
+        
+        // Incapacitate character
+        character.setHealth(0);
+        
+        // Update unit - should still prioritize incapacitation color
+        unit.update(1);
+        
+        // Verify incapacitation takes precedence over hit highlighting
+        assertEquals(Color.DARKGRAY, unit.color, "Incapacitation should override hit highlighting");
+        assertTrue(unit.isHitHighlighted, "Hit highlight flag should be preserved");
+        
+        // Restore health but keep hit highlight
+        character.setHealth(50);
+        unit.update(2);
+        
+        // Should still be highlighted (not restored to base) since hit highlight is active
+        assertEquals(Color.YELLOW, unit.color, "Should preserve hit highlight color when not incapacitated");
+        
+        // Clear hit highlight
+        unit.isHitHighlighted = false;
+        unit.update(3);
+        
+        // Should now return to base color
+        assertEquals(Color.GREEN, unit.color, "Should return to base color when hit highlight cleared");
+        
+        System.out.println("✅ Hit highlight preservation test passed!");
+    }
+    
     // Helper method to access the private calculateWoundModifier method for testing
     private static double calculateWoundModifierPublic(Unit shooter) {
         try {

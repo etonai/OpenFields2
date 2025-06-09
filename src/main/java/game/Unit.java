@@ -15,6 +15,7 @@ public class Unit {
     public Color color;
     public final Color baseColor;
     public boolean isHitHighlighted = false;
+    private Color preIncapacitationColor = null;
     long lastTickUpdated = -1;
 
     public Unit(Character character, double x, double y, Color color, int id) {
@@ -63,6 +64,29 @@ public class Unit {
     public void update(long currentTick) {
         if (currentTick == lastTickUpdated) return;
         lastTickUpdated = currentTick;
+
+        // Update color based on incapacitation status
+        if (character.isIncapacitated()) {
+            // Save current color before changing to gray (only if not already gray)
+            if (color != Color.DARKGRAY) {
+                preIncapacitationColor = color;
+            }
+            color = Color.DARKGRAY;
+        } else {
+            // Character is not incapacitated
+            if (color == Color.DARKGRAY) {
+                // Was incapacitated, now restore appropriate color
+                if (preIncapacitationColor != null) {
+                    color = preIncapacitationColor;
+                    preIncapacitationColor = null;
+                } else {
+                    color = baseColor;
+                }
+            } else if (!isHitHighlighted && color != baseColor) {
+                // Normal color restoration for non-incapacitated cases
+                color = baseColor;
+            }
+        }
 
         if (!hasTarget) return;
         
