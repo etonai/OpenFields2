@@ -89,6 +89,21 @@
       "soundFile": "/magic.wav",
       "maximumRange": 5.0,
       "weaponAccuracy": 25
+    },
+    "wpn_brown_bess": {
+      "id": "wpn_brown_bess",
+      "name": "Brown Bess Musket",
+      "type": "RIFLE",
+      "velocity": 845.0,
+      "damage": 14,
+      "ammunition": 1,
+      "maxAmmunition": 1,
+      "reloadTicks": 1200,
+      "reloadType": "FULL_MAGAZINE",
+      "projectileName": "musket_ball",
+      "soundFile": "/Slap0003.wav",
+      "maximumRange": 200.0,
+      "weaponAccuracy": 5
     }
   }
 }
