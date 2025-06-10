@@ -375,6 +375,20 @@ public class OpenFields2 extends Application implements GameCallbacks {
                         System.out.println("--- WOUNDS ---");
                         System.out.println("No wounds");
                     }
+                    
+                    // Combat Experience Display
+                    System.out.println("--- COMBAT EXPERIENCE ---");
+                    System.out.println("Combat Engagements: " + selected.character.getCombatEngagements());
+                    System.out.println("Wounds Received: " + selected.character.getWoundsReceived());
+                    System.out.println("Wounds Inflicted: " + selected.character.getTotalWoundsInflicted() + " total (" + 
+                                     selected.character.getWoundsInflictedByType(combat.WoundSeverity.SCRATCH) + " scratch, " +
+                                     selected.character.getWoundsInflictedByType(combat.WoundSeverity.LIGHT) + " light, " +
+                                     selected.character.getWoundsInflictedByType(combat.WoundSeverity.SERIOUS) + " serious, " +
+                                     selected.character.getWoundsInflictedByType(combat.WoundSeverity.CRITICAL) + " critical)");
+                    System.out.println("Attacks: " + selected.character.getAttacksAttempted() + " attempted, " + 
+                                     selected.character.getAttacksSuccessful() + " successful (" + 
+                                     String.format("%.1f", selected.character.getAccuracyPercentage()) + "% accuracy)");
+                    System.out.println("Targets Incapacitated: " + selected.character.getTargetsIncapacitated());
                     System.out.println("***********************");
                 } else {
                     System.out.println("*** No character selected - select a character first ***");
@@ -943,6 +957,9 @@ public class OpenFields2 extends Application implements GameCallbacks {
         HitResult hitResult = determineHit(shooter, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy, weapon.damage);
         System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
         
+        // Track attack attempt
+        shooter.character.attacksAttempted++;
+        
         eventQueue.add(new ScheduledEvent(impactTick, () -> {
             resolveCombatImpact(shooter, target, weapon, impactTick, hitResult);
         }, ScheduledEvent.WORLD_OWNER));
@@ -967,12 +984,35 @@ public class OpenFields2 extends Application implements GameCallbacks {
             target.character.health -= actualDamage;
             System.out.println(">>> " + target.character.getDisplayName() + " takes " + actualDamage + " damage. Health now: " + target.character.health);
             
+            // Track successful attack
+            shooter.character.attacksSuccessful++;
+            
+            // Track wound infliction by type
+            switch (woundSeverity) {
+                case SCRATCH:
+                    shooter.character.woundsInflictedScratch++;
+                    break;
+                case LIGHT:
+                    shooter.character.woundsInflictedLight++;
+                    break;
+                case SERIOUS:
+                    shooter.character.woundsInflictedSerious++;
+                    break;
+                case CRITICAL:
+                    shooter.character.woundsInflictedCritical++;
+                    break;
+            }
+            
             // Add wound to character's wound list
             String weaponId = findWeaponId(weapon);
             target.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId));
             
             // Check for incapacitation
-            if (target.character.isIncapacitated()) {
+            boolean wasIncapacitated = target.character.isIncapacitated();
+            if (wasIncapacitated) {
+                // Track incapacitation caused by this shooter
+                shooter.character.targetsIncapacitated++;
+                
                 if (woundSeverity == combat.WoundSeverity.CRITICAL) {
                     System.out.println(">>> " + target.character.getDisplayName() + " is incapacitated by critical wound!");
                 } else {

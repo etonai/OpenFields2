@@ -36,6 +36,17 @@ public class Character {
     public boolean usesAutomaticTargeting;
     public List<Skill> skills;
     public List<Wound> wounds;
+    
+    // Combat Experience Tracking
+    public int combatEngagements = 0;           // Manual tracking (no auto-update yet)
+    public int woundsReceived = 0;              // Auto-updated when addWound() called
+    public int woundsInflictedScratch = 0;      // Auto-updated on successful hits
+    public int woundsInflictedLight = 0;        // Auto-updated on successful hits  
+    public int woundsInflictedSerious = 0;      // Auto-updated on successful hits
+    public int woundsInflictedCritical = 0;     // Auto-updated on successful hits
+    public int attacksAttempted = 0;            // Auto-updated when attacks are attempted
+    public int attacksSuccessful = 0;           // Auto-updated when attacks hit
+    public int targetsIncapacitated = 0;        // Auto-updated when targets become incapacitated
 
     // Legacy constructors for backwards compatibility with tests
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
@@ -413,6 +424,7 @@ public class Character {
     
     public void addWound(Wound wound) {
         wounds.add(wound);
+        woundsReceived++;
     }
     
     public boolean isIncapacitated() {
@@ -880,5 +892,44 @@ public class Character {
     
     public void setUsesAutomaticTargeting(boolean usesAutomaticTargeting) {
         this.usesAutomaticTargeting = usesAutomaticTargeting;
+    }
+    
+    // Combat Experience Getters
+    public int getCombatEngagements() {
+        return combatEngagements;
+    }
+    
+    public int getWoundsReceived() {
+        return woundsReceived;
+    }
+    
+    public int getTotalWoundsInflicted() {
+        return woundsInflictedScratch + woundsInflictedLight + woundsInflictedSerious + woundsInflictedCritical;
+    }
+    
+    public int getWoundsInflictedByType(WoundSeverity severity) {
+        switch (severity) {
+            case SCRATCH: return woundsInflictedScratch;
+            case LIGHT: return woundsInflictedLight;
+            case SERIOUS: return woundsInflictedSerious;
+            case CRITICAL: return woundsInflictedCritical;
+            default: return 0;
+        }
+    }
+    
+    public int getAttacksAttempted() {
+        return attacksAttempted;
+    }
+    
+    public int getAttacksSuccessful() {
+        return attacksSuccessful;
+    }
+    
+    public double getAccuracyPercentage() {
+        return attacksAttempted > 0 ? (attacksSuccessful * 100.0 / attacksAttempted) : 0.0;
+    }
+    
+    public int getTargetsIncapacitated() {
+        return targetsIncapacitated;
     }
 }
