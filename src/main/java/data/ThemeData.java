@@ -64,7 +64,7 @@ public class ThemeData {
         public String weaponTypes;
         
         @JsonProperty("skills")
-        public String skills;
+        public String skills; // Optional - skills are now universal
         
         public ThemeResources() {
             // Default constructor for Jackson
@@ -73,7 +73,13 @@ public class ThemeData {
         public ThemeResources(String weapons, String weaponTypes, String skills) {
             this.weapons = weapons;
             this.weaponTypes = weaponTypes;
-            this.skills = skills;
+            this.skills = skills; // Optional parameter for backwards compatibility
+        }
+        
+        public ThemeResources(String weapons, String weaponTypes) {
+            this.weapons = weapons;
+            this.weaponTypes = weaponTypes;
+            this.skills = null; // Skills are now universal
         }
     }
 }

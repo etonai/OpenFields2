@@ -95,10 +95,10 @@ public class DataManager {
     }
     
     private void loadSkills() throws IOException {
-        String themePath = themeManager.getCurrentThemeDataPath();
-        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/skills.json");
+        // Load skills from universal location (not theme-specific)
+        InputStream is = getClass().getResourceAsStream("/data/skills.json");
         if (is == null) {
-            throw new IOException("Could not find skills.json file for theme: " + themeManager.getCurrentThemeId());
+            throw new IOException("Could not find universal skills.json file");
         }
         
         JsonNode rootNode = objectMapper.readTree(is);

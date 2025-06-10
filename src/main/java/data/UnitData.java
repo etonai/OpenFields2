@@ -36,12 +36,27 @@ public class UnitData {
     @JsonProperty("isHitHighlighted")
     public boolean isHitHighlighted;
     
+    // Scenario-specific equipment data
+    @JsonProperty("weaponId")
+    public String weaponId;
+    
+    @JsonProperty("currentWeaponState")
+    public String currentWeaponState;
+    
+    @JsonProperty("queuedShots")
+    public int queuedShots;
+    
+    // Theme-specific overrides for scenario
+    @JsonProperty("themeId")
+    public String themeId;
+    
     public UnitData() {
         // Default constructor for Jackson
     }
     
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
-                   boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted) {
+                   boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
+                   String weaponId, String currentWeaponState, int queuedShots, String themeId) {
         this.id = id;
         this.characterId = characterId;
         this.x = x;
@@ -53,5 +68,16 @@ public class UnitData {
         this.color = color;
         this.baseColor = baseColor;
         this.isHitHighlighted = isHitHighlighted;
+        this.weaponId = weaponId;
+        this.currentWeaponState = currentWeaponState;
+        this.queuedShots = queuedShots;
+        this.themeId = themeId;
+    }
+    
+    // Legacy constructor for backward compatibility
+    public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
+                   boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted) {
+        this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
+             null, null, 0, null);
     }
 }

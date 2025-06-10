@@ -11,18 +11,27 @@ public class SaveData {
     @JsonProperty("gameState")
     public GameStateData gameState;
     
-    @JsonProperty("characters")
-    public List<CharacterData> characters;
-    
     @JsonProperty("units")
     public List<UnitData> units;
     
+    // Legacy field for backward compatibility - will be migrated to universal registry
+    @JsonProperty("characters")
+    public List<CharacterData> characters;
+    
     public SaveData() {
         // Default constructor for Jackson
-        this.characters = new ArrayList<>();
         this.units = new ArrayList<>();
+        this.characters = new ArrayList<>();
     }
     
+    public SaveData(SaveMetadata metadata, GameStateData gameState, List<UnitData> units) {
+        this.metadata = metadata;
+        this.gameState = gameState;
+        this.units = units != null ? units : new ArrayList<>();
+        this.characters = new ArrayList<>(); // Empty - characters are in universal registry
+    }
+    
+    // Legacy constructor for backward compatibility
     public SaveData(SaveMetadata metadata, GameStateData gameState, 
                    List<CharacterData> characters, List<UnitData> units) {
         this.metadata = metadata;

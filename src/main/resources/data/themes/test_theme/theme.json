@@ -11,8 +11,7 @@
     "tags": ["testing", "mixed", "fantasy", "western"],
     "resources": {
       "weapons": "weapons.json",
-      "weaponTypes": "weapon-types.json", 
-      "skills": "skills.json"
+      "weaponTypes": "weapon-types.json"
     }
   }
 }

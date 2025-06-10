@@ -11,6 +11,10 @@ public class SkillsManager {
     public static final String RIFLE = "skl_rifle";
     public static final String QUICKDRAW = "skl_quickdraw";
     public static final String MEDICINE = "skl_medicine";
+    public static final String ATHLETICS = "skl_athletics";
+    public static final String OBSERVATION = "skl_observation";
+    public static final String STEALTH = "skl_stealth";
+    public static final String INTIMIDATION = "skl_intimidation";
     
     private SkillsManager() {
         // Utility class - prevent instantiation

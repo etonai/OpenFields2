@@ -29,6 +29,8 @@ import data.GameStateData;
 import data.CharacterData;
 import data.UnitData;
 import data.ThemeManager;
+import data.UniversalCharacterRegistry;
+import data.CharacterFactory;
 
 public class OpenFields2 extends Application implements GameCallbacks {
 
@@ -137,7 +139,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
     private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
     private AudioClip gunshotSound;
     private final SaveGameManager saveGameManager = SaveGameManager.getInstance();
-    private int nextCharacterId = 1;
+    private final UniversalCharacterRegistry characterRegistry = UniversalCharacterRegistry.getInstance();
     private int nextUnitId = 1;
     private boolean waitingForSaveSlot = false;
     private boolean waitingForLoadSlot = false;
@@ -494,34 +496,41 @@ public class OpenFields2 extends Application implements GameCallbacks {
         render();
     }
     void createUnits() {
+        // Load characters from universal registry and assign them weapons for this theme
+        combat.Character c1 = characterRegistry.getCharacter(1000);
+        if (c1 != null) {
+            c1.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
+            c1.currentWeaponState = c1.weapon.getInitialState();
+            units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
+        }
         
-        combat.Character c1 = new combat.Character(nextCharacterId++, "Alice", "Alice", "Smith", createDate(1855, 3, 15), "test_theme", 75, 11, 75, 65, 70, combat.Handedness.RIGHT_HANDED);
-        c1.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
-        c1.currentWeaponState = c1.weapon.getInitialState();
-        c1.addSkill(new combat.Skill(SkillsManager.PISTOL, 4));
-        units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
+        combat.Character c2 = characterRegistry.getCharacter(1001);
+        if (c2 != null) {
+            c2.weapon = WeaponFactory.createWeapon("wpn_hunting_rifle");
+            c2.currentWeaponState = c2.weapon.getInitialState();
+            units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
+        }
         
-        combat.Character c2 = new combat.Character(nextCharacterId++, "Bobby", "Robert", "Jones", createDate(1860, 6, 8), "test_theme", 75, 20, 60, 45, 70, combat.Handedness.LEFT_HANDED);
-        c2.weapon = WeaponFactory.createWeapon("wpn_hunting_rifle");
-        c2.currentWeaponState = c2.weapon.getInitialState();
-        c2.addSkill(new combat.Skill(SkillsManager.RIFLE, 3));
-        units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
+        combat.Character c3 = characterRegistry.getCharacter(1002);
+        if (c3 != null) {
+            c3.weapon = WeaponFactory.createWeapon("wpn_derringer");
+            c3.currentWeaponState = c3.weapon.getInitialState();
+            units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
+        }
         
-        combat.Character c3 = new combat.Character(nextCharacterId++, "Chris", "Christopher", "Brown", createDate(1862, 12, 1), "test_theme", 25, 8, 30, 40, 35, combat.Handedness.RIGHT_HANDED);
-        c3.weapon = WeaponFactory.createWeapon("wpn_derringer");
-        c3.currentWeaponState = c3.weapon.getInitialState();
-        units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
+        combat.Character c4 = characterRegistry.getCharacter(1003);
+        if (c4 != null) {
+            c4.weapon = WeaponFactory.createWeapon("wpn_plasma_pistol");
+            c4.currentWeaponState = c4.weapon.getInitialState();
+            units.add(new Unit(c4, 100, 400, Color.PURPLE, nextUnitId++));
+        }
         
-        combat.Character c4 = new combat.Character(nextCharacterId++, "Drake", "Drake", "Williams", createDate(1858, 8, 22), "test_theme", 50, 14, 85, 55, 80, combat.Handedness.AMBIDEXTROUS);
-        c4.weapon = WeaponFactory.createWeapon("wpn_plasma_pistol");
-        c4.currentWeaponState = c4.weapon.getInitialState();
-        units.add(new Unit(c4, 100, 400, Color.PURPLE, nextUnitId++));
-        
-        combat.Character c5 = new combat.Character(nextCharacterId++, "Ethan", "Ethan", "Davis", createDate(1859, 10, 10), "test_theme", 75, 11, 75, 65, 90, combat.Handedness.LEFT_HANDED);
-        c5.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
-        c5.currentWeaponState = c5.weapon.getInitialState();
-        c5.addSkill(new combat.Skill(SkillsManager.QUICKDRAW, 4));
-        units.add(new Unit(c5, 600, 100, Color.ORANGE, nextUnitId++));
+        combat.Character c5 = characterRegistry.getCharacter(1004);
+        if (c5 != null) {
+            c5.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
+            c5.currentWeaponState = c5.weapon.getInitialState();
+            units.add(new Unit(c5, 600, 100, Color.ORANGE, nextUnitId++));
+        }
     }
     
     private static double calculateMovementModifier(Unit shooter) {
@@ -1059,25 +1068,18 @@ public class OpenFields2 extends Application implements GameCallbacks {
             offsetX,
             offsetY,
             zoom,
-            nextCharacterId,
+            0, // nextCharacterId is managed by universal registry
             nextUnitId
         );
         
-        // Serialize characters
-        List<CharacterData> characterDataList = new ArrayList<>();
-        for (Unit unit : units) {
-            CharacterData charData = serializeCharacter(unit.character);
-            characterDataList.add(charData);
-        }
-        
-        // Serialize units
+        // Serialize units with character ID references and scenario-specific data
         List<UnitData> unitDataList = new ArrayList<>();
         for (Unit unit : units) {
-            UnitData unitData = serializeUnit(unit);
+            UnitData unitData = serializeUnitWithCharacterRef(unit, currentThemeId);
             unitDataList.add(unitData);
         }
         
-        return new SaveData(metadata, gameState, characterDataList, unitDataList);
+        return new SaveData(metadata, gameState, unitDataList);
     }
     
     private CharacterData serializeCharacter(combat.Character character) {
@@ -1140,6 +1142,36 @@ public class OpenFields2 extends Application implements GameCallbacks {
         return "wpn_colt_peacemaker"; // default fallback
     }
     
+    private UnitData serializeUnitWithCharacterRef(Unit unit, String themeId) {
+        // Find weapon ID from current weapon
+        String weaponId = null;
+        String currentWeaponState = null;
+        if (unit.character.weapon != null) {
+            weaponId = findWeaponId(unit.character.weapon);
+            if (unit.character.currentWeaponState != null) {
+                currentWeaponState = unit.character.currentWeaponState.getState();
+            }
+        }
+        
+        return new UnitData(
+            unit.id,
+            unit.character.id,
+            unit.x,
+            unit.y,
+            unit.targetX,
+            unit.targetY,
+            unit.hasTarget,
+            unit.isStopped,
+            colorToString(unit.color),
+            colorToString(unit.baseColor),
+            unit.isHitHighlighted,
+            weaponId,
+            currentWeaponState,
+            unit.character.queuedShots,
+            themeId
+        );
+    }
+    
     private UnitData serializeUnit(Unit unit) {
         return new UnitData(
             unit.id,
@@ -1182,17 +1214,44 @@ public class OpenFields2 extends Application implements GameCallbacks {
         offsetX = saveData.gameState.offsetX;
         offsetY = saveData.gameState.offsetY;
         zoom = saveData.gameState.zoom;
-        nextCharacterId = saveData.gameState.nextCharacterId;
         nextUnitId = saveData.gameState.nextUnitId;
         
-        // Recreate characters and units
-        for (int i = 0; i < saveData.characters.size() && i < saveData.units.size(); i++) {
-            CharacterData charData = saveData.characters.get(i);
-            UnitData unitData = saveData.units.get(i);
-            
-            combat.Character character = deserializeCharacter(charData);
-            Unit unit = deserializeUnit(unitData, character);
-            units.add(unit);
+        // Handle both new and legacy save formats
+        if (saveData.characters != null && !saveData.characters.isEmpty()) {
+            // Legacy format - deserialize characters from save data
+            for (int i = 0; i < saveData.characters.size() && i < saveData.units.size(); i++) {
+                CharacterData charData = saveData.characters.get(i);
+                UnitData unitData = saveData.units.get(i);
+                
+                combat.Character character = deserializeCharacter(charData);
+                Unit unit = deserializeUnit(unitData, character);
+                units.add(unit);
+            }
+        } else {
+            // New format - load characters from universal registry and apply unit data
+            for (UnitData unitData : saveData.units) {
+                combat.Character character = characterRegistry.getCharacter(unitData.characterId);
+                if (character != null) {
+                    // Apply scenario-specific weapon and state
+                    if (unitData.weaponId != null && !unitData.weaponId.isEmpty()) {
+                        character.weapon = WeaponFactory.createWeapon(unitData.weaponId);
+                        if (character.weapon != null && unitData.currentWeaponState != null) {
+                            character.currentWeaponState = character.weapon.getStateByName(unitData.currentWeaponState);
+                            if (character.currentWeaponState == null) {
+                                character.currentWeaponState = character.weapon.getInitialState();
+                            }
+                        }
+                    }
+                    
+                    // Apply other scenario-specific data
+                    character.queuedShots = unitData.queuedShots;
+                    
+                    Unit unit = deserializeUnitFromCharacterRef(unitData, character);
+                    units.add(unit);
+                } else {
+                    System.err.println("Warning: Character " + unitData.characterId + " not found in universal registry");
+                }
+            }
         }
         
         System.out.println("*** Restored " + units.size() + " units ***");
@@ -1247,6 +1306,22 @@ public class OpenFields2 extends Application implements GameCallbacks {
         }
         
         return character;
+    }
+    
+    private Unit deserializeUnitFromCharacterRef(UnitData data, combat.Character character) {
+        Color color = stringToColor(data.color);
+        Color baseColor = stringToColor(data.baseColor);
+        
+        // Create unit with the base color initially, then set current color
+        Unit unit = new Unit(character, data.x, data.y, baseColor, data.id);
+        unit.color = color; // Set the current color (which might be different due to highlighting)
+        unit.targetX = data.targetX;
+        unit.targetY = data.targetY;
+        unit.hasTarget = data.hasTarget;
+        unit.isStopped = data.isStopped;
+        unit.isHitHighlighted = data.isHitHighlighted;
+        
+        return unit;
     }
     
     private Unit deserializeUnit(UnitData data, combat.Character character) {

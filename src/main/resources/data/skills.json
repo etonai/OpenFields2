@@ -35,6 +35,42 @@
       "effectType": "HEALING",
       "effectValue": 1.0,
       "appliesTo": []
+    },
+    "skl_athletics": {
+      "id": "skl_athletics",
+      "name": "Athletics",
+      "description": "Physical fitness and movement capabilities",
+      "maxLevel": 10,
+      "effectType": "MOVEMENT_SPEED",
+      "effectValue": 2.0,
+      "appliesTo": []
+    },
+    "skl_observation": {
+      "id": "skl_observation",
+      "name": "Observation",
+      "description": "Awareness and perception of surroundings",
+      "maxLevel": 10,
+      "effectType": "DETECTION",
+      "effectValue": 1.0,
+      "appliesTo": []
+    },
+    "skl_stealth": {
+      "id": "skl_stealth",
+      "name": "Stealth",
+      "description": "Moving quietly and remaining undetected",
+      "maxLevel": 10,
+      "effectType": "CONCEALMENT",
+      "effectValue": 1.0,
+      "appliesTo": []
+    },
+    "skl_intimidation": {
+      "id": "skl_intimidation",
+      "name": "Intimidation",
+      "description": "Using presence and demeanor to influence others",
+      "maxLevel": 10,
+      "effectType": "SOCIAL",
+      "effectValue": 1.0,
+      "appliesTo": []
     }
   }
 }
