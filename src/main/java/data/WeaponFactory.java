@@ -32,6 +32,11 @@ public class WeaponFactory {
             weaponData.type
         );
         
+        // Set reload properties from data
+        weapon.maxAmmunition = weaponData.maxAmmunition;
+        weapon.reloadTicks = weaponData.reloadTicks;
+        weapon.reloadType = weaponData.reloadType;
+        
         // Set up the weapon states from the weapon type definition
         weapon.states = new ArrayList<>();
         for (WeaponStateData stateData : weaponTypeData.states) {

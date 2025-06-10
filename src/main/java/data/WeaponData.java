@@ -2,6 +2,7 @@ package data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import combat.WeaponType;
+import combat.ReloadType;
 
 public class WeaponData {
     @JsonProperty("id")
@@ -31,12 +32,22 @@ public class WeaponData {
     @JsonProperty("weaponAccuracy")
     public int weaponAccuracy;
     
+    @JsonProperty("maxAmmunition")
+    public int maxAmmunition;
+    
+    @JsonProperty("reloadTicks")
+    public int reloadTicks;
+    
+    @JsonProperty("reloadType")
+    public ReloadType reloadType;
+    
     public WeaponData() {
         // Default constructor for Jackson
     }
     
     public WeaponData(String id, String name, WeaponType type, double velocity, int damage, int ammunition, 
-                     String soundFile, double maximumRange, int weaponAccuracy) {
+                     String soundFile, double maximumRange, int weaponAccuracy, int maxAmmunition, 
+                     int reloadTicks, ReloadType reloadType) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -46,5 +57,8 @@ public class WeaponData {
         this.soundFile = soundFile;
         this.maximumRange = maximumRange;
         this.weaponAccuracy = weaponAccuracy;
+        this.maxAmmunition = maxAmmunition;
+        this.reloadTicks = reloadTicks;
+        this.reloadType = reloadType;
     }
 }

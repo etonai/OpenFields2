@@ -7,6 +7,9 @@
       "velocity": 600.0,
       "damage": 7,
       "ammunition": 6,
+      "maxAmmunition": 6,
+      "reloadTicks": 120,
+      "reloadType": "SINGLE_ROUND",
       "soundFile": "/Slap0003.wav",
       "maximumRange": 150.0,
       "weaponAccuracy": 0
@@ -18,6 +21,9 @@
       "velocity": 600.0,
       "damage": 4,
       "ammunition": 1,
+      "maxAmmunition": 1,
+      "reloadTicks": 90,
+      "reloadType": "FULL_MAGAZINE",
       "soundFile": "/Slap0003.wav",
       "maximumRange": 50.0,
       "weaponAccuracy": -10
@@ -29,6 +35,9 @@
       "velocity": 3000.0,
       "damage": 6,
       "ammunition": 20,
+      "maxAmmunition": 20,
+      "reloadTicks": 60,
+      "reloadType": "FULL_MAGAZINE",
       "soundFile": "/placeholder_laser.wav",
       "maximumRange": 500.0,
       "weaponAccuracy": 20
@@ -40,6 +49,9 @@
       "velocity": 30.0,
       "damage": 8,
       "ammunition": 20,
+      "maxAmmunition": 20,
+      "reloadTicks": 90,
+      "reloadType": "FULL_MAGAZINE",
       "soundFile": "/magic.wav",
       "maximumRange": 100.0,
       "weaponAccuracy": 20
@@ -51,6 +63,9 @@
       "velocity": 900.0,
       "damage": 12,
       "ammunition": 5,
+      "maxAmmunition": 5,
+      "reloadTicks": 180,
+      "reloadType": "FULL_MAGAZINE",
       "soundFile": "/Slap0003.wav",
       "maximumRange": 300.0,
       "weaponAccuracy": 15
@@ -62,6 +77,9 @@
       "velocity": 50.0,
       "damage": 15,
       "ammunition": 999,
+      "maxAmmunition": 999,
+      "reloadTicks": 999,
+      "reloadType": "FULL_MAGAZINE",
       "soundFile": "/magic.wav",
       "maximumRange": 5.0,
       "weaponAccuracy": 25

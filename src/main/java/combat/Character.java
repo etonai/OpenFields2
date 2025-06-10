@@ -507,8 +507,13 @@ public class Character {
                 
                 WeaponState recoveringState = weapon.getStateByName("recovering");
                 eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
-                    currentWeaponState = weapon.getStateByName("aiming");
-                    System.out.println(getDisplayName() + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
+                    if (weapon.ammunition <= 0 && canReload()) {
+                        System.out.println(getDisplayName() + " is out of ammunition, starting automatic reload");
+                        startReloadSequence(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId);
+                    } else {
+                        currentWeaponState = weapon.getStateByName("aiming");
+                        System.out.println(getDisplayName() + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
+                    }
                 }, ownerId));
             }, ownerId));
             
@@ -629,5 +634,77 @@ public class Character {
     
     public double getAimingSpeedMultiplier() {
         return calculateAimingSpeedMultiplier();
+    }
+    
+    public boolean canReload() {
+        if (weapon == null) return false;
+        if (weapon.ammunition >= weapon.maxAmmunition) return false;
+        String state = currentWeaponState.getState();
+        return "ready".equals(state) || "aiming".equals(state) || "recovering".equals(state);
+    }
+    
+    public void startReloadSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        if (!canReload()) return;
+        
+        System.out.println(getDisplayName() + " starts reloading " + weapon.getName());
+        
+        currentWeaponState = weapon.getStateByName("reloading");
+        
+        long reloadTicks = calculateReloadSpeed();
+        long reloadCompleteTick = currentTick + reloadTicks;
+        
+        eventQueue.add(new ScheduledEvent(reloadCompleteTick, () -> {
+            performReload();
+            System.out.println(getDisplayName() + " loads one round into " + weapon.getName() + 
+                             " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+            
+            // Continue reloading if needed for single-round weapons
+            if (weapon.reloadType == ReloadType.SINGLE_ROUND && weapon.ammunition < weapon.maxAmmunition) {
+                continueReloading(unit, reloadCompleteTick, eventQueue, ownerId);
+            } else {
+                currentWeaponState = weapon.getStateByName("ready");
+                System.out.println(getDisplayName() + " finished reloading " + weapon.getName() + 
+                                 " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+            }
+        }, ownerId));
+    }
+    
+    private void continueReloading(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        if (weapon == null || weapon.ammunition >= weapon.maxAmmunition) {
+            currentWeaponState = weapon.getStateByName("ready");
+            return;
+        }
+        
+        long reloadTicks = calculateReloadSpeed();
+        long reloadCompleteTick = currentTick + reloadTicks;
+        
+        eventQueue.add(new ScheduledEvent(reloadCompleteTick, () -> {
+            performReload();
+            System.out.println(getDisplayName() + " loads one round into " + weapon.getName() + 
+                             " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+            
+            // Continue reloading if still not full
+            if (weapon.ammunition < weapon.maxAmmunition) {
+                continueReloading(unit, reloadCompleteTick, eventQueue, ownerId);
+            } else {
+                currentWeaponState = weapon.getStateByName("ready");
+                System.out.println(getDisplayName() + " finished reloading " + weapon.getName() + 
+                                 " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+            }
+        }, ownerId));
+    }
+    
+    private long calculateReloadSpeed() {
+        int reflexesModifier = statToModifier(this.reflexes);
+        double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.01);
+        return Math.round(weapon.reloadTicks * reflexesSpeedMultiplier);
+    }
+    
+    private void performReload() {
+        if (weapon.reloadType == ReloadType.SINGLE_ROUND) {
+            weapon.ammunition = Math.min(weapon.ammunition + 1, weapon.maxAmmunition);
+        } else {
+            weapon.ammunition = weapon.maxAmmunition;
+        }
     }
 }

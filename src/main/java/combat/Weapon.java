@@ -9,6 +9,9 @@ public class Weapon {
     public List<WeaponState> states;
     public String initialStateName;
     public int ammunition;
+    public int maxAmmunition;
+    public int reloadTicks;
+    public ReloadType reloadType;
     public String soundFile;
     public double maximumRange;
     public int weaponAccuracy;
@@ -19,6 +22,9 @@ public class Weapon {
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
         this.ammunition = ammunition;
+        this.maxAmmunition = ammunition; // Default max to current
+        this.reloadTicks = 60; // Default reload time
+        this.reloadType = ReloadType.FULL_MAGAZINE; // Default reload type
         this.soundFile = soundFile;
         this.maximumRange = maximumRange;
         this.weaponAccuracy = weaponAccuracy;
@@ -30,6 +36,9 @@ public class Weapon {
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
         this.ammunition = ammunition;
+        this.maxAmmunition = ammunition; // Default max to current
+        this.reloadTicks = 60; // Default reload time
+        this.reloadType = ReloadType.FULL_MAGAZINE; // Default reload type
         this.soundFile = soundFile;
         this.maximumRange = maximumRange;
         this.weaponAccuracy = weaponAccuracy;

@@ -8,7 +8,8 @@
         {"state": "ready", "action": "aiming", "ticks": 15},
         {"state": "aiming", "action": "firing", "ticks": 30},
         {"state": "firing", "action": "recovering", "ticks": 5},
-        {"state": "recovering", "action": "aiming", "ticks": 30}
+        {"state": "recovering", "action": "aiming", "ticks": 30},
+        {"state": "reloading", "action": "ready", "ticks": 60}
       ]
     },
     "RIFLE": {
@@ -19,7 +20,8 @@
         {"state": "ready", "action": "aiming", "ticks": 15},
         {"state": "aiming", "action": "firing", "ticks": 30},
         {"state": "firing", "action": "recovering", "ticks": 5},
-        {"state": "recovering", "action": "aiming", "ticks": 20}
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 180}
       ]
     },
     "OTHER": {
@@ -30,7 +32,8 @@
         {"state": "ready", "action": "aiming", "ticks": 10},
         {"state": "aiming", "action": "firing", "ticks": 25},
         {"state": "firing", "action": "recovering", "ticks": 8},
-        {"state": "recovering", "action": "aiming", "ticks": 20}
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 90}
       ]
     }
   }
