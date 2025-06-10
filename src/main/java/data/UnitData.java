@@ -46,9 +46,6 @@ public class UnitData {
     @JsonProperty("currentWeaponState")
     public String currentWeaponState;
     
-    @JsonProperty("queuedShots")
-    public int queuedShots;
-    
     // Theme-specific overrides for scenario
     @JsonProperty("themeId")
     public String themeId;
@@ -59,7 +56,7 @@ public class UnitData {
     
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
-                   boolean isFiringHighlighted, String weaponId, String currentWeaponState, int queuedShots, String themeId) {
+                   boolean isFiringHighlighted, String weaponId, String currentWeaponState, String themeId) {
         this.id = id;
         this.characterId = characterId;
         this.x = x;
@@ -74,7 +71,6 @@ public class UnitData {
         this.isFiringHighlighted = isFiringHighlighted;
         this.weaponId = weaponId;
         this.currentWeaponState = currentWeaponState;
-        this.queuedShots = queuedShots;
         this.themeId = themeId;
     }
     
@@ -82,6 +78,6 @@ public class UnitData {
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted) {
         this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
-             false, null, null, 0, null);
+             false, null, null, null);
     }
 }

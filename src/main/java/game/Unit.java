@@ -139,17 +139,6 @@ public class Unit {
                 gc.strokeLine(targetX - 5, targetY + 5, targetX + 5, targetY - 5);
             }
             
-            // Show small yellow X inside combat target unit
-            if (character.currentTarget != null) {
-                gc.setStroke(Color.YELLOW);
-                gc.setLineWidth(2);
-                // Draw X inside the target unit
-                gc.strokeLine(character.currentTarget.x - 5, character.currentTarget.y - 5, 
-                             character.currentTarget.x + 5, character.currentTarget.y + 5);
-                gc.strokeLine(character.currentTarget.x - 5, character.currentTarget.y + 5, 
-                             character.currentTarget.x + 5, character.currentTarget.y - 5);
-            }
-            
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(12));
             gc.fillText(character.getDisplayName(), x - 15, y - 15);

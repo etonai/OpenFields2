@@ -30,7 +30,6 @@ public class Character {
     public Weapon weapon;
     public WeaponState currentWeaponState;
     public Unit currentTarget;
-    public int queuedShots = 0;
     public List<Skill> skills;
     public List<Wound> wounds;
 
@@ -416,20 +415,18 @@ public class Character {
     public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || currentWeaponState == null) return;
         
-        if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
+        // If targeting a different unit, cancel all pending attacks and reset
+        if (currentTarget != null && currentTarget != target) {
+            // Clear all pending events for this character
+            gameCallbacks.removeAllEventsForOwner(ownerId);
+            currentWeaponState = weapon.getStateByName("ready");
+            System.out.println(getDisplayName() + " cancels attack on " + currentTarget.character.getDisplayName() + " and retargets " + target.character.getDisplayName() + " at tick " + currentTick);
+        } else if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
             currentWeaponState = weapon.getStateByName("ready");
             System.out.println(getDisplayName() + " weapon state: ready (target changed) at tick " + currentTick);
         }
         
         currentTarget = target;
-        
-        if (queuedShots > 0) {
-            queuedShots++;
-            System.out.println(getDisplayName() + " queued shot " + queuedShots + " at " + target.character.getDisplayName());
-            return;
-        }
-        
-        queuedShots = 1;
         scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
@@ -512,13 +509,6 @@ public class Character {
                 eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
                     currentWeaponState = weapon.getStateByName("aiming");
                     System.out.println(getDisplayName() + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
-                    
-                    queuedShots--;
-                    if (queuedShots > 0 && currentTarget != null) {
-                        System.out.println(getDisplayName() + " starting queued shot " + (queuedShots + 1) + " at " + currentTarget.character.getDisplayName());
-                        long adjustedAimingTime = Math.round(currentWeaponState.ticks * currentAimingSpeed.getTimingMultiplier());
-                        scheduleFiring(shooter, currentTarget, fireTick + firingState.ticks + recoveringState.ticks + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
-                    }
                 }, ownerId));
             }, ownerId));
             

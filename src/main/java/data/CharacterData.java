@@ -71,9 +71,6 @@ public class CharacterData {
     @JsonProperty("currentWeaponState")
     public String currentWeaponState;
     
-    @JsonProperty("queuedShots")
-    public int queuedShots;
-    
     @JsonProperty("skills")
     public List<SkillData> skills;
     

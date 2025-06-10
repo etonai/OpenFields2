@@ -962,9 +962,22 @@ public class OpenFields2 extends Application implements GameCallbacks {
         gc.save();
         gc.translate(offsetX, offsetY);
         gc.scale(zoom, zoom);
+        
+        // First pass: Draw all unit circles and basic elements
         for (Unit u : units) {
             u.render(gc, u == selected);
         }
+        
+        // Second pass: Draw target overlays that need to appear on top
+        if (selected != null && selected.character.currentTarget != null) {
+            gc.setStroke(Color.YELLOW);
+            gc.setLineWidth(2);
+            // Draw X inside the target unit (on top of everything)
+            Unit target = selected.character.currentTarget;
+            gc.strokeLine(target.x - 5, target.y - 5, target.x + 5, target.y + 5);
+            gc.strokeLine(target.x - 5, target.y + 5, target.x + 5, target.y - 5);
+        }
+        
         gc.restore();
     }
 
@@ -1111,7 +1124,6 @@ public class OpenFields2 extends Application implements GameCallbacks {
         data.baseMovementSpeed = character.baseMovementSpeed;
         data.currentMovementType = character.currentMovementType;
         data.currentAimingSpeed = character.currentAimingSpeed;
-        data.queuedShots = character.queuedShots;
         
         // Serialize weapon
         if (character.weapon != null) {
@@ -1177,7 +1189,6 @@ public class OpenFields2 extends Application implements GameCallbacks {
             unit.isFiringHighlighted,
             weaponId,
             currentWeaponState,
-            unit.character.queuedShots,
             themeId
         );
     }
@@ -1253,9 +1264,6 @@ public class OpenFields2 extends Application implements GameCallbacks {
                         }
                     }
                     
-                    // Apply other scenario-specific data
-                    character.queuedShots = unitData.queuedShots;
-                    
                     Unit unit = deserializeUnitFromCharacterRef(unitData, character);
                     units.add(unit);
                 } else {
@@ -1284,7 +1292,6 @@ public class OpenFields2 extends Application implements GameCallbacks {
         character.baseMovementSpeed = data.baseMovementSpeed;
         character.currentMovementType = data.currentMovementType;
         character.currentAimingSpeed = data.currentAimingSpeed;
-        character.queuedShots = data.queuedShots;
         
         // Restore weapon
         if (data.weaponId != null && !data.weaponId.isEmpty()) {
