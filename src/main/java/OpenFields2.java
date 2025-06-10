@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat;
 import combat.*;
 import game.*;
 import data.WeaponFactory;
+import data.WeaponData;
 import data.SkillsManager;
 import data.SaveGameManager;
 import data.SaveData;
@@ -154,6 +155,9 @@ public class OpenFields2 extends Application implements GameCallbacks {
     private int nextUnitId = 1;
     private boolean waitingForSaveSlot = false;
     private boolean waitingForLoadSlot = false;
+    private boolean waitingForCharacterCreation = false;
+    private boolean waitingForWeaponSelection = false;
+    private boolean waitingForFactionSelection = false;
     private static boolean editMode = false;
 
     public static void main(String[] args) {
@@ -274,6 +278,35 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("*** Combat enabled, normal movement rules apply");
                 }
                 System.out.println("***********************");
+            }
+            if (e.getCode() == KeyCode.C && e.isControlDown()) {
+                if (editMode && !waitingForCharacterCreation && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForWeaponSelection && !waitingForFactionSelection) {
+                    promptForCharacterCreation();
+                } else if (!editMode) {
+                    System.out.println("*** Character creation only available in edit mode (Ctrl+E) ***");
+                }
+            }
+            if (e.getCode() == KeyCode.W && e.isControlDown()) {
+                if (editMode && !waitingForWeaponSelection && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForCharacterCreation && !waitingForFactionSelection) {
+                    if (!selectedUnits.isEmpty()) {
+                        promptForWeaponSelection();
+                    } else {
+                        System.out.println("*** No units selected - select a unit first ***");
+                    }
+                } else if (!editMode) {
+                    System.out.println("*** Weapon selection only available in edit mode (Ctrl+E) ***");
+                }
+            }
+            if (e.getCode() == KeyCode.F && e.isControlDown()) {
+                if (editMode && !waitingForFactionSelection && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForCharacterCreation && !waitingForWeaponSelection) {
+                    if (!selectedUnits.isEmpty()) {
+                        promptForFactionSelection();
+                    } else {
+                        System.out.println("*** No units selected - select a unit first ***");
+                    }
+                } else if (!editMode) {
+                    System.out.println("*** Faction selection only available in edit mode (Ctrl+E) ***");
+                }
             }
             // Character stats display - disabled for multi-selection
             if (e.getCode() == KeyCode.SLASH && e.isShiftDown()) {
@@ -519,8 +552,8 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 }
             }
             
-            // Handle number key input for save/load slot selection
-            if (waitingForSaveSlot || waitingForLoadSlot) {
+            // Handle number key input for save/load slot selection, character creation, weapon selection, and faction selection
+            if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForFactionSelection) {
                 int slotNumber = -1;
                 if (e.getCode() == KeyCode.DIGIT1) slotNumber = 1;
                 else if (e.getCode() == KeyCode.DIGIT2) slotNumber = 2;
@@ -533,9 +566,20 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 else if (e.getCode() == KeyCode.DIGIT9) slotNumber = 9;
                 else if (e.getCode() == KeyCode.DIGIT0) slotNumber = 0;
                 else if (e.getCode() == KeyCode.ESCAPE) {
-                    System.out.println("*** Save/Load cancelled ***");
-                    waitingForSaveSlot = false;
-                    waitingForLoadSlot = false;
+                    if (waitingForCharacterCreation) {
+                        System.out.println("*** Character creation cancelled ***");
+                        waitingForCharacterCreation = false;
+                    } else if (waitingForWeaponSelection) {
+                        System.out.println("*** Weapon selection cancelled ***");
+                        waitingForWeaponSelection = false;
+                    } else if (waitingForFactionSelection) {
+                        System.out.println("*** Faction selection cancelled ***");
+                        waitingForFactionSelection = false;
+                    } else {
+                        System.out.println("*** Save/Load cancelled ***");
+                        waitingForSaveSlot = false;
+                        waitingForLoadSlot = false;
+                    }
                 }
                 
                 if (slotNumber >= 0 && slotNumber <= 9) {
@@ -553,6 +597,29 @@ public class OpenFields2 extends Application implements GameCallbacks {
                             loadGameFromSlot(slotNumber);
                         } else {
                             System.out.println("*** Invalid load slot. Use 1-9 or 0 to cancel ***");
+                        }
+                    } else if (waitingForCharacterCreation) {
+                        if (slotNumber == 0) {
+                            System.out.println("*** Character creation cancelled ***");
+                            waitingForCharacterCreation = false;
+                        } else if (slotNumber >= 1 && slotNumber <= 8) {
+                            createCharacterFromArchetype(slotNumber);
+                        } else {
+                            System.out.println("*** Invalid archetype selection. Use 1-8 or 0 to cancel ***");
+                        }
+                    } else if (waitingForWeaponSelection) {
+                        if (slotNumber == 0) {
+                            System.out.println("*** Weapon selection cancelled ***");
+                            waitingForWeaponSelection = false;
+                        } else {
+                            assignWeaponToSelectedUnits(slotNumber);
+                        }
+                    } else if (waitingForFactionSelection) {
+                        if (slotNumber == 0) {
+                            System.out.println("*** Faction selection cancelled ***");
+                            waitingForFactionSelection = false;
+                        } else {
+                            assignFactionToSelectedUnits(slotNumber);
                         }
                     }
                 }
@@ -1682,6 +1749,256 @@ public class OpenFields2 extends Application implements GameCallbacks {
             case "ORANGE": return Color.ORANGE;
             case "YELLOW": return Color.YELLOW;
             default: return Color.RED;
+        }
+    }
+    
+    // Character creation methods
+    private void promptForCharacterCreation() {
+        System.out.println("***********************");
+        System.out.println("*** CHARACTER CREATION ***");
+        System.out.println("Select archetype:");
+        System.out.println("1. Gunslinger - High dexterity, quick reflexes, pistol specialist");
+        System.out.println("2. Soldier - Balanced combat stats, rifle proficiency");
+        System.out.println("3. Medic - High coolness, medicine skill, support role");
+        System.out.println("4. Scout - High reflexes, stealth and observation skills");
+        System.out.println("5. Marksman - Excellent dexterity, rifle specialist, long-range expert");
+        System.out.println("6. Brawler - High strength, close combat specialist");
+        System.out.println("7. Balanced - Well-rounded stats for versatile gameplay");
+        System.out.println("8. Weighted Random - Randomly generated stats (averaged), no skills");
+        System.out.println("0. Cancel character creation");
+        System.out.println();
+        System.out.println("Enter selection (1-8, 0 to cancel): ");
+        waitingForCharacterCreation = true;
+    }
+    
+    private void createCharacterFromArchetype(int archetypeIndex) {
+        String[] archetypes = {"gunslinger", "soldier", "medic", "scout", "marksman", "brawler", "balanced", "weighted_random"};
+        
+        if (archetypeIndex < 1 || archetypeIndex > archetypes.length) {
+            System.out.println("*** Invalid archetype selection ***");
+            return;
+        }
+        
+        String selectedArchetype = archetypes[archetypeIndex - 1];
+        
+        try {
+            // Create character using CharacterFactory
+            int characterId = CharacterFactory.createCharacter(selectedArchetype);
+            combat.Character character = characterRegistry.getCharacter(characterId);
+            
+            if (character != null) {
+                // Assign appropriate weapon based on archetype
+                String weaponId = getWeaponForArchetype(selectedArchetype);
+                character.weapon = WeaponFactory.createWeapon(weaponId);
+                character.currentWeaponState = character.weapon.getInitialState();
+                character.setFaction(1); // Default faction
+                
+                // Spawn character at camera center
+                spawnCharacterUnit(character);
+                
+                // Display character creation confirmation
+                System.out.println("*** Character created successfully! ***");
+                System.out.println("Name: " + character.getDisplayName());
+                System.out.println("Archetype: " + selectedArchetype);
+                System.out.println("Stats: DEX=" + character.dexterity + " HEALTH=" + character.health + 
+                                 " COOL=" + character.coolness + " STR=" + character.strength + " REF=" + character.reflexes);
+                System.out.println("Handedness: " + character.handedness.getDisplayName());
+                System.out.println("Weapon: " + character.weapon.name);
+                System.out.println("Skills: " + (character.skills.isEmpty() ? "None" : character.skills.size() + " skills"));
+                System.out.println("***********************");
+            } else {
+                System.out.println("*** Failed to create character ***");
+            }
+        } catch (Exception e) {
+            System.out.println("*** Error creating character: " + e.getMessage() + " ***");
+        }
+        
+        waitingForCharacterCreation = false;
+    }
+    
+    private void spawnCharacterUnit(combat.Character character) {
+        // Calculate spawn location at camera center
+        double spawnX = (-offsetX / zoom) + (WIDTH / 2.0) / zoom;
+        double spawnY = (-offsetY / zoom) + (HEIGHT / 2.0) / zoom;
+        
+        // Check for collision with existing units and offset if necessary
+        boolean collision = true;
+        int attempts = 0;
+        double finalX = spawnX;
+        double finalY = spawnY;
+        
+        while (collision && attempts < 10) {
+            collision = false;
+            for (Unit existingUnit : units) {
+                double distance = Math.hypot(finalX - existingUnit.x, finalY - existingUnit.y);
+                if (distance < 30) { // Minimum distance between units
+                    collision = true;
+                    finalX += 25; // Offset by 25 pixels
+                    break;
+                }
+            }
+            attempts++;
+        }
+        
+        // Create and add unit
+        Unit newUnit = new Unit(character, finalX, finalY, Color.CYAN, nextUnitId++);
+        units.add(newUnit);
+        
+        // Auto-select the newly created character
+        selectedUnits.clear();
+        selectedUnits.add(newUnit);
+        selected = newUnit; // Maintain backward compatibility
+        calculateSelectionCenter();
+        
+        System.out.println("Character spawned at (" + String.format("%.0f", finalX) + ", " + String.format("%.0f", finalY) + ")");
+    }
+    
+    private String getWeaponForArchetype(String archetype) {
+        switch (archetype.toLowerCase()) {
+            case "gunslinger":
+            case "brawler":
+            case "balanced":
+            case "weighted_random":
+                return "wpn_colt_peacemaker"; // Pistol
+            case "soldier":
+            case "scout": 
+            case "marksman":
+                return "wpn_hunting_rifle"; // Rifle
+            case "medic":
+                return "wpn_derringer"; // Backup weapon
+            default:
+                return "wpn_colt_peacemaker"; // Default fallback
+        }
+    }
+    
+    // Weapon selection methods
+    private void promptForWeaponSelection() {
+        String[] weaponIds = WeaponFactory.getAllWeaponIds();
+        if (weaponIds.length == 0) {
+            System.out.println("*** No weapons available ***");
+            return;
+        }
+        
+        System.out.println("***********************");
+        System.out.println("*** WEAPON SELECTION ***");
+        System.out.println("Selected units: " + selectedUnits.size());
+        System.out.println("Available weapons:");
+        
+        for (int i = 0; i < weaponIds.length; i++) {
+            WeaponData weaponData = WeaponFactory.getWeaponData(weaponIds[i]);
+            if (weaponData != null) {
+                System.out.println((i + 1) + ". " + weaponData.name + 
+                                 " (" + weaponData.type.getDisplayName() + 
+                                 ") - Damage: " + weaponData.damage + 
+                                 ", Range: " + String.format("%.0f", weaponData.maximumRange) + " feet");
+            }
+        }
+        System.out.println("0. Cancel weapon selection");
+        System.out.println();
+        System.out.println("Enter selection (1-" + weaponIds.length + ", 0 to cancel): ");
+        waitingForWeaponSelection = true;
+    }
+    
+    private void assignWeaponToSelectedUnits(int weaponIndex) {
+        String[] weaponIds = WeaponFactory.getAllWeaponIds();
+        
+        if (weaponIndex < 1 || weaponIndex > weaponIds.length) {
+            System.out.println("*** Invalid weapon selection. Use 1-" + weaponIds.length + " or 0 to cancel ***");
+            return;
+        }
+        
+        String selectedWeaponId = weaponIds[weaponIndex - 1];
+        WeaponData weaponData = WeaponFactory.getWeaponData(selectedWeaponId);
+        
+        if (weaponData == null) {
+            System.out.println("*** Error: Weapon data not found for " + selectedWeaponId + " ***");
+            waitingForWeaponSelection = false;
+            return;
+        }
+        
+        int successCount = 0;
+        int failureCount = 0;
+        
+        for (Unit unit : selectedUnits) {
+            try {
+                // Create new weapon instance
+                combat.Weapon newWeapon = WeaponFactory.createWeapon(selectedWeaponId);
+                
+                // Assign weapon to character
+                unit.character.weapon = newWeapon;
+                unit.character.currentWeaponState = newWeapon.getInitialState();
+                
+                successCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to assign weapon to " + unit.character.getDisplayName() + ": " + e.getMessage());
+                failureCount++;
+            }
+        }
+        
+        // Display results
+        System.out.println("*** Weapon assignment complete ***");
+        System.out.println("Weapon: " + weaponData.name + " (" + weaponData.type.getDisplayName() + ")");
+        System.out.println("Successfully assigned to " + successCount + " units");
+        if (failureCount > 0) {
+            System.out.println("Failed to assign to " + failureCount + " units");
+        }
+        System.out.println("***********************");
+        
+        waitingForWeaponSelection = false;
+    }
+    
+    // Faction selection methods
+    private void promptForFactionSelection() {
+        System.out.println("***********************");
+        System.out.println("*** FACTION SELECTION ***");
+        System.out.println("Selected units: " + selectedUnits.size());
+        System.out.println("Available factions:");
+        System.out.println("1. Faction 1 (Red units)");
+        System.out.println("2. Faction 2 (Blue units)");
+        System.out.println("3. Faction 3 (Neutral)");
+        System.out.println("4. Faction 4 (Custom)");
+        System.out.println("5. Faction 5 (Custom)");
+        System.out.println("0. Cancel faction selection");
+        System.out.println();
+        System.out.println("Enter selection (1-5, 0 to cancel): ");
+        waitingForFactionSelection = true;
+    }
+    
+    private void assignFactionToSelectedUnits(int factionNumber) {
+        if (factionNumber < 1 || factionNumber > 5) {
+            System.out.println("*** Invalid faction selection. Use 1-5 or 0 to cancel ***");
+            return;
+        }
+        
+        int successCount = 0;
+        String factionName = getFactionName(factionNumber);
+        
+        for (Unit unit : selectedUnits) {
+            try {
+                unit.character.setFaction(factionNumber);
+                successCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to assign faction to " + unit.character.getDisplayName() + ": " + e.getMessage());
+            }
+        }
+        
+        // Display results
+        System.out.println("*** Faction assignment complete ***");
+        System.out.println("Faction: " + factionName + " (ID: " + factionNumber + ")");
+        System.out.println("Successfully assigned to " + successCount + " units");
+        System.out.println("***********************");
+        
+        waitingForFactionSelection = false;
+    }
+    
+    private String getFactionName(int factionNumber) {
+        switch (factionNumber) {
+            case 1: return "Faction 1 (Red)";
+            case 2: return "Faction 2 (Blue)";
+            case 3: return "Faction 3 (Neutral)";
+            case 4: return "Faction 4 (Custom)";
+            case 5: return "Faction 5 (Custom)";
+            default: return "Unknown Faction";
         }
     }
 

@@ -57,6 +57,8 @@ public class CharacterFactory {
                 return createMarksman();
             case "brawler":
                 return createBrawler();
+            case "weighted_random":
+                return createWeightedRandom();
             default:
                 return createBalanced();
         }
@@ -71,7 +73,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null, // No theme
             85, // High dexterity
-            10, 
+            9, 
             80, // High coolness
             60,
             90, // High reflexes
@@ -165,7 +167,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             95, // Excellent dexterity
-            10,
+            8,
             85, // High coolness
             65,
             80,
@@ -225,6 +227,44 @@ public class CharacterFactory {
         return character;
     }
     
+    private static Character createWeightedRandom() {
+        // Generate two sets of random stats and average them for more balanced results
+        int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
+        int health1 = random.nextInt(14) + 7, health2 = random.nextInt(14) + 7; // Health between 7-20
+        int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
+        int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
+        int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
+        
+        // Calculate averages
+        int avgDexterity = (dex1 + dex2) / 2;
+        int avgHealth = (health1 + health2) / 2;
+        int avgCoolness = (cool1 + cool2) / 2;
+        int avgStrength = (str1 + str2) / 2;
+        int avgReflexes = (ref1 + ref2) / 2;
+        
+        // Random handedness
+        Handedness randomHandedness = random.nextBoolean() ? 
+            Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
+        
+        Character character = new Character(
+            0, // ID assigned by registry
+            generateName("Wanderer"),
+            generateFirstName(),
+            generateLastName(),
+            generateBirthdate(),
+            null, // No theme
+            avgDexterity,
+            avgHealth,
+            avgCoolness,
+            avgStrength,
+            avgReflexes,
+            randomHandedness
+        );
+        
+        // No skills assigned for weighted random - blank slate character
+        return character;
+    }
+    
     // Helper methods for generating character attributes
     private static String generateName(String archetype) {
         String[] prefixes = {"", "Young ", "Old ", "Wild ", "Silent ", "Quick ", "Dead-Eye ", "Iron "};
@@ -265,7 +305,7 @@ public class CharacterFactory {
      */
     public static String[] getAvailableArchetypes() {
         return new String[]{
-            "gunslinger", "soldier", "medic", "scout", "marksman", "brawler", "balanced"
+            "gunslinger", "soldier", "medic", "scout", "marksman", "brawler", "balanced", "weighted_random"
         };
     }
     
@@ -288,6 +328,8 @@ public class CharacterFactory {
                 return "High health and strength, prefers close combat";
             case "balanced":
                 return "Well-rounded character good at many things";
+            case "weighted_random":
+                return "Randomly generated stats (averaged), no predefined skills";
             default:
                 return "Unknown archetype";
         }
