@@ -902,6 +902,15 @@ public class OpenFields2 extends Application implements GameCallbacks {
         }, ScheduledEvent.WORLD_OWNER));
     }
     
+    public void applyFiringHighlight(Unit shooter, long fireTick) {
+        if (!shooter.isFiringHighlighted) {
+            shooter.isFiringHighlighted = true;
+            eventQueue.add(new ScheduledEvent(fireTick + 10, () -> {
+                shooter.isFiringHighlighted = false;
+            }, ScheduledEvent.WORLD_OWNER));
+        }
+    }
+    
     private void resolveCombatImpact(Unit shooter, Unit target, Weapon weapon, long impactTick, HitResult hitResult) {
         if (hitResult.isHit()) {
             combat.BodyPart hitLocation = hitResult.getHitLocation();
@@ -1165,6 +1174,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
             colorToString(unit.color),
             colorToString(unit.baseColor),
             unit.isHitHighlighted,
+            unit.isFiringHighlighted,
             weaponId,
             currentWeaponState,
             unit.character.queuedShots,
@@ -1320,6 +1330,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         unit.hasTarget = data.hasTarget;
         unit.isStopped = data.isStopped;
         unit.isHitHighlighted = data.isHitHighlighted;
+        unit.isFiringHighlighted = data.isFiringHighlighted;
         
         return unit;
     }
@@ -1336,6 +1347,8 @@ public class OpenFields2 extends Application implements GameCallbacks {
         unit.hasTarget = data.hasTarget;
         unit.isStopped = data.isStopped;
         unit.isHitHighlighted = data.isHitHighlighted;
+        // Handle backward compatibility for isFiringHighlighted (defaults to false if not present)
+        unit.isFiringHighlighted = data.isFiringHighlighted;
         
         return unit;
     }

@@ -15,6 +15,7 @@ public class Unit {
     public Color color;
     public final Color baseColor;
     public boolean isHitHighlighted = false;
+    public boolean isFiringHighlighted = false;
     private Color preIncapacitationColor = null;
     long lastTickUpdated = -1;
 
@@ -120,10 +121,35 @@ public class Unit {
     public void render(GraphicsContext gc, boolean isSelected) {
         gc.setFill(color);
         gc.fillOval(x - 10.5, y - 10.5, 21, 21);
-        if (isSelected) {
+        
+        // Show yellow circle around unit when firing
+        if (isFiringHighlighted) {
             gc.setStroke(Color.YELLOW);
-            gc.setLineWidth(2);
-            gc.strokeOval(x - 12, y - 12, 24, 24);
+            gc.setLineWidth(3);
+            gc.strokeOval(x - 15, y - 15, 30, 30);
+        }
+        
+        if (isSelected) {
+            // Show small yellow X at movement target location
+            if (hasTarget) {
+                gc.setStroke(Color.YELLOW);
+                gc.setLineWidth(2);
+                // Draw X by drawing two diagonal lines
+                gc.strokeLine(targetX - 5, targetY - 5, targetX + 5, targetY + 5);
+                gc.strokeLine(targetX - 5, targetY + 5, targetX + 5, targetY - 5);
+            }
+            
+            // Show small yellow X inside combat target unit
+            if (character.currentTarget != null) {
+                gc.setStroke(Color.YELLOW);
+                gc.setLineWidth(2);
+                // Draw X inside the target unit
+                gc.strokeLine(character.currentTarget.x - 5, character.currentTarget.y - 5, 
+                             character.currentTarget.x + 5, character.currentTarget.y + 5);
+                gc.strokeLine(character.currentTarget.x - 5, character.currentTarget.y + 5, 
+                             character.currentTarget.x + 5, character.currentTarget.y - 5);
+            }
+            
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(12));
             gc.fillText(character.getDisplayName(), x - 15, y - 15);

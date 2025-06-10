@@ -36,6 +36,9 @@ public class UnitData {
     @JsonProperty("isHitHighlighted")
     public boolean isHitHighlighted;
     
+    @JsonProperty("isFiringHighlighted")
+    public boolean isFiringHighlighted;
+    
     // Scenario-specific equipment data
     @JsonProperty("weaponId")
     public String weaponId;
@@ -56,7 +59,7 @@ public class UnitData {
     
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
-                   String weaponId, String currentWeaponState, int queuedShots, String themeId) {
+                   boolean isFiringHighlighted, String weaponId, String currentWeaponState, int queuedShots, String themeId) {
         this.id = id;
         this.characterId = characterId;
         this.x = x;
@@ -68,6 +71,7 @@ public class UnitData {
         this.color = color;
         this.baseColor = baseColor;
         this.isHitHighlighted = isHitHighlighted;
+        this.isFiringHighlighted = isFiringHighlighted;
         this.weaponId = weaponId;
         this.currentWeaponState = currentWeaponState;
         this.queuedShots = queuedShots;
@@ -78,6 +82,6 @@ public class UnitData {
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted) {
         this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
-             null, null, 0, null);
+             false, null, null, 0, null);
     }
 }

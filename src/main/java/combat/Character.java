@@ -492,6 +492,7 @@ public class Character {
                 System.out.println("*** " + getDisplayName() + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
                 
                 gameCallbacks.playWeaponSound(weapon);
+                gameCallbacks.applyFiringHighlight(shooter, fireTick);
                 
                 double dx = target.x - shooter.x;
                 double dy = target.y - shooter.y;
