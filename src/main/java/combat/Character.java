@@ -33,6 +33,7 @@ public class Character {
     public boolean persistentAttack;
     public boolean isAttacking;
     public int faction;
+    public boolean usesAutomaticTargeting;
     public List<Skill> skills;
     public List<Wound> wounds;
 
@@ -56,6 +57,7 @@ public class Character {
         this.persistentAttack = false;
         this.isAttacking = false;
         this.faction = 1; // Default faction
+        this.usesAutomaticTargeting = false; // Default to manual targeting
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -95,6 +97,7 @@ public class Character {
         this.persistentAttack = false;
         this.isAttacking = false;
         this.faction = 1; // Default faction
+        this.usesAutomaticTargeting = false; // Default to manual targeting
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -119,6 +122,7 @@ public class Character {
         this.persistentAttack = false;
         this.isAttacking = false;
         this.faction = 1; // Default faction
+        this.usesAutomaticTargeting = false; // Default to manual targeting
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -139,6 +143,10 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.persistentAttack = false;
+        this.isAttacking = false;
+        this.faction = 1; // Default faction
+        this.usesAutomaticTargeting = false; // Default to manual targeting
         this.skills = skills != null ? skills : new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -160,6 +168,10 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.persistentAttack = false;
+        this.isAttacking = false;
+        this.faction = 1; // Default faction
+        this.usesAutomaticTargeting = false; // Default to manual targeting
         this.skills = skills != null ? skills : new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -753,6 +765,85 @@ public class Character {
         return this.faction != other.faction;
     }
     
+    private Unit findNearestHostileTarget(Unit selfUnit, GameCallbacks gameCallbacks) {
+        List<Unit> allUnits = gameCallbacks.getUnits();
+        Unit nearestTarget = null;
+        double nearestDistance = Double.MAX_VALUE;
+        
+        for (Unit unit : allUnits) {
+            // Skip self
+            if (unit == selfUnit) continue;
+            
+            // Skip if not hostile (same faction)
+            if (!this.isHostileTo(unit.character)) continue;
+            
+            // Skip if incapacitated
+            if (unit.character.isIncapacitated()) continue;
+            
+            // Calculate distance
+            double dx = unit.x - selfUnit.x;
+            double dy = unit.y - selfUnit.y;
+            double distance = Math.hypot(dx, dy);
+            
+            // Check if this is the nearest target
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestTarget = unit;
+            }
+        }
+        
+        return nearestTarget;
+    }
+    
+    public void updateAutomaticTargeting(Unit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
+        // Only execute if automatic targeting is enabled
+        if (!usesAutomaticTargeting) return;
+        
+        // Skip if character is incapacitated
+        if (this.isIncapacitated()) return;
+        
+        // Skip if character has no weapon
+        if (weapon == null) return;
+        
+        // Skip if character is already attacking (let existing attack complete)
+        if (isAttacking) return;
+        
+        // Check if current target is still valid
+        boolean currentTargetValid = currentTarget != null 
+            && !currentTarget.character.isIncapacitated() 
+            && this.isHostileTo(currentTarget.character);
+        
+        if (!currentTargetValid) {
+            // Find a new target
+            Unit newTarget = findNearestHostileTarget(selfUnit, gameCallbacks);
+            
+            if (newTarget != null) {
+                // Target found - start attacking
+                currentTarget = newTarget;
+                persistentAttack = true;
+                
+                // Calculate distance for logging
+                double dx = newTarget.x - selfUnit.x;
+                double dy = newTarget.y - selfUnit.y;
+                double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
+                
+                System.out.println("[AUTO-TARGET] " + getDisplayName() + " acquired target " + 
+                                 newTarget.character.getDisplayName() + " at distance " + 
+                                 String.format("%.1f", distanceFeet) + " feet");
+                
+                // Start attack sequence
+                startAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
+            } else {
+                // No targets found - disable persistent attack
+                if (persistentAttack) {
+                    persistentAttack = false;
+                    currentTarget = null;
+                    System.out.println("[AUTO-TARGET] " + getDisplayName() + " found no hostile targets, disabling automatic targeting");
+                }
+            }
+        }
+    }
+    
     private void checkContinuousAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (!persistentAttack) return;
         if (currentTarget == null) return;
@@ -781,5 +872,13 @@ public class Character {
         System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (persistent mode)");
         isAttacking = true;
         scheduleAttackFromCurrentState(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
+    }
+    
+    public boolean isUsesAutomaticTargeting() {
+        return usesAutomaticTargeting;
+    }
+    
+    public void setUsesAutomaticTargeting(boolean usesAutomaticTargeting) {
+        this.usesAutomaticTargeting = usesAutomaticTargeting;
     }
 }

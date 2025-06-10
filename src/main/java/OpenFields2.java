@@ -338,6 +338,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                                      " (reflexes: " + String.format("%+d", statToModifier(selected.character.reflexes)) + ")");
                     
                     System.out.println("Incapacitated: " + (selected.character.isIncapacitated() ? "YES" : "NO"));
+                    System.out.println("Automatic Targeting: " + (selected.character.isUsesAutomaticTargeting() ? "ON" : "OFF"));
                     
                     if (selected.character.weapon != null) {
                         System.out.println("--- WEAPON ---");
@@ -444,6 +445,18 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 }
             }
             
+            // Automatic targeting control - Shift+T
+            if (e.getCode() == KeyCode.T && e.isShiftDown()) {
+                if (selected != null) {
+                    boolean newState = !selected.character.isUsesAutomaticTargeting();
+                    selected.character.setUsesAutomaticTargeting(newState);
+                    System.out.println("*** " + selected.character.getDisplayName() + " automatic targeting " + 
+                                     (newState ? "ENABLED" : "DISABLED"));
+                } else {
+                    System.out.println("*** No character selected - select a character first ***");
+                }
+            }
+            
             // Save/Load controls
             if (e.getCode() == KeyCode.S && e.isControlDown()) {
                 if (!waitingForSaveSlot && !waitingForLoadSlot) {
@@ -517,6 +530,8 @@ public class OpenFields2 extends Application implements GameCallbacks {
             }
             for (Unit u : units) {
                 u.update(gameClock.getCurrentTick());
+                // Update automatic targeting for characters that have it enabled
+                u.character.updateAutomaticTargeting(u, gameClock.getCurrentTick(), eventQueue, this);
             }
         }
         render();
