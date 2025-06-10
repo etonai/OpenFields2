@@ -32,6 +32,7 @@ public class Character {
     public Unit currentTarget;
     public boolean persistentAttack;
     public boolean isAttacking;
+    public int faction;
     public List<Skill> skills;
     public List<Wound> wounds;
 
@@ -54,6 +55,7 @@ public class Character {
         this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.persistentAttack = false;
         this.isAttacking = false;
+        this.faction = 1; // Default faction
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -92,6 +94,7 @@ public class Character {
         this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.persistentAttack = false;
         this.isAttacking = false;
+        this.faction = 1; // Default faction
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -115,6 +118,7 @@ public class Character {
         this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.persistentAttack = false;
         this.isAttacking = false;
+        this.faction = 1; // Default faction
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -499,7 +503,7 @@ public class Character {
                 System.out.println("*** " + getDisplayName() + " tries to fire " + weapon.name + " but it's out of ammunition!");
             } else {
                 weapon.ammunition--;
-                System.out.println("*** " + getDisplayName() + " fires " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
+                System.out.println("*** " + getDisplayName() + " fires a " + weapon.getProjectileName() + " from " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
                 
                 gameCallbacks.playWeaponSound(weapon);
                 gameCallbacks.applyFiringHighlight(shooter, fireTick);
@@ -508,7 +512,7 @@ public class Character {
                 double dy = target.y - shooter.y;
                 double distancePixels = Math.hypot(dx, dy);
                 double distanceFeet = distancePixels / 7.0; // pixelsToFeet conversion
-                System.out.println("*** " + getDisplayName() + " shoots at " + target.character.getDisplayName() + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
+                System.out.println("*** " + getDisplayName() + " shoots a " + weapon.getProjectileName() + " at " + target.character.getDisplayName() + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
                 
                 gameCallbacks.scheduleProjectileImpact(shooter, target, weapon, fireTick, distanceFeet);
             }
@@ -735,6 +739,18 @@ public class Character {
     
     public void setPersistentAttack(boolean persistentAttack) {
         this.persistentAttack = persistentAttack;
+    }
+    
+    public int getFaction() {
+        return faction;
+    }
+    
+    public void setFaction(int faction) {
+        this.faction = faction;
+    }
+    
+    public boolean isHostileTo(Character other) {
+        return this.faction != other.faction;
     }
     
     private void checkContinuousAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {

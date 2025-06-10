@@ -313,6 +313,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     System.out.println("***********************");
                     System.out.println("ID: " + selected.character.id);
                     System.out.println("Nickname: " + selected.character.nickname);
+                    System.out.println("Faction: " + selected.character.faction);
                     System.out.println("Full Name: " + selected.character.getFullName());
                     SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM d, yyyy");
                     System.out.println("Birthdate: " + dateFormat.format(selected.character.birthdate));
@@ -366,7 +367,8 @@ public class OpenFields2 extends Application implements GameCallbacks {
                     if (!selected.character.wounds.isEmpty()) {
                         System.out.println("--- WOUNDS ---");
                         for (combat.Wound wound : selected.character.wounds) {
-                            System.out.println(wound.getBodyPart().name().toLowerCase() + ": " + wound.getSeverity().name().toLowerCase());
+                            System.out.println(wound.getBodyPart().name().toLowerCase() + ": " + wound.getSeverity().name().toLowerCase() + 
+                                             " (from " + wound.getProjectileName() + ", weapon: " + wound.getWeaponId() + ")");
                         }
                     } else {
                         System.out.println("--- WOUNDS ---");
@@ -525,6 +527,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         if (c1 != null) {
             c1.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
             c1.currentWeaponState = c1.weapon.getInitialState();
+            c1.setFaction(1);
             units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
         }
         
@@ -532,6 +535,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         if (c2 != null) {
             c2.weapon = WeaponFactory.createWeapon("wpn_hunting_rifle");
             c2.currentWeaponState = c2.weapon.getInitialState();
+            c2.setFaction(2);
             units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
         }
         
@@ -539,6 +543,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         if (c3 != null) {
             c3.weapon = WeaponFactory.createWeapon("wpn_derringer");
             c3.currentWeaponState = c3.weapon.getInitialState();
+            c3.setFaction(1);
             units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
         }
         
@@ -546,6 +551,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         if (c4 != null) {
             c4.weapon = WeaponFactory.createWeapon("wpn_plasma_pistol");
             c4.currentWeaponState = c4.weapon.getInitialState();
+            c4.setFaction(2);
             units.add(new Unit(c4, 100, 400, Color.PURPLE, nextUnitId++));
         }
         
@@ -553,6 +559,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         if (c5 != null) {
             c5.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
             c5.currentWeaponState = c5.weapon.getInitialState();
+            c5.setFaction(1);
             units.add(new Unit(c5, 600, 100, Color.ORANGE, nextUnitId++));
         }
     }
@@ -941,12 +948,13 @@ public class OpenFields2 extends Application implements GameCallbacks {
             combat.WoundSeverity woundSeverity = hitResult.getWoundSeverity();
             int actualDamage = hitResult.getActualDamage();
             
-            System.out.println(">>> Projectile hit " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick);
+            System.out.println(">>> " + weapon.getProjectileName() + " hit " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick);
             target.character.health -= actualDamage;
             System.out.println(">>> " + target.character.getDisplayName() + " takes " + actualDamage + " damage. Health now: " + target.character.health);
             
             // Add wound to character's wound list
-            target.character.addWound(new combat.Wound(hitLocation, woundSeverity));
+            String weaponId = findWeaponId(weapon);
+            target.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId));
             
             // Check for incapacitation
             if (target.character.isIncapacitated()) {
@@ -962,7 +970,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
             
             applyHitHighlight(target, impactTick);
         } else {
-            System.out.println(">>> Projectile missed " + target.character.getDisplayName() + " at tick " + impactTick);
+            System.out.println(">>> " + weapon.getProjectileName() + " missed " + target.character.getDisplayName() + " at tick " + impactTick);
         }
     }
     

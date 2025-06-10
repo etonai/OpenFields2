@@ -29,6 +29,7 @@ public class WeaponFactory {
             weaponData.soundFile,
             weaponData.maximumRange,
             weaponData.weaponAccuracy,
+            weaponData.projectileName,
             weaponData.type
         );
         

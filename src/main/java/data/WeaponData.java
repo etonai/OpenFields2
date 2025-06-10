@@ -41,13 +41,16 @@ public class WeaponData {
     @JsonProperty("reloadType")
     public ReloadType reloadType;
     
+    @JsonProperty("projectileName")
+    public String projectileName;
+    
     public WeaponData() {
         // Default constructor for Jackson
     }
     
     public WeaponData(String id, String name, WeaponType type, double velocity, int damage, int ammunition, 
                      String soundFile, double maximumRange, int weaponAccuracy, int maxAmmunition, 
-                     int reloadTicks, ReloadType reloadType) {
+                     int reloadTicks, ReloadType reloadType, String projectileName) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -60,5 +63,6 @@ public class WeaponData {
         this.maxAmmunition = maxAmmunition;
         this.reloadTicks = reloadTicks;
         this.reloadType = reloadType;
+        this.projectileName = projectileName;
     }
 }

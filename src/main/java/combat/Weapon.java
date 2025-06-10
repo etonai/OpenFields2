@@ -16,8 +16,9 @@ public class Weapon {
     public double maximumRange;
     public int weaponAccuracy;
     public WeaponType weaponType;
+    public String projectileName;
 
-    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy) {
+    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName) {
         this.name = name;
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
@@ -29,9 +30,10 @@ public class Weapon {
         this.maximumRange = maximumRange;
         this.weaponAccuracy = weaponAccuracy;
         this.weaponType = WeaponType.OTHER; // Default to OTHER
+        this.projectileName = projectileName;
     }
     
-    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, WeaponType weaponType) {
+    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName, WeaponType weaponType) {
         this.name = name;
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
@@ -43,6 +45,8 @@ public class Weapon {
         this.maximumRange = maximumRange;
         this.weaponAccuracy = weaponAccuracy;
         this.weaponType = weaponType;
+        this.projectileName = projectileName;
+
     }
 
     public String getName() {
@@ -75,4 +79,6 @@ public class Weapon {
     public WeaponState getInitialState() {
         return getStateByName(initialStateName);
     }
+
+    public String getProjectileName() { return projectileName; }
 }
