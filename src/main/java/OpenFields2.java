@@ -128,7 +128,18 @@ public class OpenFields2 extends Application implements GameCallbacks {
 
     private final Canvas canvas = new Canvas(WIDTH, HEIGHT);
     private final List<Unit> units = new ArrayList<>();
-    private Unit selected = null;
+    private Unit selected = null; // Keep for backward compatibility
+    private final List<Unit> selectedUnits = new ArrayList<>();
+    private double selectionCenterX = 0;
+    private double selectionCenterY = 0;
+    
+    // Rectangle selection state
+    private boolean isSelecting = false;
+    private double selectionStartX = 0;
+    private double selectionStartY = 0;
+    private double selectionEndX = 0; 
+    private double selectionEndY = 0;
+    
     private double offsetX = 0;
     private double offsetY = 0;
     private double zoom = 1.0;
@@ -162,110 +173,68 @@ public class OpenFields2 extends Application implements GameCallbacks {
         Pane root = new Pane(canvas);
         Scene scene = new Scene(root);
 
-        canvas.setOnMouseClicked(e -> {
+        canvas.setOnMousePressed(e -> {
             double x = (e.getX() - offsetX) / zoom;
             double y = (e.getY() - offsetY) / zoom;
-            boolean clickedOnUnit = false;
-            for (Unit u : units) {
-                if (u.contains(x, y)) {
-                    clickedOnUnit = true;
-                    if (e.getButton() == MouseButton.PRIMARY) {
-                        selected = u;
-                        System.out.println("Selected: " + u.character.getDisplayName() + " (Unit ID: " + u.id + ")");
-                    } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u == selected) {
-                        if (editMode) {
-                            System.out.println(">>> Combat actions disabled in edit mode");
-                            return;
-                        }
-                        if (selected.character.isIncapacitated()) {
-                            System.out.println(">>> " + selected.character.getDisplayName() + " is incapacitated and cannot ready weapon.");
-                            return;
-                        }
-                        
-                        selected.character.startReadyWeaponSequence(selected, gameClock.getCurrentTick(), eventQueue, selected.getId());
-                        System.out.println("READY WEAPON " + selected.character.getDisplayName() + " (Unit ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
-                    } else if (e.getButton() == MouseButton.SECONDARY && e.isShiftDown() && selected != null && u != selected) {
-                        // Shift+right-click on different unit - toggle persistent attack
-                        if (editMode) {
-                            System.out.println(">>> Combat actions disabled in edit mode");
-                            return;
-                        }
-                        if (selected.character.isIncapacitated()) {
-                            System.out.println(">>> " + selected.character.getDisplayName() + " is incapacitated.");
-                            return;
-                        }
-                        
-                        // Toggle persistent attack and set target
-                        selected.character.setPersistentAttack(!selected.character.isPersistentAttack());
-                        selected.character.currentTarget = u;
-                        
-                        if (selected.character.isPersistentAttack()) {
-                            System.out.println(selected.character.getDisplayName() + " enables persistent attack on " + u.character.getDisplayName());
-                            // Start initial attack
-                            selected.character.startAttackSequence(selected, u, gameClock.getCurrentTick(), eventQueue, selected.getId(), this);
-                        } else {
-                            System.out.println(selected.character.getDisplayName() + " disables persistent attack");
-                            selected.character.currentTarget = null;
-                        }
-                        return; // Prevent normal right-click from executing
-                    } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
-                        if (editMode) {
-                            // Show range information in edit mode
-                            double dx = u.x - selected.x;
-                            double dy = u.y - selected.y;
-                            double distancePixels = Math.hypot(dx, dy);
-                            double distanceFeet = pixelsToFeet(distancePixels);
-                            
-                            System.out.println("*** RANGE CHECK ***");
-                            System.out.println("Distance from " + selected.character.getDisplayName() + " to " + u.character.getDisplayName() + ": " + 
-                                             String.format("%.2f", distanceFeet) + " feet");
-                            
-                            if (selected.character.weapon != null) {
-                                double maxRange = selected.character.weapon.maximumRange;
-                                System.out.println("Weapon: " + selected.character.weapon.name + " (max range: " + 
-                                                 String.format("%.2f", maxRange) + " feet)");
-                                
-                                if (distanceFeet <= maxRange) {
-                                    System.out.println("Target is WITHIN range");
-                                } else {
-                                    System.out.println("Target is OUT OF RANGE (exceeds by " + 
-                                                     String.format("%.2f", distanceFeet - maxRange) + " feet)");
-                                }
-                            } else {
-                                System.out.println("No weapon equipped");
-                            }
-                            System.out.println("******************");
-                            return;
-                        }
-                        if (selected.character.isIncapacitated()) {
-                            System.out.println(">>> " + selected.character.getDisplayName() + " is incapacitated and cannot attack.");
-                            return;
-                        }
-                        
-                        selected.character.startAttackSequence(selected, u, gameClock.getCurrentTick(), eventQueue, selected.getId(), this);
-                        System.out.println("ATTACK " + selected.character.getDisplayName() + " (Unit ID: " + selected.id + ") targets " + u.character.getDisplayName() + " (Unit ID: " + u.id + ") - current state: " + selected.character.currentWeaponState.getState());
+            
+            if (e.getButton() == MouseButton.PRIMARY) {
+                // Left click - single unit selection or start rectangle selection
+                Unit clickedUnit = null;
+                for (Unit u : units) {
+                    if (u.contains(x, y)) {
+                        clickedUnit = u;
+                        break;
                     }
                 }
-            }
-            if (!clickedOnUnit && selected != null && e.getButton() == MouseButton.SECONDARY) {
-                if (!editMode && selected.character.isIncapacitated()) {
-                    System.out.println(">>> " + selected.character.getDisplayName() + " is incapacitated and cannot move.");
-                    return;
+                
+                if (clickedUnit != null) {
+                    // Single unit selection
+                    selectedUnits.clear();
+                    selectedUnits.add(clickedUnit);
+                    selected = clickedUnit; // Maintain backward compatibility
+                    calculateSelectionCenter();
+                    System.out.println("Selected: " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ")");
+                } else {
+                    // Start rectangle selection
+                    isSelecting = true;
+                    selectionStartX = x;
+                    selectionStartY = y;
+                    selectionEndX = x;
+                    selectionEndY = y;
+                }
+            } else if (e.getButton() == MouseButton.SECONDARY) {
+                // Right click - various actions based on context
+                Unit clickedUnit = null;
+                for (Unit u : units) {
+                    if (u.contains(x, y)) {
+                        clickedUnit = u;
+                        break;
+                    }
                 }
                 
-                if (editMode) {
-                    // Instant teleport in edit mode
-                    selected.x = x;
-                    selected.y = y;
-                    selected.targetX = x;
-                    selected.targetY = y;
-                    selected.hasTarget = false;
-                    selected.isStopped = false;
-                    System.out.println("TELEPORT " + selected.character.getDisplayName() + " to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
-                } else {
-                    // Normal movement with movement rules
-                    selected.setTarget(x, y);
-                    System.out.println("MOVE " + selected.character.getDisplayName() + " to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+                handleRightClick(clickedUnit, x, y, e.isShiftDown());
+            }
+        });
+        
+        canvas.setOnMouseDragged(e -> {
+            if (isSelecting) {
+                double x = (e.getX() - offsetX) / zoom;
+                double y = (e.getY() - offsetY) / zoom;
+                selectionEndX = x;
+                selectionEndY = y;
+            }
+        });
+        
+        canvas.setOnMouseReleased(e -> {
+            if (isSelecting && e.getButton() == MouseButton.PRIMARY) {
+                // Complete rectangle selection
+                findUnitsInRectangle();
+                calculateSelectionCenter();
+                isSelecting = false;
+                
+                if (!selectedUnits.isEmpty()) {
+                    selected = selectedUnits.get(0); // Maintain backward compatibility
+                    System.out.println("Selected " + selectedUnits.size() + " units");
                 }
             }
         });
@@ -306,8 +275,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 }
                 System.out.println("***********************");
             }
+            // Character stats display - disabled for multi-selection
             if (e.getCode() == KeyCode.SLASH && e.isShiftDown()) {
-                if (selected != null) {
+                if (selectedUnits.size() == 1) {
+                    Unit selected = selectedUnits.get(0);
                     System.out.println("***********************");
                     System.out.println("*** CHARACTER STATS ***");
                     System.out.println("***********************");
@@ -390,84 +361,149 @@ public class OpenFields2 extends Application implements GameCallbacks {
                                      String.format("%.1f", selected.character.getAccuracyPercentage()) + "% accuracy)");
                     System.out.println("Targets Incapacitated: " + selected.character.getTargetsIncapacitated());
                     System.out.println("***********************");
-                } else {
+                } else if (selectedUnits.isEmpty()) {
                     System.out.println("*** No character selected - select a character first ***");
+                } else {
+                    System.out.println("*** Character stats unavailable for multiple unit selection ***");
                 }
             }
             // Movement type controls - W to increase, S to decrease
-            if (e.getCode() == KeyCode.W && selected != null) {
-                combat.MovementType previousType = selected.character.getCurrentMovementType();
-                selected.character.increaseMovementType();
-                combat.MovementType newType = selected.character.getCurrentMovementType();
-                
-                // Resume movement if stopped and speed was increased
-                if (selected.isStopped) {
-                    selected.resumeMovement();
-                    if (previousType != newType) {
-                        System.out.println("*** " + selected.character.getDisplayName() + " resumes movement at " + newType.getDisplayName() + 
-                                         " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
-                    } else {
-                        System.out.println("*** " + selected.character.getDisplayName() + " resumes movement at " + newType.getDisplayName());
+            if (e.getCode() == KeyCode.W && !selectedUnits.isEmpty()) {
+                for (Unit unit : selectedUnits) {
+                    if (!unit.character.isIncapacitated()) {
+                        combat.MovementType previousType = unit.character.getCurrentMovementType();
+                        unit.character.increaseMovementType();
+                        combat.MovementType newType = unit.character.getCurrentMovementType();
+                        
+                        // Resume movement if stopped and speed was increased
+                        if (unit.isStopped) {
+                            unit.resumeMovement();
+                        }
                     }
-                } else if (previousType != newType) {
-                    System.out.println("*** " + selected.character.getDisplayName() + " movement increased to " + newType.getDisplayName() + 
-                                     " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                }
+                
+                if (selectedUnits.size() == 1) {
+                    Unit unit = selectedUnits.get(0);
+                    combat.MovementType newType = unit.character.getCurrentMovementType();
+                    System.out.println("*** " + unit.character.getDisplayName() + " movement increased to " + newType.getDisplayName() + 
+                                     " (speed: " + String.format("%.1f", unit.character.getEffectiveMovementSpeed()) + " pixels/sec)");
                 } else {
-                    System.out.println("*** " + selected.character.getDisplayName() + " is already at maximum movement type: " + newType.getDisplayName());
+                    System.out.println("*** " + selectedUnits.size() + " units movement speed increased");
                 }
             }
-            if (e.getCode() == KeyCode.S && selected != null) {
-                combat.MovementType previousType = selected.character.getCurrentMovementType();
-                
-                // If already at crawling speed and currently moving, stop movement
-                if (previousType == combat.MovementType.CRAWL && selected.isMoving()) {
-                    selected.stopMovement();
-                    System.out.println("*** " + selected.character.getDisplayName() + " stops moving");
-                } else {
-                    // Otherwise, decrease movement type normally
-                    selected.character.decreaseMovementType();
-                    combat.MovementType newType = selected.character.getCurrentMovementType();
-                    if (previousType != newType) {
-                        System.out.println("*** " + selected.character.getDisplayName() + " movement decreased to " + newType.getDisplayName() + 
-                                         " (speed: " + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
-                    } else {
-                        System.out.println("*** " + selected.character.getDisplayName() + " is already at minimum movement type: " + newType.getDisplayName());
+            if (e.getCode() == KeyCode.S && !selectedUnits.isEmpty()) {
+                for (Unit unit : selectedUnits) {
+                    if (!unit.character.isIncapacitated()) {
+                        combat.MovementType previousType = unit.character.getCurrentMovementType();
+                        
+                        // If already at crawling speed and currently moving, stop movement
+                        if (previousType == combat.MovementType.CRAWL && unit.isMoving()) {
+                            unit.stopMovement();
+                        } else {
+                            // Otherwise, decrease movement type normally
+                            unit.character.decreaseMovementType();
+                        }
                     }
+                }
+                
+                if (selectedUnits.size() == 1) {
+                    Unit unit = selectedUnits.get(0);
+                    combat.MovementType newType = unit.character.getCurrentMovementType();
+                    System.out.println("*** " + unit.character.getDisplayName() + " movement decreased to " + newType.getDisplayName() + 
+                                     " (speed: " + String.format("%.1f", unit.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                } else {
+                    System.out.println("*** " + selectedUnits.size() + " units movement speed decreased");
                 }
             }
             // Aiming speed controls - Q to increase, E to decrease
-            if (e.getCode() == KeyCode.Q && selected != null) {
-                combat.AimingSpeed previousSpeed = selected.character.getCurrentAimingSpeed();
-                selected.character.increaseAimingSpeed();
-                combat.AimingSpeed newSpeed = selected.character.getCurrentAimingSpeed();
-                if (previousSpeed != newSpeed) {
-                    System.out.println("*** " + selected.character.getDisplayName() + " aiming speed increased to " + newSpeed.getDisplayName() + 
+            if (e.getCode() == KeyCode.Q && !selectedUnits.isEmpty()) {
+                for (Unit unit : selectedUnits) {
+                    if (!unit.character.isIncapacitated()) {
+                        unit.character.increaseAimingSpeed();
+                    }
+                }
+                
+                if (selectedUnits.size() == 1) {
+                    Unit unit = selectedUnits.get(0);
+                    combat.AimingSpeed newSpeed = unit.character.getCurrentAimingSpeed();
+                    System.out.println("*** " + unit.character.getDisplayName() + " aiming speed increased to " + newSpeed.getDisplayName() + 
                                      " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
                 } else {
-                    System.out.println("*** " + selected.character.getDisplayName() + " is already at maximum aiming speed: " + newSpeed.getDisplayName());
+                    System.out.println("*** " + selectedUnits.size() + " units aiming speed increased");
                 }
             }
-            if (e.getCode() == KeyCode.E && !e.isControlDown() && selected != null) {
-                combat.AimingSpeed previousSpeed = selected.character.getCurrentAimingSpeed();
-                selected.character.decreaseAimingSpeed();
-                combat.AimingSpeed newSpeed = selected.character.getCurrentAimingSpeed();
-                if (previousSpeed != newSpeed) {
-                    System.out.println("*** " + selected.character.getDisplayName() + " aiming speed decreased to " + newSpeed.getDisplayName() + 
+            if (e.getCode() == KeyCode.E && !e.isControlDown() && !selectedUnits.isEmpty()) {
+                for (Unit unit : selectedUnits) {
+                    if (!unit.character.isIncapacitated()) {
+                        unit.character.decreaseAimingSpeed();
+                    }
+                }
+                
+                if (selectedUnits.size() == 1) {
+                    Unit unit = selectedUnits.get(0);
+                    combat.AimingSpeed newSpeed = unit.character.getCurrentAimingSpeed();
+                    System.out.println("*** " + unit.character.getDisplayName() + " aiming speed decreased to " + newSpeed.getDisplayName() + 
                                      " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
                 } else {
-                    System.out.println("*** " + selected.character.getDisplayName() + " is already at minimum aiming speed: " + newSpeed.getDisplayName());
+                    System.out.println("*** " + selectedUnits.size() + " units aiming speed decreased");
+                }
+            }
+            
+            // Group weapon ready command - R key
+            if (e.getCode() == KeyCode.R && !selectedUnits.isEmpty()) {
+                for (Unit unit : selectedUnits) {
+                    if (!unit.character.isIncapacitated()) {
+                        unit.character.startReadyWeaponSequence(unit, gameClock.getCurrentTick(), eventQueue, unit.getId());
+                    }
+                }
+                
+                if (selectedUnits.size() == 1) {
+                    Unit unit = selectedUnits.get(0);
+                    System.out.println("READY WEAPON " + unit.character.getDisplayName() + " (Unit ID: " + unit.id + ") - current state: " + 
+                                     (unit.character.currentWeaponState != null ? unit.character.currentWeaponState.getState() : "None"));
+                } else {
+                    System.out.println("READY WEAPONS " + selectedUnits.size() + " units");
                 }
             }
             
             // Automatic targeting control - Shift+T
             if (e.getCode() == KeyCode.T && e.isShiftDown()) {
-                if (selected != null) {
-                    boolean newState = !selected.character.isUsesAutomaticTargeting();
-                    selected.character.setUsesAutomaticTargeting(newState);
-                    System.out.println("*** " + selected.character.getDisplayName() + " automatic targeting " + 
-                                     (newState ? "ENABLED" : "DISABLED"));
+                if (!selectedUnits.isEmpty()) {
+                    // Toggle each unit individually (units may have different current states)
+                    int enabledCount = 0;
+                    int disabledCount = 0;
+                    
+                    for (Unit unit : selectedUnits) {
+                        if (!unit.character.isIncapacitated()) {
+                            boolean currentState = unit.character.isUsesAutomaticTargeting();
+                            boolean newState = !currentState;
+                            unit.character.setUsesAutomaticTargeting(newState);
+                            
+                            if (newState) {
+                                enabledCount++;
+                            } else {
+                                disabledCount++;
+                            }
+                        }
+                    }
+                    
+                    if (selectedUnits.size() == 1) {
+                        Unit unit = selectedUnits.get(0);
+                        boolean newState = unit.character.isUsesAutomaticTargeting();
+                        System.out.println("*** " + unit.character.getDisplayName() + " automatic targeting " + 
+                                         (newState ? "ENABLED" : "DISABLED"));
+                    } else {
+                        if (enabledCount > 0 && disabledCount > 0) {
+                            System.out.println("*** " + enabledCount + " units automatic targeting ENABLED, " + 
+                                             disabledCount + " units automatic targeting DISABLED");
+                        } else if (enabledCount > 0) {
+                            System.out.println("*** " + enabledCount + " units automatic targeting ENABLED");
+                        } else {
+                            System.out.println("*** " + disabledCount + " units automatic targeting DISABLED");
+                        }
+                    }
                 } else {
-                    System.out.println("*** No character selected - select a character first ***");
+                    System.out.println("*** No units selected - select units first ***");
                 }
             }
             
@@ -547,6 +583,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 // Update automatic targeting for characters that have it enabled
                 u.character.updateAutomaticTargeting(u, gameClock.getCurrentTick(), eventQueue, this);
             }
+            
+            // Update selection center as selected units move
+            if (!selectedUnits.isEmpty()) {
+                calculateSelectionCenter();
+            }
         }
         render();
     }
@@ -590,6 +631,150 @@ public class OpenFields2 extends Application implements GameCallbacks {
             c5.currentWeaponState = c5.weapon.getInitialState();
             c5.setFaction(1);
             units.add(new Unit(c5, 600, 100, Color.ORANGE, nextUnitId++));
+        }
+    }
+    
+    private void calculateSelectionCenter() {
+        if (selectedUnits.isEmpty()) {
+            selectionCenterX = 0;
+            selectionCenterY = 0;
+            return;
+        }
+        
+        double sumX = 0, sumY = 0;
+        for (Unit unit : selectedUnits) {
+            sumX += unit.x;
+            sumY += unit.y;
+        }
+        selectionCenterX = sumX / selectedUnits.size();
+        selectionCenterY = sumY / selectedUnits.size();
+    }
+    
+    private void findUnitsInRectangle() {
+        selectedUnits.clear();
+        
+        double minX = Math.min(selectionStartX, selectionEndX);
+        double maxX = Math.max(selectionStartX, selectionEndX);
+        double minY = Math.min(selectionStartY, selectionEndY);
+        double maxY = Math.max(selectionStartY, selectionEndY);
+        
+        for (Unit unit : units) {
+            if (unit.x >= minX && unit.x <= maxX && unit.y >= minY && unit.y <= maxY) {
+                selectedUnits.add(unit);
+            }
+        }
+    }
+    
+    private void handleRightClick(Unit clickedUnit, double x, double y, boolean isShiftDown) {
+        if (clickedUnit != null) {
+            // Right-click on a unit
+            if (selectedUnits.contains(clickedUnit) && selectedUnits.size() == 1) {
+                // Right-click on self (single selection) - ready weapon
+                if (editMode) {
+                    System.out.println(">>> Combat actions disabled in edit mode");
+                    return;
+                }
+                if (clickedUnit.character.isIncapacitated()) {
+                    System.out.println(">>> " + clickedUnit.character.getDisplayName() + " is incapacitated and cannot ready weapon.");
+                    return;
+                }
+                
+                clickedUnit.character.startReadyWeaponSequence(clickedUnit, gameClock.getCurrentTick(), eventQueue, clickedUnit.getId());
+                System.out.println("READY WEAPON " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ") - current state: " + clickedUnit.character.currentWeaponState.getState());
+            } else if (isShiftDown && !selectedUnits.isEmpty() && !selectedUnits.contains(clickedUnit)) {
+                // Shift+right-click on different unit - toggle persistent attack for all selected
+                if (editMode) {
+                    System.out.println(">>> Combat actions disabled in edit mode");
+                    return;
+                }
+                
+                for (Unit unit : selectedUnits) {
+                    if (!unit.character.isIncapacitated()) {
+                        unit.character.setPersistentAttack(!unit.character.isPersistentAttack());
+                        unit.character.currentTarget = clickedUnit;
+                        
+                        if (unit.character.isPersistentAttack()) {
+                            unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), this);
+                        } else {
+                            unit.character.currentTarget = null;
+                        }
+                    }
+                }
+                
+                boolean newState = !selectedUnits.isEmpty() && selectedUnits.get(0).character.isPersistentAttack();
+                System.out.println(selectedUnits.size() + " units " + (newState ? "enable" : "disable") + " persistent attack on " + clickedUnit.character.getDisplayName());
+            } else if (!selectedUnits.isEmpty() && !selectedUnits.contains(clickedUnit)) {
+                // Right-click on enemy unit - attack with all selected units
+                if (editMode) {
+                    // Show range information in edit mode
+                    if (selected != null) {
+                        double dx = clickedUnit.x - selected.x;
+                        double dy = clickedUnit.y - selected.y;
+                        double distancePixels = Math.hypot(dx, dy);
+                        double distanceFeet = pixelsToFeet(distancePixels);
+                        
+                        System.out.println("*** RANGE CHECK ***");
+                        System.out.println("Distance from " + selected.character.getDisplayName() + " to " + clickedUnit.character.getDisplayName() + ": " + 
+                                         String.format("%.2f", distanceFeet) + " feet");
+                        
+                        if (selected.character.weapon != null) {
+                            double maxRange = selected.character.weapon.maximumRange;
+                            System.out.println("Weapon: " + selected.character.weapon.name + " (max range: " + 
+                                             String.format("%.2f", maxRange) + " feet)");
+                            
+                            if (distanceFeet <= maxRange) {
+                                System.out.println("Target is WITHIN range");
+                            } else {
+                                System.out.println("Target is OUT OF RANGE (exceeds by " + 
+                                                 String.format("%.2f", distanceFeet - maxRange) + " feet)");
+                            }
+                        } else {
+                            System.out.println("No weapon equipped");
+                        }
+                        System.out.println("******************");
+                    }
+                    return;
+                }
+                
+                // Attack with all selected units
+                for (Unit unit : selectedUnits) {
+                    if (!unit.character.isIncapacitated() && unit != clickedUnit) {
+                        unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), this);
+                    }
+                }
+                System.out.println("ATTACK " + selectedUnits.size() + " units target " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ")");
+            }
+        } else {
+            // Right-click on empty space - movement command
+            if (selectedUnits.isEmpty()) return;
+            
+            if (editMode) {
+                // Instant teleport in edit mode
+                for (Unit unit : selectedUnits) {
+                    double deltaX = x - selectionCenterX;
+                    double deltaY = y - selectionCenterY;
+                    unit.x = unit.x + deltaX;
+                    unit.y = unit.y + deltaY;
+                    unit.targetX = unit.x;
+                    unit.targetY = unit.y;
+                    unit.hasTarget = false;
+                    unit.isStopped = false;
+                }
+                System.out.println("TELEPORT " + selectedUnits.size() + " units to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+            } else {
+                // Normal movement with movement rules - relative to selection center
+                double deltaX = x - selectionCenterX;
+                double deltaY = y - selectionCenterY;
+                
+                for (Unit unit : selectedUnits) {
+                    if (!unit.character.isIncapacitated()) {
+                        double newTargetX = unit.x + deltaX;
+                        double newTargetY = unit.y + deltaY;
+                        unit.setTarget(newTargetX, newTargetY);
+                    }
+                }
+                System.out.println("MOVE " + selectedUnits.size() + " units to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+            }
         }
     }
     
@@ -1052,24 +1237,53 @@ public class OpenFields2 extends Application implements GameCallbacks {
         
         // First pass: Draw all unit circles and basic elements
         for (Unit u : units) {
-            u.render(gc, u == selected);
+            boolean isSelected = selectedUnits.contains(u);
+            u.render(gc, isSelected);
+            
+            // Draw cyan border for multi-selected units (when more than one unit selected)
+            if (isSelected && selectedUnits.size() > 1) {
+                gc.setStroke(Color.CYAN);
+                gc.setLineWidth(2);
+                gc.strokeOval(u.x - 12, u.y - 12, 24, 24);
+            }
+        }
+        
+        // Draw selection rectangle during drag
+        if (isSelecting) {
+            double minX = Math.min(selectionStartX, selectionEndX);
+            double maxX = Math.max(selectionStartX, selectionEndX);
+            double minY = Math.min(selectionStartY, selectionEndY);
+            double maxY = Math.max(selectionStartY, selectionEndY);
+            
+            gc.setStroke(Color.WHITE);
+            gc.setLineWidth(1);
+            gc.strokeRect(minX, minY, maxX - minX, maxY - minY);
+        }
+        
+        // Draw selection center marker (black filled circle) for multi-selection
+        if (selectedUnits.size() > 1) {
+            gc.setFill(Color.BLACK);
+            gc.fillOval(selectionCenterX - 3, selectionCenterY - 3, 6, 6);
         }
         
         // Second pass: Draw target overlays that need to appear on top
-        if (selected != null && selected.character.currentTarget != null) {
-            Unit target = selected.character.currentTarget;
-            
-            if (selected.character.isPersistentAttack()) {
-                // Persistent attack: yellow X inside target
-                gc.setStroke(Color.YELLOW);
-                gc.setLineWidth(2);
-                gc.strokeLine(target.x - 5, target.y - 5, target.x + 5, target.y + 5);
-                gc.strokeLine(target.x - 5, target.y + 5, target.x + 5, target.y - 5);
-            } else {
-                // Normal attack: small white circle inside target
-                gc.setStroke(Color.WHITE);
-                gc.setLineWidth(2);
-                gc.strokeOval(target.x - 3, target.y - 3, 6, 6);
+        if (selectedUnits.size() == 1) {
+            Unit selected = selectedUnits.get(0);
+            if (selected.character.currentTarget != null) {
+                Unit target = selected.character.currentTarget;
+                
+                if (selected.character.isPersistentAttack()) {
+                    // Persistent attack: yellow X inside target
+                    gc.setStroke(Color.YELLOW);
+                    gc.setLineWidth(2);
+                    gc.strokeLine(target.x - 5, target.y - 5, target.x + 5, target.y + 5);
+                    gc.strokeLine(target.x - 5, target.y + 5, target.x + 5, target.y - 5);
+                } else {
+                    // Normal attack: small white circle inside target
+                    gc.setStroke(Color.WHITE);
+                    gc.setLineWidth(2);
+                    gc.strokeOval(target.x - 3, target.y - 3, 6, 6);
+                }
             }
         }
         
@@ -1319,6 +1533,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
         units.clear();
         eventQueue.clear();
         selected = null;
+        selectedUnits.clear();
+        selectionCenterX = 0;
+        selectionCenterY = 0;
+        isSelecting = false;
         
         // Restore game state
         gameClock.reset();
