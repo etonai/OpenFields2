@@ -57,6 +57,10 @@ public class CharacterFactory {
                 return createMarksman();
             case "brawler":
                 return createBrawler();
+            case "confederate_soldier":
+                return createConfederateSoldier();
+            case "union_soldier":
+                return createUnionSoldier();
             case "weighted_random":
                 return createWeightedRandom();
             default:
@@ -265,6 +269,86 @@ public class CharacterFactory {
         return character;
     }
     
+    private static Character createConfederateSoldier() {
+        // Use the same random stat generation as weighted_random
+        int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
+        int health1 = random.nextInt(14) + 7, health2 = random.nextInt(14) + 7; // Health between 7-20
+        int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
+        int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
+        int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
+        
+        // Calculate averages
+        int avgDexterity = (dex1 + dex2) / 2;
+        int avgHealth = (health1 + health2) / 2;
+        int avgCoolness = (cool1 + cool2) / 2;
+        int avgStrength = (str1 + str2) / 2;
+        int avgReflexes = (ref1 + ref2) / 2;
+        
+        // Random handedness
+        Handedness randomHandedness = random.nextBoolean() ? 
+            Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
+        
+        Character character = new Character(
+            0, // ID assigned by registry
+            generateName("Confederate"),
+            generateFirstName(),
+            generateLastName(),
+            generateBirthdate(),
+            null, // No theme
+            avgDexterity,
+            avgHealth,
+            avgCoolness,
+            avgStrength,
+            avgReflexes,
+            randomHandedness
+        );
+        
+        // Add rifle skill for Brown Bess
+        character.addSkill(new Skill(SkillsManager.RIFLE, 6));
+        
+        return character;
+    }
+    
+    private static Character createUnionSoldier() {
+        // Use the same random stat generation as weighted_random
+        int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
+        int health1 = random.nextInt(14) + 7, health2 = random.nextInt(14) + 7; // Health between 7-20
+        int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
+        int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
+        int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
+        
+        // Calculate averages
+        int avgDexterity = (dex1 + dex2) / 2;
+        int avgHealth = (health1 + health2) / 2;
+        int avgCoolness = (cool1 + cool2) / 2;
+        int avgStrength = (str1 + str2) / 2;
+        int avgReflexes = (ref1 + ref2) / 2;
+        
+        // Random handedness
+        Handedness randomHandedness = random.nextBoolean() ? 
+            Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
+        
+        Character character = new Character(
+            0, // ID assigned by registry
+            generateName("Union"),
+            generateFirstName(),
+            generateLastName(),
+            generateBirthdate(),
+            null, // No theme
+            avgDexterity,
+            avgHealth,
+            avgCoolness,
+            avgStrength,
+            avgReflexes,
+            randomHandedness
+        );
+        
+        // Add rifle skill for Brown Bess
+        character.addSkill(new Skill(SkillsManager.RIFLE, 6));
+        
+        return character;
+    }
+    
     // Helper methods for generating character attributes
     private static String generateName(String archetype) {
         String[] prefixes = {"", "Young ", "Old ", "Wild ", "Silent ", "Quick ", "Dead-Eye ", "Iron "};
@@ -305,7 +389,8 @@ public class CharacterFactory {
      */
     public static String[] getAvailableArchetypes() {
         return new String[]{
-            "gunslinger", "soldier", "medic", "scout", "marksman", "brawler", "balanced", "weighted_random"
+            "gunslinger", "soldier", "medic", "scout", "marksman", "brawler", 
+            "confederate_soldier", "union_soldier", "balanced", "weighted_random"
         };
     }
     
@@ -326,6 +411,10 @@ public class CharacterFactory {
                 return "Elite rifleman with exceptional accuracy";
             case "brawler":
                 return "High health and strength, prefers close combat";
+            case "confederate_soldier":
+                return "Civil War Confederate soldier with random stats and rifle training";
+            case "union_soldier":
+                return "Civil War Union soldier with random stats and rifle training";
             case "balanced":
                 return "Well-rounded character good at many things";
             case "weighted_random":

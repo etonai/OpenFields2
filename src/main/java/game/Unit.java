@@ -69,13 +69,13 @@ public class Unit {
         // Update color based on incapacitation status
         if (character.isIncapacitated()) {
             // Save current color before changing to gray (only if not already gray)
-            if (color != Color.DARKGRAY) {
+            if (color != Color.GRAY) {
                 preIncapacitationColor = color;
             }
-            color = Color.DARKGRAY;
+            color = Color.GRAY;
         } else {
             // Character is not incapacitated
-            if (color == Color.DARKGRAY) {
+            if (color == Color.GRAY) {
                 // Was incapacitated, now restore appropriate color
                 if (preIncapacitationColor != null) {
                     color = preIncapacitationColor;

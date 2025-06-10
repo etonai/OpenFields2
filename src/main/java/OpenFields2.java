@@ -602,10 +602,10 @@ public class OpenFields2 extends Application implements GameCallbacks {
                         if (slotNumber == 0) {
                             System.out.println("*** Character creation cancelled ***");
                             waitingForCharacterCreation = false;
-                        } else if (slotNumber >= 1 && slotNumber <= 8) {
+                        } else if (slotNumber >= 1 && slotNumber <= 9) {
                             createCharacterFromArchetype(slotNumber);
                         } else {
-                            System.out.println("*** Invalid archetype selection. Use 1-8 or 0 to cancel ***");
+                            System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
                         }
                     } else if (waitingForWeaponSelection) {
                         if (slotNumber == 0) {
@@ -1759,20 +1759,21 @@ public class OpenFields2 extends Application implements GameCallbacks {
         System.out.println("Select archetype:");
         System.out.println("1. Gunslinger - High dexterity, quick reflexes, pistol specialist");
         System.out.println("2. Soldier - Balanced combat stats, rifle proficiency");
-        System.out.println("3. Medic - High coolness, medicine skill, support role");
+        System.out.println("3. Weighted Random - Randomly generated stats (averaged), no skills");
         System.out.println("4. Scout - High reflexes, stealth and observation skills");
         System.out.println("5. Marksman - Excellent dexterity, rifle specialist, long-range expert");
         System.out.println("6. Brawler - High strength, close combat specialist");
-        System.out.println("7. Balanced - Well-rounded stats for versatile gameplay");
-        System.out.println("8. Weighted Random - Randomly generated stats (averaged), no skills");
+        System.out.println("7. Confederate Soldier - Civil War Confederate with Brown Bess musket");
+        System.out.println("8. Union Soldier - Civil War Union with Brown Bess musket");
+        System.out.println("9. Balanced - Well-rounded stats for versatile gameplay");
         System.out.println("0. Cancel character creation");
         System.out.println();
-        System.out.println("Enter selection (1-8, 0 to cancel): ");
+        System.out.println("Enter selection (1-9, 0 to cancel): ");
         waitingForCharacterCreation = true;
     }
     
     private void createCharacterFromArchetype(int archetypeIndex) {
-        String[] archetypes = {"gunslinger", "soldier", "medic", "scout", "marksman", "brawler", "balanced", "weighted_random"};
+        String[] archetypes = {"gunslinger", "soldier", "weighted_random", "scout", "marksman", "brawler", "confederate_soldier", "union_soldier", "balanced"};
         
         if (archetypeIndex < 1 || archetypeIndex > archetypes.length) {
             System.out.println("*** Invalid archetype selection ***");
@@ -1794,7 +1795,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 character.setFaction(1); // Default faction
                 
                 // Spawn character at camera center
-                spawnCharacterUnit(character);
+                spawnCharacterUnit(character, selectedArchetype);
                 
                 // Display character creation confirmation
                 System.out.println("*** Character created successfully! ***");
@@ -1816,7 +1817,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         waitingForCharacterCreation = false;
     }
     
-    private void spawnCharacterUnit(combat.Character character) {
+    private void spawnCharacterUnit(combat.Character character, String archetype) {
         // Calculate spawn location at camera center
         double spawnX = (-offsetX / zoom) + (WIDTH / 2.0) / zoom;
         double spawnY = (-offsetY / zoom) + (HEIGHT / 2.0) / zoom;
@@ -1840,8 +1841,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
             attempts++;
         }
         
+        // Get color based on archetype
+        Color characterColor = getColorForArchetype(archetype);
+        
         // Create and add unit
-        Unit newUnit = new Unit(character, finalX, finalY, Color.CYAN, nextUnitId++);
+        Unit newUnit = new Unit(character, finalX, finalY, characterColor, nextUnitId++);
         units.add(newUnit);
         
         // Auto-select the newly created character
@@ -1864,10 +1868,24 @@ public class OpenFields2 extends Application implements GameCallbacks {
             case "scout": 
             case "marksman":
                 return "wpn_hunting_rifle"; // Rifle
+            case "confederate_soldier":
+            case "union_soldier":
+                return "wpn_brown_bess"; // Brown Bess musket
             case "medic":
                 return "wpn_derringer"; // Backup weapon
             default:
                 return "wpn_colt_peacemaker"; // Default fallback
+        }
+    }
+    
+    private Color getColorForArchetype(String archetype) {
+        switch (archetype.toLowerCase()) {
+            case "confederate_soldier":
+                return Color.DARKGRAY; // Confederate dark gray
+            case "union_soldier":
+                return Color.BLUE; // Union blue
+            default:
+                return Color.CYAN; // Default color for other archetypes
         }
     }
     
