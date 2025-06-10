@@ -24,7 +24,7 @@ public class CombatSystemTest {
     }
     
     private Weapon createTestWeapon() {
-        Weapon weapon = new Weapon("Test Gun", 600.0, 8, 10, "/test.wav", 200.0, 10);
+        Weapon weapon = new Weapon("Test Gun", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet");
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("ready", "aiming", 15));
         weapon.states.add(new WeaponState("aiming", "firing", 60));
@@ -317,7 +317,7 @@ public class CombatSystemTest {
     
     @Test
     public void testSkillModifier_PistolWeaponNoSkill() {
-        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet", WeaponType.PISTOL);
         testShooter.weapon = pistol;
         Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
         
@@ -336,7 +336,7 @@ public class CombatSystemTest {
     
     @Test
     public void testSkillModifier_PistolWeaponWithSkill() {
-        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet", WeaponType.PISTOL);
         testShooter.weapon = pistol;
         testShooter.addSkill(new Skill(Skills.PISTOL, 75)); // 75 level pistol skill
         Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
@@ -353,7 +353,7 @@ public class CombatSystemTest {
     
     @Test
     public void testSkillModifier_RifleWeaponWithSkill() {
-        Weapon rifle = new Weapon("Test Rifle", 800.0, 12, 10, "/test.wav", 300.0, 5, WeaponType.RIFLE);
+        Weapon rifle = new Weapon("Test Rifle", 800.0, 12, 10, "/test.wav", 300.0, 5, "bullet", WeaponType.RIFLE);
         testShooter.weapon = rifle;
         testShooter.addSkill(new Skill(Skills.RIFLE, 60)); // 60 level rifle skill
         Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
@@ -370,7 +370,7 @@ public class CombatSystemTest {
     
     @Test
     public void testSkillModifier_OtherWeaponType() {
-        Weapon otherWeapon = new Weapon("Magic Wand", 30.0, 8, 20, "/magic.wav", 100.0, 20, WeaponType.OTHER);
+        Weapon otherWeapon = new Weapon("Magic Wand", 30.0, 8, 20, "/magic.wav", 100.0, 20, "magic bolt", WeaponType.OTHER);
         testShooter.weapon = otherWeapon;
         testShooter.addSkill(new Skill(Skills.PISTOL, 80)); // Has pistol skill but weapon is OTHER type
         Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
@@ -387,7 +387,7 @@ public class CombatSystemTest {
     
     @Test
     public void testSkillModifier_WrongSkillType() {
-        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet", WeaponType.PISTOL);
         testShooter.weapon = pistol;
         testShooter.addSkill(new Skill(Skills.RIFLE, 90)); // Has rifle skill but weapon is pistol
         Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
@@ -404,7 +404,7 @@ public class CombatSystemTest {
     
     @Test
     public void testSkillModifier_EdgeCases() {
-        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        Weapon pistol = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet", WeaponType.PISTOL);
         testShooter.weapon = pistol;
         Unit shooterUnit = new Unit(testShooter, 100, 100, Color.BLUE, 1);
         

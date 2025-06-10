@@ -115,7 +115,7 @@ public class AimingSpeedTest {
             Unit target = new Unit(new combat.Character("Target", 50, 80, 50, 45, 60, combat.Handedness.RIGHT_HANDED), 200, 200, Color.BLUE, 2);
             
             // Set up weapon for the test
-            Weapon testWeapon = new Weapon("Test Gun", 600.0, 8, 10, "/test.wav", 200.0, 10);
+            Weapon testWeapon = new Weapon("Test Gun", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet");
             testWeapon.states = new ArrayList<>();
             testWeapon.states.add(new WeaponState("ready", "aiming", 15));
             testWeapon.initialStateName = "ready";
@@ -175,7 +175,7 @@ public class AimingSpeedTest {
         assertEquals(AimingSpeed.NORMAL, char1.getCurrentAimingSpeed(), "Basic constructor should initialize NORMAL aiming speed");
         
         // Test constructor with weapon
-        Weapon weapon = new Weapon("TestWeapon", 500.0, 8, 10, "/test.wav", 200.0, 5);
+        Weapon weapon = new Weapon("TestWeapon", 500.0, 8, 10, "/test.wav", 200.0, 5, "bullet");
         combat.Character char2 = new combat.Character("Test2", 70, 100, 60, 50, 55, combat.Handedness.RIGHT_HANDED, weapon);
         assertEquals(AimingSpeed.NORMAL, char2.getCurrentAimingSpeed(), "Weapon constructor should initialize NORMAL aiming speed");
         

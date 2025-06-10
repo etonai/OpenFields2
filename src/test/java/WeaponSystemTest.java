@@ -30,7 +30,7 @@ public class WeaponSystemTest {
     }
     
     private Weapon createPistol() {
-        Weapon weapon = new Weapon("Test Pistol", 600.0, 7, 6, "/test.wav", 150.0, 0, WeaponType.PISTOL);
+        Weapon weapon = new Weapon("Test Pistol", 600.0, 7, 6, "/test.wav", 150.0, 0, "bullet", WeaponType.PISTOL);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
@@ -43,7 +43,7 @@ public class WeaponSystemTest {
     }
     
     private Weapon createRifle() {
-        Weapon weapon = new Weapon("Test Rifle", 800.0, 12, 10, "/test.wav", 300.0, 5, WeaponType.RIFLE);
+        Weapon weapon = new Weapon("Test Rifle", 800.0, 12, 10, "/test.wav", 300.0, 5, "bullet", WeaponType.RIFLE);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("slung", "unsling", 0));
         weapon.states.add(new WeaponState("unsling", "ready", 90));
@@ -56,7 +56,7 @@ public class WeaponSystemTest {
     }
     
     private Weapon createSheathedWeapon() {
-        Weapon weapon = new Weapon("Magic Wand", 30.0, 8, 20, "/magic.wav", 100.0, 20, WeaponType.OTHER);
+        Weapon weapon = new Weapon("Magic Wand", 30.0, 8, 20, "/magic.wav", 100.0, 20, "magic bolt", WeaponType.OTHER);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("sheathed", "unsheathing", 0));
         weapon.states.add(new WeaponState("unsheathing", "ready", 25));
@@ -382,15 +382,15 @@ public class WeaponSystemTest {
     
     @Test
     public void testWeapon_DefaultConstructorType() {
-        Weapon defaultWeapon = new Weapon("Default", 500.0, 5, 10, "/default.wav", 100.0, 0);
+        Weapon defaultWeapon = new Weapon("Default", 500.0, 5, 10, "/default.wav", 100.0, 0, "bullet");
         assertEquals(WeaponType.OTHER, defaultWeapon.getWeaponType(), "Default constructor should set weapon type to OTHER");
     }
     
     @Test
     public void testWeapon_ExplicitTypeConstructor() {
-        Weapon pistolWeapon = new Weapon("Custom Pistol", 700.0, 8, 12, "/custom.wav", 200.0, 5, WeaponType.PISTOL);
-        Weapon rifleWeapon = new Weapon("Custom Rifle", 900.0, 15, 8, "/custom.wav", 400.0, 10, WeaponType.RIFLE);
-        Weapon otherWeapon = new Weapon("Custom Other", 400.0, 6, 20, "/custom.wav", 150.0, 0, WeaponType.OTHER);
+        Weapon pistolWeapon = new Weapon("Custom Pistol", 700.0, 8, 12, "/custom.wav", 200.0, 5, "bullet", WeaponType.PISTOL);
+        Weapon rifleWeapon = new Weapon("Custom Rifle", 900.0, 15, 8, "/custom.wav", 400.0, 10, "bullet", WeaponType.RIFLE);
+        Weapon otherWeapon = new Weapon("Custom Other", 400.0, 6, 20, "/custom.wav", 150.0, 0, "magic", WeaponType.OTHER);
         
         assertEquals(WeaponType.PISTOL, pistolWeapon.getWeaponType(), "Should set PISTOL type correctly");
         assertEquals(WeaponType.RIFLE, rifleWeapon.getWeaponType(), "Should set RIFLE type correctly");

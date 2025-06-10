@@ -19,7 +19,7 @@ public class CharacterSystemTest {
     }
     
     private Weapon createTestWeapon() {
-        Weapon weapon = new Weapon("Test Weapon", 500.0, 8, 10, "/test.wav", 200.0, 5);
+        Weapon weapon = new Weapon("Test Weapon", 500.0, 8, 10, "/test.wav", 200.0, 5, "bullet");
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("ready", "aiming", 15));
         weapon.states.add(new WeaponState("aiming", "firing", 60));

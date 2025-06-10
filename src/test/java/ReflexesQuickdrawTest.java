@@ -24,7 +24,7 @@ public class ReflexesQuickdrawTest {
     }
     
     private Weapon createTestPistol() {
-        Weapon weapon = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, WeaponType.PISTOL);
+        Weapon weapon = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet", WeaponType.PISTOL);
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
