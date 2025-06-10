@@ -184,6 +184,30 @@ public class OpenFields2 extends Application implements GameCallbacks {
                         
                         selected.character.startReadyWeaponSequence(selected, gameClock.getCurrentTick(), eventQueue, selected.getId());
                         System.out.println("READY WEAPON " + selected.character.getDisplayName() + " (Unit ID: " + selected.id + ") - current state: " + selected.character.currentWeaponState.getState());
+                    } else if (e.getButton() == MouseButton.SECONDARY && e.isShiftDown() && selected != null && u != selected) {
+                        // Shift+right-click on different unit - toggle persistent attack
+                        if (editMode) {
+                            System.out.println(">>> Combat actions disabled in edit mode");
+                            return;
+                        }
+                        if (selected.character.isIncapacitated()) {
+                            System.out.println(">>> " + selected.character.getDisplayName() + " is incapacitated.");
+                            return;
+                        }
+                        
+                        // Toggle persistent attack and set target
+                        selected.character.setPersistentAttack(!selected.character.isPersistentAttack());
+                        selected.character.currentTarget = u;
+                        
+                        if (selected.character.isPersistentAttack()) {
+                            System.out.println(selected.character.getDisplayName() + " enables persistent attack on " + u.character.getDisplayName());
+                            // Start initial attack
+                            selected.character.startAttackSequence(selected, u, gameClock.getCurrentTick(), eventQueue, selected.getId(), this);
+                        } else {
+                            System.out.println(selected.character.getDisplayName() + " disables persistent attack");
+                            selected.character.currentTarget = null;
+                        }
+                        return; // Prevent normal right-click from executing
                     } else if (e.getButton() == MouseButton.SECONDARY && selected != null && u != selected) {
                         if (editMode) {
                             // Show range information in edit mode
@@ -970,12 +994,20 @@ public class OpenFields2 extends Application implements GameCallbacks {
         
         // Second pass: Draw target overlays that need to appear on top
         if (selected != null && selected.character.currentTarget != null) {
-            gc.setStroke(Color.YELLOW);
-            gc.setLineWidth(2);
-            // Draw X inside the target unit (on top of everything)
             Unit target = selected.character.currentTarget;
-            gc.strokeLine(target.x - 5, target.y - 5, target.x + 5, target.y + 5);
-            gc.strokeLine(target.x - 5, target.y + 5, target.x + 5, target.y - 5);
+            
+            if (selected.character.isPersistentAttack()) {
+                // Persistent attack: yellow X inside target
+                gc.setStroke(Color.YELLOW);
+                gc.setLineWidth(2);
+                gc.strokeLine(target.x - 5, target.y - 5, target.x + 5, target.y + 5);
+                gc.strokeLine(target.x - 5, target.y + 5, target.x + 5, target.y - 5);
+            } else {
+                // Normal attack: small white circle inside target
+                gc.setStroke(Color.WHITE);
+                gc.setLineWidth(2);
+                gc.strokeOval(target.x - 3, target.y - 3, 6, 6);
+            }
         }
         
         gc.restore();

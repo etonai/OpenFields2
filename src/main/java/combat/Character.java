@@ -30,6 +30,8 @@ public class Character {
     public Weapon weapon;
     public WeaponState currentWeaponState;
     public Unit currentTarget;
+    public boolean persistentAttack;
+    public boolean isAttacking;
     public List<Skill> skills;
     public List<Wound> wounds;
 
@@ -50,6 +52,8 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.persistentAttack = false;
+        this.isAttacking = false;
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -86,6 +90,8 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.persistentAttack = false;
+        this.isAttacking = false;
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -107,6 +113,8 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.persistentAttack = false;
+        this.isAttacking = false;
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -424,9 +432,14 @@ public class Character {
         } else if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
             currentWeaponState = weapon.getStateByName("ready");
             System.out.println(getDisplayName() + " weapon state: ready (target changed) at tick " + currentTick);
+        } else if (currentTarget == target && isAttacking) {
+            // Already attacking the same target, don't start duplicate attack
+            System.out.println(getDisplayName() + " is already attacking " + target.character.getDisplayName() + " - ignoring duplicate attack command");
+            return;
         }
         
         currentTarget = target;
+        isAttacking = true;
         scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
@@ -509,10 +522,14 @@ public class Character {
                 eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
                     if (weapon.ammunition <= 0 && canReload()) {
                         System.out.println(getDisplayName() + " is out of ammunition, starting automatic reload");
-                        startReloadSequence(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId);
+                        isAttacking = false; // Clear attacking flag during reload
+                        startReloadSequence(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId, gameCallbacks);
                     } else {
                         currentWeaponState = weapon.getStateByName("aiming");
                         System.out.println(getDisplayName() + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
+                        isAttacking = false; // Attack sequence complete
+                        // Check for persistent attack
+                        checkContinuousAttack(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId, gameCallbacks);
                     }
                 }, ownerId));
             }, ownerId));
@@ -643,7 +660,7 @@ public class Character {
         return "ready".equals(state) || "aiming".equals(state) || "recovering".equals(state);
     }
     
-    public void startReloadSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    public void startReloadSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (!canReload()) return;
         
         System.out.println(getDisplayName() + " starts reloading " + weapon.getName());
@@ -660,16 +677,18 @@ public class Character {
             
             // Continue reloading if needed for single-round weapons
             if (weapon.reloadType == ReloadType.SINGLE_ROUND && weapon.ammunition < weapon.maxAmmunition) {
-                continueReloading(unit, reloadCompleteTick, eventQueue, ownerId);
+                continueReloading(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
             } else {
                 currentWeaponState = weapon.getStateByName("ready");
                 System.out.println(getDisplayName() + " finished reloading " + weapon.getName() + 
                                  " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+                // Check for persistent attack after reload
+                checkContinuousAttack(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
             }
         }, ownerId));
     }
     
-    private void continueReloading(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    private void continueReloading(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || weapon.ammunition >= weapon.maxAmmunition) {
             currentWeaponState = weapon.getStateByName("ready");
             return;
@@ -685,11 +704,13 @@ public class Character {
             
             // Continue reloading if still not full
             if (weapon.ammunition < weapon.maxAmmunition) {
-                continueReloading(unit, reloadCompleteTick, eventQueue, ownerId);
+                continueReloading(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
             } else {
                 currentWeaponState = weapon.getStateByName("ready");
                 System.out.println(getDisplayName() + " finished reloading " + weapon.getName() + 
                                  " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+                // Check for persistent attack after reload
+                checkContinuousAttack(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
             }
         }, ownerId));
     }
@@ -706,5 +727,43 @@ public class Character {
         } else {
             weapon.ammunition = weapon.maxAmmunition;
         }
+    }
+    
+    public boolean isPersistentAttack() {
+        return persistentAttack;
+    }
+    
+    public void setPersistentAttack(boolean persistentAttack) {
+        this.persistentAttack = persistentAttack;
+    }
+    
+    private void checkContinuousAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        if (!persistentAttack) return;
+        if (currentTarget == null) return;
+        if (currentTarget.character.isIncapacitated()) {
+            System.out.println(getDisplayName() + " stops persistent attack - target incapacitated");
+            persistentAttack = false;
+            currentTarget = null;
+            isAttacking = false;
+            return;
+        }
+        if (this.isIncapacitated()) {
+            System.out.println(getDisplayName() + " stops persistent attack - incapacitated");
+            persistentAttack = false;
+            currentTarget = null;
+            isAttacking = false;
+            return;
+        }
+        if (weapon == null) {
+            persistentAttack = false;
+            currentTarget = null;
+            isAttacking = false;
+            return;
+        }
+        
+        // Continue attacking
+        System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (persistent mode)");
+        isAttacking = true;
+        scheduleAttackFromCurrentState(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
     }
 }
