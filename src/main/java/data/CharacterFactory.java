@@ -6,13 +6,29 @@ import combat.Skill;
 import java.util.Date;
 import java.util.Calendar;
 import java.util.Random;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.FileReader;
+import java.io.IOException;
 
 /**
  * Factory for creating characters with pre-defined archetypes and themes
  */
 public class CharacterFactory {
     private static final Random random = new Random();
+    
+    // CSV-based name data cache
+    private static List<String> weightedMaleNames = null;
+    private static boolean csvNamesLoaded = false;
     private static final UniversalCharacterRegistry registry = UniversalCharacterRegistry.getInstance();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ThemeManager themeManager = ThemeManager.getInstance();
     
     /**
      * Creates a character and registers it in the universal registry
@@ -351,22 +367,93 @@ public class CharacterFactory {
     
     // Helper methods for generating character attributes
     private static String generateName(String archetype) {
-        String[] prefixes = {"", "Young ", "Old ", "Wild ", "Silent ", "Quick ", "Dead-Eye ", "Iron "};
-        String[] suffixes = {"", " Jr.", " Sr.", " the Bold", " the Wise", " the Swift"};
-        
-        return prefixes[random.nextInt(prefixes.length)] + archetype + 
-               suffixes[random.nextInt(suffixes.length)];
+        // Generate a first name from CSV data, nickname matches firstName
+        String firstName = generateCSVBasedFirstName();
+        return firstName; // Nickname matches firstName as requested
+    }
+    
+    /**
+     * Generate an appropriate nickname based on first name and theme
+     */
+    private static String generateNicknameFromFirstName(String firstName, String themeId) {
+        try {
+            InputStream is = CharacterFactory.class.getResourceAsStream("/data/themes/" + themeId + "/names.json");
+            if (is == null) {
+                return firstName; // Fallback to first name
+            }
+            
+            JsonNode root = objectMapper.readTree(is);
+            JsonNode nicknames = root.get("nicknames");
+            
+            if (nicknames == null || !nicknames.has(firstName)) {
+                return firstName; // No nicknames available, use first name
+            }
+            
+            JsonNode nameNicknames = nicknames.get(firstName);
+            if (nameNicknames.isArray() && nameNicknames.size() > 0) {
+                // 50% chance to use nickname vs first name
+                if (random.nextBoolean()) {
+                    int index = random.nextInt(nameNicknames.size());
+                    return nameNicknames.get(index).asText();
+                } else {
+                    return firstName;
+                }
+            }
+            
+            return firstName;
+            
+        } catch (Exception e) {
+            return firstName; // Fallback to first name
+        }
     }
     
     private static String generateFirstName() {
-        String[] maleNames = {"John", "William", "James", "Charles", "George", "Frank", "Joseph", "Thomas", "Henry", "Robert", "Edward", "Samuel", "David", "Walter", "Arthur", "Albert"};
-        String[] femaleNames = {"Mary", "Anna", "Emma", "Elizabeth", "Margaret", "Minnie", "Ida", "Bertha", "Clara", "Alice", "Annie", "Florence", "Bessie", "Grace", "Ethel", "Sarah"};
-        
-        if (random.nextBoolean()) {
-            return maleNames[random.nextInt(maleNames.length)];
-        } else {
-            return femaleNames[random.nextInt(femaleNames.length)];
+        return generateCSVBasedFirstName();
+    }
+    
+    /**
+     * Generate a theme-based first name using frequency-weighted selection
+     */
+    private static String generateThemeBasedFirstName(String themeId) {
+        try {
+            InputStream is = CharacterFactory.class.getResourceAsStream("/data/themes/" + themeId + "/names.json");
+            if (is == null) {
+                return generateFallbackFirstName();
+            }
+            
+            JsonNode root = objectMapper.readTree(is);
+            JsonNode maleNames = root.get("maleNames");
+            
+            if (maleNames == null) {
+                return generateFallbackFirstName();
+            }
+            
+            // Create weighted list for frequency-based selection
+            List<String> weightedNames = new ArrayList<>();
+            maleNames.fields().forEachRemaining(entry -> {
+                String name = entry.getKey();
+                double frequency = entry.getValue().asDouble();
+                int weight = Math.max(1, (int) Math.round(frequency * 10)); // Scale frequency to integer weight
+                
+                for (int i = 0; i < weight; i++) {
+                    weightedNames.add(name);
+                }
+            });
+            
+            if (weightedNames.isEmpty()) {
+                return generateFallbackFirstName();
+            }
+            
+            return weightedNames.get(random.nextInt(weightedNames.size()));
+            
+        } catch (Exception e) {
+            return generateFallbackFirstName();
         }
+    }
+    
+    private static String generateFallbackFirstName() {
+        String[] maleNames = {"John", "William", "James", "Charles", "George", "Frank", "Joseph", "Thomas", "Henry", "Robert"};
+        return maleNames[random.nextInt(maleNames.length)];
     }
     
     private static String generateLastName() {
@@ -374,12 +461,144 @@ public class CharacterFactory {
         return lastNames[random.nextInt(lastNames.length)];
     }
     
+    /**
+     * Load male names from 1880USNames.csv with frequency weighting
+     */
+    private static void loadCSVNames() {
+        if (csvNamesLoaded) {
+            return; // Already loaded
+        }
+        
+        weightedMaleNames = new ArrayList<>();
+        
+        // Try multiple possible paths for the CSV file
+        String[] possiblePaths = {
+            "1880USNames.csv",
+            "../1880USNames.csv",
+            "/mnt/c/dev/TTCombat/OF2Prototype01/1880USNames.csv"
+        };
+        
+        boolean fileFound = false;
+        for (String path : possiblePaths) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
+                System.out.println("Successfully opened CSV file at: " + path);
+                
+                String line;
+                boolean isHeader = true;
+                
+                while ((line = reader.readLine()) != null) {
+                    if (isHeader) {
+                        isHeader = false;
+                        continue; // Skip header row
+                    }
+                    
+                    String[] parts = line.split(",");
+                    if (parts.length >= 3) {
+                        String maleName = parts[1].trim();
+                        String maleCountStr = parts[2].trim().replaceAll("\"", "").replaceAll(",", "");
+                        
+                        try {
+                            int count = Integer.parseInt(maleCountStr);
+                            
+                            // Add name to weighted list based on frequency
+                            // Scale down the count to avoid massive lists (divide by 1000, minimum 1)
+                            int weight = Math.max(1, count / 1000);
+                            
+                            for (int i = 0; i < weight; i++) {
+                                weightedMaleNames.add(maleName);
+                            }
+                        } catch (NumberFormatException e) {
+                            System.err.println("Failed to parse count for name " + maleName + ": " + maleCountStr);
+                        }
+                    }
+                }
+                
+                fileFound = true;
+                csvNamesLoaded = true;
+                System.out.println("Loaded " + weightedMaleNames.size() + " weighted male names from 1880USNames.csv");
+                break;
+                
+            } catch (IOException e) {
+                // Try next path
+                System.err.println("Could not open CSV at " + path + ": " + e.getMessage());
+            }
+        }
+        
+        if (!fileFound) {
+            System.err.println("Failed to load 1880USNames.csv from any location, using fallback names");
+            // Fall back to hardcoded names
+            weightedMaleNames = new ArrayList<>();
+            String[] fallbackNames = {"John", "William", "James", "George", "Charles", "Frank", "Joseph", "Henry", "Robert", "Thomas"};
+            for (String name : fallbackNames) {
+                for (int i = 0; i < 10; i++) { // Add each name 10 times for weighting
+                    weightedMaleNames.add(name);
+                }
+            }
+            csvNamesLoaded = true;
+        }
+    }
+    
+    /**
+     * Generate a random male name from 1880 US Census data with frequency weighting
+     */
+    private static String generateCSVBasedFirstName() {
+        loadCSVNames(); // Ensure names are loaded
+        
+        if (weightedMaleNames.isEmpty()) {
+            return "John"; // Final fallback
+        }
+        
+        return weightedMaleNames.get(random.nextInt(weightedMaleNames.size()));
+    }
+    
     private static Date generateBirthdate() {
+        return generateBirthdateForTheme(themeManager.getCurrentThemeId());
+    }
+    
+    /**
+     * Generate a theme-based birthdate for ages 18-45 based on theme's currentDate
+     */
+    private static Date generateBirthdateForTheme(String themeId) {
+        ThemeData theme = themeManager.getTheme(themeId);
+        if (theme == null) {
+            return generateFallbackBirthdate();
+        }
+        
+        try {
+            // Use theme's currentDate and calculate appropriate birthdate
+            Date currentDate = theme.currentDate;
+            Calendar current = Calendar.getInstance();
+            
+            if (currentDate != null) {
+                current.setTime(currentDate);
+            } else {
+                // Fallback based on theme ID
+                if (themeId.equals("test_theme")) {
+                    current.set(1881, Calendar.JUNE, 9);
+                } else if (themeId.equals("civil_war")) {
+                    current.set(1861, Calendar.APRIL, 16);
+                } else {
+                    return generateFallbackBirthdate();
+                }
+            }
+            
+            // Generate age between 18-45
+            int age = 18 + random.nextInt(28);
+            Calendar birthdate = Calendar.getInstance();
+            birthdate.setTime(current.getTime());
+            birthdate.add(Calendar.YEAR, -age);
+            
+            return birthdate.getTime();
+        } catch (Exception e) {
+            return generateFallbackBirthdate();
+        }
+    }
+    
+    private static Date generateFallbackBirthdate() {
         Calendar cal = Calendar.getInstance();
-        // Generate birthdate between 1850-1870 for a western theme feel
         int year = 1850 + random.nextInt(20);
         int month = random.nextInt(12);
-        int day = 1 + random.nextInt(28); // Avoid month-end issues
+        int day = 1 + random.nextInt(28);
         cal.set(year, month, day);
         return cal.getTime();
     }

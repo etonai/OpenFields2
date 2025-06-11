@@ -1,0 +1,17 @@
+{
+  "theme": {
+    "id": "civil_war",
+    "name": "Civil War Theme",
+    "description": "American Civil War era theme with Union Army equipment focus",
+    "version": "1.0",
+    "author": "OpenFields2",
+    "createdDate": "2025-06-10",
+    "currentDate": "April 16, 1861",
+    "compatibleGameVersion": "1.0",
+    "tags": ["civil war", "historical", "1860s", "union"],
+    "resources": {
+      "weapons": "weapons.json",
+      "weaponTypes": "weapon-types.json"
+    }
+  }
+}

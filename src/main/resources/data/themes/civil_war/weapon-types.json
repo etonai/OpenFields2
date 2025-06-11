@@ -1,0 +1,40 @@
+{
+  "weaponTypes": {
+    "PISTOL": {
+      "initialState": "holstered",
+      "states": [
+        {"state": "holstered", "action": "drawing", "ticks": 0},
+        {"state": "drawing", "action": "ready", "ticks": 60},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 30},
+        {"state": "reloading", "action": "ready", "ticks": 60}
+      ]
+    },
+    "RIFLE": {
+      "initialState": "slung",
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 180}
+      ]
+    },
+    "OTHER": {
+      "initialState": "sheathed",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "ready", "ticks": 50},
+        {"state": "ready", "action": "aiming", "ticks": 10},
+        {"state": "aiming", "action": "firing", "ticks": 25},
+        {"state": "firing", "action": "recovering", "ticks": 8},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 90}
+      ]
+    }
+  }
+}

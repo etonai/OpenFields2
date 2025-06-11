@@ -47,6 +47,21 @@ public class Character {
     public int attacksAttempted = 0;            // Auto-updated when attacks are attempted
     public int attacksSuccessful = 0;           // Auto-updated when attacks hit
     public int targetsIncapacitated = 0;        // Auto-updated when targets become incapacitated
+    
+    // Headshot Statistics
+    public int headshotsAttempted = 0;          // Auto-updated when attacks target the head
+    public int headshotsSuccessful = 0;         // Auto-updated when headshots hit
+    public int headshotsKills = 0;              // Auto-updated when headshots result in kills
+    
+    // Automatic firing state
+    public boolean isAutomaticFiring = false;   // Currently in automatic firing mode
+    public int burstShotsFired = 0;             // Number of shots fired in current burst
+    public long lastAutomaticShot = 0;          // Tick of last automatic shot
+    
+    // Hesitation state
+    public boolean isHesitating = false;        // Currently hesitating due to wound
+    public long hesitationEndTick = 0;          // When hesitation will end
+    public List<ScheduledEvent> pausedEvents = new ArrayList<>(); // Events paused during hesitation
 
     // Legacy constructors for backwards compatibility with tests
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
@@ -422,9 +437,21 @@ public class Character {
         this.wounds = wounds != null ? wounds : new ArrayList<>();
     }
     
+    public void addWound(Wound wound, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        wounds.add(wound);
+        woundsReceived++;
+        
+        // Don't add hesitation for incapacitated characters
+        if (!isIncapacitated()) {
+            triggerHesitation(wound.severity, currentTick, eventQueue, ownerId);
+        }
+    }
+    
+    // Backwards compatibility for existing calls
     public void addWound(Wound wound) {
         wounds.add(wound);
         woundsReceived++;
+        // Note: Hesitation will not be triggered without event queue context
     }
     
     public boolean isIncapacitated() {
@@ -880,10 +907,99 @@ public class Character {
             return;
         }
         
-        // Continue attacking
-        System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (persistent mode)");
-        isAttacking = true;
-        scheduleAttackFromCurrentState(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
+        // Handle different firing modes for continuous attacks
+        handleContinuousFiring(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
+    }
+    
+    private void handleContinuousFiring(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        if (weapon == null || weapon.currentFiringMode == null) {
+            // Default behavior for weapons without firing modes
+            continueStandardAttack(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
+            return;
+        }
+        
+        switch (weapon.currentFiringMode) {
+            case SINGLE_SHOT:
+                // Single shot mode - use standard firing delay
+                continueStandardAttack(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
+                break;
+                
+            case BURST:
+                // Burst mode - fire predetermined number of rounds quickly
+                handleBurstFiring(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
+                break;
+                
+            case FULL_AUTO:
+                // Full auto mode - continuous firing at cyclic rate
+                handleFullAutoFiring(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
+                break;
+        }
+    }
+    
+    private void continueStandardAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        if (weapon.firingDelay > 0) {
+            long nextAttackTick = currentTick + weapon.firingDelay;
+            eventQueue.add(new ScheduledEvent(nextAttackTick, () -> {
+                if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
+                    System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (single shot) after " + weapon.firingDelay + " tick delay");
+                    isAttacking = true;
+                    scheduleAttackFromCurrentState(shooter, currentTarget, nextAttackTick, eventQueue, ownerId, gameCallbacks);
+                }
+            }, ownerId));
+        } else {
+            System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (single shot)");
+            isAttacking = true;
+            scheduleAttackFromCurrentState(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
+        }
+    }
+    
+    private void handleBurstFiring(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        if (!isAutomaticFiring) {
+            // Start new burst
+            isAutomaticFiring = true;
+            burstShotsFired = 1; // First shot already fired
+            lastAutomaticShot = currentTick;
+            System.out.println(getDisplayName() + " starts burst firing (" + burstShotsFired + "/" + weapon.burstSize + ")");
+        }
+        
+        if (burstShotsFired < weapon.burstSize) {
+            // Continue burst at cyclic rate
+            long nextShotTick = currentTick + weapon.cyclicRate;
+            eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
+                if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
+                    burstShotsFired++;
+                    lastAutomaticShot = nextShotTick;
+                    System.out.println(getDisplayName() + " burst fires shot " + burstShotsFired + "/" + weapon.burstSize);
+                    isAttacking = true;
+                    scheduleAttackFromCurrentState(shooter, currentTarget, nextShotTick, eventQueue, ownerId, gameCallbacks);
+                }
+            }, ownerId));
+        } else {
+            // Burst complete, reset for next trigger pull
+            isAutomaticFiring = false;
+            burstShotsFired = 0;
+            System.out.println(getDisplayName() + " completes burst firing");
+        }
+    }
+    
+    private void handleFullAutoFiring(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        isAutomaticFiring = true;
+        lastAutomaticShot = currentTick;
+        
+        // Schedule next shot at cyclic rate
+        long nextShotTick = currentTick + weapon.cyclicRate;
+        eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
+            if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
+                System.out.println(getDisplayName() + " continues full-auto firing at " + currentTarget.character.getDisplayName());
+                lastAutomaticShot = nextShotTick;
+                isAttacking = true;
+                scheduleAttackFromCurrentState(shooter, currentTarget, nextShotTick, eventQueue, ownerId, gameCallbacks);
+            } else {
+                // Stop automatic firing if conditions not met
+                isAutomaticFiring = false;
+                System.out.println(getDisplayName() + " stops full-auto firing");
+            }
+        }, ownerId));
     }
     
     public boolean isUsesAutomaticTargeting() {
@@ -931,5 +1047,129 @@ public class Character {
     
     public int getTargetsIncapacitated() {
         return targetsIncapacitated;
+    }
+    
+    // Headshot Statistics Getters
+    public int getHeadshotsAttempted() {
+        return headshotsAttempted;
+    }
+    
+    public int getHeadshotsSuccessful() {
+        return headshotsSuccessful;
+    }
+    
+    public double getHeadshotAccuracyPercentage() {
+        return headshotsAttempted > 0 ? (headshotsSuccessful * 100.0 / headshotsAttempted) : 0.0;
+    }
+    
+    public int getHeadshotsKills() {
+        return headshotsKills;
+    }
+    
+    // Firing mode management
+    public void cycleFiringMode() {
+        if (weapon != null) {
+            weapon.cycleFiringMode();
+        }
+    }
+    
+    public String getCurrentFiringMode() {
+        if (weapon != null) {
+            return weapon.getFiringModeDisplayName();
+        }
+        return "N/A";
+    }
+    
+    public boolean hasMultipleFiringModes() {
+        return weapon != null && weapon.hasMultipleFiringModes();
+    }
+    
+    // Hesitation mechanics
+    private void triggerHesitation(WoundSeverity woundSeverity, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        // Calculate hesitation duration based on wound severity
+        long hesitationDuration = calculateHesitationDuration(woundSeverity);
+        
+        if (hesitationDuration <= 0) {
+            return; // No hesitation for scratch wounds
+        }
+        
+        // If already hesitating, extend the hesitation (stack)
+        if (isHesitating) {
+            hesitationEndTick = Math.max(hesitationEndTick, currentTick + hesitationDuration);
+            System.out.println(">>> HESITATION EXTENDED: " + getDisplayName() + " hesitation extended due to additional " + woundSeverity.name().toLowerCase() + " wound");
+        } else {
+            // Start new hesitation
+            isHesitating = true;
+            hesitationEndTick = currentTick + hesitationDuration;
+            System.out.println(">>> HESITATION STARTED: " + getDisplayName() + " begins hesitating for " + hesitationDuration + " ticks due to " + woundSeverity.name().toLowerCase() + " wound");
+            
+            // Pause current actions by removing character's events and storing them
+            pauseCurrentActions(eventQueue, ownerId);
+            
+            // Stop automatic firing if in progress
+            if (isAutomaticFiring) {
+                isAutomaticFiring = false;
+                burstShotsFired = 0;
+                System.out.println(">>> " + getDisplayName() + " automatic firing interrupted by wound");
+            }
+        }
+        
+        // Schedule hesitation end event
+        eventQueue.add(new ScheduledEvent(hesitationEndTick, () -> {
+            endHesitation(currentTick, eventQueue, ownerId);
+        }, ownerId));
+    }
+    
+    private long calculateHesitationDuration(WoundSeverity woundSeverity) {
+        switch (woundSeverity) {
+            case LIGHT:
+                return 15; // 1/4 second (15 ticks)
+            case SERIOUS:
+            case CRITICAL:
+                return 60; // 1 second (60 ticks)
+            case SCRATCH:
+            default:
+                return 0; // No hesitation for scratches
+        }
+    }
+    
+    private void pauseCurrentActions(java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        // Find and remove all events belonging to this character
+        List<ScheduledEvent> toRemove = new ArrayList<>();
+        for (ScheduledEvent event : eventQueue) {
+            if (event.getOwnerId() == ownerId) {
+                toRemove.add(event);
+            }
+        }
+        
+        // Store paused events for later restoration
+        pausedEvents.addAll(toRemove);
+        
+        // Remove from event queue
+        eventQueue.removeAll(toRemove);
+        
+        if (!toRemove.isEmpty()) {
+            System.out.println(">>> " + getDisplayName() + " paused " + toRemove.size() + " scheduled actions due to hesitation");
+        }
+    }
+    
+    private void endHesitation(long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        if (!isHesitating) {
+            return; // Already ended
+        }
+        
+        isHesitating = false;
+        System.out.println(">>> HESITATION ENDED: " + getDisplayName() + " recovers from hesitation at tick " + currentTick);
+        
+        // Note: We don't automatically resume paused actions since they may no longer be valid
+        // The character will need to restart actions (aiming, movement, etc.) from their current state
+        pausedEvents.clear();
+        
+        // Reset attack state to allow new commands
+        isAttacking = false;
+    }
+    
+    public boolean isCurrentlyHesitating(long currentTick) {
+        return isHesitating && currentTick < hesitationEndTick;
     }
 }

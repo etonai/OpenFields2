@@ -13,7 +13,8 @@
       "projectileName": "bullet",
       "soundFile": "/Slap0003.wav",
       "maximumRange": 150.0,
-      "weaponAccuracy": 0
+      "weaponAccuracy": 0,
+      "firingDelay": 30
     },
     "wpn_derringer": {
       "id": "wpn_derringer",
@@ -28,7 +29,8 @@
       "projectileName": "bullet",
       "soundFile": "/Slap0003.wav",
       "maximumRange": 50.0,
-      "weaponAccuracy": -10
+      "weaponAccuracy": -10,
+      "firingDelay": 30
     },
     "wpn_plasma_pistol": {
       "id": "wpn_plasma_pistol",
@@ -43,7 +45,8 @@
       "projectileName": "plasma bolt",
       "soundFile": "/placeholder_laser.wav",
       "maximumRange": 500.0,
-      "weaponAccuracy": 20
+      "weaponAccuracy": 20,
+      "firingDelay": 10
     },
     "wpn_wand_of_magic_bolts": {
       "id": "wpn_wand_of_magic_bolts",
@@ -58,7 +61,8 @@
       "projectileName": "magic bolt",
       "soundFile": "/magic.wav",
       "maximumRange": 100.0,
-      "weaponAccuracy": 20
+      "weaponAccuracy": 20,
+      "firingDelay": 10
     },
     "wpn_hunting_rifle": {
       "id": "wpn_hunting_rifle",
@@ -73,7 +77,8 @@
       "projectileName": "rifle bullet",
       "soundFile": "/Slap0003.wav",
       "maximumRange": 300.0,
-      "weaponAccuracy": 15
+      "weaponAccuracy": 15,
+      "firingDelay": 10
     },
     "wpn_magic_sword": {
       "id": "wpn_magic_sword",
@@ -88,7 +93,8 @@
       "projectileName": "magic_strike",
       "soundFile": "/magic.wav",
       "maximumRange": 5.0,
-      "weaponAccuracy": 25
+      "weaponAccuracy": 25,
+      "firingDelay": 0
     },
     "wpn_brown_bess": {
       "id": "wpn_brown_bess",
@@ -103,7 +109,139 @@
       "projectileName": "musket ball",
       "soundFile": "/Slap0003.wav",
       "maximumRange": 300.0,
-      "weaponAccuracy": -10
+      "weaponAccuracy": -10,
+      "firingDelay": 60
+    },
+    "wpn_lee_enfield": {
+      "id": "wpn_lee_enfield",
+      "name": "Lee-Enfield SMLE",
+      "type": "RIFLE",
+      "velocity": 2440.0,
+      "damage": 12,
+      "ammunition": 10,
+      "maxAmmunition": 10,
+      "reloadTicks": 180,
+      "reloadType": "FULL_MAGAZINE",
+      "projectileName": ".303 British round",
+      "soundFile": "/Slap0003.wav",
+      "maximumRange": 800.0,
+      "weaponAccuracy": 20,
+      "firingDelay": 30
+    },
+    "wpn_m1_garand": {
+      "id": "wpn_m1_garand",
+      "name": "M1 Garand",
+      "type": "RIFLE",
+      "velocity": 2800.0,
+      "damage": 11,
+      "ammunition": 8,
+      "maxAmmunition": 8,
+      "reloadTicks": 120,
+      "reloadType": "FULL_MAGAZINE",
+      "projectileName": ".30-06 round",
+      "soundFile": "/Slap0003.wav",
+      "maximumRange": 700.0,
+      "weaponAccuracy": 18,
+      "firingDelay": 20
+    },
+    "wpn_longbow": {
+      "id": "wpn_longbow",
+      "name": "English Longbow",
+      "type": "RIFLE",
+      "velocity": 150.0,
+      "damage": 8,
+      "ammunition": 1,
+      "maxAmmunition": 1,
+      "reloadTicks": 300,
+      "reloadType": "SINGLE_ROUND",
+      "projectileName": "arrow",
+      "soundFile": "/Slap0003.wav",
+      "maximumRange": 350.0,
+      "weaponAccuracy": 5,
+      "firingDelay": 180
+    },
+    "wpn_crossbow": {
+      "id": "wpn_crossbow",
+      "name": "Heavy Crossbow",
+      "type": "RIFLE",
+      "velocity": 350.0,
+      "damage": 10,
+      "ammunition": 1,
+      "maxAmmunition": 1,
+      "reloadTicks": 600,
+      "reloadType": "SINGLE_ROUND",
+      "projectileName": "crossbow bolt",
+      "soundFile": "/Slap0003.wav",
+      "maximumRange": 300.0,
+      "weaponAccuracy": 10,
+      "firingDelay": 300
+    },
+    "wpn_dagger": {
+      "id": "wpn_dagger",
+      "name": "Steel Dagger",
+      "type": "OTHER",
+      "velocity": 25.0,
+      "damage": 6,
+      "ammunition": 999,
+      "maxAmmunition": 999,
+      "reloadTicks": 0,
+      "reloadType": "FULL_MAGAZINE",
+      "projectileName": "stab",
+      "soundFile": "/magic.wav",
+      "maximumRange": 3.0,
+      "weaponAccuracy": 15,
+      "firingDelay": 90
+    },
+    "wpn_sword": {
+      "id": "wpn_sword",
+      "name": "Longsword",
+      "type": "OTHER",
+      "velocity": 30.0,
+      "damage": 12,
+      "ammunition": 999,
+      "maxAmmunition": 999,
+      "reloadTicks": 0,
+      "reloadType": "FULL_MAGAZINE",
+      "projectileName": "sword strike",
+      "soundFile": "/magic.wav",
+      "maximumRange": 5.0,
+      "weaponAccuracy": 10,
+      "firingDelay": 120
+    },
+    "wpn_battleaxe": {
+      "id": "wpn_battleaxe",
+      "name": "Battle Axe",
+      "type": "OTHER",
+      "velocity": 20.0,
+      "damage": 18,
+      "ammunition": 999,
+      "maxAmmunition": 999,
+      "reloadTicks": 0,
+      "reloadType": "FULL_MAGAZINE",
+      "projectileName": "axe strike",
+      "soundFile": "/magic.wav",
+      "maximumRange": 4.0,
+      "weaponAccuracy": 5,
+      "firingDelay": 180
+    },
+    "wpn_uzi": {
+      "id": "wpn_uzi",
+      "name": "Uzi Submachine Gun",
+      "type": "PISTOL",
+      "velocity": 1300.0,
+      "damage": 7,
+      "ammunition": 32,
+      "maxAmmunition": 32,
+      "reloadTicks": 120,
+      "reloadType": "FULL_MAGAZINE",
+      "projectileName": "9mm round",
+      "soundFile": "/Slap0003.wav",
+      "maximumRange": 200.0,
+      "weaponAccuracy": 0,
+      "firingDelay": 6,
+      "cyclicRate": 6,
+      "burstSize": 3,
+      "availableFiringModes": ["SINGLE_SHOT", "BURST", "FULL_AUTO"]
     }
   }
 }

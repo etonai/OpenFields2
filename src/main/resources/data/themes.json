@@ -7,6 +7,14 @@
       "version": "1.0",
       "author": "OpenFields2",
       "dataPath": "themes/test_theme"
+    },
+    "civil_war": {
+      "id": "civil_war",
+      "name": "Civil War Theme",
+      "description": "American Civil War era theme with Union Army equipment focus",
+      "version": "1.0",
+      "author": "OpenFields2",
+      "dataPath": "themes/civil_war"
     }
   },
   "defaultTheme": "test_theme"

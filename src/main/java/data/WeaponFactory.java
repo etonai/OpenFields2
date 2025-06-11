@@ -37,6 +37,13 @@ public class WeaponFactory {
         weapon.maxAmmunition = weaponData.maxAmmunition;
         weapon.reloadTicks = weaponData.reloadTicks;
         weapon.reloadType = weaponData.reloadType;
+        weapon.firingDelay = weaponData.firingDelay;
+        
+        // Set automatic firing properties from data
+        weapon.cyclicRate = weaponData.cyclicRate;
+        weapon.burstSize = weaponData.burstSize;
+        weapon.availableFiringModes = new ArrayList<>(weaponData.availableFiringModes);
+        weapon.currentFiringMode = weaponData.availableFiringModes.get(0); // Default to first available mode
         
         // Set up the weapon states from the weapon type definition
         weapon.states = new ArrayList<>();

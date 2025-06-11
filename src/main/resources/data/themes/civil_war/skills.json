@@ -1,0 +1,40 @@
+{
+  "skills": {
+    "skl_pistol": {
+      "id": "skl_pistol",
+      "name": "Pistol",
+      "description": "Handgun proficiency for accuracy and handling",
+      "maxLevel": 10,
+      "effectType": "WEAPON_ACCURACY",
+      "effectValue": 5.0,
+      "appliesTo": ["PISTOL"]
+    },
+    "skl_rifle": {
+      "id": "skl_rifle",
+      "name": "Rifle", 
+      "description": "Long gun proficiency for rifles and similar weapons",
+      "maxLevel": 10,
+      "effectType": "WEAPON_ACCURACY",
+      "effectValue": 5.0,
+      "appliesTo": ["RIFLE"]
+    },
+    "skl_quickdraw": {
+      "id": "skl_quickdraw",
+      "name": "Quickdraw",
+      "description": "Speed of weapon readying and drawing",
+      "maxLevel": 10,
+      "effectType": "READY_SPEED",
+      "effectValue": 8.0,
+      "appliesTo": ["PISTOL", "RIFLE", "OTHER"]
+    },
+    "skl_medicine": {
+      "id": "skl_medicine",
+      "name": "Medicine",
+      "description": "Healing and wound treatment capabilities",
+      "maxLevel": 10,
+      "effectType": "HEALING",
+      "effectValue": 1.0,
+      "appliesTo": []
+    }
+  }
+}

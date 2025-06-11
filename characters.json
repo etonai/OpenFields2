@@ -1,0 +1,119 @@
+{
+  "nextCharacterId" : 1006,
+  "characters" : {
+    "1005" : {
+      "id" : 1005,
+      "nickname" : "Edward",
+      "firstName" : "William",
+      "lastName" : "Miller",
+      "birthdate" : "June 9, 1845",
+      "dexterity" : 75,
+      "health" : 15,
+      "coolness" : 70,
+      "strength" : 80,
+      "reflexes" : 70,
+      "handedness" : "RIGHT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "skills" : [ {
+        "skillName" : "skl_rifle",
+        "level" : 7
+      }, {
+        "skillName" : "skl_athletics",
+        "level" : 6
+      }, {
+        "skillName" : "skl_intimidation",
+        "level" : 5
+      } ],
+      "wounds" : [ ]
+    },
+    "1004" : {
+      "id" : 1004,
+      "nickname" : "Ethan",
+      "firstName" : "Ethan",
+      "lastName" : "Davis",
+      "birthdate" : "October 10, 1859",
+      "dexterity" : 75,
+      "health" : 11,
+      "coolness" : 75,
+      "strength" : 65,
+      "reflexes" : 90,
+      "handedness" : "LEFT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "skills" : [ {
+        "skillName" : "skl_quickdraw",
+        "level" : 4
+      } ],
+      "wounds" : [ ]
+    },
+    "1003" : {
+      "id" : 1003,
+      "nickname" : "Drake",
+      "firstName" : "Drake",
+      "lastName" : "Williams",
+      "birthdate" : "August 22, 1858",
+      "dexterity" : 50,
+      "health" : 14,
+      "coolness" : 85,
+      "strength" : 55,
+      "reflexes" : 80,
+      "handedness" : "AMBIDEXTROUS",
+      "baseMovementSpeed" : 42.0,
+      "skills" : [ ],
+      "wounds" : [ ]
+    },
+    "1002" : {
+      "id" : 1002,
+      "nickname" : "Chris",
+      "firstName" : "Christopher",
+      "lastName" : "Brown",
+      "birthdate" : "December 1, 1862",
+      "dexterity" : 25,
+      "health" : 8,
+      "coolness" : 30,
+      "strength" : 40,
+      "reflexes" : 35,
+      "handedness" : "RIGHT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "skills" : [ ],
+      "wounds" : [ ]
+    },
+    "1001" : {
+      "id" : 1001,
+      "nickname" : "Bobby",
+      "firstName" : "Robert",
+      "lastName" : "Jones",
+      "birthdate" : "June 8, 1860",
+      "dexterity" : 75,
+      "health" : 20,
+      "coolness" : 60,
+      "strength" : 45,
+      "reflexes" : 70,
+      "handedness" : "LEFT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "skills" : [ {
+        "skillName" : "skl_rifle",
+        "level" : 3
+      } ],
+      "wounds" : [ ]
+    },
+    "1000" : {
+      "id" : 1000,
+      "nickname" : "Alice",
+      "firstName" : "Alice",
+      "lastName" : "Smith",
+      "birthdate" : "March 15, 1855",
+      "dexterity" : 75,
+      "health" : 11,
+      "coolness" : 75,
+      "strength" : 65,
+      "reflexes" : 70,
+      "handedness" : "RIGHT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "skills" : [ {
+        "skillName" : "skl_pistol",
+        "level" : 4
+      } ],
+      "wounds" : [ ]
+    }
+  }
+}

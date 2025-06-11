@@ -1,5 +1,7 @@
 package combat;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Weapon {
@@ -17,6 +19,13 @@ public class Weapon {
     public int weaponAccuracy;
     public WeaponType weaponType;
     public String projectileName;
+    public int firingDelay; // Delay in ticks between successive shots
+    
+    // Automatic firing properties
+    public FiringMode currentFiringMode;
+    public List<FiringMode> availableFiringModes;
+    public int cyclicRate; // Ticks between shots in full auto mode
+    public int burstSize; // Number of rounds per burst (typically 3)
 
     public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName) {
         this.name = name;
@@ -31,6 +40,13 @@ public class Weapon {
         this.weaponAccuracy = weaponAccuracy;
         this.weaponType = WeaponType.OTHER; // Default to OTHER
         this.projectileName = projectileName;
+        this.firingDelay = 0; // Default no firing delay
+        
+        // Initialize automatic firing properties (default to single shot only)
+        this.availableFiringModes = new ArrayList<>(Arrays.asList(FiringMode.SINGLE_SHOT));
+        this.currentFiringMode = FiringMode.SINGLE_SHOT;
+        this.cyclicRate = 60; // Default 1 second between shots
+        this.burstSize = 3; // Default 3-round bursts
     }
     
     public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName, WeaponType weaponType) {
@@ -46,7 +62,13 @@ public class Weapon {
         this.weaponAccuracy = weaponAccuracy;
         this.weaponType = weaponType;
         this.projectileName = projectileName;
-
+        this.firingDelay = 0; // Default no firing delay
+        
+        // Initialize automatic firing properties (default to single shot only)
+        this.availableFiringModes = new ArrayList<>(Arrays.asList(FiringMode.SINGLE_SHOT));
+        this.currentFiringMode = FiringMode.SINGLE_SHOT;
+        this.cyclicRate = 60; // Default 1 second between shots
+        this.burstSize = 3; // Default 3-round bursts
     }
 
     public String getName() {
@@ -81,4 +103,26 @@ public class Weapon {
     }
 
     public String getProjectileName() { return projectileName; }
+    
+    // Firing mode management
+    public void cycleFiringMode() {
+        if (availableFiringModes.size() <= 1) return; // No modes to cycle
+        
+        int currentIndex = availableFiringModes.indexOf(currentFiringMode);
+        int nextIndex = (currentIndex + 1) % availableFiringModes.size();
+        currentFiringMode = availableFiringModes.get(nextIndex);
+    }
+    
+    public boolean hasMultipleFiringModes() {
+        return availableFiringModes.size() > 1;
+    }
+    
+    public String getFiringModeDisplayName() {
+        switch (currentFiringMode) {
+            case SINGLE_SHOT: return "Single";
+            case BURST: return "Burst";
+            case FULL_AUTO: return "Auto";
+            default: return "Unknown";
+        }
+    }
 }
