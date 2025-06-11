@@ -33,7 +33,7 @@ import data.ThemeManager;
 import data.UniversalCharacterRegistry;
 import data.CharacterFactory;
 
-public class OpenFields2 extends Application implements GameCallbacks {
+public class OpenFields2 extends Application implements GameCallbacks, InputManager.InputManagerCallbacks {
 
     public static double pixelsToFeet(double pixels) {
         return pixels / 7.0;
@@ -129,23 +129,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
 
     private final Canvas canvas = new Canvas(WIDTH, HEIGHT);
     private final List<Unit> units = new ArrayList<>();
-    private Unit selected = null; // Keep for backward compatibility
-    private final List<Unit> selectedUnits = new ArrayList<>();
-    private double selectionCenterX = 0;
-    private double selectionCenterY = 0;
+    private final SelectionManager selectionManager = new SelectionManager();
+    private final GameRenderer gameRenderer = new GameRenderer(canvas);
+    private InputManager inputManager;
     
-    // Rectangle selection state
-    private boolean isSelecting = false;
-    private double selectionStartX = 0;
-    private double selectionStartY = 0;
-    private double selectionEndX = 0; 
-    private double selectionEndY = 0;
-    
-    private double offsetX = 0;
-    private double offsetY = 0;
-    private double zoom = 1.0;
     private boolean paused = true;
-    private static boolean debugMode = false;
     private static int stressModifier = -20;
     private final GameClock gameClock = new GameClock();
     private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
@@ -153,12 +141,9 @@ public class OpenFields2 extends Application implements GameCallbacks {
     private final SaveGameManager saveGameManager = SaveGameManager.getInstance();
     private final UniversalCharacterRegistry characterRegistry = UniversalCharacterRegistry.getInstance();
     private int nextUnitId = 1;
-    private boolean waitingForSaveSlot = false;
-    private boolean waitingForLoadSlot = false;
-    private boolean waitingForCharacterCreation = false;
-    private boolean waitingForWeaponSelection = false;
-    private boolean waitingForFactionSelection = false;
     private static boolean editMode = false;
+    private SaveGameController saveGameController;
+    private EditModeController editModeController;
 
     public static void main(String[] args) {
         launch(args);
@@ -167,6 +152,9 @@ public class OpenFields2 extends Application implements GameCallbacks {
     @Override
     public void start(Stage primaryStage) {
         createUnits();
+        
+        // Initialize game renderer with game state
+        gameRenderer.setGameState(units, selectionManager);
         
         try {
             gunshotSound = new AudioClip(getClass().getResource("/Slap0003.wav").toExternalForm());
@@ -177,454 +165,18 @@ public class OpenFields2 extends Application implements GameCallbacks {
         Pane root = new Pane(canvas);
         Scene scene = new Scene(root);
 
-        canvas.setOnMousePressed(e -> {
-            double x = (e.getX() - offsetX) / zoom;
-            double y = (e.getY() - offsetY) / zoom;
-            
-            if (e.getButton() == MouseButton.PRIMARY) {
-                // Left click - single unit selection or start rectangle selection
-                Unit clickedUnit = null;
-                for (Unit u : units) {
-                    if (u.contains(x, y)) {
-                        clickedUnit = u;
-                        break;
-                    }
-                }
-                
-                if (clickedUnit != null) {
-                    // Single unit selection
-                    selectedUnits.clear();
-                    selectedUnits.add(clickedUnit);
-                    selected = clickedUnit; // Maintain backward compatibility
-                    calculateSelectionCenter();
-                    System.out.println("Selected: " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ")");
-                } else {
-                    // Start rectangle selection
-                    isSelecting = true;
-                    selectionStartX = x;
-                    selectionStartY = y;
-                    selectionEndX = x;
-                    selectionEndY = y;
-                }
-            } else if (e.getButton() == MouseButton.SECONDARY) {
-                // Right click - various actions based on context
-                Unit clickedUnit = null;
-                for (Unit u : units) {
-                    if (u.contains(x, y)) {
-                        clickedUnit = u;
-                        break;
-                    }
-                }
-                
-                handleRightClick(clickedUnit, x, y, e.isShiftDown());
-            }
-        });
+        // Initialize EditModeController
+        editModeController = new EditModeController(units, selectionManager, gameRenderer, 
+                                                   WIDTH, HEIGHT, new EditModeCallbacksImpl());
         
-        canvas.setOnMouseDragged(e -> {
-            if (isSelecting) {
-                double x = (e.getX() - offsetX) / zoom;
-                double y = (e.getY() - offsetY) / zoom;
-                selectionEndX = x;
-                selectionEndY = y;
-            }
-        });
+        // Initialize InputManager
+        inputManager = new InputManager(units, selectionManager, gameRenderer, gameClock, 
+                                      eventQueue, canvas, this);
+        inputManager.initializeInputHandlers(scene);
         
-        canvas.setOnMouseReleased(e -> {
-            if (isSelecting && e.getButton() == MouseButton.PRIMARY) {
-                // Complete rectangle selection
-                findUnitsInRectangle();
-                calculateSelectionCenter();
-                isSelecting = false;
-                
-                if (!selectedUnits.isEmpty()) {
-                    selected = selectedUnits.get(0); // Maintain backward compatibility
-                    System.out.println("Selected " + selectedUnits.size() + " units");
-                }
-            }
-        });
-
-        scene.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.UP) offsetY += 20;
-            if (e.getCode() == KeyCode.DOWN) offsetY -= 20;
-            if (e.getCode() == KeyCode.LEFT) offsetX += 20;
-            if (e.getCode() == KeyCode.RIGHT) offsetX -= 20;
-            if (e.getCode() == KeyCode.EQUALS || e.getCode() == KeyCode.PLUS) zoom *= 1.1;
-            if (e.getCode() == KeyCode.MINUS) zoom /= 1.1;
-            if (e.getCode() == KeyCode.SPACE) {
-                paused = !paused;
-                if (paused) {
-                    System.out.println("***********************");
-                    System.out.println("*** Game paused at tick " + gameClock.getCurrentTick());
-                    System.out.println("***********************");
-                } else {
-                    System.out.println("***********************");
-                    System.out.println("*** Game resumed");
-                    System.out.println("***********************");
-                }
-            }
-            if (e.getCode() == KeyCode.D && e.isControlDown()) {
-                debugMode = !debugMode;
-                System.out.println("***********************");
-                System.out.println("*** Debug mode " + (debugMode ? "ENABLED" : "DISABLED"));
-                System.out.println("***********************");
-            }
-            if (e.getCode() == KeyCode.E && e.isControlDown()) {
-                editMode = !editMode;
-                System.out.println("***********************");
-                System.out.println("*** Edit mode " + (editMode ? "ENABLED" : "DISABLED"));
-                if (editMode) {
-                    System.out.println("*** Combat disabled, instant movement enabled");
-                } else {
-                    System.out.println("*** Combat enabled, normal movement rules apply");
-                }
-                System.out.println("***********************");
-            }
-            if (e.getCode() == KeyCode.C && e.isControlDown()) {
-                if (editMode && !waitingForCharacterCreation && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForWeaponSelection && !waitingForFactionSelection) {
-                    promptForCharacterCreation();
-                } else if (!editMode) {
-                    System.out.println("*** Character creation only available in edit mode (Ctrl+E) ***");
-                }
-            }
-            if (e.getCode() == KeyCode.W && e.isControlDown()) {
-                if (editMode && !waitingForWeaponSelection && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForCharacterCreation && !waitingForFactionSelection) {
-                    if (!selectedUnits.isEmpty()) {
-                        promptForWeaponSelection();
-                    } else {
-                        System.out.println("*** No units selected - select a unit first ***");
-                    }
-                } else if (!editMode) {
-                    System.out.println("*** Weapon selection only available in edit mode (Ctrl+E) ***");
-                }
-            }
-            if (e.getCode() == KeyCode.F && e.isControlDown()) {
-                if (editMode && !waitingForFactionSelection && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForCharacterCreation && !waitingForWeaponSelection) {
-                    if (!selectedUnits.isEmpty()) {
-                        promptForFactionSelection();
-                    } else {
-                        System.out.println("*** No units selected - select a unit first ***");
-                    }
-                } else if (!editMode) {
-                    System.out.println("*** Faction selection only available in edit mode (Ctrl+E) ***");
-                }
-            }
-            // Character stats display - disabled for multi-selection
-            if (e.getCode() == KeyCode.SLASH && e.isShiftDown()) {
-                if (selectedUnits.size() == 1) {
-                    Unit selected = selectedUnits.get(0);
-                    System.out.println("***********************");
-                    System.out.println("*** CHARACTER STATS ***");
-                    System.out.println("***********************");
-                    System.out.println("ID: " + selected.character.id);
-                    System.out.println("Nickname: " + selected.character.nickname);
-                    System.out.println("Faction: " + selected.character.faction);
-                    System.out.println("Full Name: " + selected.character.getFullName());
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM d, yyyy");
-                    System.out.println("Birthdate: " + dateFormat.format(selected.character.birthdate));
-                    System.out.println("Dexterity: " + selected.character.dexterity + " (modifier: " + statToModifier(selected.character.dexterity) + ")");
-                    System.out.println("Strength: " + selected.character.strength + " (modifier: " + statToModifier(selected.character.strength) + ")");
-                    System.out.println("Reflexes: " + selected.character.reflexes + " (modifier: " + statToModifier(selected.character.reflexes) + ")");
-                    System.out.println("Health: " + selected.character.health);
-                    System.out.println("Coolness: " + selected.character.coolness + " (modifier: " + statToModifier(selected.character.coolness) + ")");
-                    System.out.println("Handedness: " + selected.character.handedness.getDisplayName());
-                    System.out.println("Base Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
-                    System.out.println("Current Movement: " + selected.character.getCurrentMovementType().getDisplayName() + 
-                                     " (" + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
-                    System.out.println("Current Aiming Speed: " + selected.character.getCurrentAimingSpeed().getDisplayName() + 
-                                     " (timing: " + String.format("%.2fx", selected.character.getCurrentAimingSpeed().getTimingMultiplier()) + 
-                                     ", accuracy: " + String.format("%+.0f", selected.character.getCurrentAimingSpeed().getAccuracyModifier()) + ")");
-                    
-                    // Show weapon ready speed
-                    double readySpeedMultiplier = selected.character.getWeaponReadySpeedMultiplier();
-                    int quickdrawLevel = selected.character.getSkillLevel(SkillsManager.QUICKDRAW);
-                    String quickdrawInfo = quickdrawLevel > 0 ? " (Quickdraw " + quickdrawLevel + ")" : "";
-                    System.out.println("Weapon Ready Speed: " + String.format("%.2fx", readySpeedMultiplier) + quickdrawInfo + 
-                                     " (reflexes: " + String.format("%+d", statToModifier(selected.character.reflexes)) + ")");
-                    
-                    System.out.println("Incapacitated: " + (selected.character.isIncapacitated() ? "YES" : "NO"));
-                    System.out.println("Automatic Targeting: " + (selected.character.isUsesAutomaticTargeting() ? "ON" : "OFF"));
-                    
-                    if (selected.character.weapon != null) {
-                        System.out.println("--- WEAPON ---");
-                        System.out.println("Name: " + selected.character.weapon.name);
-                        System.out.println("Type: " + selected.character.weapon.weaponType.getDisplayName());
-                        System.out.println("Damage: " + selected.character.weapon.damage);
-                        System.out.println("Accuracy: " + selected.character.weapon.weaponAccuracy);
-                        System.out.println("Max Range: " + selected.character.weapon.maximumRange + " feet");
-                        System.out.println("Velocity: " + selected.character.weapon.velocityFeetPerSecond + " feet/second");
-                        System.out.println("Ammunition: " + selected.character.weapon.ammunition);
-                        System.out.println("Current State: " + (selected.character.currentWeaponState != null ? selected.character.currentWeaponState.getState() : "None"));
-                    } else {
-                        System.out.println("--- WEAPON ---");
-                        System.out.println("No weapon equipped");
-                    }
-                    
-                    if (!selected.character.getSkills().isEmpty()) {
-                        System.out.println("--- SKILLS ---");
-                        for (combat.Skill skill : selected.character.getSkills()) {
-                            System.out.println(skill.getSkillName() + ": " + skill.getLevel());
-                        }
-                    } else {
-                        System.out.println("--- SKILLS ---");
-                        System.out.println("No skills");
-                    }
-                    
-                    if (!selected.character.wounds.isEmpty()) {
-                        System.out.println("--- WOUNDS ---");
-                        for (combat.Wound wound : selected.character.wounds) {
-                            System.out.println(wound.getBodyPart().name().toLowerCase() + ": " + wound.getSeverity().name().toLowerCase() + 
-                                             " (from " + wound.getProjectileName() + ", weapon: " + wound.getWeaponId() + ")");
-                        }
-                    } else {
-                        System.out.println("--- WOUNDS ---");
-                        System.out.println("No wounds");
-                    }
-                    
-                    // Combat Experience Display
-                    System.out.println("--- COMBAT EXPERIENCE ---");
-                    System.out.println("Combat Engagements: " + selected.character.getCombatEngagements());
-                    System.out.println("Wounds Received: " + selected.character.getWoundsReceived());
-                    System.out.println("Wounds Inflicted: " + selected.character.getTotalWoundsInflicted() + " total (" + 
-                                     selected.character.getWoundsInflictedByType(combat.WoundSeverity.SCRATCH) + " scratch, " +
-                                     selected.character.getWoundsInflictedByType(combat.WoundSeverity.LIGHT) + " light, " +
-                                     selected.character.getWoundsInflictedByType(combat.WoundSeverity.SERIOUS) + " serious, " +
-                                     selected.character.getWoundsInflictedByType(combat.WoundSeverity.CRITICAL) + " critical)");
-                    System.out.println("Attacks: " + selected.character.getAttacksAttempted() + " attempted, " + 
-                                     selected.character.getAttacksSuccessful() + " successful (" + 
-                                     String.format("%.1f", selected.character.getAccuracyPercentage()) + "% accuracy)");
-                    System.out.println("Targets Incapacitated: " + selected.character.getTargetsIncapacitated());
-                    System.out.println("***********************");
-                } else if (selectedUnits.isEmpty()) {
-                    System.out.println("*** No character selected - select a character first ***");
-                } else {
-                    System.out.println("*** Character stats unavailable for multiple unit selection ***");
-                }
-            }
-            // Movement type controls - W to increase, S to decrease
-            if (e.getCode() == KeyCode.W && !selectedUnits.isEmpty()) {
-                for (Unit unit : selectedUnits) {
-                    if (!unit.character.isIncapacitated()) {
-                        combat.MovementType previousType = unit.character.getCurrentMovementType();
-                        unit.character.increaseMovementType();
-                        combat.MovementType newType = unit.character.getCurrentMovementType();
-                        
-                        // Resume movement if stopped and speed was increased
-                        if (unit.isStopped) {
-                            unit.resumeMovement();
-                        }
-                    }
-                }
-                
-                if (selectedUnits.size() == 1) {
-                    Unit unit = selectedUnits.get(0);
-                    combat.MovementType newType = unit.character.getCurrentMovementType();
-                    System.out.println("*** " + unit.character.getDisplayName() + " movement increased to " + newType.getDisplayName() + 
-                                     " (speed: " + String.format("%.1f", unit.character.getEffectiveMovementSpeed()) + " pixels/sec)");
-                } else {
-                    System.out.println("*** " + selectedUnits.size() + " units movement speed increased");
-                }
-            }
-            if (e.getCode() == KeyCode.S && !selectedUnits.isEmpty()) {
-                for (Unit unit : selectedUnits) {
-                    if (!unit.character.isIncapacitated()) {
-                        combat.MovementType previousType = unit.character.getCurrentMovementType();
-                        
-                        // If already at crawling speed and currently moving, stop movement
-                        if (previousType == combat.MovementType.CRAWL && unit.isMoving()) {
-                            unit.stopMovement();
-                        } else {
-                            // Otherwise, decrease movement type normally
-                            unit.character.decreaseMovementType();
-                        }
-                    }
-                }
-                
-                if (selectedUnits.size() == 1) {
-                    Unit unit = selectedUnits.get(0);
-                    combat.MovementType newType = unit.character.getCurrentMovementType();
-                    System.out.println("*** " + unit.character.getDisplayName() + " movement decreased to " + newType.getDisplayName() + 
-                                     " (speed: " + String.format("%.1f", unit.character.getEffectiveMovementSpeed()) + " pixels/sec)");
-                } else {
-                    System.out.println("*** " + selectedUnits.size() + " units movement speed decreased");
-                }
-            }
-            // Aiming speed controls - Q to increase, E to decrease
-            if (e.getCode() == KeyCode.Q && !selectedUnits.isEmpty()) {
-                for (Unit unit : selectedUnits) {
-                    if (!unit.character.isIncapacitated()) {
-                        unit.character.increaseAimingSpeed();
-                    }
-                }
-                
-                if (selectedUnits.size() == 1) {
-                    Unit unit = selectedUnits.get(0);
-                    combat.AimingSpeed newSpeed = unit.character.getCurrentAimingSpeed();
-                    System.out.println("*** " + unit.character.getDisplayName() + " aiming speed increased to " + newSpeed.getDisplayName() + 
-                                     " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
-                } else {
-                    System.out.println("*** " + selectedUnits.size() + " units aiming speed increased");
-                }
-            }
-            if (e.getCode() == KeyCode.E && !e.isControlDown() && !selectedUnits.isEmpty()) {
-                for (Unit unit : selectedUnits) {
-                    if (!unit.character.isIncapacitated()) {
-                        unit.character.decreaseAimingSpeed();
-                    }
-                }
-                
-                if (selectedUnits.size() == 1) {
-                    Unit unit = selectedUnits.get(0);
-                    combat.AimingSpeed newSpeed = unit.character.getCurrentAimingSpeed();
-                    System.out.println("*** " + unit.character.getDisplayName() + " aiming speed decreased to " + newSpeed.getDisplayName() + 
-                                     " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
-                } else {
-                    System.out.println("*** " + selectedUnits.size() + " units aiming speed decreased");
-                }
-            }
-            
-            // Group weapon ready command - R key
-            if (e.getCode() == KeyCode.R && !selectedUnits.isEmpty()) {
-                for (Unit unit : selectedUnits) {
-                    if (!unit.character.isIncapacitated()) {
-                        unit.character.startReadyWeaponSequence(unit, gameClock.getCurrentTick(), eventQueue, unit.getId());
-                    }
-                }
-                
-                if (selectedUnits.size() == 1) {
-                    Unit unit = selectedUnits.get(0);
-                    System.out.println("READY WEAPON " + unit.character.getDisplayName() + " (Unit ID: " + unit.id + ") - current state: " + 
-                                     (unit.character.currentWeaponState != null ? unit.character.currentWeaponState.getState() : "None"));
-                } else {
-                    System.out.println("READY WEAPONS " + selectedUnits.size() + " units");
-                }
-            }
-            
-            // Automatic targeting control - Shift+T
-            if (e.getCode() == KeyCode.T && e.isShiftDown()) {
-                if (!selectedUnits.isEmpty()) {
-                    // Toggle each unit individually (units may have different current states)
-                    int enabledCount = 0;
-                    int disabledCount = 0;
-                    
-                    for (Unit unit : selectedUnits) {
-                        if (!unit.character.isIncapacitated()) {
-                            boolean currentState = unit.character.isUsesAutomaticTargeting();
-                            boolean newState = !currentState;
-                            unit.character.setUsesAutomaticTargeting(newState);
-                            
-                            if (newState) {
-                                enabledCount++;
-                            } else {
-                                disabledCount++;
-                            }
-                        }
-                    }
-                    
-                    if (selectedUnits.size() == 1) {
-                        Unit unit = selectedUnits.get(0);
-                        boolean newState = unit.character.isUsesAutomaticTargeting();
-                        System.out.println("*** " + unit.character.getDisplayName() + " automatic targeting " + 
-                                         (newState ? "ENABLED" : "DISABLED"));
-                    } else {
-                        if (enabledCount > 0 && disabledCount > 0) {
-                            System.out.println("*** " + enabledCount + " units automatic targeting ENABLED, " + 
-                                             disabledCount + " units automatic targeting DISABLED");
-                        } else if (enabledCount > 0) {
-                            System.out.println("*** " + enabledCount + " units automatic targeting ENABLED");
-                        } else {
-                            System.out.println("*** " + disabledCount + " units automatic targeting DISABLED");
-                        }
-                    }
-                } else {
-                    System.out.println("*** No units selected - select units first ***");
-                }
-            }
-            
-            // Save/Load controls
-            if (e.getCode() == KeyCode.S && e.isControlDown()) {
-                if (!waitingForSaveSlot && !waitingForLoadSlot) {
-                    promptForSaveSlot();
-                }
-            }
-            if (e.getCode() == KeyCode.L && e.isControlDown()) {
-                if (!waitingForSaveSlot && !waitingForLoadSlot) {
-                    promptForLoadSlot();
-                }
-            }
-            
-            // Handle number key input for save/load slot selection, character creation, weapon selection, and faction selection
-            if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForFactionSelection) {
-                int slotNumber = -1;
-                if (e.getCode() == KeyCode.DIGIT1) slotNumber = 1;
-                else if (e.getCode() == KeyCode.DIGIT2) slotNumber = 2;
-                else if (e.getCode() == KeyCode.DIGIT3) slotNumber = 3;
-                else if (e.getCode() == KeyCode.DIGIT4) slotNumber = 4;
-                else if (e.getCode() == KeyCode.DIGIT5) slotNumber = 5;
-                else if (e.getCode() == KeyCode.DIGIT6) slotNumber = 6;
-                else if (e.getCode() == KeyCode.DIGIT7) slotNumber = 7;
-                else if (e.getCode() == KeyCode.DIGIT8) slotNumber = 8;
-                else if (e.getCode() == KeyCode.DIGIT9) slotNumber = 9;
-                else if (e.getCode() == KeyCode.DIGIT0) slotNumber = 0;
-                else if (e.getCode() == KeyCode.ESCAPE) {
-                    if (waitingForCharacterCreation) {
-                        System.out.println("*** Character creation cancelled ***");
-                        waitingForCharacterCreation = false;
-                    } else if (waitingForWeaponSelection) {
-                        System.out.println("*** Weapon selection cancelled ***");
-                        waitingForWeaponSelection = false;
-                    } else if (waitingForFactionSelection) {
-                        System.out.println("*** Faction selection cancelled ***");
-                        waitingForFactionSelection = false;
-                    } else {
-                        System.out.println("*** Save/Load cancelled ***");
-                        waitingForSaveSlot = false;
-                        waitingForLoadSlot = false;
-                    }
-                }
-                
-                if (slotNumber >= 0 && slotNumber <= 9) {
-                    if (waitingForSaveSlot) {
-                        if (slotNumber >= 1 && slotNumber <= 9) {
-                            saveGameToSlot(slotNumber);
-                        } else {
-                            System.out.println("*** Invalid save slot. Use 1-9 ***");
-                        }
-                    } else if (waitingForLoadSlot) {
-                        if (slotNumber == 0) {
-                            System.out.println("*** Load cancelled ***");
-                            waitingForLoadSlot = false;
-                        } else if (slotNumber >= 1 && slotNumber <= 9) {
-                            loadGameFromSlot(slotNumber);
-                        } else {
-                            System.out.println("*** Invalid load slot. Use 1-9 or 0 to cancel ***");
-                        }
-                    } else if (waitingForCharacterCreation) {
-                        if (slotNumber == 0) {
-                            System.out.println("*** Character creation cancelled ***");
-                            waitingForCharacterCreation = false;
-                        } else if (slotNumber >= 1 && slotNumber <= 9) {
-                            createCharacterFromArchetype(slotNumber);
-                        } else {
-                            System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
-                        }
-                    } else if (waitingForWeaponSelection) {
-                        if (slotNumber == 0) {
-                            System.out.println("*** Weapon selection cancelled ***");
-                            waitingForWeaponSelection = false;
-                        } else {
-                            assignWeaponToSelectedUnits(slotNumber);
-                        }
-                    } else if (waitingForFactionSelection) {
-                        if (slotNumber == 0) {
-                            System.out.println("*** Faction selection cancelled ***");
-                            waitingForFactionSelection = false;
-                        } else {
-                            assignFactionToSelectedUnits(slotNumber);
-                        }
-                    }
-                }
-            }
-        });
+        // Initialize SaveGameController
+        saveGameController = new SaveGameController(units, selectionManager, gameRenderer, gameClock,
+                                                   eventQueue, inputManager, new GameStateAccessorImpl());
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.0 / 60), e -> run()));
         timeline.setCycleCount(Timeline.INDEFINITE);
@@ -652,11 +204,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
             }
             
             // Update selection center as selected units move
-            if (!selectedUnits.isEmpty()) {
-                calculateSelectionCenter();
+            if (selectionManager.hasSelection()) {
+                // Selection center now managed by SelectionManager
             }
         }
-        render();
+        gameRenderer.render();
     }
     void createUnits() {
         // Load characters from universal registry and assign them weapons for this theme
@@ -701,149 +253,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         }
     }
     
-    private void calculateSelectionCenter() {
-        if (selectedUnits.isEmpty()) {
-            selectionCenterX = 0;
-            selectionCenterY = 0;
-            return;
-        }
-        
-        double sumX = 0, sumY = 0;
-        for (Unit unit : selectedUnits) {
-            sumX += unit.x;
-            sumY += unit.y;
-        }
-        selectionCenterX = sumX / selectedUnits.size();
-        selectionCenterY = sumY / selectedUnits.size();
-    }
     
-    private void findUnitsInRectangle() {
-        selectedUnits.clear();
-        
-        double minX = Math.min(selectionStartX, selectionEndX);
-        double maxX = Math.max(selectionStartX, selectionEndX);
-        double minY = Math.min(selectionStartY, selectionEndY);
-        double maxY = Math.max(selectionStartY, selectionEndY);
-        
-        for (Unit unit : units) {
-            if (unit.x >= minX && unit.x <= maxX && unit.y >= minY && unit.y <= maxY) {
-                selectedUnits.add(unit);
-            }
-        }
-    }
-    
-    private void handleRightClick(Unit clickedUnit, double x, double y, boolean isShiftDown) {
-        if (clickedUnit != null) {
-            // Right-click on a unit
-            if (selectedUnits.contains(clickedUnit) && selectedUnits.size() == 1) {
-                // Right-click on self (single selection) - ready weapon
-                if (editMode) {
-                    System.out.println(">>> Combat actions disabled in edit mode");
-                    return;
-                }
-                if (clickedUnit.character.isIncapacitated()) {
-                    System.out.println(">>> " + clickedUnit.character.getDisplayName() + " is incapacitated and cannot ready weapon.");
-                    return;
-                }
-                
-                clickedUnit.character.startReadyWeaponSequence(clickedUnit, gameClock.getCurrentTick(), eventQueue, clickedUnit.getId());
-                System.out.println("READY WEAPON " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ") - current state: " + clickedUnit.character.currentWeaponState.getState());
-            } else if (isShiftDown && !selectedUnits.isEmpty() && !selectedUnits.contains(clickedUnit)) {
-                // Shift+right-click on different unit - toggle persistent attack for all selected
-                if (editMode) {
-                    System.out.println(">>> Combat actions disabled in edit mode");
-                    return;
-                }
-                
-                for (Unit unit : selectedUnits) {
-                    if (!unit.character.isIncapacitated()) {
-                        unit.character.setPersistentAttack(!unit.character.isPersistentAttack());
-                        unit.character.currentTarget = clickedUnit;
-                        
-                        if (unit.character.isPersistentAttack()) {
-                            unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), this);
-                        } else {
-                            unit.character.currentTarget = null;
-                        }
-                    }
-                }
-                
-                boolean newState = !selectedUnits.isEmpty() && selectedUnits.get(0).character.isPersistentAttack();
-                System.out.println(selectedUnits.size() + " units " + (newState ? "enable" : "disable") + " persistent attack on " + clickedUnit.character.getDisplayName());
-            } else if (!selectedUnits.isEmpty() && !selectedUnits.contains(clickedUnit)) {
-                // Right-click on enemy unit - attack with all selected units
-                if (editMode) {
-                    // Show range information in edit mode
-                    if (selected != null) {
-                        double dx = clickedUnit.x - selected.x;
-                        double dy = clickedUnit.y - selected.y;
-                        double distancePixels = Math.hypot(dx, dy);
-                        double distanceFeet = pixelsToFeet(distancePixels);
-                        
-                        System.out.println("*** RANGE CHECK ***");
-                        System.out.println("Distance from " + selected.character.getDisplayName() + " to " + clickedUnit.character.getDisplayName() + ": " + 
-                                         String.format("%.2f", distanceFeet) + " feet");
-                        
-                        if (selected.character.weapon != null) {
-                            double maxRange = selected.character.weapon.maximumRange;
-                            System.out.println("Weapon: " + selected.character.weapon.name + " (max range: " + 
-                                             String.format("%.2f", maxRange) + " feet)");
-                            
-                            if (distanceFeet <= maxRange) {
-                                System.out.println("Target is WITHIN range");
-                            } else {
-                                System.out.println("Target is OUT OF RANGE (exceeds by " + 
-                                                 String.format("%.2f", distanceFeet - maxRange) + " feet)");
-                            }
-                        } else {
-                            System.out.println("No weapon equipped");
-                        }
-                        System.out.println("******************");
-                    }
-                    return;
-                }
-                
-                // Attack with all selected units
-                for (Unit unit : selectedUnits) {
-                    if (!unit.character.isIncapacitated() && unit != clickedUnit) {
-                        unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), this);
-                    }
-                }
-                System.out.println("ATTACK " + selectedUnits.size() + " units target " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ")");
-            }
-        } else {
-            // Right-click on empty space - movement command
-            if (selectedUnits.isEmpty()) return;
-            
-            if (editMode) {
-                // Instant teleport in edit mode
-                for (Unit unit : selectedUnits) {
-                    double deltaX = x - selectionCenterX;
-                    double deltaY = y - selectionCenterY;
-                    unit.x = unit.x + deltaX;
-                    unit.y = unit.y + deltaY;
-                    unit.targetX = unit.x;
-                    unit.targetY = unit.y;
-                    unit.hasTarget = false;
-                    unit.isStopped = false;
-                }
-                System.out.println("TELEPORT " + selectedUnits.size() + " units to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
-            } else {
-                // Normal movement with movement rules - relative to selection center
-                double deltaX = x - selectionCenterX;
-                double deltaY = y - selectionCenterY;
-                
-                for (Unit unit : selectedUnits) {
-                    if (!unit.character.isIncapacitated()) {
-                        double newTargetX = unit.x + deltaX;
-                        double newTargetY = unit.y + deltaY;
-                        unit.setTarget(newTargetX, newTargetY);
-                    }
-                }
-                System.out.println("MOVE " + selectedUnits.size() + " units to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
-            }
-        }
-    }
     
     private static double calculateMovementModifier(Unit shooter) {
         if (!shooter.isMoving()) {
@@ -1063,7 +473,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
         
         double randomRoll = Math.random() * 100;
         
-        if (debugMode) {
+        if (GameRenderer.isDebugMode()) {
             System.out.println("=== HIT CALCULATION DEBUG ===");
             System.out.println("Shooter: " + shooter.character.getDisplayName() + " -> Target: " + target.character.getDisplayName());
             System.out.println("Base chance: 50.0");
@@ -1224,11 +634,11 @@ public class OpenFields2 extends Application implements GameCallbacks {
     
     public void playWeaponSound(Weapon weapon) {
         try {
-            if (debugMode) {
+            if (GameRenderer.isDebugMode()) {
                 System.out.println("*** Attempting to play sound: " + weapon.soundFile);
             }
             AudioClip sound = new AudioClip(getClass().getResource(weapon.soundFile).toExternalForm());
-            if (debugMode) {
+            if (GameRenderer.isDebugMode()) {
                 System.out.println("*** Sound loaded successfully, playing...");
             }
             sound.play();
@@ -1240,7 +650,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
     public void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
         long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
         HitResult hitResult = determineHit(shooter, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy, weapon.damage);
-        if (debugMode) {
+        if (GameRenderer.isDebugMode()) {
             System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
         }
         
@@ -1297,7 +707,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
             }
             
             // Add wound to character's wound list with hesitation mechanics
-            String weaponId = findWeaponId(weapon);
+            String weaponId = SaveGameController.findWeaponId(weapon);
             target.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId), impactTick, eventQueue, target.getId());
             
             // Check for incapacitation
@@ -1319,7 +729,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
                 }
                 target.character.baseMovementSpeed = 0;
                 eventQueue.removeIf(e -> e.getOwnerId() == target.getId());
-                if (debugMode) {
+                if (GameRenderer.isDebugMode()) {
                     System.out.println(">>> Removed all scheduled actions for " + target.character.getDisplayName());
                 }
             }
@@ -1440,7 +850,7 @@ public class OpenFields2 extends Application implements GameCallbacks {
             }
             
             // Add wound to target with hesitation mechanics
-            String weaponId = findWeaponId(weapon);
+            String weaponId = SaveGameController.findWeaponId(weapon);
             strayTarget.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId), impactTick, eventQueue, strayTarget.getId());
             
             // Check for incapacitation from stray shot
@@ -1478,69 +888,6 @@ public class OpenFields2 extends Application implements GameCallbacks {
     }
     
 
-    private void render() {
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.setFill(Color.LIGHTGRAY);
-        gc.fillRect(0, 0, WIDTH, HEIGHT);
-
-        gc.save();
-        gc.translate(offsetX, offsetY);
-        gc.scale(zoom, zoom);
-        
-        // First pass: Draw all unit circles and basic elements
-        for (Unit u : units) {
-            boolean isSelected = selectedUnits.contains(u);
-            u.render(gc, isSelected);
-            
-            // Draw cyan border for multi-selected units (when more than one unit selected)
-            if (isSelected && selectedUnits.size() > 1) {
-                gc.setStroke(Color.CYAN);
-                gc.setLineWidth(2);
-                gc.strokeOval(u.x - 12, u.y - 12, 24, 24);
-            }
-        }
-        
-        // Draw selection rectangle during drag
-        if (isSelecting) {
-            double minX = Math.min(selectionStartX, selectionEndX);
-            double maxX = Math.max(selectionStartX, selectionEndX);
-            double minY = Math.min(selectionStartY, selectionEndY);
-            double maxY = Math.max(selectionStartY, selectionEndY);
-            
-            gc.setStroke(Color.WHITE);
-            gc.setLineWidth(1);
-            gc.strokeRect(minX, minY, maxX - minX, maxY - minY);
-        }
-        
-        // Draw selection center marker (black filled circle) for multi-selection
-        if (selectedUnits.size() > 1) {
-            gc.setFill(Color.BLACK);
-            gc.fillOval(selectionCenterX - 3, selectionCenterY - 3, 6, 6);
-        }
-        
-        // Second pass: Draw target overlays that need to appear on top
-        if (selectedUnits.size() == 1) {
-            Unit selected = selectedUnits.get(0);
-            if (selected.character.currentTarget != null) {
-                Unit target = selected.character.currentTarget;
-                
-                if (selected.character.isPersistentAttack()) {
-                    // Persistent attack: yellow X inside target
-                    gc.setStroke(Color.YELLOW);
-                    gc.setLineWidth(2);
-                    gc.strokeLine(target.x - 5, target.y - 5, target.x + 5, target.y + 5);
-                    gc.strokeLine(target.x - 5, target.y + 5, target.x + 5, target.y - 5);
-                } else {
-                    // Normal attack: small white circle inside target
-                    gc.setStroke(Color.WHITE);
-                    gc.setLineWidth(2);
-                    gc.strokeOval(target.x - 3, target.y - 3, 6, 6);
-                }
-            }
-        }
-        
-        gc.restore();
-    }
 
     public List<Unit> getUnits() {
         return units;
@@ -1554,654 +901,146 @@ public class OpenFields2 extends Application implements GameCallbacks {
         eventQueue.removeIf(e -> e.getOwnerId() == ownerId);
     }
 
-    // Save/Load functionality
-    private void promptForSaveSlot() {
-        System.out.println("*** SAVE GAME ***");
-        List<SaveGameManager.SaveSlotInfo> availableSlots = saveGameManager.listAvailableSlots();
-        
-        if (!availableSlots.isEmpty()) {
-            System.out.println("Existing saves:");
-            for (SaveGameManager.SaveSlotInfo slot : availableSlots) {
-                System.out.println(slot.slot + ". slot_" + slot.slot + ".json (" + 
-                                 slot.getFormattedTimestamp() + ") - " + 
-                                 slot.themeId + ", tick " + slot.currentTick);
-            }
-        } else {
-            System.out.println("No existing saves found.");
-        }
-        
-        System.out.println("Enter save slot (1-9): ");
-        waitingForSaveSlot = true;
-        waitingForLoadSlot = false;
+    // InputManagerCallbacks implementation
+    @Override
+    public boolean isPaused() {
+        return paused;
     }
     
-    private void promptForLoadSlot() {
-        System.out.println("*** LOAD GAME ***");
-        List<SaveGameManager.SaveSlotInfo> availableSlots = saveGameManager.listAvailableSlots();
-        
-        if (availableSlots.isEmpty()) {
-            System.out.println("No save files found.");
-            return;
-        }
-        
-        System.out.println("Available saves:");
-        for (SaveGameManager.SaveSlotInfo slot : availableSlots) {
-            System.out.println(slot.slot + ". slot_" + slot.slot + ".json (" + 
-                             slot.getFormattedTimestamp() + ") - " + 
-                             slot.themeId + ", tick " + slot.currentTick);
-        }
-        System.out.println("Enter slot number (1-9) or 0 to cancel: ");
-        waitingForSaveSlot = false;
-        waitingForLoadSlot = true;
+    @Override
+    public void setPaused(boolean paused) {
+        this.paused = paused;
     }
     
-    private void saveGameToSlot(int slot) {
-        try {
-            // Pause game during save
-            boolean wasPaused = paused;
-            paused = true;
-            
-            SaveData saveData = captureSaveData(slot);
-            boolean success = saveGameManager.saveToSlot(slot, saveData);
-            
-            if (success) {
-                System.out.println("*** Game saved successfully to slot " + slot + " ***");
-            } else {
-                System.out.println("*** Failed to save game to slot " + slot + " ***");
-            }
-            
-            // Restore pause state
-            paused = wasPaused;
-            
-        } catch (Exception e) {
-            System.err.println("Error during save: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        waitingForSaveSlot = false;
+    @Override
+    public boolean isEditMode() {
+        return editMode;
     }
     
-    private void loadGameFromSlot(int slot) {
-        try {
-            SaveData saveData = saveGameManager.loadFromSlot(slot);
-            if (saveData != null) {
-                applySaveData(saveData);
-                System.out.println("*** Game loaded successfully from slot " + slot + " ***");
-                System.out.println("*** Loaded at tick " + gameClock.getCurrentTick() + " ***");
-            } else {
-                System.out.println("*** Failed to load game from slot " + slot + " ***");
-            }
-        } catch (Exception e) {
-            System.err.println("Error during load: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        waitingForLoadSlot = false;
+    @Override
+    public void setEditMode(boolean editMode) {
+        OpenFields2.editMode = editMode;
     }
     
-    private SaveData captureSaveData(int slot) {
-        // Create metadata
-        String currentThemeId = ThemeManager.getInstance().getCurrentThemeId();
-        SaveMetadata metadata = new SaveMetadata("", "1.0", currentThemeId, slot);
-        
-        // Create game state
-        GameStateData gameState = new GameStateData(
-            gameClock.getCurrentTick(),
-            paused,
-            offsetX,
-            offsetY,
-            zoom,
-            0, // nextCharacterId is managed by universal registry
-            nextUnitId
-        );
-        
-        // Serialize units with character ID references and scenario-specific data
-        List<UnitData> unitDataList = new ArrayList<>();
-        for (Unit unit : units) {
-            UnitData unitData = serializeUnitWithCharacterRef(unit, currentThemeId);
-            unitDataList.add(unitData);
-        }
-        
-        return new SaveData(metadata, gameState, unitDataList);
+    @Override
+    public int getNextUnitId() {
+        return nextUnitId;
     }
     
-    private CharacterData serializeCharacter(combat.Character character) {
-        CharacterData data = new CharacterData();
-        data.id = character.id;
-        data.name = character.nickname; // Legacy field for backward compatibility
-        data.nickname = character.nickname;
-        data.firstName = character.firstName;
-        data.lastName = character.lastName;
-        data.birthdate = character.birthdate;
-        data.themeId = character.themeId;
-        data.dexterity = character.dexterity;
-        data.currentDexterity = character.currentDexterity;
-        data.health = character.health;
-        data.currentHealth = character.currentHealth;
-        data.coolness = character.coolness;
-        data.strength = character.strength;
-        data.reflexes = character.reflexes;
-        data.handedness = character.handedness;
-        data.baseMovementSpeed = character.baseMovementSpeed;
-        data.currentMovementType = character.currentMovementType;
-        data.currentAimingSpeed = character.currentAimingSpeed;
-        
-        // Serialize weapon
-        if (character.weapon != null) {
-            // Find weapon ID from weapon name (we'll need to enhance this)
-            data.weaponId = findWeaponId(character.weapon);
-        }
-        
-        // Serialize weapon state
-        if (character.currentWeaponState != null) {
-            data.currentWeaponState = character.currentWeaponState.getState();
-        }
-        
-        // Serialize skills
-        data.skills = new ArrayList<>();
-        for (combat.Skill skill : character.skills) {
-            data.skills.add(new CharacterData.SkillData(skill.getSkillName(), skill.getLevel()));
-        }
-        
-        // Serialize wounds
-        data.wounds = new ArrayList<>();
-        for (combat.Wound wound : character.wounds) {
-            data.wounds.add(new CharacterData.WoundData(wound.getBodyPart().name(), wound.getSeverity().name()));
-        }
-        
-        return data;
+    @Override
+    public void setNextUnitId(int nextUnitId) {
+        this.nextUnitId = nextUnitId;
     }
     
-    private String findWeaponId(combat.Weapon weapon) {
-        // This is a simple approach - in a more complex system, 
-        // we might want to store the weapon ID in the weapon object
-        if (weapon.name.equals("Colt Peacemaker")) return "wpn_colt_peacemaker";
-        if (weapon.name.equals("Hunting Rifle")) return "wpn_hunting_rifle";
-        if (weapon.name.equals("Derringer")) return "wpn_derringer";
-        if (weapon.name.equals("Plasma Pistol")) return "wpn_plasma_pistol";
-        if (weapon.name.equals("Magic Wand")) return "wpn_magic_wand";
-        if (weapon.name.equals("Sheathed Sword")) return "wpn_sheathed_sword";
-        return "wpn_colt_peacemaker"; // default fallback
+    @Override
+    public double convertPixelsToFeet(double pixels) {
+        return OpenFields2.pixelsToFeet(pixels);
     }
     
-    private UnitData serializeUnitWithCharacterRef(Unit unit, String themeId) {
-        // Find weapon ID from current weapon
-        String weaponId = null;
-        String currentWeaponState = null;
-        if (unit.character.weapon != null) {
-            weaponId = findWeaponId(unit.character.weapon);
-            if (unit.character.currentWeaponState != null) {
-                currentWeaponState = unit.character.currentWeaponState.getState();
-            }
+    @Override
+    public int convertStatToModifier(int stat) {
+        return OpenFields2.statToModifier(stat);
+    }
+    
+    @Override
+    public void promptForSaveSlot() {
+        saveGameController.promptForSaveSlot();
+    }
+    
+    @Override
+    public void promptForLoadSlot() {
+        saveGameController.promptForLoadSlot();
+    }
+    
+    @Override
+    public void promptForCharacterCreation() {
+        inputManager.setWaitingForCharacterCreation(true);
+        editModeController.promptForCharacterCreation();
+    }
+    
+    @Override
+    public void promptForWeaponSelection() {
+        inputManager.setWaitingForWeaponSelection(true);
+        editModeController.promptForWeaponSelection();
+    }
+    
+    @Override
+    public void promptForFactionSelection() {
+        inputManager.setWaitingForFactionSelection(true);
+        editModeController.promptForFactionSelection();
+    }
+    
+    @Override
+    public void saveGameToSlot(int slot) {
+        saveGameController.saveGameToSlot(slot);
+    }
+    
+    @Override
+    public void loadGameFromSlot(int slot) {
+        saveGameController.loadGameFromSlot(slot);
+    }
+    
+    @Override
+    public void createCharacterFromArchetype(int archetypeIndex) {
+        editModeController.createCharacterFromArchetype(archetypeIndex);
+        inputManager.setWaitingForCharacterCreation(false);
+    }
+    
+    @Override
+    public void assignWeaponToSelectedUnits(int weaponIndex) {
+        editModeController.assignWeaponToSelectedUnits(weaponIndex);
+        inputManager.setWaitingForWeaponSelection(false);
+    }
+    
+    @Override
+    public void assignFactionToSelectedUnits(int factionNumber) {
+        editModeController.assignFactionToSelectedUnits(factionNumber);
+        inputManager.setWaitingForFactionSelection(false);
+    }
+
+    // GameStateAccessor implementation for SaveGameController
+    private class GameStateAccessorImpl implements SaveGameController.GameStateAccessor {
+        @Override
+        public boolean isPaused() {
+            return paused;
         }
         
-        return new UnitData(
-            unit.id,
-            unit.character.id,
-            unit.x,
-            unit.y,
-            unit.targetX,
-            unit.targetY,
-            unit.hasTarget,
-            unit.isStopped,
-            colorToString(unit.color),
-            colorToString(unit.baseColor),
-            unit.isHitHighlighted,
-            unit.isFiringHighlighted,
-            weaponId,
-            currentWeaponState,
-            themeId
-        );
-    }
-    
-    private UnitData serializeUnit(Unit unit) {
-        return new UnitData(
-            unit.id,
-            unit.character.id,
-            unit.x,
-            unit.y,
-            unit.targetX,
-            unit.targetY,
-            unit.hasTarget,
-            unit.isStopped,
-            colorToString(unit.color),
-            colorToString(unit.baseColor),
-            unit.isHitHighlighted
-        );
-    }
-    
-    private String colorToString(Color color) {
-        if (color.equals(Color.RED)) return "RED";
-        if (color.equals(Color.BLUE)) return "BLUE";
-        if (color.equals(Color.GREEN)) return "GREEN";
-        if (color.equals(Color.PURPLE)) return "PURPLE";
-        if (color.equals(Color.ORANGE)) return "ORANGE";
-        if (color.equals(Color.YELLOW)) return "YELLOW";
-        return "RED"; // default fallback
-    }
-    
-    private void applySaveData(SaveData saveData) {
-        // Clear current game state
-        units.clear();
-        eventQueue.clear();
-        selected = null;
-        selectedUnits.clear();
-        selectionCenterX = 0;
-        selectionCenterY = 0;
-        isSelecting = false;
-        
-        // Restore game state
-        gameClock.reset();
-        for (long i = 0; i < saveData.gameState.currentTick; i++) {
-            gameClock.advanceTick();
+        @Override
+        public void setPaused(boolean paused) {
+            OpenFields2.this.paused = paused;
         }
         
-        paused = saveData.gameState.paused;
-        offsetX = saveData.gameState.offsetX;
-        offsetY = saveData.gameState.offsetY;
-        zoom = saveData.gameState.zoom;
-        nextUnitId = saveData.gameState.nextUnitId;
-        
-        // Handle both new and legacy save formats
-        if (saveData.characters != null && !saveData.characters.isEmpty()) {
-            // Legacy format - deserialize characters from save data
-            for (int i = 0; i < saveData.characters.size() && i < saveData.units.size(); i++) {
-                CharacterData charData = saveData.characters.get(i);
-                UnitData unitData = saveData.units.get(i);
-                
-                combat.Character character = deserializeCharacter(charData);
-                Unit unit = deserializeUnit(unitData, character);
-                units.add(unit);
-            }
-        } else {
-            // New format - load characters from universal registry and apply unit data
-            for (UnitData unitData : saveData.units) {
-                combat.Character character = characterRegistry.getCharacter(unitData.characterId);
-                if (character != null) {
-                    // Apply scenario-specific weapon and state
-                    if (unitData.weaponId != null && !unitData.weaponId.isEmpty()) {
-                        character.weapon = WeaponFactory.createWeapon(unitData.weaponId);
-                        if (character.weapon != null && unitData.currentWeaponState != null) {
-                            character.currentWeaponState = character.weapon.getStateByName(unitData.currentWeaponState);
-                            if (character.currentWeaponState == null) {
-                                character.currentWeaponState = character.weapon.getInitialState();
-                            }
-                        }
-                    }
-                    
-                    Unit unit = deserializeUnitFromCharacterRef(unitData, character);
-                    units.add(unit);
-                } else {
-                    System.err.println("Warning: Character " + unitData.characterId + " not found in universal registry");
-                }
-            }
+        @Override
+        public int getNextUnitId() {
+            return nextUnitId;
         }
         
-        System.out.println("*** Restored " + units.size() + " units ***");
-    }
-    
-    private combat.Character deserializeCharacter(CharacterData data) {
-        // Handle both old and new save formats
-        String nickname = data.nickname != null ? data.nickname : data.name;
-        String firstName = data.firstName != null ? data.firstName : "";
-        String lastName = data.lastName != null ? data.lastName : "";
-        Date birthdate = data.birthdate != null ? data.birthdate : new Date(0); // Default to epoch if null
-        
-        combat.Character character = new combat.Character(
-            data.id, nickname, firstName, lastName, birthdate, data.themeId, data.dexterity, data.health,
-            data.coolness, data.strength, data.reflexes, data.handedness
-        );
-        
-        character.currentDexterity = data.currentDexterity;
-        character.currentHealth = data.currentHealth;
-        character.baseMovementSpeed = data.baseMovementSpeed;
-        character.currentMovementType = data.currentMovementType;
-        character.currentAimingSpeed = data.currentAimingSpeed;
-        
-        // Restore weapon
-        if (data.weaponId != null && !data.weaponId.isEmpty()) {
-            character.weapon = WeaponFactory.createWeapon(data.weaponId);
-            if (character.weapon != null && data.currentWeaponState != null) {
-                character.currentWeaponState = character.weapon.getStateByName(data.currentWeaponState);
-                if (character.currentWeaponState == null) {
-                    character.currentWeaponState = character.weapon.getInitialState();
-                }
-            }
-        }
-        
-        // Restore skills
-        character.skills.clear();
-        for (CharacterData.SkillData skillData : data.skills) {
-            character.addSkill(new combat.Skill(skillData.skillName, skillData.level));
-        }
-        
-        // Restore wounds
-        character.wounds.clear();
-        for (CharacterData.WoundData woundData : data.wounds) {
-            try {
-                combat.BodyPart bodyPart = combat.BodyPart.valueOf(woundData.bodyPart);
-                combat.WoundSeverity severity = combat.WoundSeverity.valueOf(woundData.severity);
-                character.addWound(new combat.Wound(bodyPart, severity));
-            } catch (IllegalArgumentException e) {
-                System.err.println("Warning: Invalid wound data: " + woundData.bodyPart + "/" + woundData.severity);
-            }
-        }
-        
-        return character;
-    }
-    
-    private Unit deserializeUnitFromCharacterRef(UnitData data, combat.Character character) {
-        Color color = stringToColor(data.color);
-        Color baseColor = stringToColor(data.baseColor);
-        
-        // Create unit with the base color initially, then set current color
-        Unit unit = new Unit(character, data.x, data.y, baseColor, data.id);
-        unit.color = color; // Set the current color (which might be different due to highlighting)
-        unit.targetX = data.targetX;
-        unit.targetY = data.targetY;
-        unit.hasTarget = data.hasTarget;
-        unit.isStopped = data.isStopped;
-        unit.isHitHighlighted = data.isHitHighlighted;
-        unit.isFiringHighlighted = data.isFiringHighlighted;
-        
-        return unit;
-    }
-    
-    private Unit deserializeUnit(UnitData data, combat.Character character) {
-        Color color = stringToColor(data.color);
-        Color baseColor = stringToColor(data.baseColor);
-        
-        // Create unit with the base color initially, then set current color
-        Unit unit = new Unit(character, data.x, data.y, baseColor, data.id);
-        unit.color = color; // Set the current color (which might be different due to highlighting)
-        unit.targetX = data.targetX;
-        unit.targetY = data.targetY;
-        unit.hasTarget = data.hasTarget;
-        unit.isStopped = data.isStopped;
-        unit.isHitHighlighted = data.isHitHighlighted;
-        // Handle backward compatibility for isFiringHighlighted (defaults to false if not present)
-        unit.isFiringHighlighted = data.isFiringHighlighted;
-        
-        return unit;
-    }
-    
-    private Color stringToColor(String colorString) {
-        switch (colorString) {
-            case "RED": return Color.RED;
-            case "BLUE": return Color.BLUE;
-            case "GREEN": return Color.GREEN;
-            case "PURPLE": return Color.PURPLE;
-            case "ORANGE": return Color.ORANGE;
-            case "YELLOW": return Color.YELLOW;
-            default: return Color.RED;
+        @Override
+        public void setNextUnitId(int nextUnitId) {
+            OpenFields2.this.nextUnitId = nextUnitId;
         }
     }
     
-    // Character creation methods
-    private void promptForCharacterCreation() {
-        System.out.println("***********************");
-        System.out.println("*** CHARACTER CREATION ***");
-        System.out.println("Select archetype:");
-        System.out.println("1. Gunslinger - High dexterity, quick reflexes, pistol specialist");
-        System.out.println("2. Soldier - Balanced combat stats, rifle proficiency");
-        System.out.println("3. Weighted Random - Randomly generated stats (averaged), no skills");
-        System.out.println("4. Scout - High reflexes, stealth and observation skills");
-        System.out.println("5. Marksman - Excellent dexterity, rifle specialist, long-range expert");
-        System.out.println("6. Brawler - High strength, close combat specialist");
-        System.out.println("7. Confederate Soldier - Civil War Confederate with Brown Bess musket");
-        System.out.println("8. Union Soldier - Civil War Union with Brown Bess musket");
-        System.out.println("9. Balanced - Well-rounded stats for versatile gameplay");
-        System.out.println("0. Cancel character creation");
-        System.out.println();
-        System.out.println("Enter selection (1-9, 0 to cancel): ");
-        waitingForCharacterCreation = true;
-    }
-    
-    private void createCharacterFromArchetype(int archetypeIndex) {
-        String[] archetypes = {"gunslinger", "soldier", "weighted_random", "scout", "marksman", "brawler", "confederate_soldier", "union_soldier", "balanced"};
-        
-        if (archetypeIndex < 1 || archetypeIndex > archetypes.length) {
-            System.out.println("*** Invalid archetype selection ***");
-            return;
+    // EditModeCallbacks implementation for EditModeController
+    private class EditModeCallbacksImpl implements EditModeController.EditModeCallbacks {
+        @Override
+        public int getNextUnitId() {
+            return nextUnitId;
         }
         
-        String selectedArchetype = archetypes[archetypeIndex - 1];
-        
-        try {
-            // Create character using CharacterFactory
-            int characterId = CharacterFactory.createCharacter(selectedArchetype);
-            combat.Character character = characterRegistry.getCharacter(characterId);
-            
-            if (character != null) {
-                // Assign appropriate weapon based on archetype
-                String weaponId = getWeaponForArchetype(selectedArchetype);
-                character.weapon = WeaponFactory.createWeapon(weaponId);
-                character.currentWeaponState = character.weapon.getInitialState();
-                character.setFaction(1); // Default faction
-                
-                // Spawn character at camera center
-                spawnCharacterUnit(character, selectedArchetype);
-                
-                // Display character creation confirmation
-                System.out.println("*** Character created successfully! ***");
-                System.out.println("Name: " + character.getDisplayName());
-                System.out.println("Archetype: " + selectedArchetype);
-                System.out.println("Stats: DEX=" + character.dexterity + " HEALTH=" + character.health + 
-                                 " COOL=" + character.coolness + " STR=" + character.strength + " REF=" + character.reflexes);
-                System.out.println("Handedness: " + character.handedness.getDisplayName());
-                System.out.println("Weapon: " + character.weapon.name);
-                System.out.println("Skills: " + (character.skills.isEmpty() ? "None" : character.skills.size() + " skills"));
-                System.out.println("***********************");
-            } else {
-                System.out.println("*** Failed to create character ***");
-            }
-        } catch (Exception e) {
-            System.out.println("*** Error creating character: " + e.getMessage() + " ***");
+        @Override
+        public void setNextUnitId(int nextUnitId) {
+            OpenFields2.this.nextUnitId = nextUnitId;
         }
         
-        waitingForCharacterCreation = false;
-    }
-    
-    private void spawnCharacterUnit(combat.Character character, String archetype) {
-        // Calculate spawn location at camera center
-        double spawnX = (-offsetX / zoom) + (WIDTH / 2.0) / zoom;
-        double spawnY = (-offsetY / zoom) + (HEIGHT / 2.0) / zoom;
-        
-        // Check for collision with existing units and offset if necessary
-        boolean collision = true;
-        int attempts = 0;
-        double finalX = spawnX;
-        double finalY = spawnY;
-        
-        while (collision && attempts < 10) {
-            collision = false;
-            for (Unit existingUnit : units) {
-                double distance = Math.hypot(finalX - existingUnit.x, finalY - existingUnit.y);
-                if (distance < 28) { // 4 feet = 28 pixels minimum distance
-                    collision = true;
-                    finalX += 28; // Offset by 4 feet (28 pixels) in X direction only
-                    break;
-                }
-            }
-            attempts++;
+        @Override
+        public boolean isEditMode() {
+            return editMode;
         }
         
-        // Get color based on archetype
-        Color characterColor = getColorForArchetype(archetype);
-        
-        // Create and add unit
-        Unit newUnit = new Unit(character, finalX, finalY, characterColor, nextUnitId++);
-        units.add(newUnit);
-        
-        // Auto-select the newly created character
-        selectedUnits.clear();
-        selectedUnits.add(newUnit);
-        selected = newUnit; // Maintain backward compatibility
-        calculateSelectionCenter();
-        
-        System.out.println("Character spawned at (" + String.format("%.0f", finalX) + ", " + String.format("%.0f", finalY) + ")");
-    }
-    
-    private String getWeaponForArchetype(String archetype) {
-        switch (archetype.toLowerCase()) {
-            case "gunslinger":
-            case "brawler":
-            case "balanced":
-            case "weighted_random":
-                return "wpn_colt_peacemaker"; // Pistol
-            case "soldier":
-            case "scout": 
-            case "marksman":
-                return "wpn_hunting_rifle"; // Rifle
-            case "confederate_soldier":
-            case "union_soldier":
-                return "wpn_brown_bess"; // Brown Bess musket
-            case "medic":
-                return "wpn_derringer"; // Backup weapon
-            default:
-                return "wpn_colt_peacemaker"; // Default fallback
-        }
-    }
-    
-    private Color getColorForArchetype(String archetype) {
-        switch (archetype.toLowerCase()) {
-            case "confederate_soldier":
-                return Color.DARKGRAY; // Confederate dark gray
-            case "union_soldier":
-                return Color.BLUE; // Union blue
-            default:
-                return Color.CYAN; // Default color for other archetypes
-        }
-    }
-    
-    // Weapon selection methods
-    private void promptForWeaponSelection() {
-        String[] weaponIds = WeaponFactory.getAllWeaponIds();
-        if (weaponIds.length == 0) {
-            System.out.println("*** No weapons available ***");
-            return;
-        }
-        
-        System.out.println("***********************");
-        System.out.println("*** WEAPON SELECTION ***");
-        System.out.println("Selected units: " + selectedUnits.size());
-        System.out.println("Available weapons:");
-        
-        for (int i = 0; i < weaponIds.length; i++) {
-            WeaponData weaponData = WeaponFactory.getWeaponData(weaponIds[i]);
-            if (weaponData != null) {
-                System.out.println((i + 1) + ". " + weaponData.name + 
-                                 " (" + weaponData.type.getDisplayName() + 
-                                 ") - Damage: " + weaponData.damage + 
-                                 ", Range: " + String.format("%.0f", weaponData.maximumRange) + " feet");
-            }
-        }
-        System.out.println("0. Cancel weapon selection");
-        System.out.println();
-        System.out.println("Enter selection (1-" + weaponIds.length + ", 0 to cancel): ");
-        waitingForWeaponSelection = true;
-    }
-    
-    private void assignWeaponToSelectedUnits(int weaponIndex) {
-        String[] weaponIds = WeaponFactory.getAllWeaponIds();
-        
-        if (weaponIndex < 1 || weaponIndex > weaponIds.length) {
-            System.out.println("*** Invalid weapon selection. Use 1-" + weaponIds.length + " or 0 to cancel ***");
-            return;
-        }
-        
-        String selectedWeaponId = weaponIds[weaponIndex - 1];
-        WeaponData weaponData = WeaponFactory.getWeaponData(selectedWeaponId);
-        
-        if (weaponData == null) {
-            System.out.println("*** Error: Weapon data not found for " + selectedWeaponId + " ***");
-            waitingForWeaponSelection = false;
-            return;
-        }
-        
-        int successCount = 0;
-        int failureCount = 0;
-        
-        for (Unit unit : selectedUnits) {
-            try {
-                // Create new weapon instance
-                combat.Weapon newWeapon = WeaponFactory.createWeapon(selectedWeaponId);
-                
-                // Assign weapon to character
-                unit.character.weapon = newWeapon;
-                unit.character.currentWeaponState = newWeapon.getInitialState();
-                
-                successCount++;
-            } catch (Exception e) {
-                System.err.println("Failed to assign weapon to " + unit.character.getDisplayName() + ": " + e.getMessage());
-                failureCount++;
-            }
-        }
-        
-        // Display results
-        System.out.println("*** Weapon assignment complete ***");
-        System.out.println("Weapon: " + weaponData.name + " (" + weaponData.type.getDisplayName() + ")");
-        System.out.println("Successfully assigned to " + successCount + " units");
-        if (failureCount > 0) {
-            System.out.println("Failed to assign to " + failureCount + " units");
-        }
-        System.out.println("***********************");
-        
-        waitingForWeaponSelection = false;
-    }
-    
-    // Faction selection methods
-    private void promptForFactionSelection() {
-        System.out.println("***********************");
-        System.out.println("*** FACTION SELECTION ***");
-        System.out.println("Selected units: " + selectedUnits.size());
-        System.out.println("Available factions:");
-        System.out.println("1. Faction 1 (Red units)");
-        System.out.println("2. Faction 2 (Blue units)");
-        System.out.println("3. Faction 3 (Neutral)");
-        System.out.println("4. Faction 4 (Custom)");
-        System.out.println("5. Faction 5 (Custom)");
-        System.out.println("0. Cancel faction selection");
-        System.out.println();
-        System.out.println("Enter selection (1-5, 0 to cancel): ");
-        waitingForFactionSelection = true;
-    }
-    
-    private void assignFactionToSelectedUnits(int factionNumber) {
-        if (factionNumber < 1 || factionNumber > 5) {
-            System.out.println("*** Invalid faction selection. Use 1-5 or 0 to cancel ***");
-            return;
-        }
-        
-        int successCount = 0;
-        String factionName = getFactionName(factionNumber);
-        
-        for (Unit unit : selectedUnits) {
-            try {
-                unit.character.setFaction(factionNumber);
-                successCount++;
-            } catch (Exception e) {
-                System.err.println("Failed to assign faction to " + unit.character.getDisplayName() + ": " + e.getMessage());
-            }
-        }
-        
-        // Display results
-        System.out.println("*** Faction assignment complete ***");
-        System.out.println("Faction: " + factionName + " (ID: " + factionNumber + ")");
-        System.out.println("Successfully assigned to " + successCount + " units");
-        System.out.println("***********************");
-        
-        waitingForFactionSelection = false;
-    }
-    
-    private String getFactionName(int factionNumber) {
-        switch (factionNumber) {
-            case 1: return "Faction 1 (Red)";
-            case 2: return "Faction 2 (Blue)";
-            case 3: return "Faction 3 (Neutral)";
-            case 4: return "Faction 4 (Custom)";
-            case 5: return "Faction 5 (Custom)";
-            default: return "Unknown Faction";
+        @Override
+        public void setEditMode(boolean editMode) {
+            OpenFields2.this.editMode = editMode;
         }
     }
 

@@ -1,0 +1,389 @@
+import combat.*;
+import data.SkillsManager;
+import game.Unit;
+import java.util.List;
+
+public final class CombatCalculator {
+    
+    public static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage, boolean debugMode, int stressModifier) {
+        double weaponModifier = weaponAccuracy;
+        double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
+        double movementModifier = calculateMovementModifier(shooter);
+        double aimingSpeedModifier = shooter.character.getCurrentAimingSpeed().getAccuracyModifier();
+        double targetMovementModifier = calculateTargetMovementModifier(shooter, target);
+        double woundModifier = calculateWoundModifier(shooter);
+        double stressMod = Math.min(0, stressModifier + GameConstants.statToModifier(shooter.character.coolness));
+        double skillModifier = calculateSkillModifier(shooter);
+        double sizeModifier = 0.0;
+        double coverModifier = 0.0;
+        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
+        
+        if (distanceFeet <= maximumRange) {
+            chanceToHit = Math.max(chanceToHit, 0.01);
+        }
+        
+        double randomRoll = Math.random() * 100;
+        
+        if (debugMode) {
+            System.out.println("=== HIT CALCULATION DEBUG ===");
+            System.out.println("Shooter: " + shooter.character.getDisplayName() + " -> Target: " + target.character.getDisplayName());
+            System.out.println("Base chance: 50.0");
+            System.out.println("Dexterity modifier: " + GameConstants.statToModifier(shooter.character.dexterity) + " (dex: " + shooter.character.dexterity + ")");
+            System.out.println("Stress modifier: " + stressMod + " (coolness: " + shooter.character.coolness + ":" + GameConstants.statToModifier(shooter.character.coolness) + ")");
+            System.out.println("Range modifier: " + String.format("%.2f", rangeModifier) + " (distance: " + String.format("%.2f", distanceFeet) + " feet, max: " + String.format("%.2f", maximumRange) + " feet)");
+            System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
+            System.out.println("Movement modifier: " + movementModifier);
+            System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (" + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
+            
+            // Enhanced target movement debug info
+            if (target.isMoving()) {
+                double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+                double perpendicularVelocityFeetPerSecond = (perpendicularVelocity * 60.0) / 7.0;
+                System.out.println("Target movement modifier: " + String.format("%.2f", targetMovementModifier) + 
+                                 " (perpendicular velocity: " + String.format("%.2f", perpendicularVelocityFeetPerSecond) + " ft/s, " +
+                                 String.format("%.2f", perpendicularVelocity) + " px/tick)");
+            } else {
+                System.out.println("Target movement modifier: " + targetMovementModifier + " (target stationary)");
+            }
+            
+            System.out.println("Wound modifier: " + String.format("%.1f", woundModifier) + " " + getWoundModifierDebugInfo(shooter));
+            System.out.println("Skill modifier: " + String.format("%.1f", skillModifier) + " " + getSkillDebugInfo(shooter));
+            System.out.println("Size modifier: " + sizeModifier);
+            System.out.println("Cover modifier: " + coverModifier);
+            System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");
+            System.out.println("Random roll: " + String.format("%.2f", randomRoll));
+            System.out.println("Result: " + (randomRoll < chanceToHit ? "HIT" : "MISS"));
+            System.out.println("=============================");
+        }
+        
+        boolean hit = randomRoll < chanceToHit;
+        BodyPart hitLocation = null;
+        WoundSeverity woundSeverity = null;
+        int actualDamage = 0;
+        
+        if (hit) {
+            hitLocation = determineHitLocation(randomRoll, chanceToHit);
+            woundSeverity = determineWoundSeverity(randomRoll, chanceToHit, hitLocation);
+            actualDamage = calculateActualDamage(weaponDamage, woundSeverity, hitLocation);
+        }
+        
+        return new HitResult(hit, hitLocation, woundSeverity, actualDamage);
+    }
+    
+    public static double calculateMovementModifier(Unit shooter) {
+        if (!shooter.isMoving()) {
+            return 0.0; // Stationary = no penalty
+        }
+        
+        switch (shooter.character.getCurrentMovementType()) {
+            case WALK: return -5.0;
+            case CRAWL: return -10.0;
+            case JOG: return -15.0;
+            case RUN: return -25.0;
+            default: return 0.0;
+        }
+    }
+    
+    public static double calculateTargetMovementModifier(Unit shooter, Unit target) {
+        if (!target.isMoving()) {
+            return 0.0; // Stationary target = no modifier
+        }
+        
+        // Get perpendicular velocity component in pixels per tick
+        double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
+        
+        // Convert from pixels per tick to feet per second for easier calculation
+        // 7 pixels = 1 foot, 60 ticks = 1 second
+        double perpendicularVelocityFeetPerSecond = (perpendicularVelocity * 60.0) / 7.0;
+        
+        // Simple formula: -2 * perpendicular speed in feet/second
+        // At walking speed (~6 feet/second perpendicular), this gives about -12 modifier
+        // At running speed (~12 feet/second perpendicular), this gives about -24 modifier
+        return -perpendicularVelocityFeetPerSecond * 2.0;
+    }
+    
+    public static double calculateSkillModifier(Unit shooter) {
+        if (shooter.character.weapon == null) {
+            return 0.0;
+        }
+        
+        WeaponType weaponType = shooter.character.weapon.getWeaponType();
+        String skillName;
+        
+        switch (weaponType) {
+            case PISTOL:
+                skillName = SkillsManager.PISTOL;
+                break;
+            case RIFLE:
+                skillName = SkillsManager.RIFLE;
+                break;
+            case OTHER:
+            default:
+                return 0.0; // No skill bonus for OTHER weapon types
+        }
+        
+        int skillLevel = shooter.character.getSkillLevel(skillName);
+        return skillLevel * 5.0;
+    }
+    
+    public static String getSkillDebugInfo(Unit shooter) {
+        if (shooter.character.weapon == null) {
+            return "(no weapon)";
+        }
+        
+        WeaponType weaponType = shooter.character.weapon.getWeaponType();
+        String skillName;
+        
+        switch (weaponType) {
+            case PISTOL:
+                skillName = SkillsManager.PISTOL;
+                break;
+            case RIFLE:
+                skillName = SkillsManager.RIFLE;
+                break;
+            case OTHER:
+            default:
+                return "(weapon type: " + weaponType.getDisplayName() + ", no skill bonus)";
+        }
+        
+        int skillLevel = shooter.character.getSkillLevel(skillName);
+        return "(" + skillName + ": " + skillLevel + ")";
+    }
+    
+    public static double calculateWoundModifier(Unit shooter) {
+        double modifier = 0.0;
+        
+        for (Wound wound : shooter.character.getWounds()) {
+            BodyPart bodyPart = wound.getBodyPart();
+            WoundSeverity severity = wound.getSeverity();
+            
+            // Check for head wounds - every point of damage is -1
+            if (bodyPart == BodyPart.HEAD) {
+                modifier -= getDamageFromSeverity(severity);
+            }
+            // Check for dominant arm wounds - every point of damage is -1
+            else if (isShootingArm(bodyPart, shooter.character.getHandedness())) {
+                modifier -= getDamageFromSeverity(severity);
+            }
+            // Check for other body parts based on severity
+            else {
+                switch (severity) {
+                    case LIGHT:
+                        modifier -= 1.0;
+                        break;
+                    case SERIOUS:
+                        modifier -= 2.0;
+                        break;
+                    case CRITICAL:
+                        // Every point of damage from critical wound in other parts is -1
+                        modifier -= getDamageFromSeverity(severity);
+                        break;
+                    case SCRATCH:
+                        // No modifier for scratches in other parts
+                        break;
+                }
+            }
+        }
+        
+        return modifier;
+    }
+    
+    public static boolean isShootingArm(BodyPart bodyPart, Handedness handedness) {
+        switch (handedness) {
+            case LEFT_HANDED:
+                return bodyPart == BodyPart.LEFT_ARM;
+            case RIGHT_HANDED:
+                return bodyPart == BodyPart.RIGHT_ARM;
+            case AMBIDEXTROUS:
+                // Right arm if ambidextrous
+                return bodyPart == BodyPart.RIGHT_ARM;
+            default:
+                return false;
+        }
+    }
+    
+    public static int getDamageFromSeverity(WoundSeverity severity) {
+        // Since we don't store actual damage with wounds, we use estimated damage values
+        // based on typical weapon damage (around 7-8 damage)
+        switch (severity) {
+            case SCRATCH:
+                return 1; // Always 1 damage
+            case LIGHT:
+                return 3; // Math.max(1, Math.round(7 * 0.4f)) = 3
+            case SERIOUS:
+                return 8; // Full weapon damage estimate
+            case CRITICAL:
+                return 8; // Full weapon damage estimate
+            default:
+                return 0;
+        }
+    }
+    
+    public static String getWoundModifierDebugInfo(Unit shooter) {
+        List<Wound> wounds = shooter.character.getWounds();
+        if (wounds.isEmpty()) {
+            return "(no wounds)";
+        }
+        
+        StringBuilder debug = new StringBuilder("(");
+        double totalModifier = 0.0;
+        boolean first = true;
+        
+        for (Wound wound : wounds) {
+            if (!first) debug.append(", ");
+            first = false;
+            
+            BodyPart bodyPart = wound.getBodyPart();
+            WoundSeverity severity = wound.getSeverity();
+            double woundModifier = 0.0;
+            
+            if (bodyPart == BodyPart.HEAD) {
+                woundModifier = -getDamageFromSeverity(severity);
+                debug.append("HEAD ").append(severity.name()).append(": ").append(woundModifier);
+            } else if (isShootingArm(bodyPart, shooter.character.getHandedness())) {
+                woundModifier = -getDamageFromSeverity(severity);
+                String armSide = (bodyPart == BodyPart.LEFT_ARM) ? "LEFT" : "RIGHT";
+                debug.append(armSide).append("_ARM(dominant) ").append(severity.name()).append(": ").append(woundModifier);
+            } else {
+                switch (severity) {
+                    case LIGHT:
+                        woundModifier = -1.0;
+                        break;
+                    case SERIOUS:
+                        woundModifier = -2.0;
+                        break;
+                    case CRITICAL:
+                        woundModifier = -getDamageFromSeverity(severity);
+                        break;
+                    case SCRATCH:
+                        woundModifier = 0.0;
+                        break;
+                }
+                debug.append(bodyPart.name()).append(" ").append(severity.name()).append(": ").append(woundModifier);
+            }
+            
+            totalModifier += woundModifier;
+        }
+        
+        debug.append(" | total: ").append(totalModifier).append(")");
+        return debug.toString();
+    }
+    
+    public static double calculateRangeModifier(double distanceFeet, double maximumRange) {
+        double optimalRange = maximumRange * 0.3;
+        double rangeModifier;
+        
+        if (distanceFeet <= optimalRange) {
+            rangeModifier = 10.0 * (1.0 - distanceFeet / optimalRange);
+        } else {
+            double remainingRange = maximumRange - optimalRange;
+            double excessDistance = distanceFeet - optimalRange;
+            rangeModifier = -(excessDistance / remainingRange) * 20.0;
+        }
+        
+        return rangeModifier;
+    }
+    
+    public static BodyPart determineHitLocation(double randomRoll, double chanceToHit) {
+        double excellentThreshold = chanceToHit * 0.2;
+        double goodThreshold = chanceToHit * 0.7;
+        
+        if (randomRoll < excellentThreshold) {
+            // Excellent shots have a small chance for headshots
+            double headshotRoll = Math.random() * 100;
+            if (headshotRoll < 15) { // 15% chance for headshot on excellent shots
+                return BodyPart.HEAD;
+            } else {
+                return BodyPart.CHEST;
+            }
+        } else if (randomRoll < goodThreshold) {
+            // Good shots rarely hit the head (2% chance)
+            double headshotRoll = Math.random() * 100;
+            if (headshotRoll < 2) {
+                return BodyPart.HEAD;
+            } else {
+                return Math.random() < 0.5 ? BodyPart.CHEST : BodyPart.ABDOMEN;
+            }
+        } else {
+            return getRandomBodyPart();
+        }
+    }
+    
+    public static BodyPart getRandomBodyPart() {
+        double roll = Math.random() * 100;
+        
+        if (roll < 12) return BodyPart.LEFT_ARM;
+        else if (roll < 24) return BodyPart.RIGHT_ARM;
+        else if (roll < 32) return BodyPart.LEFT_SHOULDER;
+        else if (roll < 40) return BodyPart.RIGHT_SHOULDER;
+        else if (roll < 50) return BodyPart.HEAD;
+        else if (roll < 55) return BodyPart.LEFT_LEG;
+        else return BodyPart.RIGHT_LEG;
+    }
+    
+    public static WoundSeverity determineWoundSeverity(double randomRoll, double chanceToHit, BodyPart hitLocation) {
+        double excellentThreshold = chanceToHit * 0.2;
+        
+        // Excellent shots are always critical
+        if (randomRoll < excellentThreshold) {
+            return WoundSeverity.CRITICAL;
+        }
+        
+        // Determine wound severity based on hit location
+        double severityRoll = Math.random() * 100;
+        
+        if (isVitalArea(hitLocation)) {
+            // HEAD/CHEST/ABDOMEN: 30% Critical, 40% Serious, 25% Light, 5% Scratch
+            if (severityRoll < 30) return WoundSeverity.CRITICAL;
+            else if (severityRoll < 70) return WoundSeverity.SERIOUS;
+            else if (severityRoll < 95) return WoundSeverity.LIGHT;
+            else return WoundSeverity.SCRATCH;
+        } else {
+            // ARMS/SHOULDERS/LEGS: 10% Critical, 25% Serious, 45% Light, 20% Scratch
+            if (severityRoll < 10) return WoundSeverity.CRITICAL;
+            else if (severityRoll < 35) return WoundSeverity.SERIOUS;
+            else if (severityRoll < 80) return WoundSeverity.LIGHT;
+            else return WoundSeverity.SCRATCH;
+        }
+    }
+    
+    public static boolean isVitalArea(BodyPart bodyPart) {
+        return bodyPart == BodyPart.HEAD || bodyPart == BodyPart.CHEST || bodyPart == BodyPart.ABDOMEN;
+    }
+    
+    // Backwards compatible method for tests
+    public static int calculateActualDamage(int weaponDamage, WoundSeverity woundSeverity) {
+        return calculateActualDamage(weaponDamage, woundSeverity, null);
+    }
+    
+    public static int calculateActualDamage(int weaponDamage, WoundSeverity woundSeverity, BodyPart hitLocation) {
+        int baseDamage;
+        switch (woundSeverity) {
+            case CRITICAL:
+            case SERIOUS:
+                baseDamage = weaponDamage;
+                break;
+            case LIGHT:
+                baseDamage = Math.max(1, Math.round(weaponDamage * 0.4f));
+                break;
+            case SCRATCH:
+                baseDamage = 1;
+                break;
+            default:
+                baseDamage = 0;
+        }
+        
+        // Apply headshot damage multiplier
+        if (hitLocation == BodyPart.HEAD) {
+            // Headshots deal 1.5x damage (50% more damage)
+            baseDamage = Math.round(baseDamage * 1.5f);
+        }
+        
+        return baseDamage;
+    }
+    
+    // Private constructor to prevent instantiation
+    private CombatCalculator() {
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
+}
