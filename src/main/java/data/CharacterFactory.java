@@ -7,14 +7,12 @@ import java.util.Date;
 import java.util.Calendar;
 import java.util.Random;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.FileReader;
 import java.io.IOException;
 
 /**
@@ -23,9 +21,8 @@ import java.io.IOException;
 public class CharacterFactory {
     private static final Random random = new Random();
     
-    // CSV-based name data cache
-    private static List<String> weightedMaleNames = null;
-    private static boolean csvNamesLoaded = false;
+    // Theme-based name data cache
+    private static Map<String, Map<String, Object>> themeNameCache = new HashMap<>();
     private static final UniversalCharacterRegistry registry = UniversalCharacterRegistry.getInstance();
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final ThemeManager themeManager = ThemeManager.getInstance();
@@ -225,10 +222,16 @@ public class CharacterFactory {
     }
     
     private static Character createBalanced() {
+        // 50/50 gender split for balanced characters
+        String gender = random.nextBoolean() ? "male" : "female";
+        String themeId = themeManager.getCurrentThemeId();
+        String firstName = generateThemeBasedFirstName(gender, themeId);
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeId);
+        
         Character character = new Character(
             0,
-            generateName("Adventurer"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null,
@@ -266,10 +269,16 @@ public class CharacterFactory {
         Handedness randomHandedness = random.nextBoolean() ? 
             Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
         
+        // 50/50 gender split for weighted_random
+        String gender = random.nextBoolean() ? "male" : "female";
+        String themeId = themeManager.getCurrentThemeId();
+        String firstName = generateThemeBasedFirstName(gender, themeId);
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeId);
+        
         Character character = new Character(
             0, // ID assigned by registry
-            generateName("Wanderer"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null, // No theme
@@ -367,9 +376,15 @@ public class CharacterFactory {
     
     // Helper methods for generating character attributes
     private static String generateName(String archetype) {
-        // Generate a first name from CSV data, nickname matches firstName
-        String firstName = generateCSVBasedFirstName();
-        return firstName; // Nickname matches firstName as requested
+        String themeId = themeManager.getCurrentThemeId();
+        String firstName = generateThemeBasedFirstName("male", themeId);
+        
+        // 80% of time use first name, 20% use creative nickname
+        if (random.nextInt(100) < 80) {
+            return firstName;
+        } else {
+            return generateCreativeNickname(themeId);
+        }
     }
     
     /**
@@ -408,7 +423,8 @@ public class CharacterFactory {
     }
     
     private static String generateFirstName() {
-        return generateCSVBasedFirstName();
+        String themeId = themeManager.getCurrentThemeId();
+        return generateThemeBasedFirstName("male", themeId);
     }
     
     /**
@@ -457,99 +473,175 @@ public class CharacterFactory {
     }
     
     private static String generateLastName() {
-        String[] lastNames = {"Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson"};
-        return lastNames[random.nextInt(lastNames.length)];
+        String themeId = themeManager.getCurrentThemeId();
+        return generateThemeBasedLastName(themeId);
     }
     
     /**
-     * Load male names from 1880USNames.csv with frequency weighting
+     * Load theme names from JSON files
      */
-    private static void loadCSVNames() {
-        if (csvNamesLoaded) {
+    private static void loadThemeNames(String themeId) {
+        if (themeNameCache.containsKey(themeId)) {
             return; // Already loaded
         }
         
-        weightedMaleNames = new ArrayList<>();
+        Map<String, Object> themeNames = new HashMap<>();
         
-        // Try multiple possible paths for the CSV file
-        String[] possiblePaths = {
-            "1880USNames.csv",
-            "../1880USNames.csv",
-            "/mnt/c/dev/TTCombat/OF2Prototype01/1880USNames.csv"
-        };
-        
-        boolean fileFound = false;
-        for (String path : possiblePaths) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
-                System.out.println("Successfully opened CSV file at: " + path);
-                
-                String line;
-                boolean isHeader = true;
-                
-                while ((line = reader.readLine()) != null) {
-                    if (isHeader) {
-                        isHeader = false;
-                        continue; // Skip header row
-                    }
-                    
-                    String[] parts = line.split(",");
-                    if (parts.length >= 3) {
-                        String maleName = parts[1].trim();
-                        String maleCountStr = parts[2].trim().replaceAll("\"", "").replaceAll(",", "");
-                        
-                        try {
-                            int count = Integer.parseInt(maleCountStr);
-                            
-                            // Add name to weighted list based on frequency
-                            // Scale down the count to avoid massive lists (divide by 1000, minimum 1)
-                            int weight = Math.max(1, count / 1000);
-                            
-                            for (int i = 0; i < weight; i++) {
-                                weightedMaleNames.add(maleName);
-                            }
-                        } catch (NumberFormatException e) {
-                            System.err.println("Failed to parse count for name " + maleName + ": " + maleCountStr);
-                        }
-                    }
-                }
-                
-                fileFound = true;
-                csvNamesLoaded = true;
-                System.out.println("Loaded " + weightedMaleNames.size() + " weighted male names from 1880USNames.csv");
-                break;
-                
-            } catch (IOException e) {
-                // Try next path
-                System.err.println("Could not open CSV at " + path + ": " + e.getMessage());
+        try {
+            // Load male names
+            InputStream maleStream = CharacterFactory.class.getResourceAsStream("/data/themes/" + themeId + "/male_names.json");
+            if (maleStream != null) {
+                JsonNode maleRoot = objectMapper.readTree(maleStream);
+                themeNames.put("maleNames", maleRoot.get("names"));
             }
-        }
-        
-        if (!fileFound) {
-            System.err.println("Failed to load 1880USNames.csv from any location, using fallback names");
-            // Fall back to hardcoded names
-            weightedMaleNames = new ArrayList<>();
-            String[] fallbackNames = {"John", "William", "James", "George", "Charles", "Frank", "Joseph", "Henry", "Robert", "Thomas"};
-            for (String name : fallbackNames) {
-                for (int i = 0; i < 10; i++) { // Add each name 10 times for weighting
-                    weightedMaleNames.add(name);
-                }
+            
+            // Load female names
+            InputStream femaleStream = CharacterFactory.class.getResourceAsStream("/data/themes/" + themeId + "/female_names.json");
+            if (femaleStream != null) {
+                JsonNode femaleRoot = objectMapper.readTree(femaleStream);
+                themeNames.put("femaleNames", femaleRoot.get("names"));
             }
-            csvNamesLoaded = true;
+            
+            // Load last names
+            InputStream lastNameStream = CharacterFactory.class.getResourceAsStream("/data/themes/" + themeId + "/last_names.json");
+            if (lastNameStream != null) {
+                JsonNode lastNameRoot = objectMapper.readTree(lastNameStream);
+                themeNames.put("lastNames", lastNameRoot.get("names"));
+            }
+            
+            // Load nicknames
+            InputStream nicknameStream = CharacterFactory.class.getResourceAsStream("/data/themes/" + themeId + "/nicknames.json");
+            if (nicknameStream != null) {
+                JsonNode nicknameRoot = objectMapper.readTree(nicknameStream);
+                themeNames.put("nicknames", nicknameRoot.get("names"));
+            }
+            
+            themeNameCache.put(themeId, themeNames);
+            
+        } catch (Exception e) {
+            System.err.println("Failed to load theme names for " + themeId + ": " + e.getMessage());
+            themeNameCache.put(themeId, new HashMap<>()); // Empty cache to prevent repeated attempts
         }
     }
     
     /**
-     * Generate a random male name from 1880 US Census data with frequency weighting
+     * Generate a theme-based first name using frequency-weighted selection
      */
-    private static String generateCSVBasedFirstName() {
-        loadCSVNames(); // Ensure names are loaded
+    private static String generateThemeBasedFirstName(String gender, String themeId) {
+        loadThemeNames(themeId);
         
-        if (weightedMaleNames.isEmpty()) {
-            return "John"; // Final fallback
+        try {
+            Map<String, Object> themeNames = themeNameCache.get(themeId);
+            if (themeNames == null) {
+                return generateFallbackFirstName();
+            }
+            
+            String namesKey = gender.equals("female") ? "femaleNames" : "maleNames";
+            JsonNode names = (JsonNode) themeNames.get(namesKey);
+            
+            if (names == null) {
+                return generateFallbackFirstName();
+            }
+            
+            // Create weighted list for frequency-based selection
+            List<String> weightedNames = new ArrayList<>();
+            names.fields().forEachRemaining(entry -> {
+                String name = entry.getKey();
+                double frequency = entry.getValue().asDouble();
+                int weight = Math.max(1, (int) Math.round(frequency * 10)); // Scale frequency to integer weight
+                
+                for (int i = 0; i < weight; i++) {
+                    weightedNames.add(name);
+                }
+            });
+            
+            if (weightedNames.isEmpty()) {
+                return generateFallbackFirstName();
+            }
+            
+            return weightedNames.get(random.nextInt(weightedNames.size()));
+            
+        } catch (Exception e) {
+            return generateFallbackFirstName();
         }
-        
-        return weightedMaleNames.get(random.nextInt(weightedMaleNames.size()));
     }
+    
+    /**
+     * Generate a theme-based last name using frequency-weighted selection
+     */
+    private static String generateThemeBasedLastName(String themeId) {
+        loadThemeNames(themeId);
+        
+        try {
+            Map<String, Object> themeNames = themeNameCache.get(themeId);
+            if (themeNames == null) {
+                return generateFallbackLastName();
+            }
+            
+            JsonNode lastNames = (JsonNode) themeNames.get("lastNames");
+            if (lastNames == null) {
+                return generateFallbackLastName();
+            }
+            
+            // Create weighted list for frequency-based selection
+            List<String> weightedLastNames = new ArrayList<>();
+            lastNames.fields().forEachRemaining(entry -> {
+                String name = entry.getKey();
+                double frequency = entry.getValue().asDouble();
+                int weight = Math.max(1, (int) Math.round(frequency * 10)); // Scale frequency to integer weight
+                
+                for (int i = 0; i < weight; i++) {
+                    weightedLastNames.add(name);
+                }
+            });
+            
+            if (weightedLastNames.isEmpty()) {
+                return generateFallbackLastName();
+            }
+            
+            return weightedLastNames.get(random.nextInt(weightedLastNames.size()));
+            
+        } catch (Exception e) {
+            return generateFallbackLastName();
+        }
+    }
+    
+    /**
+     * Generate a creative nickname from theme-specific nickname list
+     */
+    private static String generateCreativeNickname(String themeId) {
+        loadThemeNames(themeId);
+        
+        try {
+            Map<String, Object> themeNames = themeNameCache.get(themeId);
+            if (themeNames == null) {
+                return generateFallbackFirstName();
+            }
+            
+            JsonNode nicknames = (JsonNode) themeNames.get("nicknames");
+            if (nicknames == null || !nicknames.isArray()) {
+                return generateFallbackFirstName();
+            }
+            
+            List<String> nicknameList = new ArrayList<>();
+            nicknames.forEach(node -> nicknameList.add(node.asText()));
+            
+            if (nicknameList.isEmpty()) {
+                return generateFallbackFirstName();
+            }
+            
+            return nicknameList.get(random.nextInt(nicknameList.size()));
+            
+        } catch (Exception e) {
+            return generateFallbackFirstName();
+        }
+    }
+    
+    private static String generateFallbackLastName() {
+        String[] lastNames = {"Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Wilson", "Moore", "Taylor"};
+        return lastNames[random.nextInt(lastNames.length)];
+    }
+
     
     private static Date generateBirthdate() {
         return generateBirthdateForTheme(themeManager.getCurrentThemeId());

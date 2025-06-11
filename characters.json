@@ -1,28 +1,60 @@
 {
-  "nextCharacterId" : 1006,
+  "nextCharacterId" : 1008,
   "characters" : {
-    "1005" : {
-      "id" : 1005,
-      "nickname" : "Edward",
+    "1007" : {
+      "id" : 1007,
+      "nickname" : "William",
       "firstName" : "William",
       "lastName" : "Miller",
-      "birthdate" : "June 9, 1845",
-      "dexterity" : 75,
-      "health" : 15,
-      "coolness" : 70,
-      "strength" : 80,
-      "reflexes" : 70,
+      "birthdate" : "June 9, 1849",
+      "dexterity" : 29,
+      "health" : 17,
+      "coolness" : 72,
+      "strength" : 61,
+      "reflexes" : 73,
+      "handedness" : "LEFT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "skills" : [ {
+        "skillName" : "skl_rifle",
+        "level" : 6
+      } ],
+      "wounds" : [ ]
+    },
+    "1006" : {
+      "id" : 1006,
+      "nickname" : "Percy",
+      "firstName" : "William",
+      "lastName" : "Brown",
+      "birthdate" : "June 9, 1853",
+      "dexterity" : 40,
+      "health" : 18,
+      "coolness" : 16,
+      "strength" : 77,
+      "reflexes" : 48,
       "handedness" : "RIGHT_HANDED",
       "baseMovementSpeed" : 42.0,
       "skills" : [ {
         "skillName" : "skl_rifle",
-        "level" : 7
-      }, {
-        "skillName" : "skl_athletics",
         "level" : 6
-      }, {
-        "skillName" : "skl_intimidation",
-        "level" : 5
+      } ],
+      "wounds" : [ ]
+    },
+    "1005" : {
+      "id" : 1005,
+      "nickname" : "Harley",
+      "firstName" : "William",
+      "lastName" : "Johnson",
+      "birthdate" : "June 9, 1853",
+      "dexterity" : 57,
+      "health" : 14,
+      "coolness" : 70,
+      "strength" : 40,
+      "reflexes" : 31,
+      "handedness" : "LEFT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "skills" : [ {
+        "skillName" : "skl_rifle",
+        "level" : 6
       } ],
       "wounds" : [ ]
     },
