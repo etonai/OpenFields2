@@ -26,7 +26,7 @@ This document provides a comprehensive guide to all player commands and controls
   - `↓` Down  
   - `←` Left
   - `→` Right
-- **+/=**: Zoom in
+- **+/=**: Zoom in/
 - **-**: Zoom out
 
 ### Game State Controls
