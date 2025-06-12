@@ -200,6 +200,11 @@ public class SaveGameController {
         for (Unit unit : units) {
             UnitData unitData = serializeUnitWithCharacterRef(unit, currentThemeId);
             unitDataList.add(unitData);
+            
+            // Debug output showing what weapons are being saved
+            String weaponName = (unit.character.weapon != null) ? unit.character.weapon.name : "None";
+            String weaponId = unitData.weaponId != null ? unitData.weaponId : "None";
+            System.out.println("  Saving " + unit.character.getDisplayName() + ": weapon=" + weaponName + " (ID: " + weaponId + ")");
         }
         
         return new SaveData(metadata, gameState, unitDataList);
@@ -271,9 +276,17 @@ public class SaveGameController {
         if (weapon.name.equals("Hunting Rifle")) return "wpn_hunting_rifle";
         if (weapon.name.equals("Derringer")) return "wpn_derringer";
         if (weapon.name.equals("Plasma Pistol")) return "wpn_plasma_pistol";
-        if (weapon.name.equals("Magic Wand")) return "wpn_magic_wand";
-        if (weapon.name.equals("Sheathed Sword")) return "wpn_sheathed_sword";
-        if (weapon.name.equals("Brown Bess")) return "wpn_brown_bess";
+        if (weapon.name.equals("Wand of Magic Bolts")) return "wpn_wand_of_magic_bolts";
+        if (weapon.name.equals("Enchanted Sword")) return "wpn_magic_sword";
+        if (weapon.name.equals("Brown Bess Musket")) return "wpn_brown_bess";
+        if (weapon.name.equals("Lee-Enfield SMLE")) return "wpn_lee_enfield";
+        if (weapon.name.equals("M1 Garand")) return "wpn_m1_garand";
+        if (weapon.name.equals("English Longbow")) return "wpn_longbow";
+        if (weapon.name.equals("Heavy Crossbow")) return "wpn_crossbow";
+        if (weapon.name.equals("Steel Dagger")) return "wpn_dagger";
+        if (weapon.name.equals("Longsword")) return "wpn_sword";
+        if (weapon.name.equals("Battle Axe")) return "wpn_battleaxe";
+        if (weapon.name.equals("Uzi Submachine Gun")) return "wpn_uzi";
         return "wpn_colt_peacemaker"; // default fallback
     }
     
@@ -402,6 +415,12 @@ public class SaveGameController {
                                 character.currentWeaponState = character.weapon.getInitialState();
                             }
                         }
+                        
+                        // Debug output showing what weapons are being loaded
+                        String weaponName = (character.weapon != null) ? character.weapon.name : "Failed to create";
+                        System.out.println("  Loading " + character.getDisplayName() + ": weaponId=" + unitData.weaponId + " → " + weaponName);
+                    } else {
+                        System.out.println("  Loading " + character.getDisplayName() + ": no weapon data");
                     }
                     
                     Unit unit = deserializeUnitFromCharacterRef(unitData, character);

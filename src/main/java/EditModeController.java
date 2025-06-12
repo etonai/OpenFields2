@@ -287,12 +287,18 @@ public class EditModeController {
         
         for (Unit unit : selectionManager.getSelectedUnits()) {
             try {
+                // Get old weapon name for comparison
+                String oldWeaponName = (unit.character.weapon != null) ? unit.character.weapon.name : "None";
+                
                 // Create new weapon instance
                 combat.Weapon newWeapon = WeaponFactory.createWeapon(selectedWeaponId);
                 
                 // Assign weapon to character
                 unit.character.weapon = newWeapon;
                 unit.character.currentWeaponState = newWeapon.getInitialState();
+                
+                // Debug output
+                System.out.println("  " + unit.character.getDisplayName() + ": " + oldWeaponName + " → " + newWeapon.name);
                 
                 successCount++;
             } catch (Exception e) {

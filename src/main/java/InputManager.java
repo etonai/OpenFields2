@@ -49,6 +49,12 @@ public class InputManager {
     private boolean waitingForWeaponSelection = false;
     private boolean waitingForFactionSelection = false;
     
+    // Target zone selection state
+    private boolean isSelectingTargetZone = false;
+    private double targetZoneStartX = 0;
+    private double targetZoneStartY = 0;
+    private Unit targetZoneUnit = null;
+    
     // Game management dependencies
     private final SaveGameManager saveGameManager;
     private final UniversalCharacterRegistry characterRegistry;
@@ -166,13 +172,13 @@ public class InputManager {
             if (clickedUnit != null) {
                 // Single unit selection
                 selectionManager.selectUnit(clickedUnit);
-                System.out.println("Selected: " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ")");
+                displayEnhancedCharacterStats(clickedUnit);
             } else {
                 // Start rectangle selection
                 selectionManager.startRectangleSelection(x, y);
             }
         } else if (e.getButton() == MouseButton.SECONDARY) {
-            // Right click - various actions based on context
+            // Right click - check if this is target zone selection or normal right click
             Unit clickedUnit = null;
             for (Unit u : units) {
                 if (u.contains(x, y)) {
@@ -181,7 +187,16 @@ public class InputManager {
                 }
             }
             
-            handleRightClick(clickedUnit, x, y, e.isShiftDown());
+            // Check for Shift+right click target zone selection
+            if (e.isShiftDown() && clickedUnit == null && selectionManager.getSelectionCount() == 1) {
+                // Shift+right click on empty space with single character selected - start target zone selection
+                isSelectingTargetZone = true;
+                targetZoneStartX = x;
+                targetZoneStartY = y;
+                targetZoneUnit = selectionManager.getSelected();
+            } else {
+                handleRightClick(clickedUnit, x, y, e.isShiftDown());
+            }
         }
     }
     
@@ -209,8 +224,14 @@ public class InputManager {
             selectionManager.completeRectangleSelection(units);
             
             if (selectionManager.hasSelection()) {
-                System.out.println("Selected " + selectionManager.getSelectionCount() + " units");
+                displayMultiCharacterSelection();
             }
+        } else if (isSelectingTargetZone && e.getButton() == MouseButton.SECONDARY && e.isShiftDown()) {
+            // Complete target zone selection (Shift+right click)
+            double x = gameRenderer.screenToWorldX(e.getX());
+            double y = gameRenderer.screenToWorldY(e.getY());
+            
+            completeTargetZoneSelection(x, y);
         }
     }
     
@@ -226,7 +247,7 @@ public class InputManager {
         if (clickedUnit != null) {
             // Right-click on a unit
             if (selectionManager.isUnitSelected(clickedUnit) && selectionManager.getSelectionCount() == 1) {
-                // Right-click on self (single selection) - ready weapon
+                // Right-click on self (single selection) - cease fire or ready weapon
                 if (callbacks.isEditMode()) {
                     System.out.println(">>> Combat actions disabled in edit mode");
                     return;
@@ -236,8 +257,14 @@ public class InputManager {
                     return;
                 }
                 
-                clickedUnit.character.startReadyWeaponSequence(clickedUnit, gameClock.getCurrentTick(), eventQueue, clickedUnit.getId());
-                System.out.println("READY WEAPON " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ") - current state: " + clickedUnit.character.currentWeaponState.getState());
+                // Check if character is currently attacking - if so, cease fire
+                if (clickedUnit.character.isAttacking || clickedUnit.character.isPersistentAttack()) {
+                    performCeaseFire(clickedUnit);
+                } else {
+                    // Not attacking - ready weapon
+                    clickedUnit.character.startReadyWeaponSequence(clickedUnit, gameClock.getCurrentTick(), eventQueue, clickedUnit.getId());
+                    System.out.println("READY WEAPON " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ") - current state: " + clickedUnit.character.currentWeaponState.getState());
+                }
             } else if (isShiftDown && selectionManager.hasSelection() && !selectionManager.isUnitSelected(clickedUnit)) {
                 // Shift+right-click on different unit - toggle persistent attack for all selected
                 if (callbacks.isEditMode()) {
@@ -399,6 +426,12 @@ public class InputManager {
         handleMovementControls(e);
         handleAimingControls(e);
         
+        // Target zone controls
+        handleTargetZoneControls(e);
+        
+        // Firing mode controls
+        handleFiringModeControls(e);
+        
         // Weapon ready command
         if (e.getCode() == KeyCode.R && selectionManager.hasSelection()) {
             for (Unit unit : selectionManager.getSelectedUnits()) {
@@ -475,7 +508,8 @@ public class InputManager {
                 System.out.println("***********************");
                 System.out.println("*** CHARACTER STATS ***");
                 System.out.println("***********************");
-                System.out.println("ID: " + selected.character.id);
+                System.out.println("Character ID: " + selected.character.id);
+                System.out.println("Unit ID: " + selected.id);
                 System.out.println("Nickname: " + selected.character.nickname);
                 System.out.println("Faction: " + selected.character.faction);
                 System.out.println("Full Name: " + selected.character.getFullName());
@@ -891,5 +925,204 @@ public class InputManager {
     public boolean isWaitingForInput() {
         return waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || 
                waitingForWeaponSelection || waitingForFactionSelection;
+    }
+    
+    /**
+     * Display enhanced character stats for single character selection
+     */
+    private void displayEnhancedCharacterStats(Unit unit) {
+        combat.Character character = unit.character;
+        
+        // Single character selection format: "Selected: ID:Nickname"
+        System.out.println("Selected: " + unit.id + ":" + character.nickname);
+        
+        // Status Line 1: Health, Faction, Weapon Name, Position State
+        String weaponName = (character.weapon != null) ? character.weapon.getName() : "None";
+        String factionName = getFactionDisplayName(character.faction);
+        String positionName = character.getCurrentPosition().getDisplayName();
+        
+        System.out.println("Health: " + character.currentHealth + "/" + character.health + 
+                         ", Faction: " + factionName + 
+                         ", Weapon: " + weaponName + 
+                         ", Position: " + positionName);
+        
+        // Status Line 2: Current Movement, Aiming Speed, Hesitation Time
+        String movementName = character.getCurrentMovementType().getDisplayName();
+        String aimingName = character.getCurrentAimingSpeed().getDisplayName();
+        
+        // Calculate remaining hesitation time
+        long currentTick = gameClock.getCurrentTick();
+        long remainingHesitation = Math.max(0, character.hesitationEndTick - currentTick);
+        long remainingBravery = Math.max(0, character.braveryPenaltyEndTick - currentTick);
+        double hesitationSeconds = remainingHesitation / 60.0; // Convert ticks to seconds
+        double braverySeconds = remainingBravery / 60.0;
+        
+        System.out.println("Movement: " + movementName + 
+                         ", Aiming: " + aimingName + 
+                         ", Hesitation: " + String.format("%.1fs", hesitationSeconds) +
+                         " (Wound: " + String.format("%.1fs", hesitationSeconds) +
+                         ", Bravery: " + String.format("%.1fs", braverySeconds) + ")");
+    }
+    
+    /**
+     * Display character IDs and names for multi-character selection
+     */
+    private void displayMultiCharacterSelection() {
+        System.out.print("Selected: ");
+        boolean first = true;
+        for (Unit unit : selectionManager.getSelectedUnits()) {
+            if (!first) {
+                System.out.print(", ");
+            }
+            System.out.print(unit.id + ":" + unit.character.nickname);
+            first = false;
+        }
+        System.out.println();
+    }
+    
+    /**
+     * Get display name for faction
+     */
+    private String getFactionDisplayName(int faction) {
+        switch (faction) {
+            case 1: return "Red";
+            case 2: return "Blue";
+            case 3: return "Green";
+            case 4: return "Yellow";
+            case 5: return "Purple";
+            default: return "Faction " + faction;
+        }
+    }
+    
+    /**
+     * Handle target zone controls
+     */
+    private void handleTargetZoneControls(KeyEvent e) {
+        // Z key - clear target zone for selected character
+        if (e.getCode() == KeyCode.Z && selectionManager.getSelectionCount() == 1) {
+            Unit selected = selectionManager.getSelected();
+            if (selected.character.targetZone != null) {
+                selected.character.targetZone = null;
+                System.out.println("*** Target zone cleared for " + selected.character.getDisplayName());
+            } else {
+                System.out.println("*** " + selected.character.getDisplayName() + " has no target zone to clear");
+            }
+        }
+    }
+    
+    /**
+     * Handle firing mode controls (F key)
+     */
+    private void handleFiringModeControls(KeyEvent e) {
+        // F key - cycle firing mode for selected units (only when not in edit mode to avoid conflict)
+        if (e.getCode() == KeyCode.F && !e.isControlDown() && selectionManager.hasSelection()) {
+            for (Unit unit : selectionManager.getSelectedUnits()) {
+                if (!unit.character.isIncapacitated() && unit.character.hasMultipleFiringModes()) {
+                    unit.character.cycleFiringMode();
+                }
+            }
+            
+            if (selectionManager.getSelectionCount() == 1) {
+                Unit unit = selectionManager.getSelected();
+                if (unit.character.hasMultipleFiringModes()) {
+                    System.out.println("*** " + unit.character.getDisplayName() + " firing mode: " + 
+                                     unit.character.getCurrentFiringMode());
+                } else {
+                    System.out.println("*** " + unit.character.getDisplayName() + " has no selectable firing modes");
+                }
+            } else {
+                int unitsWithModes = 0;
+                for (Unit unit : selectionManager.getSelectedUnits()) {
+                    if (unit.character.hasMultipleFiringModes()) {
+                        unitsWithModes++;
+                    }
+                }
+                if (unitsWithModes > 0) {
+                    System.out.println("*** " + unitsWithModes + " units cycled firing modes");
+                } else {
+                    System.out.println("*** No selected units have selectable firing modes");
+                }
+            }
+        }
+    }
+    
+    /**
+     * Complete target zone selection
+     */
+    private void completeTargetZoneSelection(double endX, double endY) {
+        if (isSelectingTargetZone && targetZoneUnit != null) {
+            // Calculate rectangle bounds
+            double minX = Math.min(targetZoneStartX, endX);
+            double maxX = Math.max(targetZoneStartX, endX);
+            double minY = Math.min(targetZoneStartY, endY);
+            double maxY = Math.max(targetZoneStartY, endY);
+            
+            // Only create zone if there's meaningful size (at least 10 pixels)
+            if (Math.abs(maxX - minX) > 10 && Math.abs(maxY - minY) > 10) {
+                java.awt.Rectangle targetZone = new java.awt.Rectangle(
+                    (int)minX, (int)minY, 
+                    (int)(maxX - minX), (int)(maxY - minY)
+                );
+                
+                targetZoneUnit.character.targetZone = targetZone;
+                System.out.println("*** Target zone set for " + targetZoneUnit.character.getDisplayName() + 
+                                 " at (" + (int)minX + "," + (int)minY + ") size " + 
+                                 (int)(maxX - minX) + "x" + (int)(maxY - minY));
+            } else {
+                System.out.println("*** Target zone too small - not created");
+            }
+        }
+        
+        // Reset target zone selection state
+        isSelectingTargetZone = false;
+        targetZoneUnit = null;
+    }
+    
+    /**
+     * Perform cease fire command for the specified unit
+     */
+    private void performCeaseFire(Unit unit) {
+        combat.Character character = unit.character;
+        
+        // Cancel all scheduled events for this unit (attacks, bursts, auto fire)
+        java.util.Iterator<ScheduledEvent> iterator = eventQueue.iterator();
+        java.util.List<ScheduledEvent> toRemove = new java.util.ArrayList<>();
+        
+        while (iterator.hasNext()) {
+            ScheduledEvent event = iterator.next();
+            if (event.getOwnerId() == unit.getId()) {
+                toRemove.add(event);
+            }
+        }
+        
+        eventQueue.removeAll(toRemove);
+        
+        // Reset attack state but maintain target and weapon state
+        character.isAttacking = false;
+        character.persistentAttack = false;
+        
+        // Reset automatic firing state
+        character.isAutomaticFiring = false;
+        character.burstShotsFired = 0;
+        character.savedAimingSpeed = null;
+        
+        // Maintain weapon in ready state if possible
+        if (character.weapon != null && character.currentWeaponState != null) {
+            String currentState = character.currentWeaponState.getState();
+            if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
+                character.currentWeaponState = character.weapon.getStateByName("aiming");
+                System.out.println("*** CEASE FIRE: " + character.getDisplayName() + " ceases fire, maintains aiming at " + 
+                                 (character.currentTarget != null ? character.currentTarget.character.getDisplayName() : "last target"));
+            } else {
+                System.out.println("*** CEASE FIRE: " + character.getDisplayName() + " ceases fire");
+            }
+        } else {
+            System.out.println("*** CEASE FIRE: " + character.getDisplayName() + " ceases fire");
+        }
+        
+        // Log number of cancelled events
+        if (!toRemove.isEmpty()) {
+            System.out.println("*** Cancelled " + toRemove.size() + " scheduled combat events");
+        }
     }
 }

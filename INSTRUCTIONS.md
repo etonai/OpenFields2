@@ -17,6 +17,7 @@ This document provides a comprehensive guide to all player commands and controls
 - **Right-click on empty space**: Move selected units to location
   - In **Edit Mode**: Instantly teleport units
   - In **Normal Mode**: Move units maintaining formation
+- **Shift + Right-click and drag on empty space**: Create target zone (single unit selected)
 
 ## Keyboard Controls
 
@@ -58,7 +59,9 @@ This document provides a comprehensive guide to all player commands and controls
 
 ### Combat Controls
 - **R**: Ready weapon for all selected units
+- **F**: Cycle weapon firing mode (Single Shot → Burst → Full Auto)
 - **Shift+T**: Toggle automatic targeting for selected units
+- **Z**: Clear target zone for selected unit (single unit only)
 
 ### Information Display
 - **Shift+/**: Display detailed character stats (single unit only)
@@ -131,6 +134,24 @@ Units have different movement speeds that affect combat accuracy:
 - **Leg wounds**: Movement restrictions (see Movement Restrictions above)  
 - **All wounds**: Tracked with actual damage values for realistic effects
 
+#### Target Zones
+- **Create**: Shift+right-click and drag to define rectangular targeting area
+- **Purpose**: Characters with automatic targeting prioritize targets within their zone
+- **Display**: Yellow rectangle outline when single character selected
+- **Clear**: Press Z key to remove target zone from selected character
+- **Behavior**: If no targets in zone, character selects closest global target
+
+#### Weapon Firing Modes
+- **Single Shot**: Standard semi-automatic firing (default)
+- **Burst**: Fires 3-round bursts at cyclic rate
+  - First shot uses current aiming speed
+  - Subsequent shots use quick aiming (faster but less accurate)
+- **Full Auto**: Continuous automatic fire
+  - First shot uses current aiming speed  
+  - All following shots use quick aiming
+- **Cycle**: Press F key to cycle between available modes
+- **Availability**: Only weapons with multiple firing modes can be switched
+
 ### Unit Selection
 - Single unit selection: Left-click on unit
 - Multiple unit selection: Click and drag rectangle around units
@@ -150,3 +171,7 @@ Units have different movement speeds that affect combat accuracy:
 - **Leg wounds** can severely limit mobility - protect your legs in combat!
 - **Bravery failures** stack penalties - keep units with high coolness in stressful situations
 - **Stray shots** can hit anyone nearby - consider positioning when engaging enemies
+- **Target zones** help focus automatic targeting on specific battlefield areas
+- **Burst and full auto** provide rapid fire at the cost of accuracy after the first shot
+- **Shift+T automatic targeting** combined with target zones creates powerful tactical control
+- **F key** quickly switches firing modes for weapons that support multiple modes
