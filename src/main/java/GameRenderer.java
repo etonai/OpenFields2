@@ -2,7 +2,11 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import game.Unit;
+import combat.WeaponType;
+import combat.Handedness;
 
 /**
  * Handles all rendering operations for the OpenFields2 game.
@@ -25,6 +29,10 @@ public class GameRenderer {
     // Game state references
     private List<Unit> units;
     private SelectionManager selectionManager;
+    
+    // Muzzle flash tracking
+    private Map<Integer, Long> muzzleFlashes = new HashMap<>(); // Unit ID -> End tick
+    private long currentTick = 0;
     
     /**
      * Creates a new GameRenderer with the specified canvas.
@@ -64,6 +72,9 @@ public class GameRenderer {
                 gc.setLineWidth(2);
                 gc.strokeOval(u.x - 12, u.y - 12, 24, 24);
             }
+            
+            // Draw weapon if character has a target and weapon
+            renderWeapon(gc, u);
         }
         
         // Draw selection-related graphics (rectangle and center marker)
@@ -72,6 +83,15 @@ public class GameRenderer {
         // Second pass: Draw target overlays that need to appear on top
         if (selectionManager.getSelectionCount() == 1) {
             Unit selected = selectionManager.getSelected();
+            
+            // Draw target zone if one exists for the selected character
+            if (selected.character.targetZone != null) {
+                gc.setStroke(Color.YELLOW);
+                gc.setLineWidth(2);
+                gc.strokeRect(selected.character.targetZone.x, selected.character.targetZone.y, 
+                             selected.character.targetZone.width, selected.character.targetZone.height);
+            }
+            
             if (selected.character.currentTarget != null) {
                 Unit target = selected.character.currentTarget;
                 
@@ -153,5 +173,128 @@ public class GameRenderer {
     
     public Canvas getCanvas() {
         return canvas;
+    }
+    
+    /**
+     * Render weapon for a unit if they have a target and weapon
+     */
+    private void renderWeapon(GraphicsContext gc, Unit unit) {
+        // Only render weapon if character has a target and weapon
+        if (unit.character.currentTarget == null || unit.character.weapon == null) {
+            return;
+        }
+        
+        // Skip if weapon type is OTHER
+        WeaponType weaponType = unit.character.weapon.getWeaponType();
+        if (weaponType == WeaponType.OTHER) {
+            return;
+        }
+        
+        // Calculate weapon properties
+        double weaponLength = getWeaponLength(weaponType);
+        boolean isLeftHanded = unit.character.handedness == Handedness.LEFT_HANDED;
+        
+        // Calculate direction to target
+        double targetX = unit.character.currentTarget.x;
+        double targetY = unit.character.currentTarget.y;
+        double dx = targetX - unit.x;
+        double dy = targetY - unit.y;
+        double distance = Math.hypot(dx, dy);
+        
+        if (distance == 0) return; // Avoid division by zero
+        
+        // Normalize direction vector to target
+        double dirX = dx / distance;
+        double dirY = dy / distance;
+        
+        // Calculate perpendicular vector for tangent line (perpendicular to target direction)
+        double perpX = -dirY; // Perpendicular vector (90 degrees rotation)
+        double perpY = dirX;
+        
+        // Select left or right tangent based on handedness
+        double tangentMultiplier = isLeftHanded ? -1 : 1;
+        
+        // Calculate tangent point on circle (where weapon base will be for rifles)
+        double circleRadius = 12; // Unit circle radius
+        double tangentX = unit.x + perpX * circleRadius * tangentMultiplier;
+        double tangentY = unit.y + perpY * circleRadius * tangentMultiplier;
+        
+        // Calculate weapon start and end positions
+        double startX, startY, endX, endY;
+        
+        if (weaponType == WeaponType.RIFLE) {
+            // Rifle: Start at tangent point
+            startX = tangentX;
+            startY = tangentY;
+        } else { // PISTOL
+            // Pistol: Start at tangent point, then move 14 pixels closer to target
+            startX = tangentX + dirX * 14;
+            startY = tangentY + dirY * 14;
+        }
+        
+        // Weapon points toward target
+        endX = startX + dirX * weaponLength;
+        endY = startY + dirY * weaponLength;
+        
+        // Draw weapon line in black
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(2);
+        gc.strokeLine(startX, startY, endX, endY);
+        
+        // Draw muzzle flash if active
+        renderMuzzleFlash(gc, unit.getId(), endX, endY);
+    }
+    
+    /**
+     * Get weapon length in pixels based on weapon type
+     */
+    private double getWeaponLength(WeaponType weaponType) {
+        switch (weaponType) {
+            case PISTOL:
+                return 7; // 1 foot = 7 pixels
+            case RIFLE:
+                return 28; // 4 feet = 28 pixels
+            default:
+                return 0; // OTHER weapons not rendered
+        }
+    }
+    
+    /**
+     * Render muzzle flash if active for the given unit
+     */
+    private void renderMuzzleFlash(GraphicsContext gc, int unitId, double muzzleX, double muzzleY) {
+        Long flashEndTick = muzzleFlashes.get(unitId);
+        if (flashEndTick != null && currentTick <= flashEndTick) {
+            // Muzzle flash is active - draw yellow circle
+            gc.setFill(Color.YELLOW);
+            double flashRadius = 2.5; // 5 pixel diameter = 2.5 pixel radius
+            gc.fillOval(muzzleX - flashRadius, muzzleY - flashRadius, flashRadius * 2, flashRadius * 2);
+        }
+    }
+    
+    /**
+     * Add a muzzle flash for the specified unit
+     */
+    public void addMuzzleFlash(int unitId, long fireTick) {
+        // Muzzle flash lasts for 0.5 seconds (30 ticks at 60 FPS)
+        long flashEndTick = fireTick + 30;
+        
+        // Extend duration if overlapping with existing flash
+        Long existingEndTick = muzzleFlashes.get(unitId);
+        if (existingEndTick != null && existingEndTick > fireTick) {
+            flashEndTick = Math.max(flashEndTick, existingEndTick);
+        }
+        
+        muzzleFlashes.put(unitId, flashEndTick);
+    }
+    
+    /**
+     * Update current tick for muzzle flash timing
+     */
+    public void setCurrentTick(long tick) {
+        this.currentTick = tick;
+        
+        // Clean up expired muzzle flashes
+        muzzleFlashes.entrySet().removeIf(entry -> entry.getValue() < tick);
     }
 }

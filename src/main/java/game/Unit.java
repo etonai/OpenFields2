@@ -123,11 +123,11 @@ public class Unit {
         gc.fillOval(x - 10.5, y - 10.5, 21, 21);
         
         // Show yellow circle around unit when firing
-        if (isFiringHighlighted) {
-            gc.setStroke(Color.YELLOW);
-            gc.setLineWidth(3);
-            gc.strokeOval(x - 15, y - 15, 30, 30);
-        }
+        // if (isFiringHighlighted) {
+        //     gc.setStroke(Color.YELLOW);
+        //     gc.setLineWidth(3);
+        //     gc.strokeOval(x - 15, y - 15, 30, 30);
+        // }
         
         if (isSelected) {
             // Show small yellow X at movement target location

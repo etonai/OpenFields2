@@ -1,6 +1,6 @@
 {
   "metadata" : {
-    "timestamp" : "2025-06-09T17:34:19.9559108",
+    "timestamp" : "2025-06-12T11:24:13.5211714",
     "gameVersion" : "1.0",
     "themeId" : "test_theme",
     "saveSlot" : 2
@@ -26,9 +26,9 @@
     "color" : "RED",
     "baseColor" : "RED",
     "isHitHighlighted" : false,
+    "isFiringHighlighted" : false,
     "weaponId" : "wpn_colt_peacemaker",
     "currentWeaponState" : "holstered",
-    "queuedShots" : 0,
     "themeId" : "test_theme"
   }, {
     "id" : 2,
@@ -42,9 +42,9 @@
     "color" : "BLUE",
     "baseColor" : "BLUE",
     "isHitHighlighted" : false,
+    "isFiringHighlighted" : false,
     "weaponId" : "wpn_hunting_rifle",
     "currentWeaponState" : "slung",
-    "queuedShots" : 0,
     "themeId" : "test_theme"
   }, {
     "id" : 3,
@@ -58,9 +58,9 @@
     "color" : "GREEN",
     "baseColor" : "GREEN",
     "isHitHighlighted" : false,
+    "isFiringHighlighted" : false,
     "weaponId" : "wpn_derringer",
     "currentWeaponState" : "holstered",
-    "queuedShots" : 0,
     "themeId" : "test_theme"
   }, {
     "id" : 4,
@@ -74,9 +74,9 @@
     "color" : "PURPLE",
     "baseColor" : "PURPLE",
     "isHitHighlighted" : false,
+    "isFiringHighlighted" : false,
     "weaponId" : "wpn_plasma_pistol",
     "currentWeaponState" : "holstered",
-    "queuedShots" : 0,
     "themeId" : "test_theme"
   }, {
     "id" : 5,
@@ -90,9 +90,9 @@
     "color" : "ORANGE",
     "baseColor" : "ORANGE",
     "isHitHighlighted" : false,
+    "isFiringHighlighted" : false,
     "weaponId" : "wpn_colt_peacemaker",
     "currentWeaponState" : "holstered",
-    "queuedShots" : 0,
     "themeId" : "test_theme"
   } ],
   "characters" : [ ]

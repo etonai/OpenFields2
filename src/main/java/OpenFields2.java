@@ -208,6 +208,9 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
                 // Selection center now managed by SelectionManager
             }
         }
+        
+        // Update GameRenderer with current tick for muzzle flash timing
+        gameRenderer.setCurrentTick(gameClock.getCurrentTick());
         gameRenderer.render();
     }
     void createUnits() {
@@ -669,6 +672,10 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
                 shooter.isFiringHighlighted = false;
             }, ScheduledEvent.WORLD_OWNER));
         }
+    }
+    
+    public void addMuzzleFlash(Unit shooter, long fireTick) {
+        gameRenderer.addMuzzleFlash(shooter.getId(), fireTick);
     }
     
     private void resolveCombatImpact(Unit shooter, Unit target, Weapon weapon, long impactTick, HitResult hitResult) {
