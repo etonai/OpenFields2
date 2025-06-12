@@ -490,9 +490,21 @@ public class InputManager {
                 System.out.println("Base Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
                 System.out.println("Current Movement: " + selected.character.getCurrentMovementType().getDisplayName() + 
                                  " (" + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                
+                // Show movement restrictions if any
+                combat.MovementType maxAllowed = selected.character.getMaxAllowedMovementType();
+                if (maxAllowed != combat.MovementType.RUN) {
+                    if (selected.character.hasBothLegsWounded()) {
+                        System.out.println("Movement Restricted: Both legs wounded - CRAWL ONLY, forced prone");
+                    } else if (selected.character.hasAnyLegWound()) {
+                        System.out.println("Movement Restricted: Leg wound - maximum " + maxAllowed.getDisplayName());
+                    }
+                }
+                
                 System.out.println("Current Aiming Speed: " + selected.character.getCurrentAimingSpeed().getDisplayName() + 
                                  " (timing: " + String.format("%.2fx", selected.character.getCurrentAimingSpeed().getTimingMultiplier()) + 
                                  ", accuracy: " + String.format("%+.0f", selected.character.getCurrentAimingSpeed().getAccuracyModifier()) + ")");
+                System.out.println("Current Position: " + selected.character.getCurrentPosition().getDisplayName());
                 
                 // Show weapon ready speed
                 double readySpeedMultiplier = selected.character.getWeaponReadySpeedMultiplier();
@@ -533,7 +545,7 @@ public class InputManager {
                     System.out.println("--- WOUNDS ---");
                     for (combat.Wound wound : selected.character.wounds) {
                         System.out.println(wound.getBodyPart().name().toLowerCase() + ": " + wound.getSeverity().name().toLowerCase() + 
-                                         " (from " + wound.getProjectileName() + ", weapon: " + wound.getWeaponId() + ")");
+                                         ", " + wound.getDamage() + " damage (from " + wound.getProjectileName() + ", weapon: " + wound.getWeaponId() + ")");
                     }
                 } else {
                     System.out.println("--- WOUNDS ---");
@@ -644,7 +656,25 @@ public class InputManager {
         if (e.getCode() == KeyCode.E && !e.isControlDown() && selectionManager.hasSelection()) {
             for (Unit unit : selectionManager.getSelectedUnits()) {
                 if (!unit.character.isIncapacitated()) {
+                    combat.AimingSpeed oldSpeed = unit.character.getCurrentAimingSpeed();
                     unit.character.decreaseAimingSpeed();
+                    combat.AimingSpeed newSpeed = unit.character.getCurrentAimingSpeed();
+                    
+                    // Check if very careful aiming was attempted but not allowed
+                    if (oldSpeed == combat.AimingSpeed.CAREFUL && newSpeed == combat.AimingSpeed.CAREFUL && 
+                        !unit.character.canUseVeryCarefulAiming()) {
+                        if (selectionManager.getSelectionCount() == 1) {
+                            if (unit.character.weapon == null) {
+                                System.out.println("*** " + unit.character.getDisplayName() + " cannot use very careful aiming (no weapon)");
+                            } else if (unit.character.weapon.getWeaponType() == combat.WeaponType.OTHER) {
+                                System.out.println("*** " + unit.character.getDisplayName() + " cannot use very careful aiming (weapon type not supported)");
+                            } else {
+                                String skillName = unit.character.weapon.getWeaponType() == combat.WeaponType.PISTOL ? "Pistol" : "Rifle";
+                                int skillLevel = unit.character.getSkillLevel(skillName.toLowerCase());
+                                System.out.println("*** " + unit.character.getDisplayName() + " cannot use very careful aiming (" + skillName + " skill level " + skillLevel + ", requires level 1+)");
+                            }
+                        }
+                    }
                 }
             }
             
@@ -655,6 +685,39 @@ public class InputManager {
                                  " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
             } else {
                 System.out.println("*** " + selectionManager.getSelectionCount() + " units aiming speed decreased");
+            }
+        }
+        
+        // Position controls: C (crouch down), V (stand up)
+        if (e.getCode() == KeyCode.C && !e.isControlDown() && selectionManager.hasSelection()) {
+            for (Unit unit : selectionManager.getSelectedUnits()) {
+                if (!unit.character.isIncapacitated()) {
+                    unit.character.decreasePosition();
+                }
+            }
+            
+            if (selectionManager.getSelectionCount() == 1) {
+                Unit unit = selectionManager.getSelected();
+                combat.PositionState newPosition = unit.character.getCurrentPosition();
+                System.out.println("*** " + unit.character.getDisplayName() + " position changed to " + newPosition.getDisplayName());
+            } else {
+                System.out.println("*** " + selectionManager.getSelectionCount() + " units crouched down");
+            }
+        }
+        
+        if (e.getCode() == KeyCode.V && selectionManager.hasSelection()) {
+            for (Unit unit : selectionManager.getSelectedUnits()) {
+                if (!unit.character.isIncapacitated()) {
+                    unit.character.increasePosition();
+                }
+            }
+            
+            if (selectionManager.getSelectionCount() == 1) {
+                Unit unit = selectionManager.getSelected();
+                combat.PositionState newPosition = unit.character.getCurrentPosition();
+                System.out.println("*** " + unit.character.getDisplayName() + " position changed to " + newPosition.getDisplayName());
+            } else {
+                System.out.println("*** " + selectionManager.getSelectionCount() + " units stood up");
             }
         }
     }

@@ -27,6 +27,7 @@ public class Character {
     public double baseMovementSpeed;
     public MovementType currentMovementType;
     public AimingSpeed currentAimingSpeed;
+    public PositionState currentPosition;
     public Weapon weapon;
     public WeaponState currentWeaponState;
     public Unit currentTarget;
@@ -62,6 +63,10 @@ public class Character {
     public boolean isHesitating = false;        // Currently hesitating due to wound
     public long hesitationEndTick = 0;          // When hesitation will end
     public List<ScheduledEvent> pausedEvents = new ArrayList<>(); // Events paused during hesitation
+    
+    // Bravery check state
+    public int braveryCheckFailures = 0;        // Number of active bravery check failures
+    public long braveryPenaltyEndTick = 0;      // When bravery penalty will end
 
     // Legacy constructors for backwards compatibility with tests
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
@@ -80,6 +85,7 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
         this.isAttacking = false;
         this.faction = 1; // Default faction
@@ -120,6 +126,7 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
         this.isAttacking = false;
         this.faction = 1; // Default faction
@@ -145,6 +152,7 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
         this.isAttacking = false;
         this.faction = 1; // Default faction
@@ -169,6 +177,7 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
         this.isAttacking = false;
         this.faction = 1; // Default faction
@@ -194,6 +203,7 @@ public class Character {
         this.baseMovementSpeed = 42.0;
         this.currentMovementType = MovementType.WALK;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
+        this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
         this.isAttacking = false;
         this.faction = 1; // Default faction
@@ -304,7 +314,20 @@ public class Character {
     
     public void increaseMovementType() {
         if (!isIncapacitated()) {
-            this.currentMovementType = currentMovementType.increase();
+            // Prone characters can only crawl
+            if (currentPosition == PositionState.PRONE && currentMovementType == MovementType.CRAWL) {
+                return; // Cannot increase from crawl when prone
+            }
+            
+            MovementType newType = currentMovementType.increase();
+            MovementType maxAllowed = getMaxAllowedMovementType();
+            
+            // Check if the new movement type is allowed given wound restrictions
+            if (newType.ordinal() <= maxAllowed.ordinal()) {
+                this.currentMovementType = newType;
+            } else {
+                System.out.println(">>> " + getDisplayName() + " cannot increase movement speed to " + newType.getDisplayName() + " due to leg wounds (max: " + maxAllowed.getDisplayName() + ")");
+            }
         }
     }
     
@@ -330,7 +353,75 @@ public class Character {
     
     public void decreaseAimingSpeed() {
         if (!isIncapacitated()) {
-            this.currentAimingSpeed = currentAimingSpeed.decrease();
+            AimingSpeed newSpeed = currentAimingSpeed.decrease();
+            
+            // Check if trying to go to Very Careful and verify requirements
+            if (newSpeed == AimingSpeed.VERY_CAREFUL) {
+                if (canUseVeryCarefulAiming()) {
+                    this.currentAimingSpeed = newSpeed;
+                }
+                // If can't use very careful, stay at current speed (no change)
+            } else {
+                this.currentAimingSpeed = newSpeed;
+            }
+        }
+    }
+    
+    public boolean canUseVeryCarefulAiming() {
+        // Must have weapon skill level 1+ for pistol or rifle weapons
+        if (weapon == null) {
+            return false;
+        }
+        
+        WeaponType weaponType = weapon.getWeaponType();
+        if (weaponType == WeaponType.OTHER) {
+            return false; // OTHER weapons don't support very careful aiming
+        }
+        
+        String skillName;
+        switch (weaponType) {
+            case PISTOL:
+                skillName = SkillsManager.PISTOL;
+                break;
+            case RIFLE:
+                skillName = SkillsManager.RIFLE;
+                break;
+            default:
+                return false;
+        }
+        
+        // Check if character has the required skill level (1+)
+        return getSkillLevel(skillName) >= 1;
+    }
+
+    public PositionState getCurrentPosition() {
+        return currentPosition;
+    }
+
+    public void setCurrentPosition(PositionState position) {
+        this.currentPosition = position;
+    }
+    
+    public void increasePosition() {
+        if (!isIncapacitated()) {
+            // Characters with both legs wounded cannot stand up from prone
+            if (currentPosition == PositionState.PRONE && hasBothLegsWounded()) {
+                System.out.println(">>> " + getDisplayName() + " cannot stand up due to wounds to both legs");
+                return;
+            }
+            this.currentPosition = currentPosition.increase();
+        }
+    }
+    
+    public void decreasePosition() {
+        if (!isIncapacitated()) {
+            PositionState oldPosition = currentPosition;
+            this.currentPosition = currentPosition.decrease();
+            
+            // Force crawl movement when going prone
+            if (oldPosition != PositionState.PRONE && currentPosition == PositionState.PRONE) {
+                this.currentMovementType = MovementType.CRAWL;
+            }
         }
     }
 
@@ -441,6 +532,9 @@ public class Character {
         wounds.add(wound);
         woundsReceived++;
         
+        // Enforce movement restrictions immediately after adding wound
+        enforceMovementRestrictions();
+        
         // Don't add hesitation for incapacitated characters
         if (!isIncapacitated()) {
             triggerHesitation(wound.severity, currentTick, eventQueue, ownerId);
@@ -451,20 +545,33 @@ public class Character {
     public void addWound(Wound wound) {
         wounds.add(wound);
         woundsReceived++;
+        
+        // Enforce movement restrictions immediately after adding wound
+        enforceMovementRestrictions();
+        
         // Note: Hesitation will not be triggered without event queue context
     }
     
     public boolean isIncapacitated() {
+        boolean incapacitated = false;
+        
         if (health <= 0) {
-            return true;
+            incapacitated = true;
         }
         // Check for any critical wounds
         for (Wound wound : wounds) {
             if (wound.getSeverity() == WoundSeverity.CRITICAL) {
-                return true;
+                incapacitated = true;
+                break;
             }
         }
-        return false;
+        
+        // Force prone position for incapacitated characters
+        if (incapacitated && currentPosition != PositionState.PRONE) {
+            currentPosition = PositionState.PRONE;
+        }
+        
+        return incapacitated;
     }
     
     public boolean removeWound(Wound wound) {
@@ -526,6 +633,14 @@ public class Character {
             scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
         } else if ("aiming".equals(currentState)) {
             long adjustedAimingTime = Math.round(currentWeaponState.ticks * currentAimingSpeed.getTimingMultiplier() * calculateAimingSpeedMultiplier());
+            
+            // Add random additional time for very careful aiming
+            if (currentAimingSpeed.isVeryCareful()) {
+                long additionalTime = currentAimingSpeed.getVeryCarefulAdditionalTime();
+                adjustedAimingTime += additionalTime;
+                System.out.println(getDisplayName() + " uses very careful aiming, adding " + String.format("%.1f", additionalTime / 60.0) + " seconds extra aiming time");
+            }
+            
             scheduleFiring(shooter, target, currentTick + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
         }
     }
@@ -1171,5 +1286,110 @@ public class Character {
     
     public boolean isCurrentlyHesitating(long currentTick) {
         return isHesitating && currentTick < hesitationEndTick;
+    }
+    
+    // Bravery check mechanics
+    public void performBraveryCheck(long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, String reason) {
+        // Skip bravery checks for incapacitated characters
+        if (isIncapacitated()) {
+            return;
+        }
+        
+        // Calculate bravery check target number: 50 + coolness modifier
+        int coolnessModifier = statToModifier(this.coolness);
+        int targetNumber = 50 + coolnessModifier;
+        
+        // Roll d100 for bravery check
+        double roll = Math.random() * 100;
+        
+        System.out.println(">>> BRAVERY CHECK: " + getDisplayName() + " rolls " + String.format("%.1f", roll) + " vs " + targetNumber + " (" + reason + ")");
+        
+        if (roll >= targetNumber) {
+            // Bravery check failed
+            braveryCheckFailures++;
+            braveryPenaltyEndTick = currentTick + 180; // 3 seconds (180 ticks)
+            
+            System.out.println(">>> BRAVERY FAILED: " + getDisplayName() + " fails bravery check! Total failures: " + braveryCheckFailures + " (penalty: -" + (braveryCheckFailures * 10) + " accuracy)");
+            
+            // Schedule bravery recovery event
+            eventQueue.add(new ScheduledEvent(braveryPenaltyEndTick, () -> {
+                recoverFromBraveryFailure(currentTick);
+            }, ownerId));
+        } else {
+            System.out.println(">>> BRAVERY PASSED: " + getDisplayName() + " passes bravery check");
+        }
+    }
+    
+    private void recoverFromBraveryFailure(long currentTick) {
+        if (braveryCheckFailures > 0) {
+            braveryCheckFailures--;
+            System.out.println(">>> BRAVERY RECOVERY: " + getDisplayName() + " recovers from bravery failure. Remaining failures: " + braveryCheckFailures);
+            
+            // If more failures remain, the penalty continues
+            if (braveryCheckFailures > 0) {
+                braveryPenaltyEndTick = currentTick + 180; // Reset duration for remaining penalties
+            }
+        }
+    }
+    
+    public int getBraveryPenalty(long currentTick) {
+        if (currentTick < braveryPenaltyEndTick && braveryCheckFailures > 0) {
+            return braveryCheckFailures * 10; // -10 per failure
+        }
+        return 0;
+    }
+    
+    public boolean isUnderBraveryPenalty(long currentTick) {
+        return getBraveryPenalty(currentTick) > 0;
+    }
+    
+    // Movement wound penalty methods
+    public boolean hasLegWound(BodyPart leg) {
+        for (Wound wound : wounds) {
+            if (wound.getBodyPart() == leg && wound.getSeverity().ordinal() >= WoundSeverity.LIGHT.ordinal()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public boolean hasBothLegsWounded() {
+        return hasLegWound(BodyPart.LEFT_LEG) && hasLegWound(BodyPart.RIGHT_LEG);
+    }
+    
+    public boolean hasAnyLegWound() {
+        return hasLegWound(BodyPart.LEFT_LEG) || hasLegWound(BodyPart.RIGHT_LEG);
+    }
+    
+    public MovementType getMaxAllowedMovementType() {
+        // Both legs wounded: can only crawl
+        if (hasBothLegsWounded()) {
+            return MovementType.CRAWL;
+        }
+        
+        // Single leg wound: cannot run
+        if (hasAnyLegWound()) {
+            return MovementType.JOG; // Can walk, jog, crawl but not run
+        }
+        
+        // No leg wounds: no movement restrictions
+        return MovementType.RUN;
+    }
+    
+    public void enforceMovementRestrictions() {
+        MovementType maxAllowed = getMaxAllowedMovementType();
+        
+        // If current movement type exceeds what's allowed, force it down
+        if (currentMovementType.ordinal() > maxAllowed.ordinal()) {
+            currentMovementType = maxAllowed;
+            System.out.println(">>> " + getDisplayName() + " movement restricted to " + maxAllowed.getDisplayName() + " due to leg wounds");
+        }
+        
+        // Force prone if both legs are wounded
+        if (hasBothLegsWounded() && currentPosition != PositionState.PRONE) {
+            currentPosition = PositionState.PRONE;
+            currentMovementType = MovementType.CRAWL;
+            System.out.println(">>> " + getDisplayName() + " forced prone due to wounds to both legs");
+        }
     }
 }

@@ -57,7 +57,13 @@ public class CombatResolver {
             
             // Add wound to character's wound list with hesitation mechanics
             String weaponId = findWeaponId(weapon);
-            target.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId), impactTick, eventQueue, target.getId());
+            target.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId, actualDamage), impactTick, eventQueue, target.getId());
+            
+            // Trigger bravery check for the target when wounded
+            target.character.performBraveryCheck(impactTick, eventQueue, target.getId(), "wounded by " + weapon.getProjectileName());
+            
+            // Trigger bravery checks for allies within 30 feet
+            triggerAllyBraveryChecks(target, impactTick, weapon.getProjectileName());
             
             // Check for incapacitation
             boolean wasIncapacitated = target.character.isIncapacitated();
@@ -109,13 +115,24 @@ public class CombatResolver {
         double missX = shooter.x + directionX * missDistance;
         double missY = shooter.y + directionY * missDistance;
         
-        // Find potential stray targets within a cone area
+        // Find potential stray targets within danger circle
         List<Unit> potentialTargets = findPotentialStrayTargets(shooter, target, missX, missY, weapon.maximumRange);
         
-        // Check each potential target for stray hits
-        for (Unit strayTarget : potentialTargets) {
-            if (strayTarget != shooter && strayTarget != target) {
-                checkStrayHit(shooter, strayTarget, weapon, impactTick, missX, missY);
+        // Calculate total stray shot probability based on position states
+        double totalProbability = calculateStrayProbability(potentialTargets);
+        
+        // Cap at 50% maximum probability
+        totalProbability = Math.min(totalProbability, 50.0);
+        
+        if (totalProbability > 0) {
+            double strayRoll = Math.random() * 100;
+            
+            if (strayRoll < totalProbability) {
+                // Stray shot occurs - select target based on position weights
+                Unit strayTarget = selectStrayTarget(potentialTargets);
+                if (strayTarget != null) {
+                    performStrayHit(shooter, strayTarget, weapon, impactTick);
+                }
             }
         }
     }
@@ -127,7 +144,7 @@ public class CombatResolver {
         double strayRadius = 105; // 15 feet radius around miss point
         
         for (Unit unit : units) {
-            if (unit == shooter || unit == originalTarget) continue;
+            // Include all units (shooter can hit themselves, original target gets bravery check)
             
             // Check if unit is within stray shot radius of miss point
             double distanceToMiss = Math.hypot(unit.x - missX, unit.y - missY);
@@ -143,45 +160,78 @@ public class CombatResolver {
         return potentialTargets;
     }
     
-    public void checkStrayHit(Unit shooter, Unit strayTarget, Weapon weapon, long impactTick, double missX, double missY) {
-        // Calculate distance from stray target to the miss point
-        double distanceToMiss = Math.hypot(strayTarget.x - missX, strayTarget.y - missY);
-        double distanceFeet = distanceToMiss / 7.0;
+    
+    public WoundSeverity determineStrayWoundSeverity() {
+        // Stray shots tend to be less severe
+        double roll = Math.random() * 100;
         
-        // Stray shots have significantly reduced accuracy
-        // Base chance is much lower and decreases with distance from miss point
+        if (roll < 5) return WoundSeverity.CRITICAL;      // 5% critical
+        else if (roll < 20) return WoundSeverity.SERIOUS; // 15% serious  
+        else if (roll < 60) return WoundSeverity.LIGHT;   // 40% light
+        else return WoundSeverity.SCRATCH;                // 40% scratch
+    }
+    
+    public double calculateStrayProbability(List<Unit> potentialTargets) {
+        double totalProbability = 0.0;
+        for (Unit unit : potentialTargets) {
+            totalProbability += unit.character.getCurrentPosition().getStrayProbabilityContribution();
+        }
+        return totalProbability;
+    }
+    
+    public Unit selectStrayTarget(List<Unit> potentialTargets) {
+        if (potentialTargets.isEmpty()) {
+            return null;
+        }
+        
+        // Calculate total weight
+        double totalWeight = 0.0;
+        for (Unit unit : potentialTargets) {
+            totalWeight += unit.character.getCurrentPosition().getHitSelectionWeight();
+        }
+        
+        // Select random target based on weights
+        double random = Math.random() * totalWeight;
+        double currentWeight = 0.0;
+        
+        for (Unit unit : potentialTargets) {
+            currentWeight += unit.character.getCurrentPosition().getHitSelectionWeight();
+            if (random <= currentWeight) {
+                return unit;
+            }
+        }
+        
+        // Fallback to last unit if rounding errors occur
+        return potentialTargets.get(potentialTargets.size() - 1);
+    }
+    
+    public void performStrayHit(Unit shooter, Unit strayTarget, Weapon weapon, long impactTick) {
+        System.out.println(">>> STRAY SHOT! " + weapon.getProjectileName() + " hits " + strayTarget.character.getDisplayName() + " (position: " + strayTarget.character.getCurrentPosition().getDisplayName() + ")");
+        
+        // Calculate stray shot accuracy - reduced chance to hit
         double baseChance = 15.0; // Base 15% chance for stray hits
-        double distancePenalty = distanceFeet * 2.0; // -2% per foot from miss point
-        double finalChance = Math.max(1.0, baseChance - distancePenalty);
+        double positionModifier = strayTarget.character.getCurrentPosition().getTargetingPenalty();
+        double finalChance = Math.max(1.0, baseChance + positionModifier);
         
         double roll = Math.random() * 100;
         
         if (roll < finalChance) {
-            // Stray hit! Calculate reduced damage
-            
-            // Determine hit location (more random for stray shots)
+            // Stray hit successful! Calculate hit details
             BodyPart hitLocation = CombatCalculator.getRandomBodyPart();
-            
-            // Determine wound severity (reduced for stray shots)
             WoundSeverity woundSeverity = determineStrayWoundSeverity();
-            
-            // Calculate reduced damage
             int baseDamage = CombatCalculator.calculateActualDamage(weapon.damage, woundSeverity, hitLocation);
             int strayDamage = Math.max(1, Math.round(baseDamage * 0.7f)); // 30% damage reduction for stray shots
             
-            // Create hit result for stray shot
-            HitResult strayHitResult = new HitResult(true, hitLocation, woundSeverity, strayDamage);
+            System.out.println(">>> " + strayTarget.character.getDisplayName() + " hit in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound");
             
-            System.out.println(">>> STRAY SHOT! " + weapon.getProjectileName() + " ricocheted and hit " + strayTarget.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase());
-            
-            // Apply the stray damage
+            // Apply damage
             strayTarget.character.health -= strayDamage;
             System.out.println(">>> " + strayTarget.character.getDisplayName() + " takes " + strayDamage + " stray damage. Health now: " + strayTarget.character.health);
             
-            // Track as successful attack for shooter (stray hits still count)
+            // Track successful attack for shooter (stray hits still count)
             shooter.character.attacksSuccessful++;
             
-            // Track wound infliction
+            // Track wound infliction by type
             switch (woundSeverity) {
                 case SCRATCH:
                     shooter.character.woundsInflictedScratch++;
@@ -199,7 +249,13 @@ public class CombatResolver {
             
             // Add wound to target with hesitation mechanics
             String weaponId = findWeaponId(weapon);
-            strayTarget.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId), impactTick, eventQueue, strayTarget.getId());
+            strayTarget.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId, strayDamage), impactTick, eventQueue, strayTarget.getId());
+            
+            // Trigger bravery check for stray shot victim
+            strayTarget.character.performBraveryCheck(impactTick, eventQueue, strayTarget.getId(), "hit by stray " + weapon.getProjectileName());
+            
+            // Trigger bravery checks for allies within 30 feet
+            triggerAllyBraveryChecks(strayTarget, impactTick, weapon.getProjectileName() + " (stray)");
             
             // Check for incapacitation from stray shot
             if (strayTarget.character.isIncapacitated()) {
@@ -211,17 +267,9 @@ public class CombatResolver {
             
             // Apply hit highlight to stray target
             applyHitHighlight(strayTarget, impactTick);
+        } else {
+            System.out.println(">>> Stray shot missed " + strayTarget.character.getDisplayName() + " (roll: " + String.format("%.1f", roll) + " vs " + String.format("%.1f", finalChance) + ")");
         }
-    }
-    
-    public WoundSeverity determineStrayWoundSeverity() {
-        // Stray shots tend to be less severe
-        double roll = Math.random() * 100;
-        
-        if (roll < 5) return WoundSeverity.CRITICAL;      // 5% critical
-        else if (roll < 20) return WoundSeverity.SERIOUS; // 15% serious  
-        else if (roll < 60) return WoundSeverity.LIGHT;   // 40% light
-        else return WoundSeverity.SCRATCH;                // 40% scratch
     }
     
     public void applyHitHighlight(Unit target, long impactTick) {
@@ -232,6 +280,38 @@ public class CombatResolver {
                 target.color = target.baseColor;
                 target.isHitHighlighted = false;
             }, ScheduledEvent.WORLD_OWNER));
+        }
+    }
+    
+    private void triggerAllyBraveryChecks(Unit hitTarget, long impactTick, String projectileName) {
+        double allyCheckRange = 210.0; // 30 feet in pixels (30 * 7)
+        
+        for (Unit unit : units) {
+            // Skip the hit target itself
+            if (unit == hitTarget) {
+                continue;
+            }
+            
+            // Skip incapacitated units
+            if (unit.character.isIncapacitated()) {
+                continue;
+            }
+            
+            // Only check allies (same faction)
+            if (unit.character.getFaction() != hitTarget.character.getFaction()) {
+                continue;
+            }
+            
+            // Calculate distance to hit target
+            double dx = unit.x - hitTarget.x;
+            double dy = unit.y - hitTarget.y;
+            double distance = Math.hypot(dx, dy);
+            
+            // Check if within 30 feet
+            if (distance <= allyCheckRange) {
+                unit.character.performBraveryCheck(impactTick, eventQueue, unit.getId(), 
+                    "ally " + hitTarget.character.getDisplayName() + " hit by " + projectileName);
+            }
         }
     }
     

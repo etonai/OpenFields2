@@ -5,12 +5,14 @@ public class Wound {
     public WoundSeverity severity;
     public String projectileName;
     public String weaponId;
+    public int damage;
     
     public Wound(BodyPart bodyPart, WoundSeverity severity) {
         this.bodyPart = bodyPart;
         this.severity = severity;
         this.projectileName = "unknown";
         this.weaponId = "unknown";
+        this.damage = 1; // Default damage for backwards compatibility
     }
     
     public Wound(BodyPart bodyPart, WoundSeverity severity, String projectileName, String weaponId) {
@@ -18,6 +20,15 @@ public class Wound {
         this.severity = severity;
         this.projectileName = projectileName;
         this.weaponId = weaponId;
+        this.damage = 1; // Default damage for backwards compatibility
+    }
+    
+    public Wound(BodyPart bodyPart, WoundSeverity severity, String projectileName, String weaponId, int damage) {
+        this.bodyPart = bodyPart;
+        this.severity = severity;
+        this.projectileName = projectileName;
+        this.weaponId = weaponId;
+        this.damage = damage;
     }
     
     public BodyPart getBodyPart() {
@@ -50,5 +61,13 @@ public class Wound {
     
     public void setWeaponId(String weaponId) {
         this.weaponId = weaponId;
+    }
+    
+    public int getDamage() {
+        return damage;
+    }
+    
+    public void setDamage(int damage) {
+        this.damage = damage;
     }
 }

@@ -5,7 +5,7 @@ import java.util.List;
 
 public final class CombatCalculator {
     
-    public static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage, boolean debugMode, int stressModifier) {
+    public static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage, boolean debugMode, int stressModifier, long currentTick) {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = calculateMovementModifier(shooter);
@@ -14,9 +14,11 @@ public final class CombatCalculator {
         double woundModifier = calculateWoundModifier(shooter);
         double stressMod = Math.min(0, stressModifier + GameConstants.statToModifier(shooter.character.coolness));
         double skillModifier = calculateSkillModifier(shooter);
+        double positionModifier = calculatePositionModifier(target);
+        double braveryModifier = calculateBraveryModifier(shooter, currentTick);
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
-        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
+        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + sizeModifier + coverModifier;
         
         if (distanceFeet <= maximumRange) {
             chanceToHit = Math.max(chanceToHit, 0.01);
@@ -48,6 +50,8 @@ public final class CombatCalculator {
             
             System.out.println("Wound modifier: " + String.format("%.1f", woundModifier) + " " + getWoundModifierDebugInfo(shooter));
             System.out.println("Skill modifier: " + String.format("%.1f", skillModifier) + " " + getSkillDebugInfo(shooter));
+            System.out.println("Position modifier: " + String.format("%.1f", positionModifier) + " (target: " + target.character.getCurrentPosition().getDisplayName() + ")");
+            System.out.println("Bravery modifier: " + String.format("%.1f", braveryModifier) + " " + getBraveryModifierDebugInfo(shooter, currentTick));
             System.out.println("Size modifier: " + sizeModifier);
             System.out.println("Cover modifier: " + coverModifier);
             System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");
@@ -123,7 +127,22 @@ public final class CombatCalculator {
         }
         
         int skillLevel = shooter.character.getSkillLevel(skillName);
-        return skillLevel * 5.0;
+        double baseSkillBonus = skillLevel * 5.0;
+        
+        // Double the skill bonus for very careful aiming
+        if (shooter.character.getCurrentAimingSpeed().isVeryCareful()) {
+            return baseSkillBonus * 2.0;
+        }
+        
+        return baseSkillBonus;
+    }
+    
+    public static double calculatePositionModifier(Unit target) {
+        return target.character.getCurrentPosition().getTargetingPenalty();
+    }
+    
+    public static double calculateBraveryModifier(Unit shooter, long currentTick) {
+        return -shooter.character.getBraveryPenalty(currentTick);
     }
     
     public static String getSkillDebugInfo(Unit shooter) {
@@ -147,7 +166,22 @@ public final class CombatCalculator {
         }
         
         int skillLevel = shooter.character.getSkillLevel(skillName);
-        return "(" + skillName + ": " + skillLevel + ")";
+        String debugInfo = "(" + skillName + ": " + skillLevel;
+        
+        if (shooter.character.getCurrentAimingSpeed().isVeryCareful()) {
+            debugInfo += ", very careful x2";
+        }
+        
+        return debugInfo + ")";
+    }
+    
+    public static String getBraveryModifierDebugInfo(Unit shooter, long currentTick) {
+        int braveryPenalty = shooter.character.getBraveryPenalty(currentTick);
+        if (braveryPenalty > 0) {
+            return "(" + shooter.character.braveryCheckFailures + " bravery failures: -" + braveryPenalty + ")";
+        } else {
+            return "(no bravery penalty)";
+        }
     }
     
     public static double calculateWoundModifier(Unit shooter) {
@@ -159,11 +193,11 @@ public final class CombatCalculator {
             
             // Check for head wounds - every point of damage is -1
             if (bodyPart == BodyPart.HEAD) {
-                modifier -= getDamageFromSeverity(severity);
+                modifier -= wound.getDamage();
             }
             // Check for dominant arm wounds - every point of damage is -1
             else if (isShootingArm(bodyPart, shooter.character.getHandedness())) {
-                modifier -= getDamageFromSeverity(severity);
+                modifier -= wound.getDamage();
             }
             // Check for other body parts based on severity
             else {
@@ -176,7 +210,7 @@ public final class CombatCalculator {
                         break;
                     case CRITICAL:
                         // Every point of damage from critical wound in other parts is -1
-                        modifier -= getDamageFromSeverity(severity);
+                        modifier -= wound.getDamage();
                         break;
                     case SCRATCH:
                         // No modifier for scratches in other parts
@@ -202,22 +236,6 @@ public final class CombatCalculator {
         }
     }
     
-    public static int getDamageFromSeverity(WoundSeverity severity) {
-        // Since we don't store actual damage with wounds, we use estimated damage values
-        // based on typical weapon damage (around 7-8 damage)
-        switch (severity) {
-            case SCRATCH:
-                return 1; // Always 1 damage
-            case LIGHT:
-                return 3; // Math.max(1, Math.round(7 * 0.4f)) = 3
-            case SERIOUS:
-                return 8; // Full weapon damage estimate
-            case CRITICAL:
-                return 8; // Full weapon damage estimate
-            default:
-                return 0;
-        }
-    }
     
     public static String getWoundModifierDebugInfo(Unit shooter) {
         List<Wound> wounds = shooter.character.getWounds();
@@ -238,12 +256,12 @@ public final class CombatCalculator {
             double woundModifier = 0.0;
             
             if (bodyPart == BodyPart.HEAD) {
-                woundModifier = -getDamageFromSeverity(severity);
-                debug.append("HEAD ").append(severity.name()).append(": ").append(woundModifier);
+                woundModifier = -wound.getDamage();
+                debug.append("HEAD ").append(severity.name()).append(": ").append(woundModifier).append(" (").append(wound.getDamage()).append(" dmg)");
             } else if (isShootingArm(bodyPart, shooter.character.getHandedness())) {
-                woundModifier = -getDamageFromSeverity(severity);
+                woundModifier = -wound.getDamage();
                 String armSide = (bodyPart == BodyPart.LEFT_ARM) ? "LEFT" : "RIGHT";
-                debug.append(armSide).append("_ARM(dominant) ").append(severity.name()).append(": ").append(woundModifier);
+                debug.append(armSide).append("_ARM(dominant) ").append(severity.name()).append(": ").append(woundModifier).append(" (").append(wound.getDamage()).append(" dmg)");
             } else {
                 switch (severity) {
                     case LIGHT:
@@ -253,7 +271,7 @@ public final class CombatCalculator {
                         woundModifier = -2.0;
                         break;
                     case CRITICAL:
-                        woundModifier = -getDamageFromSeverity(severity);
+                        woundModifier = -wound.getDamage();
                         break;
                     case SCRATCH:
                         woundModifier = 0.0;

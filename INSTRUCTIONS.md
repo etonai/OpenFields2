@@ -41,11 +41,20 @@ This document provides a comprehensive guide to all player commands and controls
 
 ### Aiming Speed Controls
 *Applies to all selected units*
-- **Q**: Increase aiming speed (Careful → Normal → Quick)
-- **E**: Decrease aiming speed (Quick → Normal → Careful)
+- **Q**: Increase aiming speed (Very Careful → Careful → Normal → Quick)
+- **E**: Decrease aiming speed (Quick → Normal → Careful → Very Careful)
+  - **Very Careful**: Slowest aiming, double skill bonus, requires weapon skill level 1+
   - **Careful**: Slower aiming, +15 accuracy bonus
   - **Normal**: Standard aiming speed, no modifier
   - **Quick**: Faster aiming, -20 accuracy penalty
+
+### Position Controls
+*Applies to all selected units*
+- **C**: Crouch down (Standing → Kneeling → Prone)
+- **V**: Stand up (Prone → Kneeling → Standing)
+  - **Standing**: Normal targeting difficulty
+  - **Kneeling**: Reduced targeting profile
+  - **Prone**: Hardest to hit (-15 accuracy for attackers), crawl movement only
 
 ### Combat Controls
 - **R**: Ready weapon for all selected units
@@ -92,13 +101,35 @@ Units have different movement speeds that affect combat accuracy:
 - **Run**: 2.0x speed, -25 shooting accuracy
 - **Stationary**: No movement penalty
 
+### Movement Restrictions
+- **Prone position**: Forces crawl movement only
+- **Leg wounds**: Single leg wound disables RUN, both legs wounded forces CRAWL only and prone position
+- **Incapacitated**: Cannot move or change position
+
 ## Combat System
 
 ### Attack Mechanics
 - Right-click enemy units to attack with selected units
 - Attacks are scheduled based on weapon ready time and aiming speed
-- Accuracy affected by movement speed, aiming speed, character stats, and skills
+- Accuracy affected by movement speed, aiming speed, character stats, skills, position, wounds, and bravery
 - Units become incapacitated at 0 health and stop moving
+
+### Enhanced Combat Features
+
+#### Stray Shots
+- Missed shots may hit nearby characters (friendly fire possible)
+- Probability based on character positions: Standing 0.5%, Kneeling 0.25%, Prone 0.125%
+- Target selection weighted by position visibility
+
+#### Bravery System
+- Characters make bravery checks when wounded or when allies are hit nearby
+- Failed checks apply -10 accuracy penalty per failure for 3 seconds
+- Based on coolness stat: 50 + coolness modifier = target number
+
+#### Wound Effects
+- **Head/Arm wounds**: Accuracy penalty equal to damage dealt
+- **Leg wounds**: Movement restrictions (see Movement Restrictions above)  
+- **All wounds**: Tracked with actual damage values for realistic effects
 
 ### Unit Selection
 - Single unit selection: Left-click on unit
@@ -110,7 +141,12 @@ Units have different movement speeds that affect combat accuracy:
 - **Edit Mode**: Instant movement, combat disabled, character editing enabled
 
 ## Tips
-- Use **Shift+/** to view detailed character statistics
+- Use **Shift+/** to view detailed character statistics including wounds, restrictions, and skills
 - Edit mode allows quick setup and testing of scenarios
-- Combine movement and aiming speed controls for tactical advantage
+- Combine movement, aiming speed, and position controls for tactical advantage
 - Rectangle selection enables efficient multi-unit management
+- **Very Careful aiming** requires weapon skill level 1+ but provides double accuracy bonus
+- **Prone position** makes you harder to hit but restricts movement to crawling
+- **Leg wounds** can severely limit mobility - protect your legs in combat!
+- **Bravery failures** stack penalties - keep units with high coolness in stressful situations
+- **Stray shots** can hit anyone nearby - consider positioning when engaging enemies
