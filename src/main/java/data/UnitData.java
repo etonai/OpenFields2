@@ -1,6 +1,7 @@
 package data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import combat.FiringMode;
 
 public class UnitData {
     @JsonProperty("id")
@@ -50,13 +51,21 @@ public class UnitData {
     @JsonProperty("themeId")
     public String themeId;
     
+    // Combat state data
+    @JsonProperty("currentTargetId")
+    public Integer currentTargetId;
+    
+    @JsonProperty("currentFiringMode")
+    public FiringMode currentFiringMode;
+    
     public UnitData() {
         // Default constructor for Jackson
     }
     
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
-                   boolean isFiringHighlighted, String weaponId, String currentWeaponState, String themeId) {
+                   boolean isFiringHighlighted, String weaponId, String currentWeaponState, String themeId,
+                   Integer currentTargetId, FiringMode currentFiringMode) {
         this.id = id;
         this.characterId = characterId;
         this.x = x;
@@ -72,12 +81,22 @@ public class UnitData {
         this.weaponId = weaponId;
         this.currentWeaponState = currentWeaponState;
         this.themeId = themeId;
+        this.currentTargetId = currentTargetId;
+        this.currentFiringMode = currentFiringMode;
     }
     
     // Legacy constructor for backward compatibility
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted) {
         this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
-             false, null, null, null);
+             false, null, null, null, null, null);
+    }
+    
+    // Intermediate constructor for backward compatibility
+    public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
+                   boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
+                   boolean isFiringHighlighted, String weaponId, String currentWeaponState, String themeId) {
+        this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
+             isFiringHighlighted, weaponId, currentWeaponState, themeId, null, null);
     }
 }

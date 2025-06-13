@@ -8,6 +8,8 @@ import javafx.scene.paint.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
+import java.util.Map;
+import java.util.HashMap;
 
 import combat.*;
 import game.*;
@@ -310,11 +312,19 @@ public class SaveGameController {
         // Find weapon ID from current weapon
         String weaponId = null;
         String currentWeaponState = null;
+        FiringMode currentFiringMode = null;
         if (unit.character.weapon != null) {
             weaponId = findWeaponId(unit.character.weapon);
             if (unit.character.currentWeaponState != null) {
                 currentWeaponState = unit.character.currentWeaponState.getState();
             }
+            currentFiringMode = unit.character.weapon.currentFiringMode;
+        }
+        
+        // Find current target ID if targeting someone
+        Integer currentTargetId = null;
+        if (unit.character.currentTarget != null) {
+            currentTargetId = unit.character.currentTarget.getId();
         }
         
         return new UnitData(
@@ -332,7 +342,9 @@ public class SaveGameController {
             unit.isFiringHighlighted,
             weaponId,
             currentWeaponState,
-            themeId
+            themeId,
+            currentTargetId,
+            currentFiringMode
         );
     }
     
@@ -440,7 +452,43 @@ public class SaveGameController {
             }
         }
         
+        // Second phase: Restore target relationships after all units are loaded
+        restoreTargetRelationships(saveData.units);
+        
         System.out.println("*** Restored " + units.size() + " units ***");
+    }
+    
+    /**
+     * Restore target relationships between units after all units have been loaded
+     * 
+     * @param unitDataList List of UnitData objects containing target relationships
+     */
+    private void restoreTargetRelationships(List<UnitData> unitDataList) {
+        // Create a map of unit ID to Unit object for quick lookup
+        Map<Integer, Unit> unitMap = new HashMap<>();
+        for (Unit unit : units) {
+            unitMap.put(unit.getId(), unit);
+        }
+        
+        // Create a map of unit ID to UnitData for finding the corresponding data
+        Map<Integer, UnitData> unitDataMap = new HashMap<>();
+        for (UnitData unitData : unitDataList) {
+            unitDataMap.put(unitData.id, unitData);
+        }
+        
+        // Restore target relationships by matching unit IDs
+        for (Unit unit : units) {
+            UnitData unitData = unitDataMap.get(unit.getId());
+            if (unitData != null && unitData.currentTargetId != null) {
+                Unit targetUnit = unitMap.get(unitData.currentTargetId);
+                if (targetUnit != null) {
+                    unit.character.currentTarget = targetUnit;
+                    System.out.println("  Restored target: " + unit.character.getDisplayName() + " → " + targetUnit.character.getDisplayName());
+                } else {
+                    System.out.println("  Warning: Target unit " + unitData.currentTargetId + " not found for " + unit.character.getDisplayName());
+                }
+            }
+        }
     }
     
     /**
@@ -524,6 +572,11 @@ public class SaveGameController {
         unit.isHitHighlighted = data.isHitHighlighted;
         unit.isFiringHighlighted = data.isFiringHighlighted;
         
+        // Restore weapon firing mode if available
+        if (character.weapon != null && data.currentFiringMode != null) {
+            character.weapon.currentFiringMode = data.currentFiringMode;
+        }
+        
         return unit;
     }
     
@@ -548,6 +601,11 @@ public class SaveGameController {
         unit.isHitHighlighted = data.isHitHighlighted;
         // Handle backward compatibility for isFiringHighlighted (defaults to false if not present)
         unit.isFiringHighlighted = data.isFiringHighlighted;
+        
+        // Restore weapon firing mode if available (new field, may be null in legacy saves)
+        if (character.weapon != null && data.currentFiringMode != null) {
+            character.weapon.currentFiringMode = data.currentFiringMode;
+        }
         
         return unit;
     }
