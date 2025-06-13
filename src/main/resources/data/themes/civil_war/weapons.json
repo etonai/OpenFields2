@@ -48,7 +48,8 @@
       "soundFile": "/Slap0003.wav",
       "maximumRange": 100.0,
       "weaponAccuracy": 0,
-      "firingDelay": 30
+      "firingDelay": 30,
+      "weaponLength": 1.0
     },
     "wpn_remington_1858": {
       "id": "wpn_remington_1858",
@@ -64,7 +65,8 @@
       "soundFile": "/Slap0003.wav",
       "maximumRange": 90.0,
       "weaponAccuracy": 5,
-      "firingDelay": 30
+      "firingDelay": 30,
+      "weaponLength": 1.0
     },
     "wpn_spencer_carbine": {
       "id": "wpn_spencer_carbine",
@@ -80,7 +82,8 @@
       "soundFile": "/Slap0003.wav",
       "maximumRange": 350.0,
       "weaponAccuracy": 10,
-      "firingDelay": 10
+      "firingDelay": 10,
+      "weaponLength": 3.5
     }
   }
 }
