@@ -144,3 +144,57 @@
 - Update weapon rendering system to use configurable values
 - Ensure backward compatibility with existing weapon types
 
+### Save Game Data Completeness Enhancement
+**Source**: DevCycle_2025_0006.md - System 2 (postponed from development cycle)  
+**Date**: January 13, 2025  
+**Description**: Implement complete save/load functionality including event queue, character firing modes, and automatic targeting status to preserve complete game state.
+
+**Requirements:**
+- **Event Queue Persistence**
+  - Add event queue serialization to save data
+  - Implement event queue deserialization on load
+  - Ensure scheduled events resume correctly after load
+  - Test event timing continuity across save/load cycles
+  - Handle edge cases with events scheduled far in the future
+
+- **Character State Persistence**
+  - Save character firing mode settings (per-weapon property)
+  - Save automatic targeting status for each character (usesAutomaticTargeting)
+  - Verify all character combat states are preserved
+  - Test state restoration accuracy after load
+  - Handle version compatibility for new save data fields
+
+**Technical Implementation:**
+- **Key Files to Modify**: 
+  - `GameStateData.java` - Add eventQueueData field
+  - `CharacterData.java` - Add usesAutomaticTargeting field  
+  - `WeaponData.java` - Add currentFiringMode field
+  - `SaveGameController.java` - Add serialization/deserialization logic
+- **Event Queue Serialization**: Need to serialize tick, action type, ownerId (not Runnable directly)
+- **Database/Save Changes**: Save file format expanded, maintains backwards compatibility
+- **Backwards Compatibility**: Use JsonProperty with default values for new fields
+
+**Design Decisions Made:**
+- **Event Timing**: Use absolute ticks when loading events
+- **Character vs Weapon Firing Mode**: Per-weapon property (weapon.currentFiringMode)
+- **Event References**: Throw error if saved events reference units/characters that no longer exist
+- **Muzzle Flash Priority**: Do not save muzzle flash state (0.5-second visual effect not critical)
+- **Load Strategy**: Pause game during event queue reconstruction to prevent timing conflicts
+- **Save File Size**: No concerns about file size increase
+- **30+ Events Overhead**: Acceptable during active combat
+- **Event Retention**: Do not discard old events
+
+**Remaining Questions for Implementation:**
+- **Event Queue Complexity**: How to serialize/deserialize Runnable actions - need action type enum and reconstruction logic
+- **Event Queue Scope**: Which event types should be saved vs temporary visual effects
+- **Event Validation**: How to validate loaded events execute correctly without causing game imbalance
+- **Event Type Filtering**: Should certain event types be excluded to prevent save file bloat
+
+**Technical Challenges:**
+- **Event Action Serialization**: ScheduledEvent contains Runnable actions that can't be serialized directly
+- **Event Reconstruction**: Need factory/registry system to recreate events from serialized data
+- **Error Handling**: Graceful handling of corrupted or incomplete save data
+- **Testing Strategy**: Need comprehensive backwards compatibility testing with existing save files
+
+**Estimated Complexity**: Medium-High - Requires significant event system architecture work and thorough testing
+
