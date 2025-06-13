@@ -227,8 +227,8 @@ public class GameRenderer {
         
         // Calculate weapon start and end positions based on weapon type and state
         double startX, startY, endX, endY;
-        boolean isAimingState = weaponState.equals("aiming") || weaponState.equals("firing");
-        boolean isReadyState = weaponState.equals("ready") || weaponState.equals("reloading") || weaponState.equals("recovering");
+        boolean isAimingState = weaponState.equals("aiming") || weaponState.equals("firing") || weaponState.equals("recovering");
+        boolean isReadyState = weaponState.equals("ready") || weaponState.equals("reloading");
         
         if (weaponType == WeaponType.RIFLE) {
             if (isReadyState) {
