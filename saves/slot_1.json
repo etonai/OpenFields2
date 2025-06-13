@@ -1,6 +1,6 @@
 {
   "metadata" : {
-    "timestamp" : "2025-06-13T15:42:48.0454199",
+    "timestamp" : "2025-06-13T16:41:25.0747585",
     "gameVersion" : "1.0",
     "themeId" : "test_theme",
     "saveSlot" : 1
@@ -29,7 +29,9 @@
     "isFiringHighlighted" : false,
     "weaponId" : "wpn_uzi",
     "currentWeaponState" : "slung",
-    "themeId" : "test_theme"
+    "themeId" : "test_theme",
+    "currentTargetId" : null,
+    "currentFiringMode" : "BURST"
   }, {
     "id" : 2,
     "characterId" : 1001,
@@ -45,7 +47,9 @@
     "isFiringHighlighted" : false,
     "weaponId" : "wpn_colt_peacemaker",
     "currentWeaponState" : "holstered",
-    "themeId" : "test_theme"
+    "themeId" : "test_theme",
+    "currentTargetId" : null,
+    "currentFiringMode" : "SINGLE_SHOT"
   }, {
     "id" : 3,
     "characterId" : 1002,
@@ -61,7 +65,9 @@
     "isFiringHighlighted" : false,
     "weaponId" : "wpn_colt_peacemaker",
     "currentWeaponState" : "holstered",
-    "themeId" : "test_theme"
+    "themeId" : "test_theme",
+    "currentTargetId" : null,
+    "currentFiringMode" : "SINGLE_SHOT"
   }, {
     "id" : 4,
     "characterId" : 1003,
@@ -77,7 +83,9 @@
     "isFiringHighlighted" : false,
     "weaponId" : "wpn_plasma_pistol",
     "currentWeaponState" : "holstered",
-    "themeId" : "test_theme"
+    "themeId" : "test_theme",
+    "currentTargetId" : null,
+    "currentFiringMode" : "SINGLE_SHOT"
   }, {
     "id" : 5,
     "characterId" : 1004,
@@ -93,7 +101,9 @@
     "isFiringHighlighted" : false,
     "weaponId" : "wpn_colt_peacemaker",
     "currentWeaponState" : "holstered",
-    "themeId" : "test_theme"
+    "themeId" : "test_theme",
+    "currentTargetId" : null,
+    "currentFiringMode" : "SINGLE_SHOT"
   }, {
     "id" : 6,
     "characterId" : 1005,
@@ -109,7 +119,9 @@
     "isFiringHighlighted" : false,
     "weaponId" : "wpn_colt_peacemaker",
     "currentWeaponState" : "holstered",
-    "themeId" : "test_theme"
+    "themeId" : "test_theme",
+    "currentTargetId" : null,
+    "currentFiringMode" : "SINGLE_SHOT"
   } ],
   "characters" : [ ]
 }
