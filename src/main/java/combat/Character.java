@@ -1273,38 +1273,43 @@ public class Character {
     }
     
     private void handleBurstFiring(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (!isAutomaticFiring) {
-            // Start new burst
-            isAutomaticFiring = true;
-            burstShotsFired = 1; // First shot already fired
-            lastAutomaticShot = currentTick;
-            System.out.println(getDisplayName() + " starts burst firing (" + burstShotsFired + "/" + weapon.burstSize + ")");
+        // Check if a burst is already in progress from the new burst implementation
+        if (isAutomaticFiring) {
+            // Burst already in progress from scheduleFiring() method - wait for it to complete
+            System.out.println(getDisplayName() + " burst already in progress (" + burstShotsFired + "/" + weapon.burstSize + "), waiting for completion");
+            
+            // Calculate when current burst will complete and schedule next burst
+            int remainingShots = weapon.burstSize - burstShotsFired;
+            if (remainingShots > 0) {
+                // Schedule next burst after current burst completes + firing delay
+                // Full burst duration = (burstSize - 1) * cyclicRate + firing delay
+                long fullBurstDuration = (weapon.burstSize - 1) * weapon.cyclicRate;
+                long nextBurstTick = lastAutomaticShot + fullBurstDuration + weapon.firingDelay;
+                
+                // Ensure we don't schedule in the past
+                if (nextBurstTick <= currentTick) {
+                    nextBurstTick = currentTick + weapon.firingDelay;
+                }
+                
+                final long finalNextBurstTick = nextBurstTick;
+                eventQueue.add(new ScheduledEvent(finalNextBurstTick, () -> {
+                    if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
+                        System.out.println(getDisplayName() + " starting next burst for auto targeting after " + weapon.firingDelay + " tick delay");
+                        isAttacking = true;
+                        startAttackSequence(shooter, currentTarget, finalNextBurstTick, eventQueue, ownerId, gameCallbacks);
+                    }
+                }, ownerId));
+            }
+            return;
         }
         
-        if (burstShotsFired < weapon.burstSize) {
-            // Continue burst at cyclic rate
-            long nextShotTick = currentTick + weapon.cyclicRate;
-            eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
-                if (currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
-                    burstShotsFired++;
-                    lastAutomaticShot = nextShotTick;
-                    System.out.println(getDisplayName() + " burst fires shot " + burstShotsFired + "/" + weapon.burstSize);
-                    isAttacking = true;
-                    scheduleAttackFromCurrentState(shooter, currentTarget, nextShotTick, eventQueue, ownerId, gameCallbacks);
-                } else {
-                    // Target lost or incapacitated - end burst early
-                    isAutomaticFiring = false;
-                    burstShotsFired = 0;
-                    savedAimingSpeed = null;
-                    System.out.println(getDisplayName() + " burst firing interrupted (target lost)");
-                }
-            }, ownerId));
+        // No burst in progress - start new attack sequence which will trigger burst via scheduleFiring()
+        if (currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
+            System.out.println(getDisplayName() + " starting new burst attack sequence for auto targeting");
+            isAttacking = true;
+            startAttackSequence(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
         } else {
-            // Burst complete, reset for next trigger pull
-            isAutomaticFiring = false;
-            burstShotsFired = 0;
-            savedAimingSpeed = null;
-            System.out.println(getDisplayName() + " completes burst firing");
+            System.out.println(getDisplayName() + " burst firing cancelled - no valid target");
         }
     }
     

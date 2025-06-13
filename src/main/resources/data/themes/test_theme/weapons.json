@@ -229,7 +229,7 @@
       "name": "Uzi Submachine Gun",
       "type": "PISTOL",
       "velocity": 1300.0,
-      "damage": 7,
+      "damage": 6,
       "ammunition": 32,
       "maxAmmunition": 32,
       "reloadTicks": 120,

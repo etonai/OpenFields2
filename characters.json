@@ -3,21 +3,18 @@
   "characters" : {
     "1005" : {
       "id" : 1005,
-      "nickname" : "Tom",
-      "firstName" : "Arthur",
-      "lastName" : "Smith",
-      "birthdate" : "June 9, 1836",
-      "dexterity" : 78,
-      "health" : 12,
-      "coolness" : 92,
-      "strength" : 50,
-      "reflexes" : 24,
+      "nickname" : "Duke",
+      "firstName" : "Martin",
+      "lastName" : "Miller",
+      "birthdate" : "June 9, 1851",
+      "dexterity" : 83,
+      "health" : 11,
+      "coolness" : 28,
+      "strength" : 58,
+      "reflexes" : 47,
       "handedness" : "RIGHT_HANDED",
       "baseMovementSpeed" : 42.0,
-      "skills" : [ {
-        "skillName" : "skl_rifle",
-        "level" : 6
-      } ],
+      "skills" : [ ],
       "wounds" : [ ]
     },
     "1004" : {
