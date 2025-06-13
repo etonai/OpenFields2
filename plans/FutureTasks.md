@@ -127,3 +127,20 @@
 - UI considerations for displaying burst size information
 - Balance testing for different burst sizes across weapon types
 
+### Weapon Rendering Constants Extraction
+**Source**: DevCycle_2025_0004.md - System 5 (Submachine Gun)  
+**Date**: June 13, 2025  
+**Description**: Extract hardcoded weapon rendering constants for weapon states and lengths to improve maintainability and support new weapon types.
+
+**Requirements:**
+- Extract weapon length constants from hardcoded values to configurable properties
+- Create weapon state rendering configuration system
+- Consolidate weapon positioning and rendering logic into centralized system
+- Support dynamic weapon rendering parameters for different weapon types
+
+**Technical Considerations:**
+- Locate current hardcoded weapon length values (pistol, rifle, submachine gun)
+- Create weapon rendering configuration class or constants
+- Update weapon rendering system to use configurable values
+- Ensure backward compatibility with existing weapon types
+
