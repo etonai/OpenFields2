@@ -265,6 +265,10 @@ public class SaveGameController {
             data.wounds.add(new CharacterData.WoundData(wound.getBodyPart().name(), wound.getSeverity().name()));
         }
         
+        // Serialize character preferences
+        data.usesAutomaticTargeting = character.usesAutomaticTargeting;
+        data.preferredFiringMode = character.preferredFiringMode;
+        
         return data;
     }
     
@@ -491,6 +495,10 @@ public class SaveGameController {
                 System.err.println("Warning: Invalid wound data: " + woundData.bodyPart + "/" + woundData.severity);
             }
         }
+        
+        // Restore character preferences (with defaults for backward compatibility)
+        character.usesAutomaticTargeting = data.usesAutomaticTargeting;
+        character.preferredFiringMode = data.preferredFiringMode != null ? data.preferredFiringMode : FiringMode.SINGLE_SHOT;
         
         return character;
     }

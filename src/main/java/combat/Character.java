@@ -35,6 +35,7 @@ public class Character {
     public boolean isAttacking;
     public int faction;
     public boolean usesAutomaticTargeting;
+    public FiringMode preferredFiringMode;
     public List<Skill> skills;
     public List<Wound> wounds;
     
@@ -75,6 +76,9 @@ public class Character {
     
     // Target zone for automatic targeting
     public java.awt.Rectangle targetZone = null; // Target zone rectangle in world coordinates
+    
+    // Last target direction for weapon visibility when no current target
+    public Double lastTargetFacing = null; // Last direction character was aiming (degrees)
 
     // Legacy constructors for backwards compatibility with tests
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
@@ -98,6 +102,7 @@ public class Character {
         this.isAttacking = false;
         this.faction = 1; // Default faction
         this.usesAutomaticTargeting = false; // Default to manual targeting
+        this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -139,6 +144,7 @@ public class Character {
         this.isAttacking = false;
         this.faction = 1; // Default faction
         this.usesAutomaticTargeting = false; // Default to manual targeting
+        this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -165,6 +171,7 @@ public class Character {
         this.isAttacking = false;
         this.faction = 1; // Default faction
         this.usesAutomaticTargeting = false; // Default to manual targeting
+        this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
     }
@@ -611,8 +618,16 @@ public class Character {
         currentTarget = target;
         isAttacking = true;
         
-        // Make unit face the target
+        // Make unit face the target and save the direction for later use
         shooter.setTargetFacing(target.x, target.y);
+        
+        // Calculate and save the target facing direction for weapon visibility
+        double dx = target.x - shooter.x;
+        double dy = target.y - shooter.y;
+        double angleRadians = Math.atan2(dx, -dy);
+        double angleDegrees = Math.toDegrees(angleRadians);
+        if (angleDegrees < 0) angleDegrees += 360;
+        lastTargetFacing = angleDegrees;
         scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
@@ -1116,6 +1131,11 @@ public class Character {
             persistentAttack = false;
             currentTarget = null;
             isAttacking = false;
+            
+            // Preserve the current facing direction so weapon continues to aim at last target location
+            if (lastTargetFacing != null && shooter != null) {
+                shooter.targetFacing = lastTargetFacing;
+            }
             return;
         }
         
@@ -1139,11 +1159,17 @@ public class Character {
             // Start attack sequence from current state
             startAttackSequence(shooter, newTarget, currentTick, eventQueue, ownerId, gameCallbacks);
         } else {
-            // No valid targets found - disable persistent attack
+            // No valid targets found - disable persistent attack but preserve weapon aiming direction
             persistentAttack = false;
             currentTarget = null;
             isAttacking = false;
-            System.out.println("[AUTO-RETARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting");
+            
+            // Preserve the current facing direction so weapon continues to aim at last target location
+            if (lastTargetFacing != null) {
+                shooter.targetFacing = lastTargetFacing;
+            }
+            
+            System.out.println("[AUTO-RETARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting but maintaining weapon direction");
         }
     }
     
@@ -1191,7 +1217,13 @@ public class Character {
                 if (persistentAttack) {
                     persistentAttack = false;
                     currentTarget = null;
-                    System.out.println("[AUTO-TARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting");
+                    
+                    // Preserve the current facing direction so weapon continues to aim at last target location
+                    if (lastTargetFacing != null && selfUnit != null) {
+                        selfUnit.targetFacing = lastTargetFacing;
+                    }
+                    
+                    System.out.println("[AUTO-TARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting but maintaining weapon direction");
                 }
             }
         }
@@ -1210,9 +1242,14 @@ public class Character {
                 performAutomaticTargetChange(shooter, retargetTick, eventQueue, ownerId, gameCallbacks);
             }, ownerId));
             
-            // Clear current target but maintain persistent attack mode
+            // Clear current target but maintain persistent attack mode and weapon direction
             currentTarget = null;
             isAttacking = false;
+            
+            // Preserve the current facing direction so weapon continues to aim at last target location
+            if (lastTargetFacing != null) {
+                shooter.targetFacing = lastTargetFacing;
+            }
             return;
         }
         if (this.isIncapacitated()) {
@@ -1220,12 +1257,22 @@ public class Character {
             persistentAttack = false;
             currentTarget = null;
             isAttacking = false;
+            
+            // Preserve the current facing direction so weapon continues to aim at last target location
+            if (lastTargetFacing != null && shooter != null) {
+                shooter.targetFacing = lastTargetFacing;
+            }
             return;
         }
         if (weapon == null) {
             persistentAttack = false;
             currentTarget = null;
             isAttacking = false;
+            
+            // Preserve the current facing direction so weapon continues to aim at last target location
+            if (lastTargetFacing != null && shooter != null) {
+                shooter.targetFacing = lastTargetFacing;
+            }
             return;
         }
         

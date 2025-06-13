@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import combat.Handedness;
 import combat.MovementType;
 import combat.AimingSpeed;
+import combat.FiringMode;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Date;
@@ -76,6 +77,12 @@ public class CharacterData {
     
     @JsonProperty("wounds")
     public List<WoundData> wounds;
+    
+    @JsonProperty("usesAutomaticTargeting")
+    public boolean usesAutomaticTargeting = false;
+    
+    @JsonProperty("preferredFiringMode")
+    public FiringMode preferredFiringMode = FiringMode.SINGLE_SHOT;
     
     public CharacterData() {
         // Default constructor for Jackson

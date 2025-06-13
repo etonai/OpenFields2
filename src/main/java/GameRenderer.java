@@ -13,6 +13,7 @@ import game.Unit;
 import combat.WeaponType;
 import combat.Handedness;
 import combat.Weapon;
+import combat.WeaponRenderState;
 
 /**
  * Handles all rendering operations for the OpenFields2 game.
@@ -198,10 +199,9 @@ public class GameRenderer {
         
         // Check weapon state - only render for visible states
         String weaponState = unit.character.currentWeaponState.getState();
-        if (weaponState.equals("holstered") || weaponState.equals("drawing") || 
-            weaponState.equals("slung") || weaponState.equals("unsling") || 
-            weaponState.equals("sheathed") || weaponState.equals("unsheathing")) {
-            return; // Hide weapon during these states
+        WeaponRenderState renderState = WeaponRenderState.fromWeaponState(weaponState);
+        if (!renderState.isVisible()) {
+            return; // Hide weapon during hidden states
         }
         
         // Calculate weapon properties
@@ -227,8 +227,8 @@ public class GameRenderer {
         
         // Calculate weapon start and end positions based on weapon type and state
         double startX, startY, endX, endY;
-        boolean isAimingState = weaponState.equals("aiming") || weaponState.equals("firing") || weaponState.equals("recovering");
-        boolean isReadyState = weaponState.equals("ready") || weaponState.equals("reloading");
+        boolean isAimingState = renderState.isAimed();
+        boolean isReadyState = !isAimingState;
         
         if (weaponType == WeaponType.RIFLE) {
             if (isReadyState) {
