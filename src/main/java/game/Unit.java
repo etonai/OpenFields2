@@ -18,6 +18,13 @@ public class Unit {
     public boolean isFiringHighlighted = false;
     private Color preIncapacitationColor = null;
     long lastTickUpdated = -1;
+    
+    // Rotation system
+    public double currentFacing = 0.0; // Current facing direction in degrees (0-360, North = 0)
+    public double targetFacing = 0.0;  // Target facing direction
+    public boolean isRotating = false; // Whether unit is currently rotating
+    private static final double ROTATION_SPEED = 6.0; // 6 degrees per tick (360 degrees per second at 60fps)
+    private static final double ROTATION_THRESHOLD = 15.0; // Rotations less than 15 degrees are instant
 
     public Unit(Character character, double x, double y, Color color, int id) {
         this.id = id;
@@ -28,6 +35,10 @@ public class Unit {
         this.targetY = y;
         this.color = color;
         this.baseColor = color;
+        
+        // Initialize with random facing direction
+        this.currentFacing = Math.random() * 360.0;
+        this.targetFacing = this.currentFacing;
     }
 
     public int getId() {
@@ -89,6 +100,9 @@ public class Unit {
             }
         }
 
+        // Update rotation animation
+        updateRotation();
+        
         if (!hasTarget) return;
         
         // Stopped characters don't move but keep their target
@@ -99,6 +113,9 @@ public class Unit {
             hasTarget = false;
             return;
         }
+        
+        // Face movement direction while moving
+        setTargetFacing(targetX, targetY);
 
         double dx = targetX - x;
         double dy = targetY - y;
@@ -118,7 +135,7 @@ public class Unit {
         if (Math.abs(moveY) > Math.abs(dy)) y = targetY; else y += moveY;
     }
 
-    public void render(GraphicsContext gc, boolean isSelected) {
+    public void render(GraphicsContext gc, boolean isSelected, boolean debugMode) {
         gc.setFill(color);
         gc.fillOval(x - 10.5, y - 10.5, 21, 21);
         
@@ -142,11 +159,14 @@ public class Unit {
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(12));
             gc.fillText(character.getDisplayName(), x - 15, y - 15);
-            // Display movement type
-            gc.setFont(Font.font(10));
-            gc.fillText(character.getCurrentMovementType().getDisplayName(), x - 15, y + 25);
-            // Display aiming speed
-            gc.fillText(character.getCurrentAimingSpeed().getDisplayName(), x - 15, y + 35);
+            
+            // Display movement type and aiming speed only in debug mode
+            if (debugMode) {
+                gc.setFont(Font.font(10));
+                gc.fillText(character.getCurrentMovementType().getDisplayName(), x - 15, y + 25);
+                // Display aiming speed
+                gc.fillText(character.getCurrentAimingSpeed().getDisplayName(), x - 15, y + 35);
+            }
         }
     }
 
@@ -179,6 +199,76 @@ public class Unit {
         double vy = character.getEffectiveMovementSpeed() / 60.0 * (dy / distance);
         
         return new double[]{vx, vy};
+    }
+    
+    /**
+     * Set the target facing direction based on a target position
+     */
+    public void setTargetFacing(double targetX, double targetY) {
+        if (character.isIncapacitated()) {
+            return; // Incapacitated characters don't rotate
+        }
+        
+        double dx = targetX - this.x;
+        double dy = targetY - this.y;
+        
+        // Calculate angle in degrees (0 = North, clockwise)
+        double angleRadians = Math.atan2(dx, -dy); // Note: -dy because Y increases downward
+        double angleDegrees = Math.toDegrees(angleRadians);
+        if (angleDegrees < 0) angleDegrees += 360;
+        
+        this.targetFacing = angleDegrees;
+        
+        // Check if rotation is needed
+        double rotationDiff = getShortestRotationDifference(currentFacing, targetFacing);
+        if (Math.abs(rotationDiff) > ROTATION_THRESHOLD) {
+            isRotating = true;
+        } else {
+            // Small rotation - make it instant
+            currentFacing = targetFacing;
+            isRotating = false;
+        }
+    }
+    
+    /**
+     * Calculate the shortest rotation difference between two angles (in degrees)
+     * Returns the signed difference (-180 to +180)
+     */
+    private double getShortestRotationDifference(double from, double to) {
+        double diff = to - from;
+        while (diff > 180) diff -= 360;
+        while (diff < -180) diff += 360;
+        return diff;
+    }
+    
+    /**
+     * Update rotation animation
+     */
+    private void updateRotation() {
+        if (!isRotating) return;
+        
+        double rotationDiff = getShortestRotationDifference(currentFacing, targetFacing);
+        
+        if (Math.abs(rotationDiff) <= ROTATION_SPEED) {
+            // Close enough - snap to target
+            currentFacing = targetFacing;
+            isRotating = false;
+        } else {
+            // Continue rotating
+            double rotationStep = Math.signum(rotationDiff) * ROTATION_SPEED;
+            currentFacing += rotationStep;
+            
+            // Normalize angle to 0-360 range
+            while (currentFacing >= 360) currentFacing -= 360;
+            while (currentFacing < 0) currentFacing += 360;
+        }
+    }
+    
+    /**
+     * Get current facing direction in degrees (0-360, North = 0, clockwise)
+     */
+    public double getCurrentFacing() {
+        return currentFacing;
     }
     
     /**

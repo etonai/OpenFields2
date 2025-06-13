@@ -18,6 +18,15 @@
       "effectValue": 5.0,
       "appliesTo": ["RIFLE"]
     },
+    "skl_submachine_gun": {
+      "id": "skl_submachine_gun",
+      "name": "Submachine Gun",
+      "description": "Submachine gun proficiency for accuracy and handling",
+      "maxLevel": 10,
+      "effectType": "WEAPON_ACCURACY",
+      "effectValue": 5.0,
+      "appliesTo": ["SUBMACHINE_GUN"]
+    },
     "skl_quickdraw": {
       "id": "skl_quickdraw",
       "name": "Quickdraw",
@@ -25,7 +34,7 @@
       "maxLevel": 10,
       "effectType": "READY_SPEED",
       "effectValue": 8.0,
-      "appliesTo": ["PISTOL", "RIFLE", "OTHER"]
+      "appliesTo": ["PISTOL", "RIFLE", "SUBMACHINE_GUN", "OTHER"]
     },
     "skl_medicine": {
       "id": "skl_medicine",

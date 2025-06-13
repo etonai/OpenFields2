@@ -9,6 +9,7 @@ public class SkillsManager {
     // Static methods to replace the hardcoded Skills constants - now using proper IDs
     public static final String PISTOL = "skl_pistol";
     public static final String RIFLE = "skl_rifle";
+    public static final String SUBMACHINE_GUN = "skl_submachine_gun";
     public static final String QUICKDRAW = "skl_quickdraw";
     public static final String MEDICINE = "skl_medicine";
     public static final String ATHLETICS = "skl_athletics";

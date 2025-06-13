@@ -277,6 +277,9 @@ public class InputManager {
                         unit.character.setPersistentAttack(!unit.character.isPersistentAttack());
                         unit.character.currentTarget = clickedUnit;
                         
+                        // Make unit face the target
+                        unit.setTargetFacing(clickedUnit.x, clickedUnit.y);
+                        
                         if (unit.character.isPersistentAttack()) {
                             // The callbacks object implements both interfaces, so we can cast safely
                             unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), (GameCallbacks) callbacks);

@@ -64,7 +64,7 @@ public class GameRenderer {
         // First pass: Draw all unit circles and basic elements
         for (Unit u : units) {
             boolean isSelected = selectionManager.isUnitSelected(u);
-            u.render(gc, isSelected);
+            u.render(gc, isSelected, debugMode);
             
             // Draw cyan border for multi-selected units (when more than one unit selected)
             if (isSelected && selectionManager.getSelectionCount() > 1) {
@@ -190,22 +190,22 @@ public class GameRenderer {
             return;
         }
         
+        // Check weapon state - only render for visible states
+        String weaponState = unit.character.currentWeaponState.getState();
+        if (weaponState.equals("holstered") || weaponState.equals("drawing") || 
+            weaponState.equals("slung") || weaponState.equals("unsling") || 
+            weaponState.equals("sheathed") || weaponState.equals("unsheathing")) {
+            return; // Hide weapon during these states
+        }
+        
         // Calculate weapon properties
         double weaponLength = getWeaponLength(weaponType);
         boolean isLeftHanded = unit.character.handedness == Handedness.LEFT_HANDED;
         
-        // Calculate direction to target
-        double targetX = unit.character.currentTarget.x;
-        double targetY = unit.character.currentTarget.y;
-        double dx = targetX - unit.x;
-        double dy = targetY - unit.y;
-        double distance = Math.hypot(dx, dy);
-        
-        if (distance == 0) return; // Avoid division by zero
-        
-        // Normalize direction vector to target
-        double dirX = dx / distance;
-        double dirY = dy / distance;
+        // Use unit's current facing direction (unit rotation system)
+        double facingRadians = Math.toRadians(unit.getCurrentFacing());
+        double dirX = Math.sin(facingRadians); // Note: sin for X because 0 degrees = North
+        double dirY = -Math.cos(facingRadians); // Note: -cos for Y because Y increases downward
         
         // Calculate perpendicular vector for tangent line (perpendicular to target direction)
         double perpX = -dirY; // Perpendicular vector (90 degrees rotation)
@@ -219,22 +219,62 @@ public class GameRenderer {
         double tangentX = unit.x + perpX * circleRadius * tangentMultiplier;
         double tangentY = unit.y + perpY * circleRadius * tangentMultiplier;
         
-        // Calculate weapon start and end positions
+        // Calculate weapon start and end positions based on weapon type and state
         double startX, startY, endX, endY;
+        boolean isAimingState = weaponState.equals("aiming") || weaponState.equals("firing");
+        boolean isReadyState = weaponState.equals("ready") || weaponState.equals("reloading") || weaponState.equals("recovering");
         
         if (weaponType == WeaponType.RIFLE) {
-            // Rifle: Start at tangent point
-            startX = tangentX;
-            startY = tangentY;
-        } else { // PISTOL
-            // Pistol: Start at tangent point, then move 14 pixels closer to target
+            if (isReadyState) {
+                // Rifle ready state: Move 14 pixels (2 feet) closer to target, then rotate 60 degrees towards center
+                double readyStartX = tangentX + dirX * 14;
+                double readyStartY = tangentY + dirY * 14;
+                
+                // Calculate 60-degree rotation towards unit center
+                double angleToCenter = Math.atan2(-readyStartY + unit.y, -readyStartX + unit.x);
+                double currentAngle = Math.atan2(dirY, dirX);
+                double rotationDirection = isLeftHanded ? 1 : -1; // Left-handed: clockwise, Right-handed: counterclockwise
+                double readyAngle = currentAngle + rotationDirection * Math.toRadians(60);
+                
+                startX = readyStartX;
+                startY = readyStartY;
+                endX = startX + Math.cos(readyAngle) * weaponLength;
+                endY = startY + Math.sin(readyAngle) * weaponLength;
+            } else {
+                // Rifle aiming state: Start at tangent point, point toward target
+                startX = tangentX;
+                startY = tangentY;
+                endX = startX + dirX * weaponLength;
+                endY = startY + dirY * weaponLength;
+            }
+        } else if (weaponType == WeaponType.PISTOL) {
+            if (isReadyState) {
+                // Pistol ready state: Start at standard position, rotate 45 degrees towards unit center
+                double pistolStartX = tangentX + dirX * 14;
+                double pistolStartY = tangentY + dirY * 14;
+                
+                double currentAngle = Math.atan2(dirY, dirX);
+                double rotationDirection = isLeftHanded ? 1 : -1; // Left-handed: clockwise, Right-handed: counterclockwise
+                double readyAngle = currentAngle + rotationDirection * Math.toRadians(45);
+                
+                startX = pistolStartX;
+                startY = pistolStartY;
+                endX = startX + Math.cos(readyAngle) * weaponLength;
+                endY = startY + Math.sin(readyAngle) * weaponLength;
+            } else {
+                // Pistol aiming state: Start at tangent point, then move 14 pixels closer to target
+                startX = tangentX + dirX * 14;
+                startY = tangentY + dirY * 14;
+                endX = startX + dirX * weaponLength;
+                endY = startY + dirY * weaponLength;
+            }
+        } else { // SUBMACHINE_GUN
+            // Submachine guns use aiming position for all states
             startX = tangentX + dirX * 14;
             startY = tangentY + dirY * 14;
+            endX = startX + dirX * weaponLength;
+            endY = startY + dirY * weaponLength;
         }
-        
-        // Weapon points toward target
-        endX = startX + dirX * weaponLength;
-        endY = startY + dirY * weaponLength;
         
         // Draw weapon line in black
         gc.setStroke(Color.BLACK);
@@ -254,6 +294,8 @@ public class GameRenderer {
                 return 7; // 1 foot = 7 pixels
             case RIFLE:
                 return 28; // 4 feet = 28 pixels
+            case SUBMACHINE_GUN:
+                return 18; // 2.5 feet = 18 pixels (17.5 rounded up)
             default:
                 return 0; // OTHER weapons not rendered
         }

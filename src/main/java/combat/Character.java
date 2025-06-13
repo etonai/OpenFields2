@@ -610,6 +610,9 @@ public class Character {
         
         currentTarget = target;
         isAttacking = true;
+        
+        // Make unit face the target
+        shooter.setTargetFacing(target.x, target.y);
         scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
@@ -1306,8 +1309,11 @@ public class Character {
         // No burst in progress - start new attack sequence which will trigger burst via scheduleFiring()
         if (currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
             System.out.println(getDisplayName() + " starting new burst attack sequence for auto targeting");
-            isAttacking = true;
+            // Temporarily clear isAttacking to avoid duplicate attack rejection in startAttackSequence
+            boolean wasAttacking = isAttacking;
+            isAttacking = false;
             startAttackSequence(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
+            // Note: startAttackSequence will set isAttacking = true, so we don't need to restore it
         } else {
             System.out.println(getDisplayName() + " burst firing cancelled - no valid target");
         }

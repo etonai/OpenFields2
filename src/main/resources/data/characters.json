@@ -1,5 +1,5 @@
 {
-  "nextCharacterId": 1005,
+  "nextCharacterId": 1006,
   "characters": {
     "1000": {
       "id": 1000,
@@ -14,9 +14,19 @@
       "reflexes": 70,
       "handedness": "RIGHT_HANDED",
       "baseMovementSpeed": 42.0,
+      "faction": 1,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
       "skills": [
         {
-          "skillName": "skl_pistol",
+          "skillName": "skl_submachine_gun",
           "level": 4
         }
       ],
@@ -35,6 +45,16 @@
       "reflexes": 70,
       "handedness": "LEFT_HANDED",
       "baseMovementSpeed": 42.0,
+      "faction": 1,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
       "skills": [
         {
           "skillName": "skl_rifle",
@@ -56,6 +76,16 @@
       "reflexes": 35,
       "handedness": "RIGHT_HANDED",
       "baseMovementSpeed": 42.0,
+      "faction": 1,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
       "skills": [],
       "wounds": []
     },
@@ -72,6 +102,16 @@
       "reflexes": 80,
       "handedness": "AMBIDEXTROUS",
       "baseMovementSpeed": 42.0,
+      "faction": 1,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
       "skills": [],
       "wounds": []
     },
@@ -88,10 +128,51 @@
       "reflexes": 90,
       "handedness": "LEFT_HANDED",
       "baseMovementSpeed": 42.0,
+      "faction": 1,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
       "skills": [
         {
           "skillName": "skl_quickdraw",
           "level": 4
+        }
+      ],
+      "wounds": []
+    },
+    "1005": {
+      "id": 1005,
+      "nickname": "Frank",
+      "firstName": "Franklin",
+      "lastName": "Miller",
+      "birthdate": "January 12, 1857",
+      "dexterity": 70,
+      "health": 12,
+      "coolness": 80,
+      "strength": 60,
+      "reflexes": 75,
+      "handedness": "RIGHT_HANDED",
+      "baseMovementSpeed": 42.0,
+      "faction": 2,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
+      "skills": [
+        {
+          "skillName": "skl_pistol",
+          "level": 2
         }
       ],
       "wounds": []

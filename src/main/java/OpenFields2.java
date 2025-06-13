@@ -151,6 +151,9 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
 
     @Override
     public void start(Stage primaryStage) {
+        // Display game title and theme information
+        displayStartupTitle();
+        
         createUnits();
         
         // Initialize game renderer with game state
@@ -217,7 +220,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         // Load characters from universal registry and assign them weapons for this theme
         combat.Character c1 = characterRegistry.getCharacter(1000);
         if (c1 != null) {
-            c1.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
+            c1.weapon = WeaponFactory.createWeapon("wpn_uzi");
             c1.currentWeaponState = c1.weapon.getInitialState();
             c1.setFaction(1);
             units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
@@ -225,7 +228,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         
         combat.Character c2 = characterRegistry.getCharacter(1001);
         if (c2 != null) {
-            c2.weapon = WeaponFactory.createWeapon("wpn_hunting_rifle");
+            c2.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
             c2.currentWeaponState = c2.weapon.getInitialState();
             c2.setFaction(2);
             units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
@@ -233,7 +236,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         
         combat.Character c3 = characterRegistry.getCharacter(1002);
         if (c3 != null) {
-            c3.weapon = WeaponFactory.createWeapon("wpn_derringer");
+            c3.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
             c3.currentWeaponState = c3.weapon.getInitialState();
             c3.setFaction(1);
             units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
@@ -253,6 +256,14 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             c5.currentWeaponState = c5.weapon.getInitialState();
             c5.setFaction(1);
             units.add(new Unit(c5, 600, 100, Color.ORANGE, nextUnitId++));
+        }
+        
+        combat.Character c6 = characterRegistry.getCharacter(1005);
+        if (c6 != null) {
+            c6.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
+            c6.currentWeaponState = c6.weapon.getInitialState();
+            c6.setFaction(2);
+            units.add(new Unit(c6, 600, 400, Color.MAGENTA, nextUnitId++));
         }
     }
     
@@ -1049,6 +1060,29 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         public void setEditMode(boolean editMode) {
             OpenFields2.this.editMode = editMode;
         }
+    }
+    
+    /**
+     * Display game title and theme information at startup
+     */
+    private void displayStartupTitle() {
+        System.out.println();
+        System.out.println("*********************************");
+        System.out.println("***       OPEN FIELDS 2      ***");
+        System.out.println("*********************************");
+        
+        // Display current theme information
+        try {
+            data.ThemeManager themeManager = data.ThemeManager.getInstance();
+            data.ThemeData currentTheme = themeManager.getCurrentTheme();
+            String themeName = (currentTheme != null && currentTheme.name != null) ? 
+                              currentTheme.name : "null";
+            System.out.println("Theme: " + themeName);
+        } catch (Exception e) {
+            System.out.println("Theme: null");
+        }
+        
+        System.out.println();
     }
 
 }

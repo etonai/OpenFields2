@@ -121,6 +121,9 @@ public final class CombatCalculator {
             case RIFLE:
                 skillName = SkillsManager.RIFLE;
                 break;
+            case SUBMACHINE_GUN:
+                skillName = SkillsManager.SUBMACHINE_GUN;
+                break;
             case OTHER:
             default:
                 return 0.0; // No skill bonus for OTHER weapon types
@@ -159,6 +162,9 @@ public final class CombatCalculator {
                 break;
             case RIFLE:
                 skillName = SkillsManager.RIFLE;
+                break;
+            case SUBMACHINE_GUN:
+                skillName = SkillsManager.SUBMACHINE_GUN;
                 break;
             case OTHER:
             default:

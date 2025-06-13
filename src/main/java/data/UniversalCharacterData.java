@@ -49,6 +49,37 @@ public class UniversalCharacterData {
     @JsonProperty("baseMovementSpeed")
     public double baseMovementSpeed;
     
+    @JsonProperty("faction")
+    public int faction;
+    
+    // Combat Experience Tracking
+    @JsonProperty("combatEngagements")
+    public int combatEngagements;
+    
+    @JsonProperty("woundsReceived")
+    public int woundsReceived;
+    
+    @JsonProperty("woundsInflictedScratch")
+    public int woundsInflictedScratch;
+    
+    @JsonProperty("woundsInflictedLight")
+    public int woundsInflictedLight;
+    
+    @JsonProperty("woundsInflictedSerious")
+    public int woundsInflictedSerious;
+    
+    @JsonProperty("woundsInflictedCritical")
+    public int woundsInflictedCritical;
+    
+    @JsonProperty("attacksAttempted")
+    public int attacksAttempted;
+    
+    @JsonProperty("attacksSuccessful")
+    public int attacksSuccessful;
+    
+    @JsonProperty("targetsIncapacitated")
+    public int targetsIncapacitated;
+    
     @JsonProperty("skills")
     public List<SkillData> skills;
     

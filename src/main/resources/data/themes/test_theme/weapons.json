@@ -227,7 +227,7 @@
     "wpn_uzi": {
       "id": "wpn_uzi",
       "name": "Uzi Submachine Gun",
-      "type": "PISTOL",
+      "type": "SUBMACHINE_GUN",
       "velocity": 1300.0,
       "damage": 6,
       "ammunition": 32,
