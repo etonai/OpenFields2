@@ -51,6 +51,9 @@ public class WeaponData {
     @JsonProperty("firingDelay")
     public int firingDelay;
     
+    @JsonProperty("weaponLength")
+    public double weaponLength = 1.0; // Default weapon length 1 foot
+    
     // Automatic firing properties
     @JsonProperty("cyclicRate")
     public int cyclicRate = 60; // Default 1 second between shots

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025 Edward T. Tonai
+ * Licensed under the MIT License - see LICENSE file for details
+ */
+
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.KeyCode;
@@ -340,6 +345,8 @@ public class InputManager {
             
             if (callbacks.isEditMode()) {
                 // Instant teleport in edit mode
+                // Recalculate selection center to account for unit movement
+                selectionManager.calculateSelectionCenter();
                 for (Unit unit : selectionManager.getSelectedUnits()) {
                     double deltaX = x - selectionManager.getSelectionCenterX();
                     double deltaY = y - selectionManager.getSelectionCenterY();
@@ -353,6 +360,8 @@ public class InputManager {
                 System.out.println("TELEPORT " + selectionManager.getSelectionCount() + " units to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
             } else {
                 // Normal movement with movement rules - relative to selection center
+                // Recalculate selection center to account for unit movement
+                selectionManager.calculateSelectionCenter();
                 double deltaX = x - selectionManager.getSelectionCenterX();
                 double deltaY = y - selectionManager.getSelectionCenterY();
                 

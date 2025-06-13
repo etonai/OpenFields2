@@ -38,6 +38,7 @@ public class WeaponFactory {
         weapon.reloadTicks = weaponData.reloadTicks;
         weapon.reloadType = weaponData.reloadType;
         weapon.firingDelay = weaponData.firingDelay;
+        weapon.weaponLength = weaponData.weaponLength;
         
         // Set automatic firing properties from data
         weapon.cyclicRate = weaponData.cyclicRate;

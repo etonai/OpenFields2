@@ -14,7 +14,8 @@
       "soundFile": "/Slap0003.wav",
       "maximumRange": 400.0,
       "weaponAccuracy": 5,
-      "firingDelay": 180
+      "firingDelay": 180,
+      "weaponLength": 4.5
     },
     "wpn_brown_bess": {
       "id": "wpn_brown_bess",
@@ -30,7 +31,8 @@
       "soundFile": "/Slap0003.wav",
       "maximumRange": 300.0,
       "weaponAccuracy": -10,
-      "firingDelay": 60
+      "firingDelay": 60,
+      "weaponLength": 5.0
     },
     "wpn_colt_army_1860": {
       "id": "wpn_colt_army_1860",

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025 Edward T. Tonai
+ * Licensed under the MIT License - see LICENSE file for details
+ */
+
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -7,6 +12,7 @@ import java.util.HashMap;
 import game.Unit;
 import combat.WeaponType;
 import combat.Handedness;
+import combat.Weapon;
 
 /**
  * Handles all rendering operations for the OpenFields2 game.
@@ -199,7 +205,7 @@ public class GameRenderer {
         }
         
         // Calculate weapon properties
-        double weaponLength = getWeaponLength(weaponType);
+        double weaponLength = getWeaponLength(unit.character.weapon);
         boolean isLeftHanded = unit.character.handedness == Handedness.LEFT_HANDED;
         
         // Use unit's current facing direction (unit rotation system)
@@ -268,10 +274,34 @@ public class GameRenderer {
                 endX = startX + dirX * weaponLength;
                 endY = startY + dirY * weaponLength;
             }
-        } else { // SUBMACHINE_GUN
-            // Submachine guns use aiming position for all states
-            startX = tangentX + dirX * 14;
-            startY = tangentY + dirY * 14;
+        } else if (weaponType == WeaponType.SUBMACHINE_GUN) {
+            // Submachine guns use rifle-style positioning (tangent point start)
+            if (isReadyState) {
+                // Submachine gun ready state: Move 14 pixels (2 feet) closer to target, then rotate 60 degrees towards center
+                double readyStartX = tangentX + dirX * 14;
+                double readyStartY = tangentY + dirY * 14;
+                
+                // Calculate 60-degree rotation towards unit center
+                double angleToCenter = Math.atan2(-readyStartY + unit.y, -readyStartX + unit.x);
+                double currentAngle = Math.atan2(dirY, dirX);
+                double rotationDirection = isLeftHanded ? 1 : -1; // Left-handed: clockwise, Right-handed: counterclockwise
+                double readyAngle = currentAngle + rotationDirection * Math.toRadians(60);
+                
+                startX = readyStartX;
+                startY = readyStartY;
+                endX = startX + Math.cos(readyAngle) * weaponLength;
+                endY = startY + Math.sin(readyAngle) * weaponLength;
+            } else {
+                // Submachine gun aiming state: Start at tangent point, point toward target (like rifles)
+                startX = tangentX;
+                startY = tangentY;
+                endX = startX + dirX * weaponLength;
+                endY = startY + dirY * weaponLength;
+            }
+        } else { // OTHER weapons
+            // OTHER weapons use default positioning
+            startX = tangentX;
+            startY = tangentY;
             endX = startX + dirX * weaponLength;
             endY = startY + dirY * weaponLength;
         }
@@ -286,19 +316,15 @@ public class GameRenderer {
     }
     
     /**
-     * Get weapon length in pixels based on weapon type
+     * Get weapon length in pixels based on weapon instance
      */
-    private double getWeaponLength(WeaponType weaponType) {
-        switch (weaponType) {
-            case PISTOL:
-                return 7; // 1 foot = 7 pixels
-            case RIFLE:
-                return 28; // 4 feet = 28 pixels
-            case SUBMACHINE_GUN:
-                return 18; // 2.5 feet = 18 pixels (17.5 rounded up)
-            default:
-                return 0; // OTHER weapons not rendered
+    private double getWeaponLength(Weapon weapon) {
+        if (weapon == null) {
+            return 0;
         }
+        
+        // Convert feet to pixels (7 pixels = 1 foot)
+        return weapon.getWeaponLength() * 7.0;
     }
     
     /**

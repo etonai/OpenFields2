@@ -20,6 +20,7 @@ public class Weapon {
     public WeaponType weaponType;
     public String projectileName;
     public int firingDelay; // Delay in ticks between successive shots
+    public double weaponLength; // Weapon length in feet
     
     // Automatic firing properties
     public FiringMode currentFiringMode;
@@ -41,6 +42,7 @@ public class Weapon {
         this.weaponType = WeaponType.OTHER; // Default to OTHER
         this.projectileName = projectileName;
         this.firingDelay = 0; // Default no firing delay
+        this.weaponLength = 1.0; // Default weapon length 1 foot
         
         // Initialize automatic firing properties (default to single shot only)
         this.availableFiringModes = new ArrayList<>(Arrays.asList(FiringMode.SINGLE_SHOT));
@@ -123,6 +125,17 @@ public class Weapon {
             case BURST: return "Burst";
             case FULL_AUTO: return "Auto";
             default: return "Unknown";
+        }
+    }
+    
+    // Weapon length property accessors
+    public double getWeaponLength() {
+        return weaponLength;
+    }
+    
+    public void setWeaponLength(double length) {
+        if (length > 0) {
+            this.weaponLength = length;
         }
     }
 }

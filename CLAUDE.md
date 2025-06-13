@@ -108,3 +108,9 @@ mvn javafx:run                # Run the JavaFX application
 - **Maven** build system
 - **Tick-based timing**: 60 ticks per second, events scheduled by tick number
 - **Canvas rendering**: Custom 2D graphics with zoom/pan support
+
+## Legal Framework
+
+- **License**: MIT License - see LICENSE file for full text
+- **Copyright**: Copyright (c) 2025 Edward T. Tonai
+- **Usage**: Open source project with permissive licensing for modification and distribution

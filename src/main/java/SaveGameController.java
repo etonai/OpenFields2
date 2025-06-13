@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025 Edward T. Tonai
+ * Licensed under the MIT License - see LICENSE file for details
+ */
+
 import javafx.scene.paint.Color;
 
 import java.util.ArrayList;

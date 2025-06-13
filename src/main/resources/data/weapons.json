@@ -9,7 +9,8 @@
       "ammunition": 6,
       "soundFile": "/Slap0003.wav",
       "maximumRange": 150.0,
-      "weaponAccuracy": 0
+      "weaponAccuracy": 0,
+      "weaponLength": 1.0
     },
     "wpn_derringer": {
       "id": "wpn_derringer",
@@ -20,7 +21,8 @@
       "ammunition": 1,
       "soundFile": "/Slap0003.wav",
       "maximumRange": 50.0,
-      "weaponAccuracy": -10
+      "weaponAccuracy": -10,
+      "weaponLength": 1.0
     },
     "wpn_plasma_pistol": {
       "id": "wpn_plasma_pistol",
@@ -31,7 +33,8 @@
       "ammunition": 20,
       "soundFile": "/placeholder_laser.wav",
       "maximumRange": 500.0,
-      "weaponAccuracy": 20
+      "weaponAccuracy": 20,
+      "weaponLength": 1.0
     },
     "wpn_wand_of_magic_bolts": {
       "id": "wpn_wand_of_magic_bolts",
@@ -42,7 +45,8 @@
       "ammunition": 20,
       "soundFile": "/magic.wav",
       "maximumRange": 100.0,
-      "weaponAccuracy": 20
+      "weaponAccuracy": 20,
+      "weaponLength": 2.0
     },
     "wpn_hunting_rifle": {
       "id": "wpn_hunting_rifle",
@@ -53,7 +57,8 @@
       "ammunition": 5,
       "soundFile": "/Slap0003.wav",
       "maximumRange": 300.0,
-      "weaponAccuracy": 15
+      "weaponAccuracy": 15,
+      "weaponLength": 4.0
     },
     "wpn_magic_sword": {
       "id": "wpn_magic_sword",
@@ -64,7 +69,8 @@
       "ammunition": 999,
       "soundFile": "/magic.wav",
       "maximumRange": 5.0,
-      "weaponAccuracy": 25
+      "weaponAccuracy": 25,
+      "weaponLength": 3.0
     }
   }
 }
