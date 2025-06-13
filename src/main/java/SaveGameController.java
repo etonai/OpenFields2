@@ -578,10 +578,8 @@ public class SaveGameController {
             character.weapon.currentFiringMode = data.currentFiringMode;
         }
         
-        // Restore automatic targeting setting if available
-        if (data.usesAutomaticTargeting != null) {
-            character.usesAutomaticTargeting = data.usesAutomaticTargeting;
-        }
+        // Restore automatic targeting setting
+        character.usesAutomaticTargeting = data.usesAutomaticTargeting;
         
         return unit;
     }
@@ -613,10 +611,8 @@ public class SaveGameController {
             character.weapon.currentFiringMode = data.currentFiringMode;
         }
         
-        // Restore automatic targeting setting if available (new field, may be null in legacy saves)
-        if (data.usesAutomaticTargeting != null) {
-            character.usesAutomaticTargeting = data.usesAutomaticTargeting;
-        }
+        // Restore automatic targeting setting (defaults to false for legacy saves)
+        character.usesAutomaticTargeting = data.usesAutomaticTargeting;
         
         return unit;
     }

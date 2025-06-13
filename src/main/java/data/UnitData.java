@@ -1,6 +1,7 @@
 package data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import combat.FiringMode;
 
 public class UnitData {
@@ -59,7 +60,7 @@ public class UnitData {
     public FiringMode currentFiringMode;
     
     @JsonProperty("usesAutomaticTargeting")
-    public Boolean usesAutomaticTargeting;
+    public boolean usesAutomaticTargeting;
     
     public UnitData() {
         // Default constructor for Jackson
@@ -68,7 +69,7 @@ public class UnitData {
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
                    boolean isFiringHighlighted, String weaponId, String currentWeaponState, String themeId,
-                   Integer currentTargetId, FiringMode currentFiringMode, Boolean usesAutomaticTargeting) {
+                   Integer currentTargetId, FiringMode currentFiringMode, boolean usesAutomaticTargeting) {
         this.id = id;
         this.characterId = characterId;
         this.x = x;
@@ -93,7 +94,7 @@ public class UnitData {
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted) {
         this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
-             false, null, null, null, null, null, null);
+             false, null, null, null, null, null, false);
     }
     
     // Intermediate constructor for backward compatibility
@@ -101,6 +102,6 @@ public class UnitData {
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
                    boolean isFiringHighlighted, String weaponId, String currentWeaponState, String themeId) {
         this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
-             isFiringHighlighted, weaponId, currentWeaponState, themeId, null, null, null);
+             isFiringHighlighted, weaponId, currentWeaponState, themeId, null, null, false);
     }
 }
