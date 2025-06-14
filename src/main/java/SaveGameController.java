@@ -345,7 +345,8 @@ public class SaveGameController {
             themeId,
             currentTargetId,
             currentFiringMode,
-            unit.character.usesAutomaticTargeting
+            unit.character.usesAutomaticTargeting,
+            unit.character.faction
         );
     }
     
@@ -581,6 +582,9 @@ public class SaveGameController {
         // Restore automatic targeting setting
         character.usesAutomaticTargeting = data.usesAutomaticTargeting;
         
+        // Restore faction information
+        character.faction = data.faction;
+        
         return unit;
     }
     
@@ -613,6 +617,9 @@ public class SaveGameController {
         
         // Restore automatic targeting setting (defaults to false for legacy saves)
         character.usesAutomaticTargeting = data.usesAutomaticTargeting;
+        
+        // Restore faction information (defaults to 1 for legacy saves if not present)
+        character.faction = data.faction;
         
         return unit;
     }

@@ -1186,6 +1186,7 @@ public class Character {
         // Skip if character is already attacking (let existing attack complete)
         if (isAttacking) return;
         
+        
         // Check if current target is still valid
         boolean currentTargetValid = currentTarget != null 
             && !currentTarget.character.isIncapacitated() 
@@ -1213,7 +1214,7 @@ public class Character {
                 // Start attack sequence
                 startAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
             } else {
-                // No targets found - disable persistent attack
+                // No targets found - disable persistent attack but maintain weapon direction
                 if (persistentAttack) {
                     persistentAttack = false;
                     currentTarget = null;

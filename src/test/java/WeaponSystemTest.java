@@ -94,6 +94,11 @@ public class WeaponSystemTest {
         }
         
         @Override
+        public void addMuzzleFlash(Unit shooter, long fireTick) {
+            // Mock muzzle flash for tests
+        }
+        
+        @Override
         public void removeAllEventsForOwner(int ownerId) {
             // Mock event removal for tests
         }

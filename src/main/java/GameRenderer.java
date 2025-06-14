@@ -186,8 +186,8 @@ public class GameRenderer {
      * Render weapon for a unit if they have a target and weapon
      */
     private void renderWeapon(GraphicsContext gc, Unit unit) {
-        // Only render weapon if character has a target and weapon
-        if (unit.character.currentTarget == null || unit.character.weapon == null) {
+        // Only render weapon if character has a target, last target direction, or weapon
+        if ((unit.character.currentTarget == null && unit.character.lastTargetFacing == null) || unit.character.weapon == null) {
             return;
         }
         

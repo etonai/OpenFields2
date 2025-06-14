@@ -60,6 +60,11 @@ public class IntegrationTest {
             }
             
             @Override
+            public void addMuzzleFlash(Unit shooter, long fireTick) {
+                // Mock muzzle flash for tests
+            }
+            
+            @Override
             public void removeAllEventsForOwner(int ownerId) {
                 eventQueue.removeIf(e -> e.getOwnerId() == ownerId);
             }

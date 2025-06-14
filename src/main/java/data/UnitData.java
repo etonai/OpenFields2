@@ -62,6 +62,9 @@ public class UnitData {
     @JsonProperty("usesAutomaticTargeting")
     public boolean usesAutomaticTargeting;
     
+    @JsonProperty("faction")
+    public int faction;
+    
     public UnitData() {
         // Default constructor for Jackson
     }
@@ -69,7 +72,7 @@ public class UnitData {
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
                    boolean isFiringHighlighted, String weaponId, String currentWeaponState, String themeId,
-                   Integer currentTargetId, FiringMode currentFiringMode, boolean usesAutomaticTargeting) {
+                   Integer currentTargetId, FiringMode currentFiringMode, boolean usesAutomaticTargeting, int faction) {
         this.id = id;
         this.characterId = characterId;
         this.x = x;
@@ -88,13 +91,14 @@ public class UnitData {
         this.currentTargetId = currentTargetId;
         this.currentFiringMode = currentFiringMode;
         this.usesAutomaticTargeting = usesAutomaticTargeting;
+        this.faction = faction;
     }
     
     // Legacy constructor for backward compatibility
     public UnitData(int id, int characterId, double x, double y, double targetX, double targetY,
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted) {
         this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
-             false, null, null, null, null, null, false);
+             false, null, null, null, null, null, false, 1);
     }
     
     // Intermediate constructor for backward compatibility
@@ -102,6 +106,6 @@ public class UnitData {
                    boolean hasTarget, boolean isStopped, String color, String baseColor, boolean isHitHighlighted,
                    boolean isFiringHighlighted, String weaponId, String currentWeaponState, String themeId) {
         this(id, characterId, x, y, targetX, targetY, hasTarget, isStopped, color, baseColor, isHitHighlighted,
-             isFiringHighlighted, weaponId, currentWeaponState, themeId, null, null, false);
+             isFiringHighlighted, weaponId, currentWeaponState, themeId, null, null, false, 1);
     }
 }
