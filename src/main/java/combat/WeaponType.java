@@ -4,7 +4,11 @@ public enum WeaponType {
     PISTOL("Pistol"),
     RIFLE("Rifle"),
     SUBMACHINE_GUN("Submachine Gun"),
-    OTHER("Other");
+    OTHER("Other"),
+    MELEE_UNARMED("Unarmed"),
+    MELEE_SHORT("Short Melee"),
+    MELEE_MEDIUM("Medium Melee"),
+    MELEE_LONG("Long Melee");
     
     private final String displayName;
     

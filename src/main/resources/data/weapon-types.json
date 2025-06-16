@@ -32,6 +32,48 @@
         {"state": "firing", "action": "recovering", "ticks": 8},
         {"state": "recovering", "action": "aiming", "ticks": 20}
       ]
+    },
+    "MELEE_UNARMED": {
+      "initialState": "melee_ready",
+      "states": [
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_ready", "ticks": 120},
+        {"state": "switching_to_melee", "action": "melee_ready", "ticks": 30},
+        {"state": "switching_to_ranged", "action": "ready", "ticks": 30}
+      ]
+    },
+    "MELEE_SHORT": {
+      "initialState": "sheathed",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 60},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_ready", "ticks": 120},
+        {"state": "switching_to_melee", "action": "melee_ready", "ticks": 30},
+        {"state": "switching_to_ranged", "action": "ready", "ticks": 30}
+      ]
+    },
+    "MELEE_MEDIUM": {
+      "initialState": "sheathed",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 75},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 20},
+        {"state": "melee_attacking", "action": "melee_ready", "ticks": 120},
+        {"state": "switching_to_melee", "action": "melee_ready", "ticks": 45},
+        {"state": "switching_to_ranged", "action": "ready", "ticks": 45}
+      ]
+    },
+    "MELEE_LONG": {
+      "initialState": "sheathed",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 90},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 25},
+        {"state": "melee_attacking", "action": "melee_ready", "ticks": 120},
+        {"state": "switching_to_melee", "action": "melee_ready", "ticks": 60},
+        {"state": "switching_to_ranged", "action": "ready", "ticks": 60}
+      ]
     }
   }
 }

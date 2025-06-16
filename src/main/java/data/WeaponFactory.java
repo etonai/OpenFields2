@@ -1,6 +1,6 @@
 package data;
 
-import combat.Weapon;
+import combat.RangedWeapon;
 import combat.WeaponState;
 import combat.WeaponType;
 
@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class WeaponFactory {
     private static final DataManager dataManager = DataManager.getInstance();
     
-    public static Weapon createWeapon(String weaponId) {
+    public static RangedWeapon createWeapon(String weaponId) {
         WeaponData weaponData = dataManager.getWeapon(weaponId);
         if (weaponData == null) {
             throw new IllegalArgumentException("Unknown weapon ID: " + weaponId);
@@ -20,8 +20,8 @@ public class WeaponFactory {
             throw new IllegalArgumentException("Unknown weapon type: " + weaponData.type);
         }
         
-        // Create the weapon with basic properties
-        Weapon weapon = new Weapon(
+        // Create the ranged weapon with basic properties
+        RangedWeapon weapon = new RangedWeapon(
             weaponData.name,
             weaponData.velocity,
             weaponData.damage,
@@ -44,7 +44,6 @@ public class WeaponFactory {
         weapon.cyclicRate = weaponData.cyclicRate;
         weapon.burstSize = weaponData.burstSize;
         weapon.availableFiringModes = new ArrayList<>(weaponData.availableFiringModes);
-        weapon.currentFiringMode = weaponData.availableFiringModes.get(0); // Default to first available mode
         
         // Set up the weapon states from the weapon type definition
         weapon.states = new ArrayList<>();

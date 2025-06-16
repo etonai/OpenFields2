@@ -719,6 +719,20 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         }, ScheduledEvent.WORLD_OWNER));
     }
     
+    public void scheduleMeleeImpact(Unit attacker, Unit target, MeleeWeapon weapon, long attackTick) {
+        // For melee attacks, impact is immediate (no travel time)
+        // Calculate hit chance using melee combat resolver
+        CombatResolver combatResolver = new CombatResolver(units, eventQueue, GameRenderer.isDebugMode());
+        
+        if (GameRenderer.isDebugMode()) {
+            System.out.println("--- Melee attack impact scheduled at tick " + attackTick);
+        }
+        
+        eventQueue.add(new ScheduledEvent(attackTick, () -> {
+            combatResolver.resolveMeleeAttack(attacker, target, weapon, attackTick);
+        }, ScheduledEvent.WORLD_OWNER));
+    }
+    
     public void applyFiringHighlight(Unit shooter, long fireTick) {
         if (!shooter.isFiringHighlighted) {
             shooter.isFiringHighlighted = true;

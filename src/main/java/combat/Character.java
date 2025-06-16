@@ -28,7 +28,10 @@ public class Character {
     public MovementType currentMovementType;
     public AimingSpeed currentAimingSpeed;
     public PositionState currentPosition;
-    public Weapon weapon;
+    public Weapon weapon; // Legacy field - will become rangedWeapon
+    public RangedWeapon rangedWeapon; // Primary ranged weapon
+    public MeleeWeapon meleeWeapon; // Primary melee weapon
+    public boolean isMeleeCombatMode = false; // True when in melee combat mode
     public WeaponState currentWeaponState;
     public Unit currentTarget;
     public boolean persistentAttack;
@@ -112,22 +115,26 @@ public class Character {
         this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
+        initializeDefaultWeapons();
     }
 
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
         this(nickname, dexterity, health, coolness, strength, reflexes, handedness);
         this.weapon = weapon;
+        initializeDefaultWeapons();
     }
 
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
         this(nickname, dexterity, health, coolness, strength, reflexes, handedness);
         this.skills = skills != null ? skills : new ArrayList<>();
+        initializeDefaultWeapons();
     }
 
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
         this(nickname, dexterity, health, coolness, strength, reflexes, handedness);
         this.weapon = weapon;
         this.skills = skills != null ? skills : new ArrayList<>();
+        initializeDefaultWeapons();
     }
 
     public Character(int id, String nickname, String firstName, String lastName, Date birthdate, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
@@ -156,6 +163,7 @@ public class Character {
         this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
+        initializeDefaultWeapons();
     }
 
     public Character(int id, String nickname, String firstName, String lastName, Date birthdate, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon) {
@@ -183,6 +191,7 @@ public class Character {
         this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
         this.skills = new ArrayList<>();
         this.wounds = new ArrayList<>();
+        initializeDefaultWeapons();
     }
     
     public Character(int id, String nickname, String firstName, String lastName, Date birthdate, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
@@ -208,6 +217,7 @@ public class Character {
         this.usesAutomaticTargeting = false; // Default to manual targeting
         this.skills = skills != null ? skills : new ArrayList<>();
         this.wounds = new ArrayList<>();
+        initializeDefaultWeapons();
     }
     
     public Character(int id, String nickname, String firstName, String lastName, Date birthdate, String themeId, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
@@ -234,6 +244,7 @@ public class Character {
         this.usesAutomaticTargeting = false; // Default to manual targeting
         this.skills = skills != null ? skills : new ArrayList<>();
         this.wounds = new ArrayList<>();
+        initializeDefaultWeapons();
     }
 
     public int getId() {
@@ -242,6 +253,89 @@ public class Character {
     
     public String getNickname() {
         return nickname;
+    }
+    
+    // Dual weapon system methods
+    
+    /**
+     * Initialize default weapons (ranged weapon from legacy weapon field, unarmed for melee)
+     */
+    public void initializeDefaultWeapons() {
+        // Initialize melee weapon to unarmed if not set
+        if (meleeWeapon == null) {
+            meleeWeapon = MeleeWeaponFactory.createUnarmed();
+        }
+        
+        // If we have a legacy weapon, convert it to ranged weapon
+        if (weapon != null && rangedWeapon == null) {
+            if (weapon instanceof RangedWeapon) {
+                rangedWeapon = (RangedWeapon) weapon;
+            }
+            // Note: weapon will remain for backward compatibility
+        }
+    }
+    
+    /**
+     * Get the currently active weapon based on combat mode
+     */
+    public Weapon getActiveWeapon() {
+        if (isMeleeCombatMode && meleeWeapon != null) {
+            return meleeWeapon;
+        } else if (rangedWeapon != null) {
+            return rangedWeapon;
+        } else {
+            return weapon; // Fallback to legacy weapon
+        }
+    }
+    
+    /**
+     * Toggle between ranged and melee combat modes
+     */
+    public void toggleCombatMode() {
+        isMeleeCombatMode = !isMeleeCombatMode;
+    }
+    
+    /**
+     * Set combat mode explicitly
+     */
+    public void setCombatMode(boolean meleeMode) {
+        isMeleeCombatMode = meleeMode;
+    }
+    
+    /**
+     * Check if character is in melee combat mode
+     */
+    public boolean isMeleeCombatMode() {
+        return isMeleeCombatMode;
+    }
+    
+    /**
+     * Set the ranged weapon
+     */
+    public void setRangedWeapon(RangedWeapon rangedWeapon) {
+        this.rangedWeapon = rangedWeapon;
+        this.weapon = rangedWeapon; // Maintain backward compatibility
+    }
+    
+    /**
+     * Set the melee weapon
+     */
+    public void setMeleeWeapon(MeleeWeapon meleeWeapon) {
+        this.meleeWeapon = meleeWeapon;
+    }
+    
+    /**
+     * Get the ranged weapon
+     */
+    public RangedWeapon getRangedWeapon() {
+        return rangedWeapon;
+    }
+    
+    /**
+     * Get the melee weapon
+     */
+    public MeleeWeapon getMeleeWeapon() {
+        return meleeWeapon;
     }
 
     public void setNickname(String nickname) {
@@ -667,6 +761,24 @@ public class Character {
         scheduleReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
     }
     
+    /**
+     * Start melee attack sequence from current weapon state
+     */
+    public void startMeleeAttackSequence(Unit attacker, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        if (meleeWeapon == null) return;
+        
+        // Calculate facing direction to target
+        double dx = target.x - attacker.x;
+        double dy = target.y - attacker.y;
+        double angleRadians = Math.atan2(dx, -dy);
+        double angleDegrees = Math.toDegrees(angleRadians);
+        if (angleDegrees < 0) angleDegrees += 360;
+        lastTargetFacing = angleDegrees;
+        
+        // Schedule melee attack from current state
+        scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+    }
+    
     private void scheduleAttackFromCurrentState(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || currentWeaponState == null) return;
         
@@ -706,6 +818,41 @@ public class Character {
             }
             
             scheduleFiring(shooter, target, currentTick + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
+        }
+    }
+    
+    /**
+     * Schedule melee attack from current weapon state
+     */
+    private void scheduleMeleeAttackFromCurrentState(Unit attacker, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        if (meleeWeapon == null) return;
+        
+        // Get active weapon for state management (use melee weapon's states)
+        Weapon activeWeapon = getActiveWeapon();
+        WeaponState currentState = currentWeaponState;
+        
+        if (currentState == null) {
+            // Initialize to weapon's initial state if no current state
+            currentState = activeWeapon.getInitialState();
+            currentWeaponState = currentState;
+        }
+        
+        String stateName = currentState.getState();
+        
+        // Handle melee weapon state transitions
+        if ("sheathed".equals(stateName)) {
+            scheduleMeleeStateTransition("unsheathing", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
+        } else if ("unsheathing".equals(stateName)) {
+            scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
+        } else if ("melee_ready".equals(stateName)) {
+            // Ready to attack - schedule the melee attack
+            long attackTime = Math.round(meleeWeapon.getAttackSpeed() * calculateAttackSpeedMultiplier());
+            scheduleMeleeAttack(attacker, target, currentTick + attackTime, eventQueue, ownerId, gameCallbacks);
+        } else if ("switching_to_melee".equals(stateName)) {
+            scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
+        } else {
+            // For any other state, transition to switching_to_melee first
+            scheduleMeleeStateTransition("switching_to_melee", currentTick, 30, attacker, target, eventQueue, ownerId, gameCallbacks);
         }
     }
     
@@ -969,6 +1116,68 @@ public class Character {
     
     public double getAimingSpeedMultiplier() {
         return calculateAimingSpeedMultiplier();
+    }
+    
+    /**
+     * Schedule melee state transition
+     */
+    private void scheduleMeleeStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit attacker, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        // Apply speed multiplier to weapon preparation states
+        if (isWeaponPreparationState(newStateName)) {
+            double speedMultiplier = calculateWeaponReadySpeedMultiplier();
+            transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
+        }
+        
+        WeaponState newState = getActiveWeapon().getStateByName(newStateName);
+        if (newState != null) {
+            // Create final copies for lambda
+            final String finalStateName = newStateName;
+            final long finalTick = currentTick + transitionTickLength;
+            
+            eventQueue.add(new ScheduledEvent(finalTick, () -> {
+                currentWeaponState = newState;
+                System.out.println(getDisplayName() + " melee weapon state: " + finalStateName + " at tick " + finalTick);
+                
+                // Continue the attack sequence
+                scheduleMeleeAttackFromCurrentState(attacker, target, finalTick, eventQueue, ownerId, gameCallbacks);
+            }, ownerId));
+        }
+    }
+    
+    /**
+     * Schedule actual melee attack execution
+     */
+    private void scheduleMeleeAttack(Unit attacker, Unit target, long attackTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        eventQueue.add(new ScheduledEvent(attackTick, () -> {
+            // Update weapon state to attacking
+            WeaponState attackingState = getActiveWeapon().getStateByName("melee_attacking");
+            if (attackingState != null) {
+                currentWeaponState = attackingState;
+            }
+            
+            System.out.println(getDisplayName() + " executes melee attack with " + meleeWeapon.getName() + " at tick " + attackTick);
+            
+            // Schedule immediate impact (no travel time for melee)
+            gameCallbacks.scheduleMeleeImpact(attacker, target, meleeWeapon, attackTick);
+            
+            // Schedule recovery back to ready state
+            long recoveryTime = Math.round(meleeWeapon.getAttackCooldown() * calculateAttackSpeedMultiplier());
+            WeaponState readyState = getActiveWeapon().getStateByName("melee_ready");
+            if (readyState != null) {
+                eventQueue.add(new ScheduledEvent(attackTick + recoveryTime, () -> {
+                    currentWeaponState = readyState;
+                    System.out.println(getDisplayName() + " melee weapon state: melee_ready at tick " + (attackTick + recoveryTime));
+                }, ownerId));
+            }
+        }, ownerId));
+    }
+    
+    /**
+     * Calculate attack speed multiplier based on character stats and skills
+     */
+    private double calculateAttackSpeedMultiplier() {
+        // Use same speed calculation as weapon ready speed for consistency
+        return calculateWeaponReadySpeedMultiplier();
     }
     
     public boolean canReload() {

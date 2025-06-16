@@ -399,8 +399,14 @@ public class InputManager {
                 // Attack with all selected units
                 for (Unit unit : selectionManager.getSelectedUnits()) {
                     if (!unit.character.isIncapacitated() && unit != clickedUnit) {
-                        // The callbacks object implements both interfaces, so we can cast safely
-                        unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), (GameCallbacks) callbacks);
+                        // Check if unit is in melee combat mode
+                        if (unit.character.isMeleeCombatMode() && unit.character.meleeWeapon != null) {
+                            // Handle melee attack
+                            startMeleeAttackSequence(unit, clickedUnit);
+                        } else {
+                            // Handle ranged attack (existing logic)
+                            unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), (GameCallbacks) callbacks);
+                        }
                     }
                 }
                 System.out.println("ATTACK " + selectionManager.getSelectionCount() + " units target " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ")");
@@ -862,6 +868,23 @@ public class InputManager {
                 System.out.println("*** " + unit.character.getDisplayName() + " position changed to " + newPosition.getDisplayName());
             } else {
                 System.out.println("*** " + selectionManager.getSelectionCount() + " units stood up");
+            }
+        }
+        
+        // Combat mode toggle: M (melee/ranged toggle)
+        if (e.getCode() == KeyCode.M && selectionManager.hasSelection()) {
+            for (Unit unit : selectionManager.getSelectedUnits()) {
+                if (!unit.character.isIncapacitated()) {
+                    unit.character.toggleCombatMode();
+                }
+            }
+            
+            if (selectionManager.getSelectionCount() == 1) {
+                Unit unit = selectionManager.getSelected();
+                String modeText = unit.character.isMeleeCombatMode() ? "Melee Combat" : "Ranged Combat";
+                System.out.println("*** " + unit.character.getDisplayName() + " switched to " + modeText + " mode");
+            } else {
+                System.out.println("*** " + selectionManager.getSelectionCount() + " units toggled combat mode");
             }
         }
     }
@@ -2629,5 +2652,35 @@ public class InputManager {
         if (!toRemove.isEmpty()) {
             System.out.println("*** Cancelled " + toRemove.size() + " scheduled combat events");
         }
+    }
+    
+    /**
+     * Start melee attack sequence for a unit attacking a target
+     */
+    private void startMeleeAttackSequence(Unit attacker, Unit target) {
+        MeleeWeapon meleeWeapon = attacker.character.meleeWeapon;
+        if (meleeWeapon == null) {
+            System.out.println("*** " + attacker.character.getDisplayName() + " has no melee weapon equipped");
+            return;
+        }
+        
+        // Check if target is within melee range
+        CombatResolver combatResolver = new CombatResolver(units, eventQueue, false);
+        if (!combatResolver.isInMeleeRange(attacker, target, meleeWeapon)) {
+            double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+            double distanceFeet = distance / 7.0; // Convert pixels to feet
+            double maxReach = meleeWeapon.getTotalReach();
+            
+            System.out.println("*** " + attacker.character.getDisplayName() + " cannot reach " + target.character.getDisplayName());
+            System.out.println("*** Target distance: " + String.format("%.2f", distanceFeet) + " feet, weapon reach: " + String.format("%.2f", maxReach) + " feet");
+            
+            // TODO: Add automatic movement toward target when out of range
+            return;
+        }
+        
+        // Schedule melee attack based on weapon state
+        attacker.character.startMeleeAttackSequence(attacker, target, gameClock.getCurrentTick(), eventQueue, attacker.getId(), (GameCallbacks) callbacks);
+        
+        System.out.println("*** " + attacker.character.getDisplayName() + " begins melee attack on " + target.character.getDisplayName() + " with " + meleeWeapon.getName());
     }
 }

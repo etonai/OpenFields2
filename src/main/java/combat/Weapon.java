@@ -1,95 +1,92 @@
 package combat;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-public class Weapon {
+/**
+ * Abstract base class for all weapons in the game.
+ * Contains common properties shared between ranged and melee weapons.
+ */
+public abstract class Weapon {
+    // Common weapon properties - temporarily public for backward compatibility
     public String name;
-    public double velocityFeetPerSecond;
     public int damage;
+    public String soundFile;
+    public double weaponLength; // Weapon length in feet
+    public int weaponAccuracy;
+    public WeaponType weaponType;
     public List<WeaponState> states;
     public String initialStateName;
+    
+    // Legacy fields for backward compatibility - will be moved to subclasses later
+    public double velocityFeetPerSecond;
     public int ammunition;
     public int maxAmmunition;
     public int reloadTicks;
     public ReloadType reloadType;
-    public String soundFile;
     public double maximumRange;
-    public int weaponAccuracy;
-    public WeaponType weaponType;
     public String projectileName;
-    public int firingDelay; // Delay in ticks between successive shots
-    public double weaponLength; // Weapon length in feet
-    
-    // Automatic firing properties
+    public int firingDelay;
     public FiringMode currentFiringMode;
     public List<FiringMode> availableFiringModes;
-    public int cyclicRate; // Ticks between shots in full auto mode
-    public int burstSize; // Number of rounds per burst (typically 3)
+    public int cyclicRate;
+    public int burstSize;
 
-    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName) {
+    /**
+     * Base constructor for all weapons
+     */
+    public Weapon(String name, int damage, String soundFile, double weaponLength, int weaponAccuracy, WeaponType weaponType) {
         this.name = name;
-        this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.damage = damage;
-        this.ammunition = ammunition;
-        this.maxAmmunition = ammunition; // Default max to current
-        this.reloadTicks = 60; // Default reload time
-        this.reloadType = ReloadType.FULL_MAGAZINE; // Default reload type
         this.soundFile = soundFile;
-        this.maximumRange = maximumRange;
-        this.weaponAccuracy = weaponAccuracy;
-        this.weaponType = WeaponType.OTHER; // Default to OTHER
-        this.projectileName = projectileName;
-        this.firingDelay = 0; // Default no firing delay
-        this.weaponLength = 1.0; // Default weapon length 1 foot
-        
-        // Initialize automatic firing properties (default to single shot only)
-        this.availableFiringModes = new ArrayList<>(Arrays.asList(FiringMode.SINGLE_SHOT));
-        this.currentFiringMode = FiringMode.SINGLE_SHOT;
-        this.cyclicRate = 60; // Default 1 second between shots
-        this.burstSize = 3; // Default 3-round bursts
-    }
-    
-    public Weapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName, WeaponType weaponType) {
-        this.name = name;
-        this.velocityFeetPerSecond = velocityFeetPerSecond;
-        this.damage = damage;
-        this.ammunition = ammunition;
-        this.maxAmmunition = ammunition; // Default max to current
-        this.reloadTicks = 60; // Default reload time
-        this.reloadType = ReloadType.FULL_MAGAZINE; // Default reload type
-        this.soundFile = soundFile;
-        this.maximumRange = maximumRange;
+        this.weaponLength = weaponLength;
         this.weaponAccuracy = weaponAccuracy;
         this.weaponType = weaponType;
-        this.projectileName = projectileName;
-        this.firingDelay = 0; // Default no firing delay
-        
-        // Initialize automatic firing properties (default to single shot only)
-        this.availableFiringModes = new ArrayList<>(Arrays.asList(FiringMode.SINGLE_SHOT));
-        this.currentFiringMode = FiringMode.SINGLE_SHOT;
-        this.cyclicRate = 60; // Default 1 second between shots
-        this.burstSize = 3; // Default 3-round bursts
     }
 
+    // Common getter methods
     public String getName() {
         return name;
-    }
-
-    public double getVelocityFeetPerSecond() {
-        return velocityFeetPerSecond;
     }
 
     public int getDamage() {
         return damage;
     }
     
+    public String getSoundFile() {
+        return soundFile;
+    }
+    
+    public double getWeaponLength() {
+        return weaponLength;
+    }
+    
+    public int getWeaponAccuracy() {
+        return weaponAccuracy;
+    }
+    
     public WeaponType getWeaponType() {
         return weaponType;
     }
+    
+    public List<WeaponState> getStates() {
+        return states;
+    }
+    
+    public void setStates(List<WeaponState> states) {
+        this.states = states;
+    }
+    
+    public String getInitialStateName() {
+        return initialStateName;
+    }
+    
+    public void setInitialStateName(String initialStateName) {
+        this.initialStateName = initialStateName;
+    }
 
+    // Common weapon state methods
     public WeaponState getStateByName(String name) {
+        if (states == null) return null;
         for (WeaponState s : states) {
             if (s.getState().equals(name)) return s;
         }
@@ -103,39 +100,41 @@ public class Weapon {
     public WeaponState getInitialState() {
         return getStateByName(initialStateName);
     }
-
-    public String getProjectileName() { return projectileName; }
     
-    // Firing mode management
+    public void setWeaponLength(double length) {
+        if (length > 0) {
+            this.weaponLength = length;
+        }
+    }
+    
+    // Legacy methods for backward compatibility
+    public double getVelocityFeetPerSecond() {
+        return velocityFeetPerSecond;
+    }
+    
+    public String getProjectileName() {
+        return projectileName;
+    }
+    
     public void cycleFiringMode() {
-        if (availableFiringModes.size() <= 1) return; // No modes to cycle
-        
-        int currentIndex = availableFiringModes.indexOf(currentFiringMode);
-        int nextIndex = (currentIndex + 1) % availableFiringModes.size();
-        currentFiringMode = availableFiringModes.get(nextIndex);
+        if (availableFiringModes != null && availableFiringModes.size() > 1) {
+            int currentIndex = availableFiringModes.indexOf(currentFiringMode);
+            int nextIndex = (currentIndex + 1) % availableFiringModes.size();
+            currentFiringMode = availableFiringModes.get(nextIndex);
+        }
     }
     
     public boolean hasMultipleFiringModes() {
-        return availableFiringModes.size() > 1;
+        return availableFiringModes != null && availableFiringModes.size() > 1;
     }
     
     public String getFiringModeDisplayName() {
+        if (currentFiringMode == null) return "Unknown";
         switch (currentFiringMode) {
             case SINGLE_SHOT: return "Single";
             case BURST: return "Burst";
             case FULL_AUTO: return "Auto";
             default: return "Unknown";
-        }
-    }
-    
-    // Weapon length property accessors
-    public double getWeaponLength() {
-        return weaponLength;
-    }
-    
-    public void setWeaponLength(double length) {
-        if (length > 0) {
-            this.weaponLength = length;
         }
     }
 }

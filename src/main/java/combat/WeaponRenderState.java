@@ -52,6 +52,7 @@ public enum WeaponRenderState {
             case "aiming":
             case "firing":
             case "recovering":
+            case "melee_attacking":
                 return ATTACKING;
                 
             // Ready states - weapon visible but not aimed
@@ -60,6 +61,9 @@ public enum WeaponRenderState {
             case "drawing":
             case "unsheathing":
             case "unsling":
+            case "melee_ready":
+            case "switching_to_melee":
+            case "switching_to_ranged":
             default:
                 return READY;
         }

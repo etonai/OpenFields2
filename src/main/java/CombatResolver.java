@@ -338,6 +338,152 @@ public class CombatResolver {
         if (weapon.name.equals("Longsword")) return "wpn_longsword";
         if (weapon.name.equals("Battle Axe")) return "wpn_battle_axe";
         if (weapon.name.equals("Uzi")) return "wpn_uzi";
+        
+        // Melee weapon mappings
+        if (weapon.name.equals("Unarmed")) return "wpn_unarmed";
+        if (weapon.name.equals("Knife")) return "wpn_knife";
+        if (weapon.name.equals("Tomahawk")) return "wpn_tomahawk";
+        if (weapon.name.equals("Rifle (Bayonet)")) return "wpn_rifle_bayonet";
+        if (weapon.name.equals("Sabre")) return "wpn_sabre";
+        if (weapon.name.equals("Pistol (Melee)")) return "wpn_pistol_whip";
+        if (weapon.name.equals("Knife & Tomahawk")) return "wpn_dual_weapons";
+        
         return "wpn_colt_peacemaker"; // default fallback
+    }
+    
+    /**
+     * Resolve melee combat attack between attacker and target
+     */
+    public void resolveMeleeAttack(Unit attacker, Unit target, MeleeWeapon weapon, long attackTick) {
+        if (debugMode) {
+            System.out.println(">>> Resolving melee attack: " + attacker.character.getDisplayName() + " attacks " + target.character.getDisplayName() + " with " + weapon.getName());
+        }
+        
+        // Track attempted attack
+        attacker.character.attacksAttempted++;
+        
+        // Calculate hit probability
+        boolean hits = calculateMeleeHit(attacker, target, weapon);
+        
+        if (hits) {
+            // Calculate damage
+            int baseDamage = weapon.getDamage();
+            int strengthModifier = getStatModifier(attacker.character.strength);
+            int actualDamage = Math.max(1, baseDamage + strengthModifier);
+            
+            // Determine hit location (simplified for basic implementation)
+            BodyPart hitLocation = determineHitLocation();
+            
+            // Create hit result
+            HitResult hitResult = new HitResult(true, hitLocation, WoundSeverity.LIGHT, actualDamage);
+            
+            // Apply damage and wound
+            resolveCombatImpact(attacker, target, weapon, attackTick, hitResult);
+            
+            if (debugMode) {
+                System.out.println(">>> Melee hit! " + weapon.getName() + " deals " + actualDamage + " damage to " + hitLocation.name().toLowerCase());
+            }
+        } else {
+            if (debugMode) {
+                System.out.println(">>> Melee attack missed!");
+            }
+        }
+    }
+    
+    /**
+     * Calculate if melee attack hits based on attacker skill and target defense
+     */
+    private boolean calculateMeleeHit(Unit attacker, Unit target, MeleeWeapon weapon) {
+        // Base hit chance calculation
+        int attackerDexterity = getStatModifier(attacker.character.dexterity);
+        int weaponAccuracy = weapon.getWeaponAccuracy();
+        
+        // Get weapon skill bonus (pistol/rifle skills don't apply to melee)
+        int skillBonus = 0; // Basic implementation - no melee skills yet
+        
+        // Movement penalty for attacker
+        int movementPenalty = getMovementPenalty(attacker.character);
+        
+        // Calculate total attack modifier
+        int attackModifier = attackerDexterity + weaponAccuracy + skillBonus - movementPenalty;
+        
+        // Target defense (simplified - no active defense in basic implementation)
+        int targetDefense = getStatModifier(target.character.dexterity);
+        
+        // Base hit chance (60%) + modifiers
+        int hitChance = 60 + attackModifier - targetDefense;
+        
+        // Clamp to reasonable range (5-95%)
+        hitChance = Math.max(5, Math.min(95, hitChance));
+        
+        // Roll for hit
+        int roll = (int)(Math.random() * 100) + 1;
+        
+        if (debugMode) {
+            System.out.println(">>> Melee hit calculation: " + hitChance + "% chance, rolled " + roll);
+        }
+        
+        return roll <= hitChance;
+    }
+    
+    /**
+     * Get stat modifier for given stat value (same as ranged combat)
+     */
+    private int getStatModifier(int statValue) {
+        if (statValue >= 91) return 20;
+        if (statValue >= 81) return 15;
+        if (statValue >= 71) return 10;
+        if (statValue >= 61) return 5;
+        if (statValue >= 41) return 0;
+        if (statValue >= 31) return -5;
+        if (statValue >= 21) return -10;
+        if (statValue >= 11) return -15;
+        return -20;
+    }
+    
+    /**
+     * Get movement penalty based on character's current movement
+     */
+    private int getMovementPenalty(combat.Character character) {
+        if (character.isIncapacitated()) {
+            return 0; // Incapacitated is considered stationary
+        }
+        
+        switch (character.currentMovementType) {
+            case CRAWL:
+                return 10;
+            case WALK:
+                return 5;
+            case JOG:
+                return 15;
+            case RUN:
+                return 25;
+            default:
+                return 0; // Stationary
+        }
+    }
+    
+    /**
+     * Determine hit location for melee attacks (simplified)
+     */
+    private BodyPart determineHitLocation() {
+        int roll = (int)(Math.random() * 100) + 1;
+        
+        if (roll <= 10) return BodyPart.HEAD;
+        if (roll <= 25) return BodyPart.LEFT_ARM;
+        if (roll <= 40) return BodyPart.RIGHT_ARM;
+        if (roll <= 70) return BodyPart.CHEST;
+        if (roll <= 85) return BodyPart.LEFT_LEG;
+        return BodyPart.RIGHT_LEG;
+    }
+    
+    /**
+     * Check if target is within melee range of attacker
+     */
+    public boolean isInMeleeRange(Unit attacker, Unit target, MeleeWeapon weapon) {
+        double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+        double pixelRange = weapon.getTotalReach() * 7.0; // Convert feet to pixels (7 pixels = 1 foot)
+        
+        return distance <= pixelRange;
     }
 }
