@@ -205,7 +205,8 @@ public class CharacterPersistenceManager {
             for (combat.Wound wound : character.wounds) {
                 data.wounds.add(new CharacterData.WoundData(
                     wound.getBodyPart().name(),
-                    wound.getSeverity().name()
+                    wound.getSeverity().name(),
+                    wound.getDamage()
                 ));
             }
         }
@@ -263,7 +264,7 @@ public class CharacterPersistenceManager {
                 try {
                     combat.BodyPart bodyPart = combat.BodyPart.valueOf(woundData.bodyPart);
                     combat.WoundSeverity severity = combat.WoundSeverity.valueOf(woundData.severity);
-                    character.addWound(new combat.Wound(bodyPart, severity, "Persistent wound", ""));
+                    character.addWound(new combat.Wound(bodyPart, severity, "Persistent wound", "", woundData.damage));
                 } catch (IllegalArgumentException e) {
                     System.err.println("Warning: Invalid wound data - " + e.getMessage());
                 }

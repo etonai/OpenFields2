@@ -263,7 +263,7 @@ public class SaveGameController {
         // Serialize wounds
         data.wounds = new ArrayList<>();
         for (Wound wound : character.wounds) {
-            data.wounds.add(new CharacterData.WoundData(wound.getBodyPart().name(), wound.getSeverity().name()));
+            data.wounds.add(new CharacterData.WoundData(wound.getBodyPart().name(), wound.getSeverity().name(), wound.getDamage()));
         }
         
         // Serialize character preferences
@@ -539,7 +539,9 @@ public class SaveGameController {
             try {
                 BodyPart bodyPart = BodyPart.valueOf(woundData.bodyPart);
                 WoundSeverity severity = WoundSeverity.valueOf(woundData.severity);
-                character.addWound(new Wound(bodyPart, severity));
+                // Use damage value from save data, default to 1 for backwards compatibility
+                int damage = (woundData.damage > 0) ? woundData.damage : 1;
+                character.addWound(new Wound(bodyPart, severity, "Saved wound", "", damage));
             } catch (IllegalArgumentException e) {
                 System.err.println("Warning: Invalid wound data: " + woundData.bodyPart + "/" + woundData.severity);
             }

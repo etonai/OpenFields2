@@ -161,6 +161,9 @@ public class CharacterData {
         @JsonProperty("severity")
         public String severity;
         
+        @JsonProperty("damage")
+        public int damage;
+        
         public WoundData() {
             // Default constructor for Jackson
         }
@@ -168,6 +171,13 @@ public class CharacterData {
         public WoundData(String bodyPart, String severity) {
             this.bodyPart = bodyPart;
             this.severity = severity;
+            this.damage = 1; // Default for backwards compatibility
+        }
+        
+        public WoundData(String bodyPart, String severity, int damage) {
+            this.bodyPart = bodyPart;
+            this.severity = severity;
+            this.damage = damage;
         }
     }
 }
