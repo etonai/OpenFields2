@@ -565,6 +565,12 @@ public class Character {
         wounds.add(wound);
         woundsReceived++;
         
+        // Apply damage to current health
+        currentHealth -= wound.getDamage();
+        if (currentHealth < 0) {
+            currentHealth = 0; // Don't allow negative health
+        }
+        
         // Enforce movement restrictions immediately after adding wound
         enforceMovementRestrictions();
         
@@ -578,6 +584,12 @@ public class Character {
     public void addWound(Wound wound) {
         wounds.add(wound);
         woundsReceived++;
+        
+        // Apply damage to current health
+        currentHealth -= wound.getDamage();
+        if (currentHealth < 0) {
+            currentHealth = 0; // Don't allow negative health
+        }
         
         // Enforce movement restrictions immediately after adding wound
         enforceMovementRestrictions();
