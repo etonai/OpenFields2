@@ -1150,7 +1150,7 @@ public class InputManager {
         System.out.println("***********************");
         System.out.println("*** BATCH CHARACTER CREATION ***");
         System.out.println("How many characters do you want to create?");
-        System.out.println("Enter quantity (1-9, 0 to cancel): ");
+        System.out.println("Enter quantity (1-20, 0 to cancel): ");
     }
     
     /**
@@ -1168,12 +1168,12 @@ public class InputManager {
                     batchArchetype = 0;
                     batchFaction = 0;
                     batchCreationStep = BatchCreationStep.QUANTITY;
-                } else if (inputNumber >= 1 && inputNumber <= 9) {
+                } else if (inputNumber >= 1 && inputNumber <= 20) {
                     batchQuantity = inputNumber;
                     batchCreationStep = BatchCreationStep.ARCHETYPE;
                     showArchetypeSelection();
                 } else {
-                    System.out.println("*** Invalid quantity. Use 1-9 or 0 to cancel ***");
+                    System.out.println("*** Invalid quantity. Use 1-20 or 0 to cancel ***");
                 }
                 break;
                 
@@ -1489,7 +1489,7 @@ public class InputManager {
                 if (inputNumber == 0) {
                     System.out.println("*** Character deployment cancelled ***");
                     cancelCharacterDeployment();
-                } else if (inputNumber >= 1 && inputNumber <= 9) {
+                } else if (inputNumber >= 1 && inputNumber <= 20) {
                     if (inputNumber <= deploymentCharacters.size()) {
                         deploymentQuantity = inputNumber;
                         deploymentStep = DeploymentStep.WEAPON;
@@ -1498,7 +1498,7 @@ public class InputManager {
                         System.out.println("*** Not enough characters available. Maximum: " + deploymentCharacters.size() + " ***");
                     }
                 } else {
-                    System.out.println("*** Invalid quantity. Use 1-" + Math.min(9, deploymentCharacters.size()) + " or 0 to cancel ***");
+                    System.out.println("*** Invalid quantity. Use 1-" + Math.min(20, deploymentCharacters.size()) + " or 0 to cancel ***");
                 }
                 break;
                 
@@ -1599,7 +1599,7 @@ public class InputManager {
         
         System.out.println();
         System.out.println("How many characters do you want to deploy?");
-        System.out.println("Enter quantity (1-" + Math.min(9, deploymentCharacters.size()) + ", 0 to cancel): ");
+        System.out.println("Enter quantity (1-" + Math.min(20, deploymentCharacters.size()) + ", 0 to cancel): ");
     }
     
     /**
