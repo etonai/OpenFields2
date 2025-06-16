@@ -30,8 +30,7 @@ public class CombatResolver {
             int actualDamage = hitResult.getActualDamage();
             
             System.out.println(">>> " + weapon.getProjectileName() + " hit " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick);
-            target.character.health -= actualDamage;
-            System.out.println(">>> " + target.character.getDisplayName() + " takes " + actualDamage + " damage. Health now: " + target.character.health);
+            System.out.println(">>> " + target.character.getDisplayName() + " takes " + actualDamage + " damage");
             
             // Track successful attack
             shooter.character.attacksAttempted++;
@@ -63,6 +62,7 @@ public class CombatResolver {
             // Add wound to character's wound list with hesitation mechanics
             String weaponId = findWeaponId(weapon);
             target.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId, actualDamage), impactTick, eventQueue, target.getId());
+            System.out.println(">>> " + target.character.getDisplayName() + " current health: " + target.character.currentHealth + "/" + target.character.health);
             
             // Trigger bravery check for the target when wounded
             target.character.performBraveryCheck(impactTick, eventQueue, target.getId(), "wounded by " + weapon.getProjectileName());
@@ -229,9 +229,8 @@ public class CombatResolver {
             
             System.out.println(">>> " + strayTarget.character.getDisplayName() + " hit in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound");
             
-            // Apply damage
-            strayTarget.character.health -= strayDamage;
-            System.out.println(">>> " + strayTarget.character.getDisplayName() + " takes " + strayDamage + " stray damage. Health now: " + strayTarget.character.health);
+            // Apply damage (will be handled by addWound method)
+            System.out.println(">>> " + strayTarget.character.getDisplayName() + " takes " + strayDamage + " stray damage");
             
             // Track successful attack for shooter (stray hits still count)
             shooter.character.attacksSuccessful++;
@@ -255,6 +254,7 @@ public class CombatResolver {
             // Add wound to target with hesitation mechanics
             String weaponId = findWeaponId(weapon);
             strayTarget.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId, strayDamage), impactTick, eventQueue, strayTarget.getId());
+            System.out.println(">>> " + strayTarget.character.getDisplayName() + " current health: " + strayTarget.character.currentHealth + "/" + strayTarget.character.health);
             
             // Trigger bravery check for stray shot victim
             strayTarget.character.performBraveryCheck(impactTick, eventQueue, strayTarget.getId(), "hit by stray " + weapon.getProjectileName());
