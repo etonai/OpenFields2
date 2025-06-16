@@ -912,7 +912,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             
             // Add wound to target with hesitation mechanics
             String weaponId = SaveGameController.findWeaponId(weapon);
-            strayTarget.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId), impactTick, eventQueue, strayTarget.getId());
+            strayTarget.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId, strayDamage), impactTick, eventQueue, strayTarget.getId());
             
             // Check for incapacitation from stray shot
             if (strayTarget.character.isIncapacitated()) {
