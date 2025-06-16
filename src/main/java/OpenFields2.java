@@ -637,26 +637,53 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     }
     
     private static int calculateActualDamage(int weaponDamage, combat.WoundSeverity woundSeverity, combat.BodyPart hitLocation) {
+        if (GameRenderer.isDebugMode()) {
+            System.out.println("=== DAMAGE CALCULATION DEBUG ===");
+            System.out.println("Weapon damage: " + weaponDamage);
+            System.out.println("Wound severity: " + woundSeverity);
+            System.out.println("Hit location: " + hitLocation);
+        }
+        
         int baseDamage;
         switch (woundSeverity) {
             case CRITICAL:
             case SERIOUS:
                 baseDamage = weaponDamage;
+                if (GameRenderer.isDebugMode()) {
+                    System.out.println("Critical/Serious wound - using full weapon damage: " + baseDamage);
+                }
                 break;
             case LIGHT:
                 baseDamage = Math.max(1, Math.round(weaponDamage * 0.4f));
+                if (GameRenderer.isDebugMode()) {
+                    System.out.println("Light wound - 40% of weapon damage: " + baseDamage);
+                }
                 break;
             case SCRATCH:
                 baseDamage = 1;
+                if (GameRenderer.isDebugMode()) {
+                    System.out.println("Scratch wound - fixed 1 damage: " + baseDamage);
+                }
                 break;
             default:
                 baseDamage = 0;
+                if (GameRenderer.isDebugMode()) {
+                    System.out.println("Unknown wound severity - 0 damage: " + baseDamage);
+                }
         }
         
         // Apply headshot damage multiplier
         if (hitLocation == combat.BodyPart.HEAD) {
-            // Headshots deal 1.5x damage (50% more damage)
+            int originalDamage = baseDamage;
             baseDamage = Math.round(baseDamage * 1.5f);
+            if (GameRenderer.isDebugMode()) {
+                System.out.println("Headshot multiplier applied: " + originalDamage + " -> " + baseDamage);
+            }
+        }
+        
+        if (GameRenderer.isDebugMode()) {
+            System.out.println("Final calculated damage: " + baseDamage);
+            System.out.println("==================================");
         }
         
         return baseDamage;
@@ -742,7 +769,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             
             // Add wound to character's wound list with hesitation mechanics
             String weaponId = SaveGameController.findWeaponId(weapon);
-            target.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId), impactTick, eventQueue, target.getId());
+            target.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId, actualDamage), impactTick, eventQueue, target.getId());
             
             // Check for incapacitation
             boolean wasIncapacitated = target.character.isIncapacitated();
