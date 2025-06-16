@@ -1643,8 +1643,8 @@ public class InputManager {
         System.out.println("*** SPACING SELECTION ***");
         System.out.println("Deploying " + deploymentQuantity + " characters");
         System.out.println("Formation: " + (deploymentFormation.equals("line_right") ? "Line Right" : "Line Down"));
-        System.out.println("Select spacing between characters:");
-        System.out.println("1. 1 foot - Very tight formation");
+        System.out.println("Select spacing between characters (edge-to-edge):");
+        System.out.println("1. 1 foot - Very tight formation (touching)");
         System.out.println("2. 2 feet - Tight formation");
         System.out.println("3. 3 feet - Normal formation");
         System.out.println("4. 4 feet - Loose formation");
@@ -1666,7 +1666,7 @@ public class InputManager {
         System.out.println("*** PLACEMENT MODE ***");
         System.out.println("Deploying " + deploymentQuantity + " characters");
         System.out.println("Formation: " + (deploymentFormation.equals("line_right") ? "Line Right" : "Line Down"));
-        System.out.println("Spacing: " + (deploymentSpacing / 7) + " feet (" + deploymentSpacing + " pixels)");
+        System.out.println("Spacing: " + (deploymentSpacing / 7) + " feet edge-to-edge (" + deploymentSpacing + " pixels)");
         System.out.println("Weapon: " + getWeaponDisplayName(deploymentWeapon));
         System.out.println();
         System.out.println("Click on the battlefield to place the formation.");
@@ -1754,9 +1754,11 @@ public class InputManager {
                 double charY = worldY;
                 
                 if (deploymentFormation.equals("line_right")) {
-                    charX += i * deploymentSpacing;
+                    // Add character diameter (21 pixels = 3 feet) to spacing for edge-to-edge spacing
+                    charX += i * (deploymentSpacing + 21);
                 } else { // line_down
-                    charY += i * deploymentSpacing;
+                    // Add character diameter (21 pixels = 3 feet) to spacing for edge-to-edge spacing
+                    charY += i * (deploymentSpacing + 21);
                 }
                 
                 // Assign weapon
@@ -1780,7 +1782,7 @@ public class InputManager {
             System.out.println("Successfully deployed " + deploymentQuantity + " characters from " + 
                              getFactionName(deploymentFaction + 1) + " faction");
             System.out.println("Formation: " + (deploymentFormation.equals("line_right") ? "Line Right" : "Line Down"));
-            System.out.println("Spacing: " + (deploymentSpacing / 7) + " feet");
+            System.out.println("Spacing: " + (deploymentSpacing / 7) + " feet edge-to-edge");
             System.out.println("Weapon: " + getWeaponDisplayName(deploymentWeapon));
             System.out.println("***********************");
             
