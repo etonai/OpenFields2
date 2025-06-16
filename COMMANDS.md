@@ -57,9 +57,17 @@ Quick reference guide organized by game mode and input type.
 - **Shift+Right-click drag empty space**: Create target zone (single unit)
 
 ### Edit Operations
-- **Ctrl+C**: Create new character
+- **Ctrl+C**: Create characters in batch (quantity → archetype → faction)
+- **Ctrl+A**: Deploy characters from faction files (faction → quantity → weapon → formation → spacing → click placement)
 - **Ctrl+W**: Change weapon for selected units
 - **Ctrl+F**: Change faction for selected units
+- **DEL**: Delete selected units from scenario (Y/N confirmation)
+
+### Battle Resolution
+- **Ctrl+Shift+V**: Manual victory system (faction outcome selection → battle statistics update)
+
+### Scenario Management
+- **Ctrl+Shift+N**: Create new scenario (name input → theme selection → title update)
 
 ### Movement Controls
 - **W**: Increase movement speed

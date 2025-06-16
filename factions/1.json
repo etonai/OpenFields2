@@ -1,0 +1,111 @@
+{
+  "faction": {
+    "id": 1,
+    "name": "Union",
+    "allies": [
+      3
+    ],
+    "enemies": [
+      2
+    ],
+    "color": "#0000FF",
+    "description": "Union Army",
+    "victories": 0,
+    "defeats": 0,
+    "participations": 0
+  },
+  "characters": [
+    {
+      "id": 1006,
+      "nickname": "Elmer",
+      "firstName": "Elmer",
+      "lastName": "Johnson",
+      "birthdate": "June 9, 1847",
+      "themeId": null,
+      "dexterity": 65,
+      "currentDexterity": 65,
+      "health": 12,
+      "currentHealth": 12,
+      "coolness": 38,
+      "strength": 20,
+      "reflexes": 77,
+      "handedness": "RIGHT_HANDED",
+      "baseMovementSpeed": 42.0,
+      "currentMovementType": "WALK",
+      "currentAimingSpeed": "NORMAL",
+      "weaponId": null,
+      "currentWeaponState": null,
+      "skills": [
+        {
+          "skillName": "skl_rifle",
+          "level": 6
+        }
+      ],
+      "wounds": [],
+      "usesAutomaticTargeting": false,
+      "preferredFiringMode": "SINGLE_SHOT",
+      "faction": 1,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
+      "headshotsAttempted": 0,
+      "headshotsSuccessful": 0,
+      "headshotsKills": 0,
+      "battlesParticipated": 0,
+      "victories": 0,
+      "defeats": 0
+    },
+    {
+      "id": 1007,
+      "nickname": "Joseph",
+      "firstName": "Joseph",
+      "lastName": "Young",
+      "birthdate": "June 9, 1850",
+      "themeId": null,
+      "dexterity": 41,
+      "currentDexterity": 41,
+      "health": 9,
+      "currentHealth": 9,
+      "coolness": 38,
+      "strength": 44,
+      "reflexes": 47,
+      "handedness": "RIGHT_HANDED",
+      "baseMovementSpeed": 42.0,
+      "currentMovementType": "WALK",
+      "currentAimingSpeed": "NORMAL",
+      "weaponId": null,
+      "currentWeaponState": null,
+      "skills": [
+        {
+          "skillName": "skl_rifle",
+          "level": 6
+        }
+      ],
+      "wounds": [],
+      "usesAutomaticTargeting": false,
+      "preferredFiringMode": "SINGLE_SHOT",
+      "faction": 1,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
+      "headshotsAttempted": 0,
+      "headshotsSuccessful": 0,
+      "headshotsKills": 0,
+      "battlesParticipated": 0,
+      "victories": 0,
+      "defeats": 0
+    }
+  ]
+}

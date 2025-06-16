@@ -1,0 +1,14 @@
+{
+  "faction": {
+    "id": 0,
+    "name": "NONE",
+    "allies": [],
+    "enemies": [],
+    "color": "#FFA500",
+    "description": "No faction affiliation",
+    "victories": 0,
+    "defeats": 0,
+    "participations": 0
+  },
+  "characters": []
+}

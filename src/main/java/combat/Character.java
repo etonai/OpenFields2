@@ -55,6 +55,11 @@ public class Character {
     public int headshotsSuccessful = 0;         // Auto-updated when headshots hit
     public int headshotsKills = 0;              // Auto-updated when headshots result in kills
     
+    // Battle outcome statistics
+    public int battlesParticipated = 0;         // Manual tracking - updated after battles
+    public int victories = 0;                   // Manual tracking - updated after victories
+    public int defeats = 0;                     // Manual tracking - updated after defeats
+    
     // Automatic firing state
     public boolean isAutomaticFiring = false;   // Currently in automatic firing mode
     public int burstShotsFired = 0;             // Number of shots fired in current burst
@@ -89,7 +94,9 @@ public class Character {
         this.birthdate = new Date();
         this.themeId = "test_theme";
         this.dexterity = dexterity;
+        this.currentDexterity = dexterity; // Initialize current to base value
         this.health = health;
+        this.currentHealth = health; // Initialize current to base value
         this.coolness = coolness;
         this.strength = strength;
         this.reflexes = reflexes;
@@ -131,7 +138,9 @@ public class Character {
         this.birthdate = birthdate;
         this.themeId = themeId;
         this.dexterity = dexterity;
+        this.currentDexterity = dexterity; // Initialize current to base value
         this.health = health;
+        this.currentHealth = health; // Initialize current to base value
         this.coolness = coolness;
         this.strength = strength;
         this.reflexes = reflexes;
@@ -510,6 +519,15 @@ public class Character {
         return skill != null ? skill.getLevel() : 0;
     }
     
+    public void setSkillLevel(String skillName, int level) {
+        Skill skill = getSkill(skillName);
+        if (skill != null) {
+            skill.setLevel(level);
+        } else {
+            addSkill(new Skill(skillName, level));
+        }
+    }
+    
     public void addSkill(Skill skill) {
         skills.add(skill);
     }
@@ -570,7 +588,7 @@ public class Character {
     public boolean isIncapacitated() {
         boolean incapacitated = false;
         
-        if (health <= 0) {
+        if (currentHealth <= 0) {
             incapacitated = true;
         }
         // Check for any critical wounds

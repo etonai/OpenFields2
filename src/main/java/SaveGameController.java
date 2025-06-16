@@ -226,7 +226,6 @@ public class SaveGameController {
     private CharacterData serializeCharacter(combat.Character character) {
         CharacterData data = new CharacterData();
         data.id = character.id;
-        data.name = character.nickname; // Legacy field for backward compatibility
         data.nickname = character.nickname;
         data.firstName = character.firstName;
         data.lastName = character.lastName;
@@ -501,7 +500,7 @@ public class SaveGameController {
      */
     private combat.Character deserializeCharacter(CharacterData data) {
         // Handle both old and new save formats
-        String nickname = data.nickname != null ? data.nickname : data.name;
+        String nickname = data.nickname != null ? data.nickname : "";
         String firstName = data.firstName != null ? data.firstName : "";
         String lastName = data.lastName != null ? data.lastName : "";
         Date birthdate = data.birthdate != null ? data.birthdate : new Date(0); // Default to epoch if null

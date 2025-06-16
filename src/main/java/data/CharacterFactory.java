@@ -82,10 +82,13 @@ public class CharacterFactory {
     }
     
     private static Character createGunslinger() {
+        String firstName = generateFirstName();
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        
         Character character = new Character(
             0, // ID assigned by registry
-            generateName("Gunslinger"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null, // No theme
@@ -106,10 +109,13 @@ public class CharacterFactory {
     }
     
     private static Character createSoldier() {
+        String firstName = generateFirstName();
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        
         Character character = new Character(
             0,
-            generateName("Soldier"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null,
@@ -129,10 +135,13 @@ public class CharacterFactory {
     }
     
     private static Character createMedic() {
+        String firstName = generateFirstName();
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        
         Character character = new Character(
             0,
-            generateName("Medic"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null,
@@ -152,10 +161,13 @@ public class CharacterFactory {
     }
     
     private static Character createScout() {
+        String firstName = generateFirstName();
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        
         Character character = new Character(
             0,
-            generateName("Scout"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null,
@@ -176,10 +188,13 @@ public class CharacterFactory {
     }
     
     private static Character createMarksman() {
+        String firstName = generateFirstName();
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        
         Character character = new Character(
             0,
-            generateName("Marksman"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null,
@@ -199,10 +214,13 @@ public class CharacterFactory {
     }
     
     private static Character createBrawler() {
+        String firstName = generateFirstName();
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        
         Character character = new Character(
             0,
-            generateName("Brawler"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null,
@@ -313,10 +331,13 @@ public class CharacterFactory {
         Handedness randomHandedness = random.nextBoolean() ? 
             Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
         
+        String firstName = generateFirstName();
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        
         Character character = new Character(
             0, // ID assigned by registry
-            generateName("Confederate"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null, // No theme
@@ -353,10 +374,13 @@ public class CharacterFactory {
         Handedness randomHandedness = random.nextBoolean() ? 
             Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
         
+        String firstName = generateFirstName();
+        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        
         Character character = new Character(
             0, // ID assigned by registry
-            generateName("Union"),
-            generateFirstName(),
+            nickname,
+            firstName,
             generateLastName(),
             generateBirthdate(),
             null, // No theme

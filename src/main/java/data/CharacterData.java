@@ -14,9 +14,6 @@ public class CharacterData {
     @JsonProperty("id")
     public int id;
     
-    @JsonProperty("name")
-    public String name;
-    
     @JsonProperty("nickname")
     public String nickname;
     
@@ -83,6 +80,56 @@ public class CharacterData {
     
     @JsonProperty("preferredFiringMode")
     public FiringMode preferredFiringMode = FiringMode.SINGLE_SHOT;
+    
+    // Faction data
+    @JsonProperty("faction")
+    public int faction = 0;
+    
+    // Battle statistics 
+    @JsonProperty("combatEngagements")
+    public int combatEngagements = 0;
+    
+    @JsonProperty("woundsReceived")
+    public int woundsReceived = 0;
+    
+    @JsonProperty("woundsInflictedScratch")
+    public int woundsInflictedScratch = 0;
+    
+    @JsonProperty("woundsInflictedLight")
+    public int woundsInflictedLight = 0;
+    
+    @JsonProperty("woundsInflictedSerious")
+    public int woundsInflictedSerious = 0;
+    
+    @JsonProperty("woundsInflictedCritical")
+    public int woundsInflictedCritical = 0;
+    
+    @JsonProperty("attacksAttempted")
+    public int attacksAttempted = 0;
+    
+    @JsonProperty("attacksSuccessful")
+    public int attacksSuccessful = 0;
+    
+    @JsonProperty("targetsIncapacitated")
+    public int targetsIncapacitated = 0;
+    
+    @JsonProperty("headshotsAttempted")
+    public int headshotsAttempted = 0;
+    
+    @JsonProperty("headshotsSuccessful")
+    public int headshotsSuccessful = 0;
+    
+    @JsonProperty("headshotsKills")
+    public int headshotsKills = 0;
+    
+    @JsonProperty("battlesParticipated")
+    public int battlesParticipated = 0;
+    
+    @JsonProperty("victories")
+    public int victories = 0;
+    
+    @JsonProperty("defeats")
+    public int defeats = 0;
     
     public CharacterData() {
         // Default constructor for Jackson

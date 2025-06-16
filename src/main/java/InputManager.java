@@ -53,6 +53,61 @@ public class InputManager {
     private boolean waitingForCharacterCreation = false;
     private boolean waitingForWeaponSelection = false;
     private boolean waitingForFactionSelection = false;
+    private boolean waitingForBatchCharacterCreation = false;
+    private boolean waitingForCharacterDeployment = false;
+    private boolean waitingForDeletionConfirmation = false;
+    private java.util.List<Unit> unitsToDelete = new java.util.ArrayList<>();
+    private boolean waitingForVictoryOutcome = false;
+    private boolean waitingForScenarioName = false;
+    private boolean waitingForThemeSelection = false;
+    
+    // Manual victory state
+    private java.util.List<Integer> scenarioFactions = new java.util.ArrayList<>();
+    private java.util.Map<Integer, VictoryOutcome> factionOutcomes = new java.util.HashMap<>();
+    private int currentVictoryFactionIndex = 0;
+    
+    // New scenario state
+    private String newScenarioName = "";
+    private String newScenarioTheme = "";
+    
+    // Batch character creation state
+    private int batchQuantity = 0;
+    private int batchArchetype = 0;
+    private int batchFaction = 0;
+    private BatchCreationStep batchCreationStep = BatchCreationStep.QUANTITY;
+    
+    // Character deployment state
+    private int deploymentFaction = 0;
+    private int deploymentQuantity = 0;
+    private String deploymentWeapon = "";
+    private String deploymentFormation = "";
+    private int deploymentSpacing = 35; // Default 5 feet = 35 pixels
+    private DeploymentStep deploymentStep = DeploymentStep.FACTION;
+    private java.util.List<combat.Character> deploymentCharacters = new java.util.ArrayList<>();
+    
+    // Batch creation workflow steps
+    private enum BatchCreationStep {
+        QUANTITY,    // Prompting for quantity
+        ARCHETYPE,   // Prompting for archetype selection
+        FACTION      // Prompting for faction selection
+    }
+    
+    // Character deployment workflow steps
+    private enum DeploymentStep {
+        FACTION,     // Prompting for faction selection
+        QUANTITY,    // Prompting for quantity to deploy
+        WEAPON,      // Prompting for weapon selection
+        FORMATION,   // Prompting for formation type
+        SPACING,     // Prompting for character spacing
+        PLACEMENT    // Click-to-place mode active
+    }
+    
+    // Victory outcome options for factions
+    private enum VictoryOutcome {
+        VICTORY,     // Faction achieved victory
+        DEFEAT,      // Faction was defeated
+        PARTICIPANT  // Faction participated but neither won nor lost
+    }
     
     // Target zone selection state
     private boolean isSelectingTargetZone = false;
@@ -97,6 +152,11 @@ public class InputManager {
         // Utility methods
         double convertPixelsToFeet(double pixels);
         int convertStatToModifier(int stat);
+        
+        // Scenario management
+        void setWindowTitle(String title);
+        String[] getAvailableThemes();
+        void setCurrentTheme(String themeId);
     }
     
     /**
@@ -165,6 +225,12 @@ public class InputManager {
         double y = gameRenderer.screenToWorldY(e.getY());
         
         if (e.getButton() == MouseButton.PRIMARY) {
+            // Check if we're in deployment placement mode first
+            if (isInDeploymentPlacementMode()) {
+                handleDeploymentPlacement(x, y);
+                return;
+            }
+            
             // Left click - single unit selection or start rectangle selection
             Unit clickedUnit = null;
             for (Unit u : units) {
@@ -431,6 +497,9 @@ public class InputManager {
         // Edit mode operations
         handleEditModeKeys(e);
         
+        // Unit deletion
+        handleUnitDeletion(e);
+        
         // Character stats display
         handleCharacterStatsDisplay(e);
         
@@ -478,14 +547,16 @@ public class InputManager {
      */
     private void handleEditModeKeys(KeyEvent e) {
         if (e.getCode() == KeyCode.C && e.isControlDown()) {
-            if (callbacks.isEditMode() && !waitingForCharacterCreation && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForWeaponSelection && !waitingForFactionSelection) {
-                callbacks.promptForCharacterCreation();
+            if (callbacks.isEditMode() && !isWaitingForInput()) {
+                promptForBatchCharacterCreation();
             } else if (!callbacks.isEditMode()) {
                 System.out.println("*** Character creation only available in edit mode (Ctrl+E) ***");
+            } else if (isWaitingForInput()) {
+                System.out.println("*** Please complete current operation before creating characters ***");
             }
         }
         if (e.getCode() == KeyCode.W && e.isControlDown()) {
-            if (callbacks.isEditMode() && !waitingForWeaponSelection && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForCharacterCreation && !waitingForFactionSelection) {
+            if (callbacks.isEditMode() && !isWaitingForInput()) {
                 if (selectionManager.hasSelection()) {
                     callbacks.promptForWeaponSelection();
                 } else {
@@ -493,10 +564,12 @@ public class InputManager {
                 }
             } else if (!callbacks.isEditMode()) {
                 System.out.println("*** Weapon selection only available in edit mode (Ctrl+E) ***");
+            } else if (isWaitingForInput()) {
+                System.out.println("*** Please complete current operation before changing weapons ***");
             }
         }
         if (e.getCode() == KeyCode.F && e.isControlDown()) {
-            if (callbacks.isEditMode() && !waitingForFactionSelection && !waitingForSaveSlot && !waitingForLoadSlot && !waitingForCharacterCreation && !waitingForWeaponSelection) {
+            if (callbacks.isEditMode() && !isWaitingForInput()) {
                 if (selectionManager.hasSelection()) {
                     callbacks.promptForFactionSelection();
                 } else {
@@ -504,6 +577,31 @@ public class InputManager {
                 }
             } else if (!callbacks.isEditMode()) {
                 System.out.println("*** Faction selection only available in edit mode (Ctrl+E) ***");
+            } else if (isWaitingForInput()) {
+                System.out.println("*** Please complete current operation before changing factions ***");
+            }
+        }
+        if (e.getCode() == KeyCode.A && e.isControlDown()) {
+            if (callbacks.isEditMode() && !isWaitingForInput()) {
+                promptForCharacterDeployment();
+            } else if (!callbacks.isEditMode()) {
+                System.out.println("*** Character deployment only available in edit mode (Ctrl+E) ***");
+            } else if (isWaitingForInput()) {
+                System.out.println("*** Please complete current operation before deploying characters ***");
+            }
+        }
+        if (e.getCode() == KeyCode.V && e.isControlDown() && e.isShiftDown()) {
+            if (!isWaitingForInput()) {
+                promptForManualVictory();
+            } else {
+                System.out.println("*** Please complete current operation before processing victory ***");
+            }
+        }
+        if (e.getCode() == KeyCode.N && e.isControlDown() && e.isShiftDown()) {
+            if (!isWaitingForInput()) {
+                promptForNewScenario();
+            } else {
+                System.out.println("*** Please complete current operation before creating new scenario ***");
             }
         }
     }
@@ -839,8 +937,68 @@ public class InputManager {
      * @param e KeyEvent
      */
     private void handlePromptInputs(KeyEvent e) {
-        // Handle number key input for save/load slot selection, character creation, weapon selection, and faction selection
-        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForFactionSelection) {
+        // Handle deletion confirmation with Y/N keys
+        if (waitingForDeletionConfirmation) {
+            if (e.getCode() == KeyCode.Y) {
+                confirmUnitDeletion();
+            } else if (e.getCode() == KeyCode.N || e.getCode() == KeyCode.ESCAPE) {
+                cancelUnitDeletion();
+            }
+            return; // Don't process other input while waiting for deletion confirmation
+        }
+        
+        // Handle victory outcome selection
+        if (waitingForVictoryOutcome) {
+            int outcomeNumber = -1;
+            if (e.getCode() == KeyCode.DIGIT1) outcomeNumber = 1;
+            else if (e.getCode() == KeyCode.DIGIT2) outcomeNumber = 2;
+            else if (e.getCode() == KeyCode.DIGIT3) outcomeNumber = 3;
+            else if (e.getCode() == KeyCode.DIGIT0) outcomeNumber = 0;
+            else if (e.getCode() == KeyCode.ESCAPE) outcomeNumber = 0;
+            
+            if (outcomeNumber >= 0) {
+                handleVictoryOutcomeInput(outcomeNumber);
+            }
+            return; // Don't process other input while waiting for victory outcome
+        }
+        
+        // Handle scenario name input
+        if (waitingForScenarioName) {
+            if (e.getCode() == KeyCode.ENTER) {
+                handleScenarioNameInput();
+            } else if (e.getCode() == KeyCode.ESCAPE) {
+                cancelNewScenario();
+            } else if (e.getCode() == KeyCode.BACK_SPACE && newScenarioName.length() > 0) {
+                newScenarioName = newScenarioName.substring(0, newScenarioName.length() - 1);
+                System.out.print("\b \b"); // Backspace effect
+            } else if (e.getText() != null && !e.getText().isEmpty() && e.getText().matches("[a-zA-Z0-9 \\-_]")) {
+                if (newScenarioName.length() < 50) { // Limit name length
+                    newScenarioName += e.getText();
+                    System.out.print(e.getText());
+                }
+            }
+            return; // Don't process other input while waiting for scenario name
+        }
+        
+        // Handle theme selection
+        if (waitingForThemeSelection) {
+            int themeNumber = -1;
+            if (e.getCode() == KeyCode.DIGIT1) themeNumber = 1;
+            else if (e.getCode() == KeyCode.DIGIT2) themeNumber = 2;
+            else if (e.getCode() == KeyCode.DIGIT3) themeNumber = 3;
+            else if (e.getCode() == KeyCode.DIGIT4) themeNumber = 4;
+            else if (e.getCode() == KeyCode.DIGIT5) themeNumber = 5;
+            else if (e.getCode() == KeyCode.DIGIT0) themeNumber = 0;
+            else if (e.getCode() == KeyCode.ESCAPE) themeNumber = 0;
+            
+            if (themeNumber >= 0) {
+                handleThemeSelectionInput(themeNumber);
+            }
+            return; // Don't process other input while waiting for theme selection
+        }
+        
+        // Handle number key input for save/load slot selection, character creation, weapon selection, faction selection, batch character creation, and character deployment
+        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || waitingForCharacterDeployment) {
             int slotNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) slotNumber = 1;
             else if (e.getCode() == KeyCode.DIGIT2) slotNumber = 2;
@@ -862,6 +1020,16 @@ public class InputManager {
                 } else if (waitingForFactionSelection) {
                     System.out.println("*** Faction selection cancelled ***");
                     waitingForFactionSelection = false;
+                } else if (waitingForBatchCharacterCreation) {
+                    System.out.println("*** Batch character creation cancelled ***");
+                    waitingForBatchCharacterCreation = false;
+                    batchQuantity = 0;
+                    batchArchetype = 0;
+                    batchFaction = 0;
+                    batchCreationStep = BatchCreationStep.QUANTITY;
+                } else if (waitingForCharacterDeployment) {
+                    System.out.println("*** Character deployment cancelled ***");
+                    cancelCharacterDeployment();
                 } else {
                     System.out.println("*** Save/Load cancelled ***");
                     waitingForSaveSlot = false;
@@ -908,6 +1076,10 @@ public class InputManager {
                     } else {
                         callbacks.assignFactionToSelectedUnits(slotNumber);
                     }
+                } else if (waitingForBatchCharacterCreation) {
+                    handleBatchCharacterCreationInput(slotNumber);
+                } else if (waitingForCharacterDeployment) {
+                    handleCharacterDeploymentInput(slotNumber);
                 }
             }
         }
@@ -934,9 +1106,1328 @@ public class InputManager {
         this.waitingForFactionSelection = waiting;
     }
     
+    public void setWaitingForBatchCharacterCreation(boolean waiting) {
+        this.waitingForBatchCharacterCreation = waiting;
+    }
+    
+    public void setWaitingForCharacterDeployment(boolean waiting) {
+        this.waitingForCharacterDeployment = waiting;
+    }
+    
+    public void setWaitingForDeletionConfirmation(boolean waiting) {
+        this.waitingForDeletionConfirmation = waiting;
+    }
+    
+    public void setWaitingForVictoryOutcome(boolean waiting) {
+        this.waitingForVictoryOutcome = waiting;
+    }
+    
+    public void setWaitingForScenarioName(boolean waiting) {
+        this.waitingForScenarioName = waiting;
+    }
+    
+    public void setWaitingForThemeSelection(boolean waiting) {
+        this.waitingForThemeSelection = waiting;
+    }
+    
     public boolean isWaitingForInput() {
         return waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || 
-               waitingForWeaponSelection || waitingForFactionSelection;
+               waitingForWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || 
+               waitingForCharacterDeployment || waitingForDeletionConfirmation || waitingForVictoryOutcome ||
+               waitingForScenarioName || waitingForThemeSelection;
+    }
+    
+    /**
+     * Start the batch character creation workflow
+     */
+    private void promptForBatchCharacterCreation() {
+        waitingForBatchCharacterCreation = true;
+        batchCreationStep = BatchCreationStep.QUANTITY;
+        batchQuantity = 0;
+        batchArchetype = 0;
+        batchFaction = 0;
+        
+        System.out.println("***********************");
+        System.out.println("*** BATCH CHARACTER CREATION ***");
+        System.out.println("How many characters do you want to create?");
+        System.out.println("Enter quantity (1-9, 0 to cancel): ");
+    }
+    
+    /**
+     * Handle input during batch character creation workflow
+     * 
+     * @param inputNumber The number entered by the user
+     */
+    private void handleBatchCharacterCreationInput(int inputNumber) {
+        switch (batchCreationStep) {
+            case QUANTITY:
+                if (inputNumber == 0) {
+                    System.out.println("*** Batch character creation cancelled ***");
+                    waitingForBatchCharacterCreation = false;
+                    batchQuantity = 0;
+                    batchArchetype = 0;
+                    batchFaction = 0;
+                    batchCreationStep = BatchCreationStep.QUANTITY;
+                } else if (inputNumber >= 1 && inputNumber <= 9) {
+                    batchQuantity = inputNumber;
+                    batchCreationStep = BatchCreationStep.ARCHETYPE;
+                    showArchetypeSelection();
+                } else {
+                    System.out.println("*** Invalid quantity. Use 1-9 or 0 to cancel ***");
+                }
+                break;
+                
+            case ARCHETYPE:
+                if (inputNumber == 0) {
+                    System.out.println("*** Batch character creation cancelled ***");
+                    waitingForBatchCharacterCreation = false;
+                    batchQuantity = 0;
+                    batchArchetype = 0;
+                    batchFaction = 0;
+                    batchCreationStep = BatchCreationStep.QUANTITY;
+                } else if (inputNumber >= 1 && inputNumber <= 9) {
+                    batchArchetype = inputNumber;
+                    batchCreationStep = BatchCreationStep.FACTION;
+                    showFactionSelection();
+                } else {
+                    System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
+                }
+                break;
+                
+            case FACTION:
+                if (inputNumber == 0) {
+                    System.out.println("*** Batch character creation cancelled ***");
+                    waitingForBatchCharacterCreation = false;
+                    batchQuantity = 0;
+                    batchArchetype = 0;
+                    batchFaction = 0;
+                    batchCreationStep = BatchCreationStep.QUANTITY;
+                } else if (inputNumber >= 1 && inputNumber <= 9) {
+                    batchFaction = inputNumber;
+                    createBatchCharacters();
+                    // Reset state after creation
+                    waitingForBatchCharacterCreation = false;
+                    batchQuantity = 0;
+                    batchArchetype = 0;
+                    batchFaction = 0;
+                    batchCreationStep = BatchCreationStep.QUANTITY;
+                } else {
+                    System.out.println("*** Invalid faction selection. Use 1-9 or 0 to cancel ***");
+                }
+                break;
+        }
+    }
+    
+    /**
+     * Show archetype selection menu for batch creation
+     */
+    private void showArchetypeSelection() {
+        System.out.println("***********************");
+        System.out.println("*** ARCHETYPE SELECTION ***");
+        System.out.println("Creating " + batchQuantity + " characters");
+        System.out.println("Select archetype:");
+        System.out.println("1. Gunslinger - High dexterity, quick reflexes, pistol specialist");
+        System.out.println("2. Soldier - Balanced combat stats, rifle proficiency");
+        System.out.println("3. Weighted Random - Randomly generated stats (averaged), no skills");
+        System.out.println("4. Scout - High reflexes, stealth and observation skills");
+        System.out.println("5. Marksman - Excellent dexterity, rifle specialist, long-range expert");
+        System.out.println("6. Brawler - High strength, close combat specialist");
+        System.out.println("7. Confederate Soldier - Civil War Confederate with Brown Bess musket");
+        System.out.println("8. Union Soldier - Civil War Union with Brown Bess musket");
+        System.out.println("9. Balanced - Well-rounded stats for versatile gameplay");
+        System.out.println("0. Cancel batch creation");
+        System.out.println();
+        System.out.println("Enter selection (1-9, 0 to cancel): ");
+    }
+    
+    /**
+     * Show faction selection menu for batch creation
+     */
+    private void showFactionSelection() {
+        System.out.println("***********************");
+        System.out.println("*** FACTION SELECTION ***");
+        System.out.println("Creating " + batchQuantity + " characters");
+        System.out.println("Archetype: " + getArchetypeName(batchArchetype));
+        System.out.println("Select faction:");
+        System.out.println("1. NONE - No faction");
+        System.out.println("2. Union - Federal forces");
+        System.out.println("3. Confederacy - Confederate forces");
+        System.out.println("4. Southern Unionists - Pro-Union Southerners");
+        System.out.println("0. Cancel batch creation");
+        System.out.println();
+        System.out.println("Enter selection (1-4, 0 to cancel): ");
+    }
+    
+    /**
+     * Get display name for archetype number
+     * 
+     * @param archetypeNumber The archetype number (1-9)
+     * @return The display name
+     */
+    private String getArchetypeName(int archetypeNumber) {
+        String[] names = {"Gunslinger", "Soldier", "Weighted Random", "Scout", "Marksman", 
+                         "Brawler", "Confederate Soldier", "Union Soldier", "Balanced"};
+        if (archetypeNumber >= 1 && archetypeNumber <= names.length) {
+            return names[archetypeNumber - 1];
+        }
+        return "Unknown";
+    }
+    
+    /**
+     * Create the batch of characters with the selected settings
+     */
+    private void createBatchCharacters() {
+        System.out.println("***********************");
+        System.out.println("*** CREATING CHARACTERS ***");
+        System.out.println("Quantity: " + batchQuantity);
+        System.out.println("Archetype: " + getArchetypeName(batchArchetype));
+        System.out.println("Faction: " + getFactionName(batchFaction));
+        System.out.println();
+        
+        // Convert faction number to faction ID (1-based to 0-based for NONE, Union, Confederacy, Southern Unionists)
+        int factionId = batchFaction - 1;
+        
+        int successCount = 0;
+        for (int i = 0; i < batchQuantity; i++) {
+            try {
+                // Create character using the same method but with faction assignment
+                createSingleBatchCharacter(batchArchetype, factionId);
+                successCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to create character " + (i + 1) + ": " + e.getMessage());
+            }
+        }
+        
+        System.out.println("*** BATCH CREATION COMPLETE ***");
+        System.out.println("Successfully created " + successCount + " out of " + batchQuantity + " characters");
+        if (successCount < batchQuantity) {
+            System.out.println("Failed to create " + (batchQuantity - successCount) + " characters");
+        }
+        System.out.println("***********************");
+    }
+    
+    /**
+     * Create a single character as part of batch creation
+     * 
+     * @param archetypeIndex The archetype index (1-9)
+     * @param factionId The faction ID (0-3)
+     */
+    private void createSingleBatchCharacter(int archetypeIndex, int factionId) {
+        String[] archetypes = {"gunslinger", "soldier", "weighted_random", "scout", "marksman", 
+                              "brawler", "confederate_soldier", "union_soldier", "balanced"};
+        
+        if (archetypeIndex < 1 || archetypeIndex > archetypes.length) {
+            throw new IllegalArgumentException("Invalid archetype index: " + archetypeIndex);
+        }
+        
+        String selectedArchetype = archetypes[archetypeIndex - 1];
+        
+        // Create character using CharacterFactory
+        int characterId = data.CharacterFactory.createCharacter(selectedArchetype);
+        combat.Character character = characterRegistry.getCharacter(characterId);
+        
+        if (character != null) {
+            // Assign appropriate weapon based on archetype
+            String weaponId = getWeaponForArchetype(selectedArchetype);
+            character.weapon = data.WeaponFactory.createWeapon(weaponId);
+            character.currentWeaponState = character.weapon.getInitialState();
+            character.setFaction(factionId);
+            
+            // Save character to faction file
+            data.CharacterPersistenceManager.getInstance().saveCharacter(character);
+            
+            // Spawn character at camera center with offset
+            spawnBatchCharacterUnit(character, selectedArchetype);
+            
+            System.out.println("Created: " + character.getDisplayName() + " (ID: " + character.id + 
+                             ", Faction: " + getFactionName(factionId + 1) + ")");
+        } else {
+            throw new RuntimeException("Failed to create character from archetype: " + selectedArchetype);
+        }
+    }
+    
+    /**
+     * Get faction display name by number (1-4)
+     */
+    private String getFactionName(int factionNumber) {
+        switch (factionNumber) {
+            case 1: return "NONE";
+            case 2: return "Union";
+            case 3: return "Confederacy"; 
+            case 4: return "Southern Unionists";
+            default: return "Unknown";
+        }
+    }
+    
+    /**
+     * Get weapon ID for archetype (reused from EditModeController pattern)
+     */
+    private String getWeaponForArchetype(String archetype) {
+        switch (archetype.toLowerCase()) {
+            case "gunslinger":
+            case "brawler":
+            case "balanced":
+            case "weighted_random":
+                return "wpn_colt_peacemaker"; // Pistol
+            case "soldier":
+            case "scout": 
+            case "marksman":
+                return "wpn_hunting_rifle"; // Rifle
+            case "confederate_soldier":
+            case "union_soldier":
+                return "wpn_brown_bess"; // Brown Bess musket
+            case "medic":
+                return "wpn_derringer"; // Backup weapon
+            default:
+                return "wpn_colt_peacemaker"; // Default fallback
+        }
+    }
+    
+    /**
+     * Spawn a batch character unit in the game world with offset to avoid collisions
+     */
+    private void spawnBatchCharacterUnit(combat.Character character, String archetype) {
+        // Calculate spawn location at camera center using canvas dimensions
+        double baseX = gameRenderer.screenToWorldX(canvas.getWidth() / 2.0);
+        double baseY = gameRenderer.screenToWorldY(canvas.getHeight() / 2.0);
+        
+        // Add offset based on character ID to spread characters out
+        double offsetX = (character.id % 5) * 35; // 5 feet spacing horizontally 
+        double offsetY = (character.id / 5) * 35; // 5 feet spacing vertically after 5 characters
+        
+        double spawnX = baseX + offsetX;
+        double spawnY = baseY + offsetY;
+        
+        // Check for collision with existing units and offset if necessary
+        boolean collision = true;
+        int attempts = 0;
+        double finalX = spawnX;
+        double finalY = spawnY;
+        
+        while (collision && attempts < 10) {
+            collision = false;
+            for (Unit existingUnit : units) {
+                double distance = Math.hypot(finalX - existingUnit.x, finalY - existingUnit.y);
+                if (distance < 28) { // 4 feet = 28 pixels minimum distance
+                    collision = true;
+                    finalX += 28; // Offset by 4 feet (28 pixels) in X direction only
+                    break;
+                }
+            }
+            attempts++;
+        }
+        
+        // Get color based on archetype
+        javafx.scene.paint.Color characterColor = getColorForArchetype(archetype);
+        
+        // Create and add unit
+        int unitId = callbacks.getNextUnitId();
+        Unit newUnit = new Unit(character, finalX, finalY, characterColor, unitId);
+        callbacks.setNextUnitId(unitId + 1);
+        units.add(newUnit);
+    }
+    
+    /**
+     * Get color for character archetype (reused from EditModeController pattern)
+     */
+    private javafx.scene.paint.Color getColorForArchetype(String archetype) {
+        switch (archetype.toLowerCase()) {
+            case "confederate_soldier":
+                return javafx.scene.paint.Color.DARKGRAY; // Confederate dark gray
+            case "union_soldier":
+                return javafx.scene.paint.Color.BLUE; // Union blue
+            default:
+                return javafx.scene.paint.Color.CYAN; // Default color for other archetypes
+        }
+    }
+    
+    /**
+     * Start the character deployment workflow
+     */
+    private void promptForCharacterDeployment() {
+        waitingForCharacterDeployment = true;
+        deploymentStep = DeploymentStep.FACTION;
+        deploymentFaction = 0;
+        deploymentQuantity = 0;
+        deploymentWeapon = "";
+        deploymentFormation = "";
+        deploymentSpacing = 35; // Default 5 feet
+        deploymentCharacters.clear();
+        
+        System.out.println("***********************");
+        System.out.println("*** CHARACTER DEPLOYMENT ***");
+        System.out.println("Select faction to deploy from:");
+        System.out.println("1. NONE - No faction");
+        System.out.println("2. Union - Federal forces");
+        System.out.println("3. Confederacy - Confederate forces");
+        System.out.println("4. Southern Unionists - Pro-Union Southerners");
+        System.out.println("0. Cancel deployment");
+        System.out.println();
+        System.out.println("Enter selection (1-4, 0 to cancel): ");
+    }
+    
+    /**
+     * Handle input during character deployment workflow
+     * 
+     * @param inputNumber The number entered by the user
+     */
+    private void handleCharacterDeploymentInput(int inputNumber) {
+        switch (deploymentStep) {
+            case FACTION:
+                if (inputNumber == 0) {
+                    System.out.println("*** Character deployment cancelled ***");
+                    cancelCharacterDeployment();
+                } else if (inputNumber >= 1 && inputNumber <= 4) {
+                    deploymentFaction = inputNumber - 1; // Convert to 0-based faction ID
+                    loadDeploymentCharacters();
+                } else {
+                    System.out.println("*** Invalid faction selection. Use 1-4 or 0 to cancel ***");
+                }
+                break;
+                
+            case QUANTITY:
+                if (inputNumber == 0) {
+                    System.out.println("*** Character deployment cancelled ***");
+                    cancelCharacterDeployment();
+                } else if (inputNumber >= 1 && inputNumber <= 9) {
+                    if (inputNumber <= deploymentCharacters.size()) {
+                        deploymentQuantity = inputNumber;
+                        deploymentStep = DeploymentStep.WEAPON;
+                        showWeaponSelectionForDeployment();
+                    } else {
+                        System.out.println("*** Not enough characters available. Maximum: " + deploymentCharacters.size() + " ***");
+                    }
+                } else {
+                    System.out.println("*** Invalid quantity. Use 1-" + Math.min(9, deploymentCharacters.size()) + " or 0 to cancel ***");
+                }
+                break;
+                
+            case WEAPON:
+                if (inputNumber == 0) {
+                    System.out.println("*** Character deployment cancelled ***");
+                    cancelCharacterDeployment();
+                } else if (inputNumber >= 1 && inputNumber <= getWeaponOptionsCount()) {
+                    deploymentWeapon = getWeaponIdByIndex(inputNumber);
+                    deploymentStep = DeploymentStep.FORMATION;
+                    showFormationSelection();
+                } else {
+                    System.out.println("*** Invalid weapon selection. Use 1-" + getWeaponOptionsCount() + " or 0 to cancel ***");
+                }
+                break;
+                
+            case FORMATION:
+                if (inputNumber == 0) {
+                    System.out.println("*** Character deployment cancelled ***");
+                    cancelCharacterDeployment();
+                } else if (inputNumber >= 1 && inputNumber <= 2) {
+                    deploymentFormation = (inputNumber == 1) ? "line_right" : "line_down";
+                    deploymentStep = DeploymentStep.SPACING;
+                    showSpacingSelection();
+                } else {
+                    System.out.println("*** Invalid formation selection. Use 1-2 or 0 to cancel ***");
+                }
+                break;
+                
+            case SPACING:
+                if (inputNumber == 0) {
+                    System.out.println("*** Character deployment cancelled ***");
+                    cancelCharacterDeployment();
+                } else if (inputNumber >= 1 && inputNumber <= 9) {
+                    deploymentSpacing = inputNumber * 7; // Convert feet to pixels (7 pixels = 1 foot)
+                    deploymentStep = DeploymentStep.PLACEMENT;
+                    showPlacementInstructions();
+                } else {
+                    System.out.println("*** Invalid spacing. Use 1-9 feet or 0 to cancel ***");
+                }
+                break;
+        }
+    }
+    
+    /**
+     * Load available characters from the selected faction
+     */
+    private void loadDeploymentCharacters() {
+        try {
+            data.CharacterPersistenceManager persistenceManager = data.CharacterPersistenceManager.getInstance();
+            java.util.List<combat.Character> allCharacters = persistenceManager.loadCharactersFromFaction(deploymentFaction);
+
+            System.out.println("ETONAI Debug: Reached this line");
+            // Filter for non-incapacitated characters
+            deploymentCharacters.clear();
+            for (combat.Character character : allCharacters) {
+                if (!character.isIncapacitated()) {
+                    deploymentCharacters.add(character);
+                }
+            }
+            
+            if (deploymentCharacters.isEmpty()) {
+                System.out.println("*** No available characters in " + getFactionName(deploymentFaction + 1) + " faction ***");
+                System.out.println("*** Character deployment cancelled ***");
+                cancelCharacterDeployment();
+            } else {
+                deploymentStep = DeploymentStep.QUANTITY;
+                showCharacterQuantitySelection();
+            }
+        } catch (Exception e) {
+            System.err.println("*** Error loading characters: " + e.getMessage() + " ***");
+            System.out.println("*** Character deployment cancelled ***");
+            cancelCharacterDeployment();
+        }
+    }
+    
+    /**
+     * Show character quantity selection prompt
+     */
+    private void showCharacterQuantitySelection() {
+        System.out.println("***********************");
+        System.out.println("*** CHARACTER QUANTITY ***");
+        System.out.println("Faction: " + getFactionName(deploymentFaction + 1));
+        System.out.println("Available characters: " + deploymentCharacters.size());
+        System.out.println();
+        
+        // Show first few characters for reference
+        int showCount = Math.min(5, deploymentCharacters.size());
+        System.out.println("Available characters (showing first " + showCount + "):");
+        for (int i = 0; i < showCount; i++) {
+            combat.Character character = deploymentCharacters.get(i);
+            System.out.println("  " + character.getDisplayName() + " (ID: " + character.id + 
+                             ", Health: " + character.currentHealth + "/" + character.health + ")");
+        }
+        if (deploymentCharacters.size() > showCount) {
+            System.out.println("  ... and " + (deploymentCharacters.size() - showCount) + " more");
+        }
+        
+        System.out.println();
+        System.out.println("How many characters do you want to deploy?");
+        System.out.println("Enter quantity (1-" + Math.min(9, deploymentCharacters.size()) + ", 0 to cancel): ");
+    }
+    
+    /**
+     * Show weapon selection for deployment
+     */
+    private void showWeaponSelectionForDeployment() {
+        System.out.println("***********************");
+        System.out.println("*** WEAPON SELECTION ***");
+        System.out.println("Deploying " + deploymentQuantity + " characters from " + getFactionName(deploymentFaction + 1));
+        System.out.println("Select weapon for all deployed characters:");
+        System.out.println("1. Colt Peacemaker (Pistol) - 6 damage, 150 feet range");
+        System.out.println("2. Hunting Rifle (Rifle) - 12 damage, 400 feet range");
+        System.out.println("3. Brown Bess Musket (Rifle) - 15 damage, 300 feet range");
+        System.out.println("4. Derringer (Pistol) - 4 damage, 50 feet range");
+        System.out.println("0. Cancel deployment");
+        System.out.println();
+        System.out.println("Enter selection (1-4, 0 to cancel): ");
+    }
+    
+    /**
+     * Show formation selection
+     */
+    private void showFormationSelection() {
+        System.out.println("***********************");
+        System.out.println("*** FORMATION SELECTION ***");
+        System.out.println("Deploying " + deploymentQuantity + " characters");
+        System.out.println("Weapon: " + getWeaponDisplayName(deploymentWeapon));
+        System.out.println("Select formation:");
+        System.out.println("1. Line Right - Characters arranged horizontally");
+        System.out.println("2. Line Down - Characters arranged vertically");
+        System.out.println("0. Cancel deployment");
+        System.out.println();
+        System.out.println("Enter selection (1-2, 0 to cancel): ");
+    }
+    
+    /**
+     * Show spacing selection
+     */
+    private void showSpacingSelection() {
+        System.out.println("***********************");
+        System.out.println("*** SPACING SELECTION ***");
+        System.out.println("Deploying " + deploymentQuantity + " characters");
+        System.out.println("Formation: " + (deploymentFormation.equals("line_right") ? "Line Right" : "Line Down"));
+        System.out.println("Select spacing between characters:");
+        System.out.println("1. 1 foot - Very tight formation");
+        System.out.println("2. 2 feet - Tight formation");
+        System.out.println("3. 3 feet - Normal formation");
+        System.out.println("4. 4 feet - Loose formation");
+        System.out.println("5. 5 feet - Very loose formation (recommended)");
+        System.out.println("6. 6 feet - Extended formation");
+        System.out.println("7. 7 feet - Wide formation");
+        System.out.println("8. 8 feet - Very wide formation");
+        System.out.println("9. 9 feet - Maximum spacing");
+        System.out.println("0. Cancel deployment");
+        System.out.println();
+        System.out.println("Enter selection (1-9, 0 to cancel): ");
+    }
+    
+    /**
+     * Show placement instructions
+     */
+    private void showPlacementInstructions() {
+        System.out.println("***********************");
+        System.out.println("*** PLACEMENT MODE ***");
+        System.out.println("Deploying " + deploymentQuantity + " characters");
+        System.out.println("Formation: " + (deploymentFormation.equals("line_right") ? "Line Right" : "Line Down"));
+        System.out.println("Spacing: " + (deploymentSpacing / 7) + " feet (" + deploymentSpacing + " pixels)");
+        System.out.println("Weapon: " + getWeaponDisplayName(deploymentWeapon));
+        System.out.println();
+        System.out.println("Click on the battlefield to place the formation.");
+        System.out.println("The first character will be placed at the click location.");
+        System.out.println("Press ESC to cancel deployment.");
+        System.out.println("***********************");
+    }
+    
+    /**
+     * Cancel character deployment and reset state
+     */
+    private void cancelCharacterDeployment() {
+        waitingForCharacterDeployment = false;
+        deploymentStep = DeploymentStep.FACTION;
+        deploymentFaction = 0;
+        deploymentQuantity = 0;
+        deploymentWeapon = "";
+        deploymentFormation = "";
+        deploymentSpacing = 35;
+        deploymentCharacters.clear();
+    }
+    
+    /**
+     * Get weapon options count for deployment
+     */
+    private int getWeaponOptionsCount() {
+        return 4; // Colt Peacemaker, Hunting Rifle, Brown Bess, Derringer
+    }
+    
+    /**
+     * Get weapon ID by selection index
+     */
+    private String getWeaponIdByIndex(int index) {
+        switch (index) {
+            case 1: return "wpn_colt_peacemaker";
+            case 2: return "wpn_hunting_rifle";
+            case 3: return "wpn_brown_bess";
+            case 4: return "wpn_derringer";
+            default: return "wpn_colt_peacemaker";
+        }
+    }
+    
+    /**
+     * Get weapon display name for UI
+     */
+    private String getWeaponDisplayName(String weaponId) {
+        switch (weaponId) {
+            case "wpn_colt_peacemaker": return "Colt Peacemaker (Pistol)";
+            case "wpn_hunting_rifle": return "Hunting Rifle (Rifle)";
+            case "wpn_brown_bess": return "Brown Bess Musket (Rifle)";
+            case "wpn_derringer": return "Derringer (Pistol)";
+            default: return "Unknown Weapon";
+        }
+    }
+    
+    /**
+     * Check if we're in deployment placement mode
+     */
+    public boolean isInDeploymentPlacementMode() {
+        return waitingForCharacterDeployment && deploymentStep == DeploymentStep.PLACEMENT;
+    }
+    
+    /**
+     * Handle deployment click placement
+     */
+    public void handleDeploymentPlacement(double worldX, double worldY) {
+        if (!isInDeploymentPlacementMode()) {
+            return;
+        }
+        
+        try {
+            System.out.println("***********************");
+            System.out.println("*** DEPLOYING CHARACTERS ***");
+            
+            // Deploy characters in formation
+            for (int i = 0; i < deploymentQuantity; i++) {
+                if (i >= deploymentCharacters.size()) {
+                    break; // Safety check
+                }
+                
+                combat.Character character = deploymentCharacters.get(i);
+                
+                // Calculate position based on formation
+                double charX = worldX;
+                double charY = worldY;
+                
+                if (deploymentFormation.equals("line_right")) {
+                    charX += i * deploymentSpacing;
+                } else { // line_down
+                    charY += i * deploymentSpacing;
+                }
+                
+                // Assign weapon
+                character.weapon = data.WeaponFactory.createWeapon(deploymentWeapon);
+                character.currentWeaponState = character.weapon.getInitialState();
+                
+                // Get color based on faction
+                javafx.scene.paint.Color characterColor = getFactionColor(deploymentFaction);
+                
+                // Create and add unit
+                int unitId = callbacks.getNextUnitId();
+                Unit newUnit = new Unit(character, charX, charY, characterColor, unitId);
+                callbacks.setNextUnitId(unitId + 1);
+                units.add(newUnit);
+                
+                System.out.println("Deployed: " + character.getDisplayName() + " at (" + 
+                                 String.format("%.0f", charX) + ", " + String.format("%.0f", charY) + ")");
+            }
+            
+            System.out.println("*** DEPLOYMENT COMPLETE ***");
+            System.out.println("Successfully deployed " + deploymentQuantity + " characters from " + 
+                             getFactionName(deploymentFaction + 1) + " faction");
+            System.out.println("Formation: " + (deploymentFormation.equals("line_right") ? "Line Right" : "Line Down"));
+            System.out.println("Spacing: " + (deploymentSpacing / 7) + " feet");
+            System.out.println("Weapon: " + getWeaponDisplayName(deploymentWeapon));
+            System.out.println("***********************");
+            
+            // Reset deployment state
+            cancelCharacterDeployment();
+            
+        } catch (Exception e) {
+            System.err.println("*** Error during deployment: " + e.getMessage() + " ***");
+            cancelCharacterDeployment();
+        }
+    }
+    
+    /**
+     * Get faction color for character display
+     */
+    private javafx.scene.paint.Color getFactionColor(int factionId) {
+        switch (factionId) {
+            case 0: return javafx.scene.paint.Color.GRAY;     // NONE
+            case 1: return javafx.scene.paint.Color.BLUE;     // Union
+            case 2: return javafx.scene.paint.Color.DARKGRAY; // Confederacy
+            case 3: return javafx.scene.paint.Color.LIGHTBLUE; // Southern Unionists
+            default: return javafx.scene.paint.Color.CYAN;
+        }
+    }
+    
+    /**
+     * Handle unit deletion (DEL key)
+     * 
+     * @param e KeyEvent
+     */
+    private void handleUnitDeletion(KeyEvent e) {
+        if (e.getCode() == KeyCode.DELETE) {
+            if (!callbacks.isEditMode()) {
+                System.out.println("*** Unit deletion is only available in edit mode ***");
+                System.out.println("*** Press CTRL+E to enter edit mode ***");
+                return;
+            }
+            
+            if (selectionManager.hasSelection() && !isWaitingForInput()) {
+                promptForUnitDeletion();
+            } else if (!selectionManager.hasSelection()) {
+                System.out.println("*** No units selected - select units to delete first ***");
+            }
+        }
+    }
+    
+    /**
+     * Prompt for unit deletion confirmation
+     */
+    private void promptForUnitDeletion() {
+        unitsToDelete.clear();
+        unitsToDelete.addAll(selectionManager.getSelectedUnits());
+        
+        waitingForDeletionConfirmation = true;
+        
+        System.out.println("***********************");
+        System.out.println("*** UNIT DELETION CONFIRMATION ***");
+        System.out.println("You are about to delete " + unitsToDelete.size() + " unit(s):");
+        
+        for (Unit unit : unitsToDelete) {
+            System.out.println("  " + unit.character.getDisplayName() + " (ID: " + unit.character.id + 
+                             ", Faction: " + getFactionName(unit.character.getFaction() + 1) + ")");
+        }
+        
+        System.out.println();
+        System.out.println("WARNING: This will remove units from the current scenario.");
+        System.out.println("Character data will be preserved in faction files.");
+        System.out.println();
+        System.out.println("Are you sure you want to delete these units? (Y/N): ");
+    }
+    
+    /**
+     * Confirm unit deletion and perform the deletion
+     */
+    private void confirmUnitDeletion() {
+        System.out.println("***********************");
+        System.out.println("*** DELETING UNITS ***");
+        
+        int deletedCount = 0;
+        for (Unit unit : unitsToDelete) {
+            try {
+                // Cancel any scheduled events for this unit
+                cancelScheduledEventsForUnit(unit);
+                
+                // Remove unit from game world
+                units.remove(unit);
+                
+                System.out.println("Deleted: " + unit.character.getDisplayName() + " (Unit ID: " + unit.id + ")");
+                deletedCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to delete unit " + unit.character.getDisplayName() + ": " + e.getMessage());
+            }
+        }
+        
+        // Clear selection since deleted units are no longer valid
+        selectionManager.clearSelection();
+        
+        System.out.println("*** DELETION COMPLETE ***");
+        System.out.println("Successfully deleted " + deletedCount + " out of " + unitsToDelete.size() + " units");
+        System.out.println("Character data preserved in faction files");
+        System.out.println("***********************");
+        
+        // Reset deletion state
+        cancelUnitDeletion();
+    }
+    
+    /**
+     * Cancel unit deletion
+     */
+    private void cancelUnitDeletion() {
+        System.out.println("*** Unit deletion cancelled ***");
+        waitingForDeletionConfirmation = false;
+        unitsToDelete.clear();
+    }
+    
+    /**
+     * Cancel any scheduled events for a unit being deleted
+     * 
+     * @param unit The unit being deleted
+     */
+    private void cancelScheduledEventsForUnit(Unit unit) {
+        // Remove any scheduled events that reference this unit
+        eventQueue.removeIf(event -> {
+            // Check if event involves this unit (this is a simplified check)
+            // In a more complete implementation, we'd need to check event details
+            return event.toString().contains("Unit:" + unit.id) || 
+                   event.toString().contains(unit.character.getDisplayName());
+        });
+        
+        // Clear any combat state for this unit
+        if (unit.character.isAttacking) {
+            unit.character.isAttacking = false;
+            unit.character.currentTarget = null;
+        }
+        
+        // Clear this unit as a target for other units
+        for (Unit otherUnit : units) {
+            if (otherUnit.character.currentTarget == unit) {
+                otherUnit.character.currentTarget = null;
+                otherUnit.character.isAttacking = false;
+            }
+        }
+    }
+    
+    /**
+     * Start the manual victory workflow
+     */
+    private void promptForManualVictory() {
+        // Identify factions in the current scenario
+        scenarioFactions.clear();
+        factionOutcomes.clear();
+        currentVictoryFactionIndex = 0;
+        
+        java.util.Set<Integer> factionsInScenario = new java.util.HashSet<>();
+        for (Unit unit : units) {
+            factionsInScenario.add(unit.character.getFaction());
+        }
+        
+        if (factionsInScenario.isEmpty()) {
+            System.out.println("*** No factions present in current scenario ***");
+            System.out.println("*** Manual victory not applicable ***");
+            return;
+        }
+        
+        scenarioFactions.addAll(factionsInScenario);
+        
+        System.out.println("***********************");
+        System.out.println("*** MANUAL VICTORY SYSTEM ***");
+        System.out.println("Factions in current scenario: " + scenarioFactions.size());
+        
+        for (Integer factionId : scenarioFactions) {
+            int characterCount = 0;
+            for (Unit unit : units) {
+                if (unit.character.getFaction() == factionId) {
+                    characterCount++;
+                }
+            }
+            System.out.println("  " + getFactionName(factionId + 1) + ": " + characterCount + " characters");
+        }
+        
+        System.out.println();
+        System.out.println("You will now assign victory outcomes to each faction.");
+        System.out.println("***********************");
+        
+        // Start the outcome selection workflow
+        promptForNextFactionOutcome();
+    }
+    
+    /**
+     * Prompt for the next faction's victory outcome
+     */
+    private void promptForNextFactionOutcome() {
+        if (currentVictoryFactionIndex >= scenarioFactions.size()) {
+            // All factions processed, execute victory
+            executeManualVictory();
+            return;
+        }
+        
+        waitingForVictoryOutcome = true;
+        int currentFactionId = scenarioFactions.get(currentVictoryFactionIndex);
+        
+        System.out.println("***********************");
+        System.out.println("*** FACTION OUTCOME: " + getFactionName(currentFactionId + 1) + " ***");
+        
+        // Show characters in this faction
+        java.util.List<Unit> factionUnits = new java.util.ArrayList<>();
+        for (Unit unit : units) {
+            if (unit.character.getFaction() == currentFactionId) {
+                factionUnits.add(unit);
+            }
+        }
+        
+        System.out.println("Characters in faction (" + factionUnits.size() + " total):");
+        for (Unit unit : factionUnits) {
+            String status = unit.character.isIncapacitated() ? "INCAPACITATED" : "Active";
+            System.out.println("  " + unit.character.getDisplayName() + " (" + status + 
+                             ", Health: " + unit.character.currentHealth + "/" + unit.character.health + ")");
+        }
+        
+        System.out.println();
+        System.out.println("Select outcome for " + getFactionName(currentFactionId + 1) + ":");
+        System.out.println("1. Victory - Faction achieved victory");
+        System.out.println("2. Defeat - Faction was defeated");
+        System.out.println("3. Participant - Faction participated but neither won nor lost");
+        System.out.println("0. Cancel manual victory");
+        System.out.println();
+        System.out.println("Enter selection (1-3, 0 to cancel): ");
+    }
+    
+    /**
+     * Handle input for victory outcome selection
+     * 
+     * @param outcomeNumber The number entered by the user
+     */
+    private void handleVictoryOutcomeInput(int outcomeNumber) {
+        if (outcomeNumber == 0) {
+            System.out.println("*** Manual victory cancelled ***");
+            cancelManualVictory();
+            return;
+        }
+        
+        if (outcomeNumber < 1 || outcomeNumber > 3) {
+            System.out.println("*** Invalid selection. Use 1-3 or 0 to cancel ***");
+            return;
+        }
+        
+        // Store the outcome for the current faction
+        int currentFactionId = scenarioFactions.get(currentVictoryFactionIndex);
+        VictoryOutcome outcome;
+        
+        switch (outcomeNumber) {
+            case 1: outcome = VictoryOutcome.VICTORY; break;
+            case 2: outcome = VictoryOutcome.DEFEAT; break;
+            case 3: outcome = VictoryOutcome.PARTICIPANT; break;
+            default: return; // Should never happen
+        }
+        
+        factionOutcomes.put(currentFactionId, outcome);
+        
+        String outcomeName = getOutcomeName(outcome);
+        System.out.println("*** " + getFactionName(currentFactionId + 1) + " outcome set to: " + outcomeName + " ***");
+        
+        // Move to next faction
+        currentVictoryFactionIndex++;
+        waitingForVictoryOutcome = false;
+        
+        // Continue with next faction or execute victory
+        promptForNextFactionOutcome();
+    }
+    
+    /**
+     * Execute the manual victory and update all faction and character data
+     */
+    private void executeManualVictory() {
+        System.out.println("***********************");
+        System.out.println("*** EXECUTING MANUAL VICTORY ***");
+        System.out.println("Processing outcomes for " + scenarioFactions.size() + " factions...");
+        
+        try {
+            data.CharacterPersistenceManager persistenceManager = data.CharacterPersistenceManager.getInstance();
+            data.FactionRegistry factionRegistry = data.FactionRegistry.getInstance();
+            
+            // Update faction statistics and character outcomes
+            for (Integer factionId : scenarioFactions) {
+                VictoryOutcome outcome = factionOutcomes.get(factionId);
+                String outcomeName = getOutcomeName(outcome);
+                
+                System.out.println("Processing " + getFactionName(factionId + 1) + " (" + outcomeName + ")...");
+                
+                // Update faction statistics
+                try {
+                    data.Faction faction = factionRegistry.getFaction(factionId);
+                    if (faction != null) {
+                        switch (outcome) {
+                            case VICTORY:
+                                faction.incrementVictories();
+                                break;
+                            case DEFEAT:
+                                faction.incrementDefeats();
+                                break;
+                            case PARTICIPANT:
+                                faction.incrementParticipations();
+                                break;
+                        }
+                        factionRegistry.saveFactionFile(faction);
+                    }
+                } catch (Exception e) {
+                    System.err.println("  Failed to update faction statistics: " + e.getMessage());
+                }
+                
+                // Update character statistics for all characters in this faction in the scenario
+                java.util.List<Unit> factionUnits = new java.util.ArrayList<>();
+                for (Unit unit : units) {
+                    if (unit.character.getFaction() == factionId) {
+                        factionUnits.add(unit);
+                    }
+                }
+                
+                for (Unit unit : factionUnits) {
+                    try {
+                        combat.Character character = unit.character;
+                        
+                        // Update battle participation
+                        character.battlesParticipated++;
+                        
+                        // Update victory/defeat counts based on faction outcome
+                        switch (outcome) {
+                            case VICTORY:
+                                character.victories++;
+                                break;
+                            case DEFEAT:
+                                character.defeats++;
+                                break;
+                            case PARTICIPANT:
+                                // No additional stat changes for participants
+                                break;
+                        }
+                        
+                        // Save character data back to faction file
+                        persistenceManager.saveCharacter(character);
+                        
+                        System.out.println("  Updated: " + character.getDisplayName() + 
+                                         " (Battles: " + character.battlesParticipated + 
+                                         ", Victories: " + character.victories + 
+                                         ", Defeats: " + character.defeats + ")");
+                        
+                    } catch (Exception e) {
+                        System.err.println("  Failed to update character " + unit.character.getDisplayName() + ": " + e.getMessage());
+                    }
+                }
+            }
+            
+            System.out.println("*** VICTORY PROCESSING COMPLETE ***");
+            
+            // Display summary
+            displayVictorySummary();
+            
+            // End scenario
+            endScenario();
+            
+        } catch (Exception e) {
+            System.err.println("*** Error during victory processing: " + e.getMessage() + " ***");
+            cancelManualVictory();
+        }
+    }
+    
+    /**
+     * Display victory summary
+     */
+    private void displayVictorySummary() {
+        System.out.println("***********************");
+        System.out.println("*** BATTLE SUMMARY ***");
+        
+        for (Integer factionId : scenarioFactions) {
+            VictoryOutcome outcome = factionOutcomes.get(factionId);
+            String outcomeName = getOutcomeName(outcome);
+            
+            int characterCount = 0;
+            int incapacitatedCount = 0;
+            for (Unit unit : units) {
+                if (unit.character.getFaction() == factionId) {
+                    characterCount++;
+                    if (unit.character.isIncapacitated()) {
+                        incapacitatedCount++;
+                    }
+                }
+            }
+            
+            System.out.println(getFactionName(factionId + 1) + ": " + outcomeName);
+            System.out.println("  Characters: " + characterCount + " total, " + 
+                             incapacitatedCount + " incapacitated, " + 
+                             (characterCount - incapacitatedCount) + " active");
+        }
+        
+        System.out.println("***********************");
+    }
+    
+    /**
+     * End the current scenario after victory processing
+     */
+    private void endScenario() {
+        System.out.println("***********************");
+        System.out.println("*** SCENARIO ENDED ***");
+        System.out.println("All units cleared from battlefield.");
+        System.out.println("Character and faction data saved to files.");
+        System.out.println("Ready for new scenario or character operations.");
+        System.out.println("***********************");
+        
+        // Clear all units from the scenario
+        units.clear();
+        
+        // Clear any selections
+        selectionManager.clearSelection();
+        
+        // Clear event queue
+        eventQueue.clear();
+        
+        // Reset victory state
+        cancelManualVictory();
+    }
+    
+    /**
+     * Cancel manual victory and reset state
+     */
+    private void cancelManualVictory() {
+        waitingForVictoryOutcome = false;
+        scenarioFactions.clear();
+        factionOutcomes.clear();
+        currentVictoryFactionIndex = 0;
+    }
+    
+    /**
+     * Get display name for victory outcome
+     * 
+     * @param outcome The victory outcome
+     * @return The display name
+     */
+    private String getOutcomeName(VictoryOutcome outcome) {
+        switch (outcome) {
+            case VICTORY: return "VICTORY";
+            case DEFEAT: return "DEFEAT";
+            case PARTICIPANT: return "PARTICIPANT";
+            default: return "UNKNOWN";
+        }
+    }
+    
+    /**
+     * Start the new scenario workflow
+     */
+    private void promptForNewScenario() {
+        newScenarioName = "";
+        newScenarioTheme = "";
+        
+        System.out.println("***********************");
+        System.out.println("*** CREATE NEW SCENARIO ***");
+        System.out.println("This will clear all units from the current battlefield.");
+        System.out.println("Character data will be preserved in faction files.");
+        System.out.println();
+        System.out.println("Enter scenario name (or press ESC to cancel): ");
+        System.out.print("> ");
+        
+        waitingForScenarioName = true;
+    }
+    
+    /**
+     * Handle scenario name input when ENTER is pressed
+     */
+    private void handleScenarioNameInput() {
+        if (newScenarioName.trim().isEmpty()) {
+            System.out.println();
+            System.out.println("*** Scenario name cannot be empty. Try again or press ESC to cancel ***");
+            System.out.print("> ");
+            return;
+        }
+        
+        System.out.println();
+        System.out.println("Scenario name: \"" + newScenarioName.trim() + "\"");
+        
+        waitingForScenarioName = false;
+        promptForThemeSelection();
+    }
+    
+    /**
+     * Prompt for theme selection
+     */
+    private void promptForThemeSelection() {
+        waitingForThemeSelection = true;
+        
+        System.out.println("***********************");
+        System.out.println("*** THEME SELECTION ***");
+        System.out.println("Select a theme for the new scenario:");
+        
+        String[] themes = callbacks.getAvailableThemes();
+        for (int i = 0; i < themes.length; i++) {
+            System.out.println((i + 1) + ". " + getThemeDisplayName(themes[i]));
+        }
+        System.out.println("0. Cancel scenario creation");
+        System.out.println();
+        System.out.println("Enter selection (1-" + themes.length + ", 0 to cancel): ");
+    }
+    
+    /**
+     * Handle theme selection input
+     * 
+     * @param themeNumber The number entered by the user
+     */
+    private void handleThemeSelectionInput(int themeNumber) {
+        String[] themes = callbacks.getAvailableThemes();
+        
+        if (themeNumber == 0) {
+            cancelNewScenario();
+            return;
+        }
+        
+        if (themeNumber < 1 || themeNumber > themes.length) {
+            System.out.println("*** Invalid theme selection. Use 1-" + themes.length + " or 0 to cancel ***");
+            return;
+        }
+        
+        newScenarioTheme = themes[themeNumber - 1];
+        waitingForThemeSelection = false;
+        
+        System.out.println("Selected theme: " + getThemeDisplayName(newScenarioTheme));
+        
+        executeNewScenario();
+    }
+    
+    /**
+     * Execute the new scenario creation
+     */
+    private void executeNewScenario() {
+        System.out.println("***********************");
+        System.out.println("*** CREATING NEW SCENARIO ***");
+        System.out.println("Scenario: \"" + newScenarioName.trim() + "\"");
+        System.out.println("Theme: " + getThemeDisplayName(newScenarioTheme));
+        System.out.println();
+        
+        try {
+            // Clear all units from the battlefield
+            int clearedUnits = units.size();
+            units.clear();
+            
+            // Clear any selections
+            selectionManager.clearSelection();
+            
+            // Clear event queue
+            eventQueue.clear();
+            
+            // Set the new theme
+            callbacks.setCurrentTheme(newScenarioTheme);
+            
+            // Update window title with scenario name
+            callbacks.setWindowTitle("OpenFields2 - " + newScenarioName.trim());
+            
+            System.out.println("*** NEW SCENARIO CREATED ***");
+            System.out.println("Cleared " + clearedUnits + " units from battlefield");
+            System.out.println("Applied theme: " + getThemeDisplayName(newScenarioTheme));
+            System.out.println("Updated window title");
+            System.out.println("Event queue cleared");
+            System.out.println();
+            System.out.println("Ready for character creation (CTRL-C) and deployment (CTRL-A)");
+            System.out.println("***********************");
+            
+        } catch (Exception e) {
+            System.err.println("*** Error creating new scenario: " + e.getMessage() + " ***");
+        } finally {
+            // Reset new scenario state
+            cancelNewScenario();
+        }
+    }
+    
+    /**
+     * Cancel new scenario creation and reset state
+     */
+    private void cancelNewScenario() {
+        System.out.println();
+        System.out.println("*** Scenario creation cancelled ***");
+        waitingForScenarioName = false;
+        waitingForThemeSelection = false;
+        newScenarioName = "";
+        newScenarioTheme = "";
+    }
+    
+    /**
+     * Get display name for theme ID
+     * 
+     * @param themeId The theme ID
+     * @return The display name
+     */
+    private String getThemeDisplayName(String themeId) {
+        // Convert theme ID to display name
+        switch (themeId.toLowerCase()) {
+            case "test_theme":
+                return "Test Theme - Basic testing environment";
+            case "civil_war":
+                return "Civil War - American Civil War setting";
+            case "western":
+                return "Western - Wild West frontier";
+            case "modern":
+                return "Modern - Contemporary setting";
+            default:
+                return themeId + " - Theme";
+        }
+    }
+    
+    /**
+     * Validate system integrity and display warnings for any issues
+     */
+    public void validateSystemIntegrity() {
+        try {
+            System.out.println("***********************");
+            System.out.println("*** SYSTEM VALIDATION ***");
+            
+            // Test faction registry
+            data.FactionRegistry factionRegistry = data.FactionRegistry.getInstance();
+            if (factionRegistry.getAllFactions().isEmpty()) {
+                System.out.println("WARNING: No factions loaded in registry");
+            } else {
+                System.out.println("✓ Faction registry operational (" + factionRegistry.getAllFactions().size() + " factions)");
+            }
+            
+            // Test character persistence
+            data.CharacterPersistenceManager persistenceManager = data.CharacterPersistenceManager.getInstance();
+            System.out.println("✓ Character persistence manager operational");
+            
+            // Test theme manager
+            String[] themes = callbacks.getAvailableThemes();
+            if (themes.length == 0) {
+                System.out.println("WARNING: No themes available");
+            } else {
+                System.out.println("✓ Theme manager operational (" + themes.length + " themes available)");
+            }
+            
+            // Test weapon factory
+            String[] weaponIds = data.WeaponFactory.getAllWeaponIds();
+            if (weaponIds.length == 0) {
+                System.out.println("WARNING: No weapons available");
+            } else {
+                System.out.println("✓ Weapon factory operational (" + weaponIds.length + " weapons available)");
+            }
+            
+            System.out.println("*** VALIDATION COMPLETE ***");
+            System.out.println("***********************");
+            
+        } catch (Exception e) {
+            System.err.println("*** SYSTEM VALIDATION FAILED: " + e.getMessage() + " ***");
+        }
     }
     
     /**

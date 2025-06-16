@@ -1,0 +1,16 @@
+{
+  "nextCharacterId" : 1,
+  "factions" : [ {
+    "id" : 0,
+    "name" : "NONE"
+  }, {
+    "id" : 1,
+    "name" : "Union"
+  }, {
+    "id" : 2,
+    "name" : "Confederacy"
+  }, {
+    "id" : 3,
+    "name" : "Southern Unionists"
+  } ]
+}

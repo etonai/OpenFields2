@@ -37,6 +37,7 @@ import data.UnitData;
 import data.ThemeManager;
 import data.UniversalCharacterRegistry;
 import data.CharacterFactory;
+import data.FactionRegistry;
 
 public class OpenFields2 extends Application implements GameCallbacks, InputManager.InputManagerCallbacks {
 
@@ -149,15 +150,22 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     private static boolean editMode = false;
     private SaveGameController saveGameController;
     private EditModeController editModeController;
+    private Stage primaryStage;
 
     public static void main(String[] args) {
+        System.out.println("Debug: I have a breakpoint here. We should have stopped!!!");
         launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+        
         // Display game title and theme information
         displayStartupTitle();
+        
+        // Initialize faction system
+        initializeFactionSystem();
         
         createUnits();
         
@@ -185,6 +193,9 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         // Initialize SaveGameController
         saveGameController = new SaveGameController(units, selectionManager, gameRenderer, gameClock,
                                                    eventQueue, inputManager, new GameStateAccessorImpl());
+        
+        // Validate system integrity
+        inputManager.validateSystemIntegrity();
 
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.0 / 60), e -> run()));
         timeline.setCycleCount(Timeline.INDEFINITE);
@@ -1020,6 +1031,23 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         editModeController.assignFactionToSelectedUnits(factionNumber);
         inputManager.setWaitingForFactionSelection(false);
     }
+    
+    @Override
+    public void setWindowTitle(String title) {
+        if (primaryStage != null) {
+            primaryStage.setTitle(title);
+        }
+    }
+    
+    @Override
+    public String[] getAvailableThemes() {
+        return ThemeManager.getInstance().getAllThemeIds();
+    }
+    
+    @Override
+    public void setCurrentTheme(String themeId) {
+        ThemeManager.getInstance().setCurrentTheme(themeId);
+    }
 
     // GameStateAccessor implementation for SaveGameController
     private class GameStateAccessorImpl implements SaveGameController.GameStateAccessor {
@@ -1088,6 +1116,16 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         }
         
         System.out.println();
+    }
+    
+    /**
+     * Initialize faction system and load faction registry
+     */
+    private void initializeFactionSystem() {
+        System.out.println("*** Initializing Faction System ***");
+        FactionRegistry factionRegistry = FactionRegistry.getInstance();
+        factionRegistry.printFactionInfo();
+        System.out.println("*** Faction System Ready ***");
     }
 
 }
