@@ -767,6 +767,17 @@ public class Character {
     public void startMeleeAttackSequence(Unit attacker, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (meleeWeapon == null) return;
         
+        // Check if target is within melee range using edge-to-edge calculation
+        if (!isInMeleeRange(attacker, target, meleeWeapon)) {
+            // Target is out of range - move towards target
+            System.out.println(getDisplayName() + " moving towards " + target.character.getDisplayName() + " for melee attack");
+            attacker.setTarget(target.x, target.y);
+            
+            // Schedule a follow-up check to attempt attack once in range
+            scheduleRangeCheckForMeleeAttack(attacker, target, currentTick + 10, eventQueue, ownerId, gameCallbacks);
+            return;
+        }
+        
         // Calculate facing direction to target
         double dx = target.x - attacker.x;
         double dy = target.y - attacker.y;
@@ -876,11 +887,11 @@ public class Character {
             currentWeaponState = weapon.getStateByName("firing");
             System.out.println(getDisplayName() + " weapon state: firing at tick " + fireTick);
             
-            if (weapon.ammunition <= 0) {
+            if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0) {
                 System.out.println("*** " + getDisplayName() + " tries to fire " + weapon.name + " but it's out of ammunition!");
-            } else {
-                weapon.ammunition--;
-                System.out.println("*** " + getDisplayName() + " fires a " + weapon.getProjectileName() + " from " + weapon.name + " (ammo remaining: " + weapon.ammunition + ")");
+            } else if (weapon instanceof RangedWeapon) {
+                ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
+                System.out.println("*** " + getDisplayName() + " fires a " + weapon.getProjectileName() + " from " + weapon.name + " (ammo remaining: " + ((RangedWeapon)weapon).getAmmunition() + ")");
                 
                 gameCallbacks.playWeaponSound(weapon);
                 gameCallbacks.applyFiringHighlight(shooter, fireTick);
@@ -899,17 +910,17 @@ public class Character {
                     isAutomaticFiring = true;
                     burstShotsFired = 1; // First shot just fired
                     lastAutomaticShot = fireTick;
-                    System.out.println(getDisplayName() + " starts burst firing (" + burstShotsFired + "/" + weapon.burstSize + ")");
+                    System.out.println(getDisplayName() + " starts burst firing (" + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + ")");
                     
                     // Schedule remaining shots in the burst
-                    for (int shot = 2; shot <= weapon.burstSize; shot++) {
+                    for (int shot = 2; shot <= ((RangedWeapon)weapon).getBurstSize(); shot++) {
                         long nextShotTick = fireTick + (weapon.cyclicRate * (shot - 1));
                         final int shotNumber = shot;
                         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
-                            if (currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated() && weapon.ammunition > 0) {
-                                weapon.ammunition--;
+                            if (currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated() && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
+                                ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
                                 burstShotsFired++;
-                                System.out.println(getDisplayName() + " burst fires shot " + burstShotsFired + "/" + weapon.burstSize + " (9mm round, ammo remaining: " + weapon.ammunition + ")");
+                                System.out.println(getDisplayName() + " burst fires shot " + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + " (9mm round, ammo remaining: " + ((RangedWeapon)weapon).getAmmunition() + ")");
                                 
                                 gameCallbacks.playWeaponSound(weapon);
                                 gameCallbacks.applyFiringHighlight(shooter, nextShotTick);
@@ -924,7 +935,7 @@ public class Character {
                                 gameCallbacks.scheduleProjectileImpact(shooter, currentTarget, weapon, nextShotTick, distanceFeet2);
                                 
                                 // Reset burst state after final shot
-                                if (burstShotsFired >= weapon.burstSize) {
+                                if (burstShotsFired >= ((RangedWeapon)weapon).getBurstSize()) {
                                     isAutomaticFiring = false;
                                     burstShotsFired = 0;
                                     savedAimingSpeed = null;
@@ -949,7 +960,7 @@ public class Character {
                 
                 WeaponState recoveringState = weapon.getStateByName("recovering");
                 eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
-                    if (weapon.ammunition <= 0 && canReload()) {
+                    if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0 && canReload()) {
                         System.out.println(getDisplayName() + " is out of ammunition, starting automatic reload");
                         isAttacking = false; // Clear attacking flag during reload
                         startReloadSequence(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId, gameCallbacks);
@@ -1145,6 +1156,36 @@ public class Character {
     }
     
     /**
+     * Schedule range check for melee attack - continues tracking target until in range
+     */
+    private void scheduleRangeCheckForMeleeAttack(Unit attacker, Unit target, long checkTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        eventQueue.add(new ScheduledEvent(checkTick, () -> {
+            // Update movement target to track target's current position
+            attacker.setTarget(target.x, target.y);
+            
+            // Check if now in range
+            if (isInMeleeRange(attacker, target, meleeWeapon)) {
+                // Now in range - proceed with attack
+                System.out.println(getDisplayName() + " is now in range, proceeding with melee attack");
+                
+                // Calculate facing direction to target
+                double dx = target.x - attacker.x;
+                double dy = target.y - attacker.y;
+                double angleRadians = Math.atan2(dx, -dy);
+                double angleDegrees = Math.toDegrees(angleRadians);
+                if (angleDegrees < 0) angleDegrees += 360;
+                lastTargetFacing = angleDegrees;
+                
+                // Schedule melee attack from current state
+                scheduleMeleeAttackFromCurrentState(attacker, target, checkTick, eventQueue, ownerId, gameCallbacks);
+            } else {
+                // Still not in range - schedule another check
+                scheduleRangeCheckForMeleeAttack(attacker, target, checkTick + 10, eventQueue, ownerId, gameCallbacks);
+            }
+        }, ownerId));
+    }
+
+    /**
      * Schedule actual melee attack execution
      */
     private void scheduleMeleeAttack(Unit attacker, Unit target, long attackTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
@@ -1181,8 +1222,9 @@ public class Character {
     }
     
     public boolean canReload() {
-        if (weapon == null) return false;
-        if (weapon.ammunition >= weapon.maxAmmunition) return false;
+        if (weapon == null || !(weapon instanceof RangedWeapon)) return false;
+        RangedWeapon rangedWeapon = (RangedWeapon)weapon;
+        if (rangedWeapon.getAmmunition() >= rangedWeapon.getMaxAmmunition()) return false;
         String state = currentWeaponState.getState();
         return "ready".equals(state) || "aiming".equals(state) || "recovering".equals(state);
     }
@@ -1200,15 +1242,15 @@ public class Character {
         eventQueue.add(new ScheduledEvent(reloadCompleteTick, () -> {
             performReload();
             System.out.println(getDisplayName() + " loads one round into " + weapon.getName() + 
-                             " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+                             " (" + ((RangedWeapon)weapon).getAmmunition() + "/" + ((RangedWeapon)weapon).getMaxAmmunition() + ") at tick " + reloadCompleteTick);
             
             // Continue reloading if needed for single-round weapons
-            if (weapon.reloadType == ReloadType.SINGLE_ROUND && weapon.ammunition < weapon.maxAmmunition) {
+            if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getReloadType() == ReloadType.SINGLE_ROUND && ((RangedWeapon)weapon).getAmmunition() < ((RangedWeapon)weapon).getMaxAmmunition()) {
                 continueReloading(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
             } else {
                 currentWeaponState = weapon.getStateByName("ready");
                 System.out.println(getDisplayName() + " finished reloading " + weapon.getName() + 
-                                 " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+                                 " (" + ((RangedWeapon)weapon).getAmmunition() + "/" + ((RangedWeapon)weapon).getMaxAmmunition() + ") at tick " + reloadCompleteTick);
                 // Check for persistent attack after reload
                 checkContinuousAttack(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
             }
@@ -1216,7 +1258,7 @@ public class Character {
     }
     
     private void continueReloading(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (weapon == null || weapon.ammunition >= weapon.maxAmmunition) {
+        if (weapon == null || !(weapon instanceof RangedWeapon) || ((RangedWeapon)weapon).getAmmunition() >= ((RangedWeapon)weapon).getMaxAmmunition()) {
             currentWeaponState = weapon.getStateByName("ready");
             return;
         }
@@ -1227,15 +1269,15 @@ public class Character {
         eventQueue.add(new ScheduledEvent(reloadCompleteTick, () -> {
             performReload();
             System.out.println(getDisplayName() + " loads one round into " + weapon.getName() + 
-                             " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+                             " (" + ((RangedWeapon)weapon).getAmmunition() + "/" + ((RangedWeapon)weapon).getMaxAmmunition() + ") at tick " + reloadCompleteTick);
             
             // Continue reloading if still not full
-            if (weapon.ammunition < weapon.maxAmmunition) {
+            if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() < ((RangedWeapon)weapon).getMaxAmmunition()) {
                 continueReloading(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
             } else {
                 currentWeaponState = weapon.getStateByName("ready");
                 System.out.println(getDisplayName() + " finished reloading " + weapon.getName() + 
-                                 " (" + weapon.ammunition + "/" + weapon.maxAmmunition + ") at tick " + reloadCompleteTick);
+                                 " (" + ((RangedWeapon)weapon).getAmmunition() + "/" + ((RangedWeapon)weapon).getMaxAmmunition() + ") at tick " + reloadCompleteTick);
                 // Check for persistent attack after reload
                 checkContinuousAttack(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
             }
@@ -1245,14 +1287,17 @@ public class Character {
     private long calculateReloadSpeed() {
         int reflexesModifier = statToModifier(this.reflexes);
         double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.01);
-        return Math.round(weapon.reloadTicks * reflexesSpeedMultiplier);
+        return weapon instanceof RangedWeapon ? Math.round(((RangedWeapon)weapon).getReloadTicks() * reflexesSpeedMultiplier) : 60;
     }
     
     private void performReload() {
-        if (weapon.reloadType == ReloadType.SINGLE_ROUND) {
-            weapon.ammunition = Math.min(weapon.ammunition + 1, weapon.maxAmmunition);
-        } else {
-            weapon.ammunition = weapon.maxAmmunition;
+        if (weapon instanceof RangedWeapon) {
+            RangedWeapon rangedWeapon = (RangedWeapon)weapon;
+            if (rangedWeapon.getReloadType() == ReloadType.SINGLE_ROUND) {
+                rangedWeapon.setAmmunition(Math.min(rangedWeapon.getAmmunition() + 1, rangedWeapon.getMaxAmmunition()));
+            } else {
+                rangedWeapon.setAmmunition(rangedWeapon.getMaxAmmunition());
+            }
         }
     }
     
@@ -1566,14 +1611,14 @@ public class Character {
         // Check if a burst is already in progress from the new burst implementation
         if (isAutomaticFiring) {
             // Burst already in progress from scheduleFiring() method - wait for it to complete
-            System.out.println(getDisplayName() + " burst already in progress (" + burstShotsFired + "/" + weapon.burstSize + "), waiting for completion");
+            System.out.println(getDisplayName() + " burst already in progress (" + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + "), waiting for completion");
             
             // Calculate when current burst will complete and schedule next burst
-            int remainingShots = weapon.burstSize - burstShotsFired;
+            int remainingShots = ((RangedWeapon)weapon).getBurstSize() - burstShotsFired;
             if (remainingShots > 0) {
                 // Schedule next burst after current burst completes + firing delay
                 // Full burst duration = (burstSize - 1) * cyclicRate + firing delay
-                long fullBurstDuration = (weapon.burstSize - 1) * weapon.cyclicRate;
+                long fullBurstDuration = (((RangedWeapon)weapon).getBurstSize() - 1) * weapon.cyclicRate;
                 long nextBurstTick = lastAutomaticShot + fullBurstDuration + weapon.firingDelay;
                 
                 // Ensure we don't schedule in the past
@@ -1910,5 +1955,17 @@ public class Character {
             currentMovementType = MovementType.CRAWL;
             System.out.println(">>> " + getDisplayName() + " forced prone due to wounds to both legs");
         }
+    }
+    
+    /**
+     * Check if target is within melee range of attacker using edge-to-edge distance
+     */
+    private boolean isInMeleeRange(Unit attacker, Unit target, MeleeWeapon weapon) {
+        double centerToCenter = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+        // Convert to edge-to-edge by subtracting target radius (1.5 feet = 10.5 pixels)
+        double edgeToEdge = centerToCenter - (1.5 * 7.0);
+        double pixelRange = weapon.getTotalReach() * 7.0; // Convert feet to pixels (7 pixels = 1 foot)
+        
+        return edgeToEdge <= pixelRange;
     }
 }

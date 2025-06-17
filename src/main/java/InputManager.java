@@ -78,6 +78,13 @@ public class InputManager {
     private int batchFaction = 0;
     private BatchCreationStep batchCreationStep = BatchCreationStep.QUANTITY;
     
+    // Individual character creation state
+    private String selectedArchetype = "";
+    private String selectedRangedWeapon = "";
+    private String selectedMeleeWeapon = "";
+    private boolean waitingForCharacterRangedWeapon = false;
+    private boolean waitingForCharacterMeleeWeapon = false;
+    
     // Character deployment state
     private int deploymentFaction = 0;
     private int deploymentQuantity = 0;
@@ -591,11 +598,12 @@ public class InputManager {
         }
         if (e.getCode() == KeyCode.A && e.isControlDown()) {
             if (callbacks.isEditMode() && !isWaitingForInput()) {
-                promptForCharacterDeployment();
+                callbacks.promptForCharacterCreation();
+                waitingForCharacterCreation = true;
             } else if (!callbacks.isEditMode()) {
-                System.out.println("*** Character deployment only available in edit mode (Ctrl+E) ***");
+                System.out.println("*** Character creation only available in edit mode (Ctrl+E) ***");
             } else if (isWaitingForInput()) {
-                System.out.println("*** Please complete current operation before deploying characters ***");
+                System.out.println("*** Please complete current operation before creating characters ***");
             }
         }
         if (e.getCode() == KeyCode.V && e.isControlDown() && e.isShiftDown()) {
@@ -676,7 +684,7 @@ public class InputManager {
                     System.out.println("Accuracy: " + selected.character.weapon.weaponAccuracy);
                     System.out.println("Max Range: " + selected.character.weapon.maximumRange + " feet");
                     System.out.println("Velocity: " + selected.character.weapon.velocityFeetPerSecond + " feet/second");
-                    System.out.println("Ammunition: " + selected.character.weapon.ammunition);
+                    System.out.println("Ammunition: " + (selected.character.weapon instanceof RangedWeapon ? ((RangedWeapon)selected.character.weapon).getAmmunition() + "/" + ((RangedWeapon)selected.character.weapon).getMaxAmmunition() : "N/A"));
                     System.out.println("Current State: " + (selected.character.currentWeaponState != null ? selected.character.currentWeaponState.getState() : "None"));
                 } else {
                     System.out.println("--- WEAPON ---");
@@ -1023,7 +1031,7 @@ public class InputManager {
         }
         
         // Handle number key input for save/load slot selection, character creation, weapon selection, faction selection, batch character creation, and character deployment
-        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || waitingForCharacterDeployment) {
+        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || waitingForCharacterDeployment || waitingForCharacterRangedWeapon || waitingForCharacterMeleeWeapon) {
             int slotNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) slotNumber = 1;
             else if (e.getCode() == KeyCode.DIGIT2) slotNumber = 2;
@@ -1039,6 +1047,15 @@ public class InputManager {
                 if (waitingForCharacterCreation) {
                     System.out.println("*** Character creation cancelled ***");
                     waitingForCharacterCreation = false;
+                    resetCharacterCreationState();
+                } else if (waitingForCharacterRangedWeapon) {
+                    System.out.println("*** Character creation cancelled ***");
+                    waitingForCharacterRangedWeapon = false;
+                    resetCharacterCreationState();
+                } else if (waitingForCharacterMeleeWeapon) {
+                    System.out.println("*** Character creation cancelled ***");
+                    waitingForCharacterMeleeWeapon = false;
+                    resetCharacterCreationState();
                 } else if (waitingForWeaponSelection) {
                     System.out.println("*** Weapon selection cancelled ***");
                     waitingForWeaponSelection = false;
@@ -1088,10 +1105,27 @@ public class InputManager {
                     if (slotNumber == 0) {
                         System.out.println("*** Character creation cancelled ***");
                         waitingForCharacterCreation = false;
+                        resetCharacterCreationState();
                     } else if (slotNumber >= 1 && slotNumber <= 9) {
-                        callbacks.createCharacterFromArchetype(slotNumber);
+                        handleCharacterArchetypeSelection(slotNumber);
                     } else {
                         System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
+                    }
+                } else if (waitingForCharacterRangedWeapon) {
+                    if (slotNumber == 0) {
+                        System.out.println("*** Character creation cancelled ***");
+                        waitingForCharacterRangedWeapon = false;
+                        resetCharacterCreationState();
+                    } else {
+                        handleCharacterRangedWeaponSelection(slotNumber);
+                    }
+                } else if (waitingForCharacterMeleeWeapon) {
+                    if (slotNumber == 0) {
+                        System.out.println("*** Character creation cancelled ***");
+                        waitingForCharacterMeleeWeapon = false;
+                        resetCharacterCreationState();
+                    } else {
+                        handleCharacterMeleeWeaponSelection(slotNumber);
                     }
                 } else if (waitingForWeaponSelection) {
                     // Handle weapon type selection (1=Ranged, 2=Melee)
@@ -1193,7 +1227,7 @@ public class InputManager {
                waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection ||
                waitingForFactionSelection || waitingForBatchCharacterCreation || 
                waitingForCharacterDeployment || waitingForDeletionConfirmation || waitingForVictoryOutcome ||
-               waitingForScenarioName || waitingForThemeSelection;
+               waitingForScenarioName || waitingForThemeSelection || waitingForCharacterRangedWeapon || waitingForCharacterMeleeWeapon;
     }
     
     /**
@@ -2718,5 +2752,229 @@ public class InputManager {
         attacker.character.startMeleeAttackSequence(attacker, target, gameClock.getCurrentTick(), eventQueue, attacker.getId(), (GameCallbacks) callbacks);
         
         System.out.println("*** " + attacker.character.getDisplayName() + " begins melee attack on " + target.character.getDisplayName() + " with " + meleeWeapon.getName());
+    }
+    
+    /**
+     * Reset character creation state variables
+     */
+    private void resetCharacterCreationState() {
+        selectedArchetype = "";
+        selectedRangedWeapon = "";
+        selectedMeleeWeapon = "";
+        waitingForCharacterCreation = false;
+        waitingForCharacterRangedWeapon = false;
+        waitingForCharacterMeleeWeapon = false;
+    }
+    
+    /**
+     * Handle archetype selection for character creation
+     */
+    private void handleCharacterArchetypeSelection(int archetypeIndex) {
+        String[] archetypes = {"gunslinger", "soldier", "weighted_random", "scout", "marksman", "brawler", "confederate_soldier", "union_soldier", "balanced"};
+        
+        if (archetypeIndex >= 1 && archetypeIndex <= archetypes.length) {
+            selectedArchetype = archetypes[archetypeIndex - 1];
+            
+            // Move to ranged weapon selection
+            waitingForCharacterCreation = false;
+            waitingForCharacterRangedWeapon = true;
+            promptForCharacterRangedWeaponSelection();
+        } else {
+            System.out.println("*** Invalid archetype selection ***");
+        }
+    }
+    
+    /**
+     * Prompt for ranged weapon selection during character creation
+     */
+    private void promptForCharacterRangedWeaponSelection() {
+        String[] weaponIds = data.WeaponFactory.getAllWeaponIds();
+        if (weaponIds.length == 0) {
+            System.out.println("*** No ranged weapons available ***");
+            return;
+        }
+        
+        System.out.println("***********************");
+        System.out.println("*** RANGED WEAPON SELECTION ***");
+        System.out.println("Select ranged weapon for " + selectedArchetype + ":");
+        
+        for (int i = 0; i < weaponIds.length; i++) {
+            data.WeaponData weaponData = data.WeaponFactory.getWeaponData(weaponIds[i]);
+            if (weaponData != null) {
+                System.out.println((i + 1) + ". " + weaponData.name + 
+                                 " (Range: " + String.format("%.0f", weaponData.maximumRange) + " feet, " +
+                                 "Damage: " + weaponData.damage + ")");
+            }
+        }
+        System.out.println("0. Cancel character creation");
+        System.out.println();
+        System.out.println("Enter selection (1-" + weaponIds.length + ", 0 to cancel): ");
+    }
+    
+    /**
+     * Handle ranged weapon selection for character creation
+     */
+    private void handleCharacterRangedWeaponSelection(int weaponIndex) {
+        String[] weaponIds = data.WeaponFactory.getAllWeaponIds();
+        
+        if (weaponIndex >= 1 && weaponIndex <= weaponIds.length) {
+            selectedRangedWeapon = weaponIds[weaponIndex - 1];
+            
+            // Move to melee weapon selection
+            waitingForCharacterRangedWeapon = false;
+            waitingForCharacterMeleeWeapon = true;
+            promptForCharacterMeleeWeaponSelection();
+        } else {
+            System.out.println("*** Invalid weapon selection ***");
+        }
+    }
+    
+    /**
+     * Prompt for melee weapon selection during character creation
+     */
+    private void promptForCharacterMeleeWeaponSelection() {
+        data.DataManager dataManager = data.DataManager.getInstance();
+        java.util.Map<String, data.MeleeWeaponData> meleeWeapons = dataManager.getAllMeleeWeapons();
+        String[] meleeWeaponIds = meleeWeapons.keySet().toArray(new String[0]);
+        
+        System.out.println("***********************");
+        System.out.println("*** MELEE WEAPON SELECTION ***");
+        System.out.println("Select melee weapon for " + selectedArchetype + ":");
+        
+        // Add "Unarmed" option first
+        System.out.println("1. Unarmed (No melee weapon)");
+        
+        for (int i = 0; i < meleeWeaponIds.length; i++) {
+            data.MeleeWeaponData meleeWeaponData = meleeWeapons.get(meleeWeaponIds[i]);
+            if (meleeWeaponData != null) {
+                System.out.println((i + 2) + ". " + meleeWeaponData.name + 
+                                 " (Length: " + String.format("%.1f", meleeWeaponData.weaponLength) + " feet, " +
+                                 "Damage: " + meleeWeaponData.damage + ")");
+            }
+        }
+        System.out.println("0. Cancel character creation");
+        System.out.println();
+        System.out.println("Enter selection (1-" + (meleeWeaponIds.length + 1) + ", 0 to cancel): ");
+    }
+    
+    /**
+     * Handle melee weapon selection for character creation
+     */
+    private void handleCharacterMeleeWeaponSelection(int weaponIndex) {
+        data.DataManager dataManager = data.DataManager.getInstance();
+        java.util.Map<String, data.MeleeWeaponData> meleeWeapons = dataManager.getAllMeleeWeapons();
+        String[] meleeWeaponIds = meleeWeapons.keySet().toArray(new String[0]);
+        
+        if (weaponIndex == 1) {
+            // User selected "Unarmed"
+            selectedMeleeWeapon = "unarmed";
+            completeCharacterCreation();
+        } else if (weaponIndex >= 2 && weaponIndex <= (meleeWeaponIds.length + 1)) {
+            // User selected a melee weapon
+            selectedMeleeWeapon = meleeWeaponIds[weaponIndex - 2];
+            completeCharacterCreation();
+        } else {
+            System.out.println("*** Invalid weapon selection ***");
+        }
+    }
+    
+    /**
+     * Complete character creation with selected archetype and weapons
+     */
+    private void completeCharacterCreation() {
+        try {
+            // Create character using CharacterFactory
+            int characterId = data.CharacterFactory.createCharacter(selectedArchetype);
+            combat.Character character = data.UniversalCharacterRegistry.getInstance().getCharacter(characterId);
+            
+            if (character != null) {
+                // Assign selected ranged weapon
+                character.weapon = data.WeaponFactory.createWeapon(selectedRangedWeapon);
+                character.currentWeaponState = character.weapon.getInitialState();
+                
+                // Assign selected melee weapon
+                if (!"unarmed".equals(selectedMeleeWeapon)) {
+                    character.meleeWeapon = combat.MeleeWeaponFactory.createWeapon(selectedMeleeWeapon);
+                }
+                
+                character.setFaction(1); // Default faction
+                
+                // Spawn character at camera center
+                spawnCharacterUnit(character, selectedArchetype);
+                
+                // Display character creation confirmation
+                System.out.println("*** Character created successfully! ***");
+                System.out.println("Name: " + character.getDisplayName());
+                System.out.println("Archetype: " + selectedArchetype);
+                System.out.println("Ranged Weapon: " + character.weapon.name);
+                System.out.println("Melee Weapon: " + (character.meleeWeapon != null ? character.meleeWeapon.getName() : "Unarmed"));
+                System.out.println("Stats: DEX=" + character.dexterity + " HEALTH=" + character.health + 
+                                 " COOL=" + character.coolness + " STR=" + character.strength + " REF=" + character.reflexes);
+                System.out.println("***********************");
+            } else {
+                System.out.println("*** Failed to create character ***");
+            }
+        } catch (Exception e) {
+            System.out.println("*** Error creating character: " + e.getMessage() + " ***");
+        } finally {
+            // Reset creation state
+            resetCharacterCreationState();
+        }
+    }
+    
+    /**
+     * Spawn a character unit in the game world (character creation version)
+     */
+    private void spawnCharacterUnit(combat.Character character, String archetype) {
+        // Calculate spawn location at camera center
+        double spawnX = gameRenderer.screenToWorldX(canvas.getWidth() / 2.0);
+        double spawnY = gameRenderer.screenToWorldY(canvas.getHeight() / 2.0);
+        
+        // Check for collision with existing units and offset if necessary
+        boolean collision = true;
+        int attempts = 0;
+        double finalX = spawnX;
+        double finalY = spawnY;
+        
+        while (collision && attempts < 10) {
+            collision = false;
+            for (Unit existingUnit : units) {
+                double distance = Math.hypot(finalX - existingUnit.x, finalY - existingUnit.y);
+                if (distance < 28) { // 4 feet = 28 pixels minimum distance
+                    collision = true;
+                    finalX += 28; // Offset by 4 feet (28 pixels) in X direction only
+                    break;
+                }
+            }
+            attempts++;
+        }
+        
+        // Get color based on archetype (reuse EditModeController logic)
+        javafx.scene.paint.Color characterColor = getArchetypeColor(archetype);
+        
+        // Create and add unit
+        int unitId = callbacks.getNextUnitId();
+        Unit newUnit = new Unit(character, finalX, finalY, characterColor, unitId);
+        callbacks.setNextUnitId(unitId + 1);
+        units.add(newUnit);
+        
+        // Auto-select the newly created character
+        selectionManager.selectUnit(newUnit);
+        
+        System.out.println("Character spawned at (" + String.format("%.0f", finalX) + ", " + String.format("%.0f", finalY) + ")");
+    }
+    
+    /**
+     * Get the appropriate color for a character archetype
+     */
+    private javafx.scene.paint.Color getArchetypeColor(String archetype) {
+        switch (archetype.toLowerCase()) {
+            case "confederate_soldier":
+                return javafx.scene.paint.Color.DARKGRAY; // Confederate dark gray
+            case "union_soldier":
+                return javafx.scene.paint.Color.BLUE; // Union blue
+            default:
+                return javafx.scene.paint.Color.CYAN; // Default color for other archetypes
+        }
     }
 }

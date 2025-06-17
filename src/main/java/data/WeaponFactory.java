@@ -20,12 +20,12 @@ public class WeaponFactory {
             throw new IllegalArgumentException("Unknown weapon type: " + weaponData.type);
         }
         
-        // Create the ranged weapon with basic properties
+        // Create the ranged weapon with basic properties (start with full ammunition)
         RangedWeapon weapon = new RangedWeapon(
             weaponData.name,
             weaponData.velocity,
             weaponData.damage,
-            weaponData.ammunition,
+            weaponData.maxAmmunition, // Start with full ammunition
             weaponData.soundFile,
             weaponData.maximumRange,
             weaponData.weaponAccuracy,
@@ -34,15 +34,15 @@ public class WeaponFactory {
         );
         
         // Set reload properties from data
-        weapon.maxAmmunition = weaponData.maxAmmunition;
-        weapon.reloadTicks = weaponData.reloadTicks;
-        weapon.reloadType = weaponData.reloadType;
+        weapon.setMaxAmmunition(weaponData.maxAmmunition);
+        weapon.setReloadTicks(weaponData.reloadTicks);
+        weapon.setReloadType(weaponData.reloadType);
         weapon.firingDelay = weaponData.firingDelay;
         weapon.weaponLength = weaponData.weaponLength;
         
         // Set automatic firing properties from data
         weapon.cyclicRate = weaponData.cyclicRate;
-        weapon.burstSize = weaponData.burstSize;
+        weapon.setBurstSize(weaponData.burstSize);
         weapon.availableFiringModes = new ArrayList<>(weaponData.availableFiringModes);
         
         // Set up the weapon states from the weapon type definition

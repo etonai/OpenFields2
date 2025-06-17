@@ -17,7 +17,7 @@ public class IntegrationTest {
     private combat.Character target;
     private Unit shooterUnit;
     private Unit targetUnit;
-    private Weapon testWeapon;
+    private RangedWeapon testWeapon;
     private PriorityQueue<ScheduledEvent> eventQueue;
     private GameClock gameClock;
     
@@ -76,8 +76,8 @@ public class IntegrationTest {
         };
     }
     
-    private Weapon createTestPistol() {
-        Weapon weapon = new Weapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet");
+    private RangedWeapon createTestPistol() {
+        RangedWeapon weapon = new RangedWeapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet");
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));
@@ -109,12 +109,12 @@ public class IntegrationTest {
         assertEquals(175, firingEvent.getTick(), "Firing should occur at tick 175");
         
         int initialTargetHealth = target.health;
-        int initialAmmo = testWeapon.ammunition;
+        int initialAmmo = testWeapon.getAmmunition();
         
         firingEvent.getAction().run();
         
         assertEquals("firing", shooter.currentWeaponState.getState());
-        assertEquals(initialAmmo - 1, testWeapon.ammunition, "Ammunition should decrease");
+        assertEquals(initialAmmo - 1, testWeapon.getAmmunition(), "Ammunition should decrease");
         
         // Verify projectile impact was scheduled
         assertFalse(eventQueue.isEmpty(), "Projectile impact should be scheduled");

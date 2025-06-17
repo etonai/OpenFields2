@@ -19,17 +19,11 @@ public abstract class Weapon {
     
     // Legacy fields for backward compatibility - will be moved to subclasses later
     public double velocityFeetPerSecond;
-    public int ammunition;
-    public int maxAmmunition;
-    public int reloadTicks;
-    public ReloadType reloadType;
     public double maximumRange;
-    public String projectileName;
     public int firingDelay;
     public FiringMode currentFiringMode;
     public List<FiringMode> availableFiringModes;
     public int cyclicRate;
-    public int burstSize;
 
     /**
      * Base constructor for all weapons
@@ -113,8 +107,9 @@ public abstract class Weapon {
     }
     
     public String getProjectileName() {
-        return projectileName;
+        return "projectile"; // Default for base class, overridden in subclasses
     }
+    
     
     public void cycleFiringMode() {
         if (availableFiringModes != null && availableFiringModes.size() > 1) {
