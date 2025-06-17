@@ -237,6 +237,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         combat.Character c1 = characterRegistry.getCharacter(1000);
         if (c1 != null) {
             c1.weapon = WeaponFactory.createWeapon("wpn_uzi");
+            c1.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_dagger");
             c1.currentWeaponState = c1.weapon.getInitialState();
             c1.setFaction(1);
             units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
@@ -245,6 +246,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         combat.Character c2 = characterRegistry.getCharacter(1001);
         if (c2 != null) {
             c2.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
+            c2.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_sword");
             c2.currentWeaponState = c2.weapon.getInitialState();
             c2.setFaction(2);
             units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
@@ -253,6 +255,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         combat.Character c3 = characterRegistry.getCharacter(1002);
         if (c3 != null) {
             c3.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
+            c3.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_battleaxe");
             c3.currentWeaponState = c3.weapon.getInitialState();
             c3.setFaction(1);
             units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
@@ -261,6 +264,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         combat.Character c4 = characterRegistry.getCharacter(1003);
         if (c4 != null) {
             c4.weapon = WeaponFactory.createWeapon("wpn_plasma_pistol");
+            c4.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_magic_sword");
             c4.currentWeaponState = c4.weapon.getInitialState();
             c4.setFaction(2);
             units.add(new Unit(c4, 100, 400, Color.PURPLE, nextUnitId++));
@@ -269,6 +273,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         combat.Character c5 = characterRegistry.getCharacter(1004);
         if (c5 != null) {
             c5.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
+            c5.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_wand");
             c5.currentWeaponState = c5.weapon.getInitialState();
             c5.setFaction(1);
             units.add(new Unit(c5, 600, 100, Color.ORANGE, nextUnitId++));
@@ -277,6 +282,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         combat.Character c6 = characterRegistry.getCharacter(1005);
         if (c6 != null) {
             c6.weapon = WeaponFactory.createWeapon("wpn_colt_peacemaker");
+            c6.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_dagger");
             c6.currentWeaponState = c6.weapon.getInitialState();
             c6.setFaction(2);
             units.add(new Unit(c6, 600, 400, Color.MAGENTA, nextUnitId++));

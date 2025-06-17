@@ -52,6 +52,8 @@ public class InputManager {
     private boolean waitingForLoadSlot = false;
     private boolean waitingForCharacterCreation = false;
     private boolean waitingForWeaponSelection = false;
+    private boolean waitingForRangedWeaponSelection = false;
+    private boolean waitingForMeleeWeaponSelection = false;
     private boolean waitingForFactionSelection = false;
     private boolean waitingForBatchCharacterCreation = false;
     private boolean waitingForCharacterDeployment = false;
@@ -1021,7 +1023,7 @@ public class InputManager {
         }
         
         // Handle number key input for save/load slot selection, character creation, weapon selection, faction selection, batch character creation, and character deployment
-        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || waitingForCharacterDeployment) {
+        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || waitingForCharacterDeployment) {
             int slotNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) slotNumber = 1;
             else if (e.getCode() == KeyCode.DIGIT2) slotNumber = 2;
@@ -1040,6 +1042,12 @@ public class InputManager {
                 } else if (waitingForWeaponSelection) {
                     System.out.println("*** Weapon selection cancelled ***");
                     waitingForWeaponSelection = false;
+                } else if (waitingForRangedWeaponSelection) {
+                    System.out.println("*** Ranged weapon selection cancelled ***");
+                    waitingForRangedWeaponSelection = false;
+                } else if (waitingForMeleeWeaponSelection) {
+                    System.out.println("*** Melee weapon selection cancelled ***");
+                    waitingForMeleeWeaponSelection = false;
                 } else if (waitingForFactionSelection) {
                     System.out.println("*** Faction selection cancelled ***");
                     waitingForFactionSelection = false;
@@ -1086,11 +1094,38 @@ public class InputManager {
                         System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
                     }
                 } else if (waitingForWeaponSelection) {
+                    // Handle weapon type selection (1=Ranged, 2=Melee)
                     if (slotNumber == 0) {
                         System.out.println("*** Weapon selection cancelled ***");
                         waitingForWeaponSelection = false;
+                    } else if (slotNumber == 1) {
+                        // User chose ranged weapons
+                        waitingForWeaponSelection = false;
+                        waitingForRangedWeaponSelection = true;
+                        ((EditModeController)callbacks).promptForRangedWeaponSelection();
+                    } else if (slotNumber == 2) {
+                        // User chose melee weapons
+                        waitingForWeaponSelection = false;
+                        waitingForMeleeWeaponSelection = true;
+                        ((EditModeController)callbacks).promptForMeleeWeaponSelection();
                     } else {
-                        callbacks.assignWeaponToSelectedUnits(slotNumber);
+                        System.out.println("*** Invalid weapon type selection. Use 1 for Ranged, 2 for Melee, or 0 to cancel ***");
+                    }
+                } else if (waitingForRangedWeaponSelection) {
+                    if (slotNumber == 0) {
+                        System.out.println("*** Ranged weapon selection cancelled ***");
+                        waitingForRangedWeaponSelection = false;
+                    } else {
+                        ((EditModeController)callbacks).assignRangedWeaponToSelectedUnits(slotNumber);
+                        waitingForRangedWeaponSelection = false;
+                    }
+                } else if (waitingForMeleeWeaponSelection) {
+                    if (slotNumber == 0) {
+                        System.out.println("*** Melee weapon selection cancelled ***");
+                        waitingForMeleeWeaponSelection = false;
+                    } else {
+                        ((EditModeController)callbacks).assignMeleeWeaponToSelectedUnits(slotNumber);
+                        waitingForMeleeWeaponSelection = false;
                     }
                 } else if (waitingForFactionSelection) {
                     if (slotNumber == 0) {
@@ -1155,7 +1190,8 @@ public class InputManager {
     
     public boolean isWaitingForInput() {
         return waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || 
-               waitingForWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || 
+               waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection ||
+               waitingForFactionSelection || waitingForBatchCharacterCreation || 
                waitingForCharacterDeployment || waitingForDeletionConfirmation || waitingForVictoryOutcome ||
                waitingForScenarioName || waitingForThemeSelection;
     }

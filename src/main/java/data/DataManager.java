@@ -18,6 +18,7 @@ public class DataManager {
     private Map<String, WeaponData> weapons;
     private Map<WeaponType, WeaponTypeData> weaponTypes;
     private Map<String, SkillData> skills;
+    private Map<String, MeleeWeaponData> meleeWeapons;
     
     private DataManager() {
         this.objectMapper = new ObjectMapper();
@@ -37,8 +38,10 @@ public class DataManager {
             loadWeapons();
             loadWeaponTypes();
             loadSkills();
+            loadMeleeWeapons();
             System.out.println("*** Data loaded successfully: " + weapons.size() + " weapons, " + 
-                             weaponTypes.size() + " weapon types, " + skills.size() + " skills");
+                             weaponTypes.size() + " weapon types, " + skills.size() + " skills, " +
+                             meleeWeapons.size() + " melee weapons");
         } catch (Exception e) {
             System.err.println("Error loading data: " + e.getMessage());
             e.printStackTrace();
@@ -47,14 +50,15 @@ public class DataManager {
             weapons = new HashMap<>();
             weaponTypes = new HashMap<>();
             skills = new HashMap<>();
+            meleeWeapons = new HashMap<>();
         }
     }
     
     private void loadWeapons() throws IOException {
         String themePath = themeManager.getCurrentThemeDataPath();
-        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/weapons.json");
+        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/ranged-weapons.json");
         if (is == null) {
-            throw new IOException("Could not find weapons.json file for theme: " + themeManager.getCurrentThemeId());
+            throw new IOException("Could not find ranged-weapons.json file for theme: " + themeManager.getCurrentThemeId());
         }
         
         JsonNode rootNode = objectMapper.readTree(is);
@@ -74,9 +78,9 @@ public class DataManager {
     
     private void loadWeaponTypes() throws IOException {
         String themePath = themeManager.getCurrentThemeDataPath();
-        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/weapon-types.json");
+        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/ranged-weapon-types.json");
         if (is == null) {
-            throw new IOException("Could not find weapon-types.json file for theme: " + themeManager.getCurrentThemeId());
+            throw new IOException("Could not find ranged-weapon-types.json file for theme: " + themeManager.getCurrentThemeId());
         }
         
         JsonNode rootNode = objectMapper.readTree(is);
@@ -116,6 +120,30 @@ public class DataManager {
         });
     }
     
+    private void loadMeleeWeapons() throws IOException {
+        String themePath = themeManager.getCurrentThemeDataPath();
+        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/melee-weapons.json");
+        if (is == null) {
+            System.err.println("Could not find melee-weapons.json file for theme: " + themeManager.getCurrentThemeId() + ". Exiting gracefully.");
+            System.exit(1);
+            return;
+        }
+        
+        JsonNode rootNode = objectMapper.readTree(is);
+        JsonNode meleeWeaponsNode = rootNode.get("meleeWeapons");
+        
+        meleeWeapons = new HashMap<>();
+        meleeWeaponsNode.fields().forEachRemaining(entry -> {
+            try {
+                MeleeWeaponData meleeWeaponData = objectMapper.treeToValue(entry.getValue(), MeleeWeaponData.class);
+                // Use the ID from the melee weapon data as the key, not the JSON object key
+                meleeWeapons.put(meleeWeaponData.id, meleeWeaponData);
+            } catch (Exception e) {
+                System.err.println("Error loading melee weapon " + entry.getKey() + ": " + e.getMessage());
+            }
+        });
+    }
+    
     // Getters
     public WeaponData getWeapon(String weaponId) {
         return weapons.get(weaponId);
@@ -141,6 +169,14 @@ public class DataManager {
         return new HashMap<>(skills);
     }
     
+    public MeleeWeaponData getMeleeWeapon(String meleeWeaponId) {
+        return meleeWeapons.get(meleeWeaponId);
+    }
+    
+    public Map<String, MeleeWeaponData> getAllMeleeWeapons() {
+        return new HashMap<>(meleeWeapons);
+    }
+    
     // Utility methods
     public boolean hasWeapon(String weaponId) {
         return weapons.containsKey(weaponId);
@@ -148,5 +184,9 @@ public class DataManager {
     
     public boolean hasSkill(String skillName) {
         return skills.containsKey(skillName);
+    }
+    
+    public boolean hasMeleeWeapon(String meleeWeaponId) {
+        return meleeWeapons.containsKey(meleeWeaponId);
     }
 }

@@ -1,5 +1,8 @@
 package combat;
 
+import data.DataManager;
+import data.MeleeWeaponData;
+
 /**
  * Factory for creating standard melee weapons with balanced stats.
  * Provides common melee weapons for testing and basic gameplay.
@@ -105,6 +108,34 @@ public class MeleeWeaponFactory {
         return dualWeapons;
     }
     
+    /**
+     * Create a melee weapon from JSON data by ID
+     */
+    public static MeleeWeapon createWeapon(String meleeWeaponId) {
+        DataManager dataManager = DataManager.getInstance();
+        MeleeWeaponData data = dataManager.getMeleeWeapon(meleeWeaponId);
+        
+        if (data == null) {
+            System.err.println("Melee weapon not found: " + meleeWeaponId + ". Falling back to unarmed.");
+            return createUnarmed();
+        }
+        
+        return new MeleeWeapon(
+            data.name,
+            data.damage,
+            data.soundFile,
+            data.meleeType,
+            data.defendScore,
+            data.attackSpeed,
+            data.attackCooldown,
+            data.weaponLength,
+            data.readyingTime,
+            data.isOneHanded,
+            data.isMeleeVersionOfRanged,
+            data.weaponAccuracy
+        );
+    }
+
     /**
      * Get a default melee weapon for a character (unarmed combat)
      */

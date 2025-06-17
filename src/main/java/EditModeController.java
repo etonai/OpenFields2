@@ -238,19 +238,34 @@ public class EditModeController {
     }
     
     /**
-     * Display weapon selection prompt with available weapons
+     * Display weapon type selection prompt (Ranged or Melee)
      */
     public void promptForWeaponSelection() {
+        System.out.println("***********************");
+        System.out.println("*** WEAPON SELECTION ***");
+        System.out.println("Selected units: " + selectionManager.getSelectionCount());
+        System.out.println("Choose weapon type:");
+        System.out.println("1. Ranged Weapons");
+        System.out.println("2. Melee Weapons");
+        System.out.println("0. Cancel weapon selection");
+        System.out.println();
+        System.out.println("Enter selection (1-2, 0 to cancel): ");
+    }
+    
+    /**
+     * Display ranged weapon selection prompt
+     */
+    public void promptForRangedWeaponSelection() {
         String[] weaponIds = WeaponFactory.getAllWeaponIds();
         if (weaponIds.length == 0) {
-            System.out.println("*** No weapons available ***");
+            System.out.println("*** No ranged weapons available ***");
             return;
         }
         
         System.out.println("***********************");
-        System.out.println("*** WEAPON SELECTION ***");
+        System.out.println("*** RANGED WEAPON SELECTION ***");
         System.out.println("Selected units: " + selectionManager.getSelectionCount());
-        System.out.println("Available weapons:");
+        System.out.println("Available ranged weapons:");
         
         for (int i = 0; i < weaponIds.length; i++) {
             WeaponData weaponData = WeaponFactory.getWeaponData(weaponIds[i]);
@@ -261,17 +276,49 @@ public class EditModeController {
                                  ", Range: " + String.format("%.0f", weaponData.maximumRange) + " feet");
             }
         }
-        System.out.println("0. Cancel weapon selection");
+        System.out.println("0. Cancel ranged weapon selection");
         System.out.println();
         System.out.println("Enter selection (1-" + weaponIds.length + ", 0 to cancel): ");
     }
     
     /**
-     * Assign the selected weapon to all selected units
+     * Display melee weapon selection prompt
+     */
+    public void promptForMeleeWeaponSelection() {
+        data.DataManager dataManager = data.DataManager.getInstance();
+        java.util.Map<String, data.MeleeWeaponData> meleeWeapons = dataManager.getAllMeleeWeapons();
+        String[] meleeWeaponIds = meleeWeapons.keySet().toArray(new String[0]);
+        
+        if (meleeWeaponIds.length == 0) {
+            System.out.println("*** No melee weapons available ***");
+            return;
+        }
+        
+        System.out.println("***********************");
+        System.out.println("*** MELEE WEAPON SELECTION ***");
+        System.out.println("Selected units: " + selectionManager.getSelectionCount());
+        System.out.println("Available melee weapons:");
+        
+        for (int i = 0; i < meleeWeaponIds.length; i++) {
+            data.MeleeWeaponData meleeWeaponData = meleeWeapons.get(meleeWeaponIds[i]);
+            if (meleeWeaponData != null) {
+                System.out.println((i + 1) + ". " + meleeWeaponData.name + 
+                                 " (" + meleeWeaponData.meleeType + 
+                                 ") - Damage: " + meleeWeaponData.damage + 
+                                 ", Length: " + String.format("%.1f", meleeWeaponData.weaponLength) + " feet");
+            }
+        }
+        System.out.println("0. Cancel melee weapon selection");
+        System.out.println();
+        System.out.println("Enter selection (1-" + meleeWeaponIds.length + ", 0 to cancel): ");
+    }
+    
+    /**
+     * Assign the selected ranged weapon to all selected units
      * 
      * @param weaponIndex Index of the weapon to assign (1-based)
      */
-    public void assignWeaponToSelectedUnits(int weaponIndex) {
+    public void assignRangedWeaponToSelectedUnits(int weaponIndex) {
         String[] weaponIds = WeaponFactory.getAllWeaponIds();
         
         if (weaponIndex < 1 || weaponIndex > weaponIds.length) {
@@ -307,19 +354,86 @@ public class EditModeController {
                 
                 successCount++;
             } catch (Exception e) {
-                System.err.println("Failed to assign weapon to " + unit.character.getDisplayName() + ": " + e.getMessage());
+                System.err.println("Failed to assign ranged weapon to " + unit.character.getDisplayName() + ": " + e.getMessage());
                 failureCount++;
             }
         }
         
         // Display results
-        System.out.println("*** Weapon assignment complete ***");
+        System.out.println("*** Ranged weapon assignment complete ***");
         System.out.println("Weapon: " + weaponData.name + " (" + weaponData.type.getDisplayName() + ")");
         System.out.println("Successfully assigned to " + successCount + " units");
         if (failureCount > 0) {
             System.out.println("Failed to assign to " + failureCount + " units");
         }
         System.out.println("***********************");
+    }
+    
+    /**
+     * Assign the selected melee weapon to all selected units
+     * 
+     * @param weaponIndex Index of the weapon to assign (1-based)
+     */
+    public void assignMeleeWeaponToSelectedUnits(int weaponIndex) {
+        data.DataManager dataManager = data.DataManager.getInstance();
+        java.util.Map<String, data.MeleeWeaponData> meleeWeapons = dataManager.getAllMeleeWeapons();
+        String[] meleeWeaponIds = meleeWeapons.keySet().toArray(new String[0]);
+        
+        if (weaponIndex < 1 || weaponIndex > meleeWeaponIds.length) {
+            System.out.println("*** Invalid weapon selection. Use 1-" + meleeWeaponIds.length + " or 0 to cancel ***");
+            return;
+        }
+        
+        String selectedMeleeWeaponId = meleeWeaponIds[weaponIndex - 1];
+        data.MeleeWeaponData meleeWeaponData = meleeWeapons.get(selectedMeleeWeaponId);
+        
+        if (meleeWeaponData == null) {
+            System.out.println("*** Error: Melee weapon data not found for " + selectedMeleeWeaponId + " ***");
+            return;
+        }
+        
+        int successCount = 0;
+        int failureCount = 0;
+        
+        for (Unit unit : selectionManager.getSelectedUnits()) {
+            try {
+                // Get old melee weapon name for comparison
+                String oldMeleeWeaponName = (unit.character.meleeWeapon != null) ? unit.character.meleeWeapon.name : "Unarmed";
+                
+                // Create new melee weapon instance
+                combat.MeleeWeapon newMeleeWeapon = combat.MeleeWeaponFactory.createWeapon(selectedMeleeWeaponId);
+                
+                // Assign melee weapon to character
+                unit.character.meleeWeapon = newMeleeWeapon;
+                
+                // Debug output
+                System.out.println("  " + unit.character.getDisplayName() + ": " + oldMeleeWeaponName + " → " + newMeleeWeapon.name);
+                
+                successCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to assign melee weapon to " + unit.character.getDisplayName() + ": " + e.getMessage());
+                failureCount++;
+            }
+        }
+        
+        // Display results
+        System.out.println("*** Melee weapon assignment complete ***");
+        System.out.println("Weapon: " + meleeWeaponData.name + " (" + meleeWeaponData.meleeType + ")");
+        System.out.println("Successfully assigned to " + successCount + " units");
+        if (failureCount > 0) {
+            System.out.println("Failed to assign to " + failureCount + " units");
+        }
+        System.out.println("***********************");
+    }
+    
+    /**
+     * Legacy method for backward compatibility - now routes to weapon type selection
+     * 
+     * @param weaponIndex Index of the weapon to assign (1-based)
+     */
+    public void assignWeaponToSelectedUnits(int weaponIndex) {
+        // For backward compatibility, this now routes to ranged weapon assignment
+        assignRangedWeaponToSelectedUnits(weaponIndex);
     }
     
     /**
