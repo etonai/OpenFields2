@@ -87,6 +87,11 @@ public class Character {
     
     // Last target direction for weapon visibility when no current target
     public Double lastTargetFacing = null; // Last direction character was aiming (degrees)
+    
+    // Melee movement state tracking
+    public boolean isMovingToMelee = false; // Currently moving to engage target in melee combat
+    public Unit meleeTarget = null; // Target unit for melee attack (maintained during movement)
+    private long lastMeleeMovementUpdate = 0; // Last tick when melee movement was updated (for throttling)
 
     // Legacy constructors for backwards compatibility with tests
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
@@ -292,6 +297,11 @@ public class Character {
      * Toggle between ranged and melee combat modes
      */
     public void toggleCombatMode() {
+        // Cancel any ongoing melee movement when switching modes
+        if (isMovingToMelee) {
+            isMovingToMelee = false;
+            meleeTarget = null;
+        }
         isMeleeCombatMode = !isMeleeCombatMode;
     }
     
@@ -299,6 +309,11 @@ public class Character {
      * Set combat mode explicitly
      */
     public void setCombatMode(boolean meleeMode) {
+        // Cancel any ongoing melee movement when switching modes
+        if (isMovingToMelee) {
+            isMovingToMelee = false;
+            meleeTarget = null;
+        }
         isMeleeCombatMode = meleeMode;
     }
     
@@ -1535,6 +1550,111 @@ public class Character {
                 }
             }
         }
+    }
+    
+    /**
+     * Update melee movement progress and trigger attack when target is reached
+     */
+    public void updateMeleeMovement(Unit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
+        // Only execute if currently moving to melee target
+        if (!isMovingToMelee || meleeTarget == null) return;
+        
+        // Throttle updates to every 10 ticks (6 times per second) for performance
+        if (currentTick - lastMeleeMovementUpdate < 10) return;
+        lastMeleeMovementUpdate = currentTick;
+        
+        // Check if target is still valid
+        if (meleeTarget.character.isIncapacitated()) {
+            debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.character.getDisplayName() + " incapacitated during approach - cancelling movement");
+            cancelMeleeMovement();
+            return;
+        }
+        
+        MeleeWeapon meleeWeapon = this.meleeWeapon;
+        if (meleeWeapon == null) {
+            debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " lost melee weapon during movement - cancelling");
+            cancelMeleeMovement();
+            return;
+        }
+        
+        // Check current distance to target
+        double currentDistance = Math.hypot(meleeTarget.x - selfUnit.x, meleeTarget.y - selfUnit.y);
+        double distanceFeet = currentDistance / 7.0;
+        double weaponReach = meleeWeapon.getTotalReach();
+        
+        // If we're already in range, start attack immediately
+        if (distanceFeet <= weaponReach) {
+            debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " reached melee range of " + meleeTarget.character.getDisplayName() + " (" + String.format("%.2f", distanceFeet) + " feet)");
+            Unit targetUnit = meleeTarget; // Save reference before clearing state
+            cancelMeleeMovement();
+            
+            // Start the actual melee attack sequence
+            startMeleeAttackSequence(selfUnit, targetUnit, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
+            return;
+        }
+        
+        // Check if we're still moving (hasTarget indicates movement in progress)
+        if (selfUnit.hasTarget) {
+            // Still moving - check if target has moved significantly and update path if needed
+            double distanceToCurrentTarget = Math.hypot(selfUnit.targetX - meleeTarget.x, selfUnit.targetY - meleeTarget.y);
+            double targetMovementFeet = distanceToCurrentTarget / 7.0;
+            
+            // If target moved more than 3 feet, recalculate approach path
+            if (targetMovementFeet > 3.0) {
+                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.character.getDisplayName() + " moved " + String.format("%.2f", targetMovementFeet) + " feet - updating approach path");
+                updateApproachPath(selfUnit, meleeTarget, meleeWeapon);
+            }
+        } else {
+            // Movement completed, but we're not in range yet
+            // Check if we should pursue further or give up
+            double maxPursuitRange = 50.0; // Maximum pursuit range in feet
+            
+            if (distanceFeet <= maxPursuitRange) {
+                // Target is within pursuit range - start new movement
+                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " movement completed but still out of range (" + String.format("%.2f", distanceFeet) + "/" + String.format("%.2f", weaponReach) + " feet) - continuing pursuit");
+                updateApproachPath(selfUnit, meleeTarget, meleeWeapon);
+            } else {
+                // Target too far away - give up pursuit
+                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.character.getDisplayName() + " too far away (" + String.format("%.2f", distanceFeet) + " feet) - cancelling pursuit");
+                cancelMeleeMovement();
+            }
+        }
+    }
+    
+    /**
+     * Update the approach path to the melee target (used when target moves during pursuit)
+     */
+    private void updateApproachPath(Unit selfUnit, Unit target, MeleeWeapon meleeWeapon) {
+        // Calculate optimal approach position within melee range
+        double weaponReach = meleeWeapon.getTotalReach();
+        double approachDistance = weaponReach - 0.5; // Leave 0.5 feet buffer
+        
+        // Calculate direction from target to attacker
+        double dx = selfUnit.x - target.x;
+        double dy = selfUnit.y - target.y;
+        double currentDistance = Math.hypot(dx, dy);
+        
+        // Normalize direction vector
+        if (currentDistance > 0) {
+            dx = dx / currentDistance;
+            dy = dy / currentDistance;
+        }
+        
+        // Calculate new approach position
+        double approachPixelDistance = approachDistance * 7.0; // Convert feet to pixels
+        double approachX = target.x + (dx * approachPixelDistance);
+        double approachY = target.y + (dy * approachPixelDistance);
+        
+        // Update movement target
+        selfUnit.setTarget(approachX, approachY);
+    }
+    
+    /**
+     * Cancel melee movement and clear related state
+     */
+    private void cancelMeleeMovement() {
+        isMovingToMelee = false;
+        meleeTarget = null;
     }
     
     private void checkContinuousAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {

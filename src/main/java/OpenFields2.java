@@ -220,6 +220,8 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
                 u.update(gameClock.getCurrentTick());
                 // Update automatic targeting for characters that have it enabled
                 u.character.updateAutomaticTargeting(u, gameClock.getCurrentTick(), eventQueue, this);
+                // Update melee movement progress and trigger attacks when in range
+                u.character.updateMeleeMovement(u, gameClock.getCurrentTick(), eventQueue, this);
             }
             
             // Update selection center as selected units move

@@ -448,6 +448,12 @@ public class InputManager {
                 
                 for (Unit unit : selectionManager.getSelectedUnits()) {
                     if (!unit.character.isIncapacitated()) {
+                        // Cancel any ongoing melee movement when new movement command is given
+                        if (unit.character.isMovingToMelee) {
+                            unit.character.isMovingToMelee = false;
+                            unit.character.meleeTarget = null;
+                        }
+                        
                         double newTargetX = unit.x + deltaX;
                         double newTargetY = unit.y + deltaY;
                         unit.setTarget(newTargetX, newTargetY);
@@ -2744,7 +2750,8 @@ public class InputManager {
             System.out.println("*** " + attacker.character.getDisplayName() + " cannot reach " + target.character.getDisplayName());
             System.out.println("*** Target distance: " + String.format("%.2f", distanceFeet) + " feet, weapon reach: " + String.format("%.2f", maxReach) + " feet");
             
-            // TODO: Add automatic movement toward target when out of range
+            // Initiate automatic movement toward target
+            initiateMovementToMeleeTarget(attacker, target, meleeWeapon);
             return;
         }
         
@@ -2752,6 +2759,44 @@ public class InputManager {
         attacker.character.startMeleeAttackSequence(attacker, target, gameClock.getCurrentTick(), eventQueue, attacker.getId(), (GameCallbacks) callbacks);
         
         System.out.println("*** " + attacker.character.getDisplayName() + " begins melee attack on " + target.character.getDisplayName() + " with " + meleeWeapon.getName());
+    }
+    
+    /**
+     * Initiate automatic movement toward a melee target that is out of range
+     */
+    private void initiateMovementToMeleeTarget(Unit attacker, Unit target, MeleeWeapon meleeWeapon) {
+        // Calculate optimal approach position within melee range
+        double weaponReach = meleeWeapon.getTotalReach();
+        double approachDistance = weaponReach - 0.5; // Leave 0.5 feet buffer to ensure we're in range
+        
+        // Calculate direction from target to attacker (we want to approach from current position)
+        double dx = attacker.x - target.x;
+        double dy = attacker.y - target.y;
+        double currentDistance = Math.hypot(dx, dy);
+        
+        // Normalize direction vector
+        if (currentDistance > 0) {
+            dx = dx / currentDistance;
+            dy = dy / currentDistance;
+        }
+        
+        // Calculate approach position (move toward target, stopping at weapon range)
+        double approachPixelDistance = approachDistance * 7.0; // Convert feet to pixels
+        double approachX = target.x + (dx * approachPixelDistance);
+        double approachY = target.y + (dy * approachPixelDistance);
+        
+        // Set melee movement state
+        attacker.character.isMovingToMelee = true;
+        attacker.character.meleeTarget = target;
+        
+        // Initiate movement using existing movement system
+        attacker.setTarget(approachX, approachY);
+        
+        // Debug output
+        double targetDistanceFeet = currentDistance / 7.0;
+        System.out.println("*** " + attacker.character.getDisplayName() + " moving to melee range of " + target.character.getDisplayName());
+        System.out.println("*** Approach distance: " + String.format("%.2f", approachDistance) + " feet, current distance: " + String.format("%.2f", targetDistanceFeet) + " feet");
+        System.out.println("*** Target position: (" + String.format("%.0f", approachX) + ", " + String.format("%.0f", approachY) + ")");
     }
     
     /**
