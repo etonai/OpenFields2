@@ -121,7 +121,7 @@ public class CombatResolver {
         double missY = shooter.y + directionY * missDistance;
         
         // Find potential stray targets within danger circle
-        List<Unit> potentialTargets = findPotentialStrayTargets(shooter, target, missX, missY, weapon.maximumRange);
+        List<Unit> potentialTargets = findPotentialStrayTargets(shooter, target, missX, missY, ((RangedWeapon)weapon).getMaximumRange());
         
         // Calculate total stray shot probability based on position states
         double totalProbability = calculateStrayProbability(potentialTargets);
@@ -478,12 +478,14 @@ public class CombatResolver {
     }
     
     /**
-     * Check if target is within melee range of attacker
+     * Check if target is within melee range of attacker using edge-to-edge distance
      */
     public boolean isInMeleeRange(Unit attacker, Unit target, MeleeWeapon weapon) {
-        double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+        double centerToCenter = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+        // Convert to edge-to-edge by subtracting target radius (1.5 feet = 10.5 pixels)
+        double edgeToEdge = centerToCenter - (1.5 * 7.0);
         double pixelRange = weapon.getTotalReach() * 7.0; // Convert feet to pixels (7 pixels = 1 foot)
         
-        return distance <= pixelRange;
+        return edgeToEdge <= pixelRange;
     }
 }

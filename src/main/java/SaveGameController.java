@@ -317,7 +317,7 @@ public class SaveGameController {
             if (unit.character.currentWeaponState != null) {
                 currentWeaponState = unit.character.currentWeaponState.getState();
             }
-            currentFiringMode = unit.character.weapon.currentFiringMode;
+            currentFiringMode = (unit.character.weapon instanceof RangedWeapon) ? ((RangedWeapon)unit.character.weapon).getCurrentFiringMode() : null;
         }
         
         // Find current target ID if targeting someone
@@ -576,8 +576,8 @@ public class SaveGameController {
         unit.isFiringHighlighted = data.isFiringHighlighted;
         
         // Restore weapon firing mode if available
-        if (character.weapon != null && data.currentFiringMode != null) {
-            character.weapon.currentFiringMode = data.currentFiringMode;
+        if (character.weapon != null && data.currentFiringMode != null && character.weapon instanceof RangedWeapon) {
+            ((RangedWeapon)character.weapon).setCurrentFiringMode(data.currentFiringMode);
         }
         
         // Restore automatic targeting setting
@@ -612,8 +612,8 @@ public class SaveGameController {
         unit.isFiringHighlighted = data.isFiringHighlighted;
         
         // Restore weapon firing mode if available (new field, may be null in legacy saves)
-        if (character.weapon != null && data.currentFiringMode != null) {
-            character.weapon.currentFiringMode = data.currentFiringMode;
+        if (character.weapon != null && data.currentFiringMode != null && character.weapon instanceof RangedWeapon) {
+            ((RangedWeapon)character.weapon).setCurrentFiringMode(data.currentFiringMode);
         }
         
         // Restore automatic targeting setting (defaults to false for legacy saves)

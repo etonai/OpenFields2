@@ -118,6 +118,10 @@ public class RangedWeapon extends Weapon {
         return currentFiringMode;
     }
     
+    public void setCurrentFiringMode(FiringMode currentFiringMode) {
+        this.currentFiringMode = currentFiringMode;
+    }
+    
     public List<FiringMode> getAvailableFiringModes() {
         return availableFiringModes;
     }

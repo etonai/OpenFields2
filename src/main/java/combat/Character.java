@@ -906,7 +906,7 @@ public class Character {
                 gameCallbacks.scheduleProjectileImpact(shooter, target, weapon, fireTick, distanceFeet);
                 
                 // Handle burst firing - schedule additional shots immediately after first shot
-                if (weapon.currentFiringMode == FiringMode.BURST && !isAutomaticFiring) {
+                if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getCurrentFiringMode() == FiringMode.BURST && !isAutomaticFiring) {
                     isAutomaticFiring = true;
                     burstShotsFired = 1; // First shot just fired
                     lastAutomaticShot = fireTick;
@@ -914,7 +914,7 @@ public class Character {
                     
                     // Schedule remaining shots in the burst
                     for (int shot = 2; shot <= ((RangedWeapon)weapon).getBurstSize(); shot++) {
-                        long nextShotTick = fireTick + (weapon.cyclicRate * (shot - 1));
+                        long nextShotTick = fireTick + (((RangedWeapon)weapon).getCyclicRate() * (shot - 1));
                         final int shotNumber = shot;
                         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
                             if (currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated() && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
@@ -1087,11 +1087,11 @@ public class Character {
     
     private AimingSpeed determineAimingSpeedForShot() {
         // If no weapon or firing mode, use current aiming speed
-        if (weapon == null || weapon.currentFiringMode == null) {
+        if (weapon == null || !(weapon instanceof RangedWeapon) || ((RangedWeapon)weapon).getCurrentFiringMode() == null) {
             return currentAimingSpeed;
         }
         
-        switch (weapon.currentFiringMode) {
+        switch (((RangedWeapon)weapon).getCurrentFiringMode()) {
             case SINGLE_SHOT:
                 // Single shot always uses current aiming speed
                 return currentAimingSpeed;
@@ -1342,7 +1342,7 @@ public class Character {
             double distance = Math.hypot(dx, dy);
             
             // Check weapon range limitations
-            if (weapon != null && distance / 7.0 > weapon.maximumRange) {
+            if (weapon != null && distance / 7.0 > ((RangedWeapon)weapon).getMaximumRange()) {
                 continue; // Skip targets beyond weapon range
             }
             
@@ -1358,17 +1358,24 @@ public class Character {
     
     private Unit findNearestHostileTargetWithZonePriority(Unit selfUnit, GameCallbacks gameCallbacks) {
         List<Unit> allUnits = gameCallbacks.getUnits();
+        debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " searching " + allUnits.size() + " units for targets...");
         Unit nearestZoneTarget = null;
         Unit nearestGlobalTarget = null;
         double nearestZoneDistance = Double.MAX_VALUE;
         double nearestGlobalDistance = Double.MAX_VALUE;
+        int hostilesFound = 0;
         
         for (Unit unit : allUnits) {
             // Skip self
             if (unit == selfUnit) continue;
             
             // Skip if not hostile (same faction)
-            if (!this.isHostileTo(unit.character)) continue;
+            if (!this.isHostileTo(unit.character)) {
+                debugPrint("[AUTO-TARGET-DEBUG]   " + unit.character.getDisplayName() + " - not hostile (faction " + unit.character.faction + " vs " + this.faction + ")");
+                continue;
+            }
+            
+            hostilesFound++;
             
             // Skip if incapacitated
             if (unit.character.isIncapacitated()) continue;
@@ -1379,7 +1386,7 @@ public class Character {
             double distance = Math.hypot(dx, dy);
             
             // Check weapon range limitations
-            if (weapon != null && distance / 7.0 > weapon.maximumRange) {
+            if (weapon != null && distance / 7.0 > ((RangedWeapon)weapon).getMaximumRange()) {
                 continue; // Skip targets beyond weapon range
             }
             
@@ -1405,7 +1412,10 @@ public class Character {
         }
         
         // Return zone target if available, otherwise global target
-        return nearestZoneTarget != null ? nearestZoneTarget : nearestGlobalTarget;
+        Unit result = nearestZoneTarget != null ? nearestZoneTarget : nearestGlobalTarget;
+        debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " found " + hostilesFound + " hostile units, selected: " + 
+                             (result != null ? result.character.getDisplayName() : "none"));
+        return result;
     }
     
     private void performAutomaticTargetChange(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
@@ -1462,14 +1472,26 @@ public class Character {
         if (!usesAutomaticTargeting) return;
         
         // Skip if character is incapacitated
-        if (this.isIncapacitated()) return;
+        if (this.isIncapacitated()) {
+            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: incapacitated");
+            return;
+        }
         
         // Skip if character has no weapon
-        if (weapon == null) return;
+        if (weapon == null) {
+            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: no weapon");
+            return;
+        }
         
         // Skip if character is already attacking (let existing attack complete)
-        if (isAttacking) return;
+        if (isAttacking) {
+            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: already attacking (weapon state: " + 
+                                 (currentWeaponState != null ? currentWeaponState.getState() : "null") + ")");
+            return;
+        }
         
+        debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " executing automatic targeting (current target: " + 
+                             (currentTarget != null ? currentTarget.character.getDisplayName() : "none") + ")");
         
         // Check if current target is still valid
         boolean currentTargetValid = currentTarget != null 
@@ -1477,6 +1499,7 @@ public class Character {
             && this.isHostileTo(currentTarget.character);
         
         if (!currentTargetValid) {
+            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " current target invalid, searching for new target...");
             // Find a new target with target zone priority
             Unit newTarget = findNearestHostileTargetWithZonePriority(selfUnit, gameCallbacks);
             
@@ -1566,13 +1589,13 @@ public class Character {
     }
     
     private void handleContinuousFiring(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (weapon == null || weapon.currentFiringMode == null) {
+        if (weapon == null || ((RangedWeapon)weapon).getCurrentFiringMode() == null) {
             // Default behavior for weapons without firing modes
             continueStandardAttack(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
             return;
         }
         
-        switch (weapon.currentFiringMode) {
+        switch (((RangedWeapon)weapon).getCurrentFiringMode()) {
             case SINGLE_SHOT:
                 // Single shot mode - use standard firing delay
                 continueStandardAttack(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
@@ -1591,11 +1614,11 @@ public class Character {
     }
     
     private void continueStandardAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (weapon.firingDelay > 0) {
-            long nextAttackTick = currentTick + weapon.firingDelay;
+        if (((RangedWeapon)weapon).getFiringDelay() > 0) {
+            long nextAttackTick = currentTick + ((RangedWeapon)weapon).getFiringDelay();
             eventQueue.add(new ScheduledEvent(nextAttackTick, () -> {
                 if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
-                    System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (single shot) after " + weapon.firingDelay + " tick delay");
+                    System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (single shot) after " + ((RangedWeapon)weapon).getFiringDelay() + " tick delay");
                     isAttacking = true;
                     scheduleAttackFromCurrentState(shooter, currentTarget, nextAttackTick, eventQueue, ownerId, gameCallbacks);
                 }
@@ -1618,18 +1641,18 @@ public class Character {
             if (remainingShots > 0) {
                 // Schedule next burst after current burst completes + firing delay
                 // Full burst duration = (burstSize - 1) * cyclicRate + firing delay
-                long fullBurstDuration = (((RangedWeapon)weapon).getBurstSize() - 1) * weapon.cyclicRate;
-                long nextBurstTick = lastAutomaticShot + fullBurstDuration + weapon.firingDelay;
+                long fullBurstDuration = (((RangedWeapon)weapon).getBurstSize() - 1) * ((RangedWeapon)weapon).getCyclicRate();
+                long nextBurstTick = lastAutomaticShot + fullBurstDuration + ((RangedWeapon)weapon).getFiringDelay();
                 
                 // Ensure we don't schedule in the past
                 if (nextBurstTick <= currentTick) {
-                    nextBurstTick = currentTick + weapon.firingDelay;
+                    nextBurstTick = currentTick + ((RangedWeapon)weapon).getFiringDelay();
                 }
                 
                 final long finalNextBurstTick = nextBurstTick;
                 eventQueue.add(new ScheduledEvent(finalNextBurstTick, () -> {
                     if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
-                        System.out.println(getDisplayName() + " starting next burst for auto targeting after " + weapon.firingDelay + " tick delay");
+                        System.out.println(getDisplayName() + " starting next burst for auto targeting after " + ((RangedWeapon)weapon).getFiringDelay() + " tick delay");
                         isAttacking = true;
                         startAttackSequence(shooter, currentTarget, finalNextBurstTick, eventQueue, ownerId, gameCallbacks);
                     }
@@ -1664,7 +1687,7 @@ public class Character {
         }
         
         // Schedule next shot at cyclic rate
-        long nextShotTick = currentTick + weapon.cyclicRate;
+        long nextShotTick = currentTick + ((RangedWeapon)weapon).getCyclicRate();
         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
             if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
                 System.out.println(getDisplayName() + " continues full-auto firing at " + currentTarget.character.getDisplayName() + " (shot " + (burstShotsFired + 1) + ")");
@@ -1747,20 +1770,20 @@ public class Character {
     
     // Firing mode management
     public void cycleFiringMode() {
-        if (weapon != null) {
-            weapon.cycleFiringMode();
+        if (weapon != null && weapon instanceof RangedWeapon) {
+            ((RangedWeapon)weapon).cycleFiringMode();
         }
     }
     
     public String getCurrentFiringMode() {
-        if (weapon != null) {
-            return weapon.getFiringModeDisplayName();
+        if (weapon != null && weapon instanceof RangedWeapon) {
+            return ((RangedWeapon)weapon).getFiringModeDisplayName();
         }
         return "N/A";
     }
     
     public boolean hasMultipleFiringModes() {
-        return weapon != null && weapon.hasMultipleFiringModes();
+        return weapon != null && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).hasMultipleFiringModes();
     }
     
     // Hesitation mechanics
@@ -1967,5 +1990,23 @@ public class Character {
         double pixelRange = weapon.getTotalReach() * 7.0; // Convert feet to pixels (7 pixels = 1 foot)
         
         return edgeToEdge <= pixelRange;
+    }
+    
+    /**
+     * Helper method to print debug messages only when debug mode is enabled.
+     * Uses reflection to access GameRenderer.isDebugMode() from the default package.
+     */
+    private void debugPrint(String message) {
+        try {
+            Class<?> gameRendererClass = Class.forName("GameRenderer");
+            java.lang.reflect.Method isDebugModeMethod = gameRendererClass.getMethod("isDebugMode");
+            boolean isDebugMode = (Boolean) isDebugModeMethod.invoke(null);
+            if (isDebugMode) {
+                System.out.println(message);
+            }
+        } catch (Exception e) {
+            // If reflection fails, silently skip debug output
+            // This prevents crashes if GameRenderer class structure changes
+        }
     }
 }

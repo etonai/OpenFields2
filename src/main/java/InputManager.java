@@ -387,7 +387,7 @@ public class InputManager {
                                          String.format("%.2f", distanceFeet) + " feet");
                         
                         if (selected.character.weapon != null) {
-                            double maxRange = selected.character.weapon.maximumRange;
+                            double maxRange = (selected.character.weapon instanceof RangedWeapon) ? ((RangedWeapon)selected.character.weapon).getMaximumRange() : 0.0;
                             System.out.println("Weapon: " + selected.character.weapon.name + " (max range: " + 
                                              String.format("%.2f", maxRange) + " feet)");
                             
@@ -682,8 +682,8 @@ public class InputManager {
                     System.out.println("Type: " + selected.character.weapon.weaponType.getDisplayName());
                     System.out.println("Damage: " + selected.character.weapon.damage);
                     System.out.println("Accuracy: " + selected.character.weapon.weaponAccuracy);
-                    System.out.println("Max Range: " + selected.character.weapon.maximumRange + " feet");
-                    System.out.println("Velocity: " + selected.character.weapon.velocityFeetPerSecond + " feet/second");
+                    System.out.println("Max Range: " + ((selected.character.weapon instanceof RangedWeapon) ? ((RangedWeapon)selected.character.weapon).getMaximumRange() : "N/A") + " feet");
+                    System.out.println("Velocity: " + ((selected.character.weapon instanceof RangedWeapon) ? ((RangedWeapon)selected.character.weapon).getVelocityFeetPerSecond() : "N/A") + " feet/second");
                     System.out.println("Ammunition: " + (selected.character.weapon instanceof RangedWeapon ? ((RangedWeapon)selected.character.weapon).getAmmunition() + "/" + ((RangedWeapon)selected.character.weapon).getMaxAmmunition() : "N/A"));
                     System.out.println("Current State: " + (selected.character.currentWeaponState != null ? selected.character.currentWeaponState.getState() : "None"));
                 } else {

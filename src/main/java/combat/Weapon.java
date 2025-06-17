@@ -17,13 +17,7 @@ public abstract class Weapon {
     public List<WeaponState> states;
     public String initialStateName;
     
-    // Legacy fields for backward compatibility - will be moved to subclasses later
-    public double velocityFeetPerSecond;
-    public double maximumRange;
-    public int firingDelay;
-    public FiringMode currentFiringMode;
-    public List<FiringMode> availableFiringModes;
-    public int cyclicRate;
+    // Note: Ranged-weapon-specific fields have been moved to RangedWeapon class to eliminate duplication
 
     /**
      * Base constructor for all weapons
@@ -101,35 +95,10 @@ public abstract class Weapon {
         }
     }
     
-    // Legacy methods for backward compatibility
-    public double getVelocityFeetPerSecond() {
-        return velocityFeetPerSecond;
-    }
     
     public String getProjectileName() {
         return "projectile"; // Default for base class, overridden in subclasses
     }
     
     
-    public void cycleFiringMode() {
-        if (availableFiringModes != null && availableFiringModes.size() > 1) {
-            int currentIndex = availableFiringModes.indexOf(currentFiringMode);
-            int nextIndex = (currentIndex + 1) % availableFiringModes.size();
-            currentFiringMode = availableFiringModes.get(nextIndex);
-        }
-    }
-    
-    public boolean hasMultipleFiringModes() {
-        return availableFiringModes != null && availableFiringModes.size() > 1;
-    }
-    
-    public String getFiringModeDisplayName() {
-        if (currentFiringMode == null) return "Unknown";
-        switch (currentFiringMode) {
-            case SINGLE_SHOT: return "Single";
-            case BURST: return "Burst";
-            case FULL_AUTO: return "Auto";
-            default: return "Unknown";
-        }
-    }
 }

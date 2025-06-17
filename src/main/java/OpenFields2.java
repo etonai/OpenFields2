@@ -711,8 +711,8 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     }
     
     public void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
-        long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
-        HitResult hitResult = determineHit(shooter, target, distanceFeet, weapon.maximumRange, weapon.weaponAccuracy, weapon.damage);
+        long impactTick = fireTick + Math.round(distanceFeet / ((RangedWeapon)weapon).getVelocityFeetPerSecond() * 60);
+        HitResult hitResult = determineHit(shooter, target, distanceFeet, ((RangedWeapon)weapon).getMaximumRange(), weapon.weaponAccuracy, weapon.damage);
         if (GameRenderer.isDebugMode()) {
             System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
         }
@@ -842,7 +842,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         double missY = shooter.y + directionY * missDistance;
         
         // Find potential stray targets within a cone area
-        List<Unit> potentialTargets = findPotentialStrayTargets(shooter, target, missX, missY, weapon.maximumRange);
+        List<Unit> potentialTargets = findPotentialStrayTargets(shooter, target, missX, missY, ((RangedWeapon)weapon).getMaximumRange());
         
         // Check each potential target for stray hits
         for (Unit strayTarget : potentialTargets) {
