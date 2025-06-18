@@ -108,6 +108,27 @@ public final class GameConstants {
         return modifiers[stat];
     }
     
+    /**
+     * Get specialized strength damage bonus for melee combat.
+     * Uses a balanced range of -10 to +15 damage modifier applied after wound severity.
+     * More conservative than general stat modifiers to maintain combat balance.
+     */
+    public static int getStrengthDamageBonus(int strength) {
+        // Clamp strength to valid range
+        strength = Math.max(1, Math.min(100, strength));
+        
+        // Balanced strength damage bonuses for scaled damage system
+        if (strength >= 91) return 15;     // +15 damage max
+        if (strength >= 81) return 10;     // +10 damage
+        if (strength >= 71) return 7;      // +7 damage  
+        if (strength >= 61) return 5;      // +5 damage
+        if (strength >= 41) return 0;      // No bonus
+        if (strength >= 31) return -2;     // -2 damage
+        if (strength >= 21) return -5;     // -5 damage
+        if (strength >= 11) return -7;     // -7 damage
+        return -10;                        // -10 damage min
+    }
+    
     // Private constructor to prevent instantiation
     private GameConstants() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");

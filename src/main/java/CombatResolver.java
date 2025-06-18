@@ -404,17 +404,17 @@ public class CombatResolver {
             int weaponDamage = weapon.getDamage();
             int scaledDamage = CombatCalculator.calculateActualDamage(weaponDamage, woundSeverity, hitLocation);
             
-            // Add strength modifier to the scaled damage
-            int strengthModifier = GameConstants.statToModifier(attacker.character.strength);
-            int actualDamage = Math.max(1, scaledDamage + strengthModifier);
+            // Add strength damage bonus to the scaled damage (applied after wound severity)
+            int strengthBonus = GameConstants.getStrengthDamageBonus(attacker.character.strength);
+            int actualDamage = Math.max(1, scaledDamage + strengthBonus);
             
             if (debugMode) {
                 System.out.println("Base Weapon Damage: " + weaponDamage);
                 System.out.println("Hit Location: " + hitLocation.name().toLowerCase());
                 System.out.println("Wound Severity: " + woundSeverity.name().toLowerCase());
                 System.out.println("Scaled Damage (after wound severity): " + scaledDamage);
-                System.out.println("Attacker Strength: " + attacker.character.strength + " (modifier: " + strengthModifier + ")");
-                System.out.println("Final Damage: " + scaledDamage + " + " + strengthModifier + " = " + actualDamage);
+                System.out.println("Attacker Strength: " + attacker.character.strength + " (bonus: " + strengthBonus + ")");
+                System.out.println("Final Damage: " + scaledDamage + " + " + strengthBonus + " = " + actualDamage);
             }
             
             // Create hit result
