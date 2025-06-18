@@ -6,6 +6,7 @@
 import combat.*;
 import data.SkillsManager;
 import game.Unit;
+import utils.GameConstants;
 import java.util.List;
 
 public final class CombatCalculator {

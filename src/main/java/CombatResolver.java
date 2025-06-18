@@ -6,6 +6,7 @@
 import combat.*;
 import game.Unit;
 import game.ScheduledEvent;
+import utils.GameConstants;
 import javafx.scene.paint.Color;
 import java.util.ArrayList;
 import java.util.List;
@@ -404,7 +405,7 @@ public class CombatResolver {
             int scaledDamage = CombatCalculator.calculateActualDamage(weaponDamage, woundSeverity, hitLocation);
             
             // Add strength modifier to the scaled damage
-            int strengthModifier = getStatModifier(attacker.character.strength);
+            int strengthModifier = GameConstants.statToModifier(attacker.character.strength);
             int actualDamage = Math.max(1, scaledDamage + strengthModifier);
             
             if (debugMode) {
@@ -444,7 +445,7 @@ public class CombatResolver {
         }
         
         // Base hit chance calculation
-        int attackerDexterity = getStatModifier(attacker.character.dexterity);
+        int attackerDexterity = GameConstants.statToModifier(attacker.character.dexterity);
         int weaponAccuracy = weapon.getWeaponAccuracy();
         
         // Get weapon skill bonus (pistol/rifle skills don't apply to melee)
@@ -457,7 +458,7 @@ public class CombatResolver {
         int attackModifier = attackerDexterity + weaponAccuracy + skillBonus - movementPenalty;
         
         // Target defense (simplified - no active defense in basic implementation)
-        int targetDefense = getStatModifier(target.character.dexterity);
+        int targetDefense = GameConstants.statToModifier(target.character.dexterity);
         
         // Base hit chance (60%) + modifiers
         int hitChance = 60 + attackModifier - targetDefense;
@@ -489,20 +490,6 @@ public class CombatResolver {
         return hits;
     }
     
-    /**
-     * Get stat modifier for given stat value (same as ranged combat)
-     */
-    private int getStatModifier(int statValue) {
-        if (statValue >= 91) return 20;
-        if (statValue >= 81) return 15;
-        if (statValue >= 71) return 10;
-        if (statValue >= 61) return 5;
-        if (statValue >= 41) return 0;
-        if (statValue >= 31) return -5;
-        if (statValue >= 21) return -10;
-        if (statValue >= 11) return -15;
-        return -20;
-    }
     
     /**
      * Get movement penalty based on character's current movement
