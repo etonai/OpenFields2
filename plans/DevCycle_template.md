@@ -1,5 +1,5 @@
 # [Title] - DevCycle YYYY_NNNN
-*Created: [Date] at [Time] | Last Design Update: [Date] at [Time] | Implementation Status: [Status]*
+*Created: [Date] at [Time] | Last Design Update: [Date] at [Time] | Last Implementation Update: [Date] at [Time] | Implementation Status: [Status]*
 
 ## Overview
 [Brief description of the development cycle's main objectives and scope]

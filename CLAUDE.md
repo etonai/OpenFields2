@@ -109,6 +109,14 @@ mvn javafx:run                # Run the JavaFX application
 - **Tick-based timing**: 60 ticks per second, events scheduled by tick number
 - **Canvas rendering**: Custom 2D graphics with zoom/pan support
 
+## Documentation Conventions
+
+### EDNOTE Convention
+- **EDNOTE**: Prefix used for notes from the project owner (Edward T. Tonai) in planning and brainstorming documents
+- **Usage**: `EDNOTE: [note content]` - provides clarification, preferences, or additional context for development decisions
+- **Purpose**: Distinguishes owner notes from analysis or generated content, helping maintain clear communication in collaborative planning
+- **Location**: Typically found in planning documents (`plans/` directory) and brainstorming files
+
 ## Legal Framework
 
 - **License**: MIT License - see LICENSE file for full text
