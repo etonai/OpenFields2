@@ -14,7 +14,8 @@
       "attackCooldown": 60,
       "readyingTime": 45,
       "isOneHanded": true,
-      "isMeleeVersionOfRanged": false
+      "isMeleeVersionOfRanged": false,
+      "projectileName": "knife strike"
     },
     "mel_cavalry_sabre": {
       "id": "mel_cavalry_sabre",
@@ -30,7 +31,8 @@
       "attackCooldown": 90,
       "readyingTime": 75,
       "isOneHanded": true,
-      "isMeleeVersionOfRanged": false
+      "isMeleeVersionOfRanged": false,
+      "projectileName": "sabre slash"
     },
     "mel_bayonet": {
       "id": "mel_bayonet",
@@ -46,7 +48,8 @@
       "attackCooldown": 110,
       "readyingTime": 90,
       "isOneHanded": false,
-      "isMeleeVersionOfRanged": true
+      "isMeleeVersionOfRanged": true,
+      "projectileName": "bayonet thrust"
     },
     "mel_tomahawk": {
       "id": "mel_tomahawk",
@@ -62,7 +65,8 @@
       "attackCooldown": 100,
       "readyingTime": 75,
       "isOneHanded": true,
-      "isMeleeVersionOfRanged": false
+      "isMeleeVersionOfRanged": false,
+      "projectileName": "tomahawk strike"
     },
     "mel_officers_sword": {
       "id": "mel_officers_sword",
@@ -78,7 +82,8 @@
       "attackCooldown": 85,
       "readyingTime": 75,
       "isOneHanded": true,
-      "isMeleeVersionOfRanged": false
+      "isMeleeVersionOfRanged": false,
+      "projectileName": "officer's blade"
     }
   }
 }

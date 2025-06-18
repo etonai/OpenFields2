@@ -47,7 +47,7 @@
       "projectileName": "plasma bolt",
       "soundFile": "/placeholder_laser.wav",
       "maximumRange": 500.0,
-      "weaponAccuracy": 20,
+      "weaponAccuracy": 10,
       "firingDelay": 10,
       "weaponLength": 1.0
     },
