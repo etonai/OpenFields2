@@ -22,7 +22,7 @@
       "type": "MELEE_SHORT",
       "damage": 6,
       "soundFile": "/magic.wav",
-      "weaponLength": 8.5,
+      "weaponLength": 1.5,
       "weaponAccuracy": 15,
       "meleeType": "SHORT",
       "defendScore": 40,
