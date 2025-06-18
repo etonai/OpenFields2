@@ -1,6 +1,6 @@
-# DevCycle 2025_0010 Brainstorm - Scenario Systems & Character Progression
+# DevCycle 2025_0012 Brainstorm - Scenario Systems & Character Progression
 *Created: June 16, 2025*
-*Moved from DevCycle 9 brainstorm - focusing Dev Cycle 9 on Melee Combat only*
+*Moved from DevCycle 9 and 11 brainstorm - focusing Dev Cycle 9 on Melee Combat only*
 
 ## **DevCycle 10 - Scenario System Foundation**
 **Focus**: Large-scale battle scenarios and battle management systems
