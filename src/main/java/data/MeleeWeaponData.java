@@ -47,6 +47,9 @@ public class MeleeWeaponData {
     @JsonProperty("isMeleeVersionOfRanged")
     public boolean isMeleeVersionOfRanged;
     
+    @JsonProperty("projectileName")
+    public String projectileName;
+    
     public MeleeWeaponData() {
         // Default constructor for Jackson
     }
@@ -54,7 +57,7 @@ public class MeleeWeaponData {
     public MeleeWeaponData(String id, String name, WeaponType type, int damage, String soundFile, 
                           double weaponLength, int weaponAccuracy, MeleeWeaponType meleeType, 
                           int defendScore, int attackSpeed, int attackCooldown, int readyingTime, 
-                          boolean isOneHanded, boolean isMeleeVersionOfRanged) {
+                          boolean isOneHanded, boolean isMeleeVersionOfRanged, String projectileName) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -69,5 +72,6 @@ public class MeleeWeaponData {
         this.readyingTime = readyingTime;
         this.isOneHanded = isOneHanded;
         this.isMeleeVersionOfRanged = isMeleeVersionOfRanged;
+        this.projectileName = projectileName;
     }
 }

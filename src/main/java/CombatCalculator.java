@@ -386,6 +386,14 @@ public final class CombatCalculator {
     }
     
     public static int calculateActualDamage(int weaponDamage, WoundSeverity woundSeverity, BodyPart hitLocation) {
+        // Add debug output to match ranged combat debugging
+        if (GameRenderer.isDebugMode()) {
+            System.out.println("=== RANGED DAMAGE CALCULATION DEBUG ===");
+            System.out.println("Weapon damage: " + weaponDamage);
+            System.out.println("Wound severity: " + woundSeverity);
+            System.out.println("Hit location: " + (hitLocation != null ? hitLocation : "unknown"));
+        }
+        
         int baseDamage;
         switch (woundSeverity) {
             case CRITICAL:
@@ -406,6 +414,11 @@ public final class CombatCalculator {
         if (hitLocation == BodyPart.HEAD) {
             // Headshots deal 1.5x damage (50% more damage)
             baseDamage = Math.round(baseDamage * 1.5f);
+        }
+        
+        if (GameRenderer.isDebugMode()) {
+            System.out.println("Scaled damage: " + baseDamage);
+            System.out.println("=========================================");
         }
         
         return baseDamage;

@@ -29,7 +29,16 @@ public class CombatResolver {
             WoundSeverity woundSeverity = hitResult.getWoundSeverity();
             int actualDamage = hitResult.getActualDamage();
             
-            System.out.println(">>> " + weapon.getProjectileName() + " hit " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick);
+            // Generate weapon-type aware combat message
+            String combatMessage;
+            if (weapon instanceof MeleeWeapon) {
+                // Melee weapons use action verbs: "strikes", "slashes", etc.
+                combatMessage = ">>> " + weapon.getName() + " strikes " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick;
+            } else {
+                // Ranged weapons use projectile language: "projectile hit"
+                combatMessage = ">>> " + weapon.getProjectileName() + " hit " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick;
+            }
+            System.out.println(combatMessage);
             System.out.println(">>> " + target.character.getDisplayName() + " takes " + actualDamage + " damage");
             
             // Track successful attack
@@ -64,11 +73,23 @@ public class CombatResolver {
             target.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId, actualDamage), impactTick, eventQueue, target.getId());
             System.out.println(">>> " + target.character.getDisplayName() + " current health: " + target.character.currentHealth + "/" + target.character.health);
             
-            // Trigger bravery check for the target when wounded
-            target.character.performBraveryCheck(impactTick, eventQueue, target.getId(), "wounded by " + weapon.getProjectileName());
+            // Trigger bravery check for the target when wounded (weapon-type aware)
+            String braveryReason;
+            if (weapon instanceof MeleeWeapon) {
+                braveryReason = "wounded by " + weapon.getName();
+            } else {
+                braveryReason = "wounded by " + weapon.getProjectileName();
+            }
+            target.character.performBraveryCheck(impactTick, eventQueue, target.getId(), braveryReason);
             
-            // Trigger bravery checks for allies within 30 feet
-            triggerAllyBraveryChecks(target, impactTick, weapon.getProjectileName());
+            // Trigger bravery checks for allies within 30 feet (weapon-type aware)
+            String allyBraveryContext;
+            if (weapon instanceof MeleeWeapon) {
+                allyBraveryContext = weapon.getName();
+            } else {
+                allyBraveryContext = weapon.getProjectileName();
+            }
+            triggerAllyBraveryChecks(target, impactTick, allyBraveryContext);
             
             // Check for incapacitation
             boolean wasIncapacitated = target.character.isIncapacitated();
@@ -370,26 +391,33 @@ public class CombatResolver {
                 System.out.println("=== MELEE DAMAGE CALCULATION DEBUG ===");
             }
             
-            // Calculate damage
-            int baseDamage = weapon.getDamage();
-            int strengthModifier = getStatModifier(attacker.character.strength);
-            int actualDamage = Math.max(1, baseDamage + strengthModifier);
-            
-            if (debugMode) {
-                System.out.println("Base Weapon Damage: " + baseDamage);
-                System.out.println("Attacker Strength: " + attacker.character.strength + " (modifier: " + strengthModifier + ")");
-                System.out.println("Total Damage: " + baseDamage + " + " + strengthModifier + " = " + actualDamage);
-            }
-            
-            // Determine hit location (simplified for basic implementation)
+            // Determine hit location first (needed for wound severity calculation)
             BodyPart hitLocation = determineHitLocation();
             
+            // Determine wound severity (like ranged combat does)
+            double hitQuality = Math.random() * 100; // Random roll for wound severity
+            double chanceToHit = 100.0; // Assume 100% since we already hit
+            WoundSeverity woundSeverity = CombatCalculator.determineWoundSeverity(hitQuality, chanceToHit, hitLocation);
+            
+            // Calculate base weapon damage with wound severity scaling (like ranged combat)
+            int weaponDamage = weapon.getDamage();
+            int scaledDamage = CombatCalculator.calculateActualDamage(weaponDamage, woundSeverity, hitLocation);
+            
+            // Add strength modifier to the scaled damage
+            int strengthModifier = getStatModifier(attacker.character.strength);
+            int actualDamage = Math.max(1, scaledDamage + strengthModifier);
+            
             if (debugMode) {
+                System.out.println("Base Weapon Damage: " + weaponDamage);
                 System.out.println("Hit Location: " + hitLocation.name().toLowerCase());
+                System.out.println("Wound Severity: " + woundSeverity.name().toLowerCase());
+                System.out.println("Scaled Damage (after wound severity): " + scaledDamage);
+                System.out.println("Attacker Strength: " + attacker.character.strength + " (modifier: " + strengthModifier + ")");
+                System.out.println("Final Damage: " + scaledDamage + " + " + strengthModifier + " = " + actualDamage);
             }
             
             // Create hit result
-            HitResult hitResult = new HitResult(true, hitLocation, WoundSeverity.LIGHT, actualDamage);
+            HitResult hitResult = new HitResult(true, hitLocation, woundSeverity, actualDamage);
             
             // Apply damage and wound
             resolveCombatImpact(attacker, target, weapon, attackTick, hitResult);

@@ -16,6 +16,7 @@ public abstract class Weapon {
     public WeaponType weaponType;
     public List<WeaponState> states;
     public String initialStateName;
+    protected String projectileName; // Projectile name for combat messages
     
     // Note: Ranged-weapon-specific fields have been moved to RangedWeapon class to eliminate duplication
 
@@ -29,6 +30,7 @@ public abstract class Weapon {
         this.weaponLength = weaponLength;
         this.weaponAccuracy = weaponAccuracy;
         this.weaponType = weaponType;
+        this.projectileName = "projectile"; // Default value
     }
 
     // Common getter methods
@@ -97,7 +99,11 @@ public abstract class Weapon {
     
     
     public String getProjectileName() {
-        return "projectile"; // Default for base class, overridden in subclasses
+        return projectileName != null ? projectileName : "projectile";
+    }
+    
+    public void setProjectileName(String projectileName) {
+        this.projectileName = projectileName;
     }
     
     

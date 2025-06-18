@@ -303,6 +303,12 @@ public class Character {
             meleeTarget = null;
         }
         
+        // Cancel any ongoing attacks when switching modes
+        if (isAttacking) {
+            isAttacking = false;
+            debugPrint("[COMBAT-MODE] Cancelled ongoing attack due to mode switch");
+        }
+        
         boolean oldMode = isMeleeCombatMode;
         isMeleeCombatMode = !isMeleeCombatMode;
         
@@ -344,6 +350,13 @@ public class Character {
             isMovingToMelee = false;
             meleeTarget = null;
         }
+        
+        // Cancel any ongoing attacks when switching modes
+        if (isAttacking) {
+            isAttacking = false;
+            debugPrint("[COMBAT-MODE] Cancelled ongoing attack due to mode switch");
+        }
+        
         isMeleeCombatMode = meleeMode;
     }
     
@@ -1693,8 +1706,28 @@ public class Character {
                                  newTarget.character.getDisplayName() + " at distance " + 
                                  String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
                 
-                // Start attack sequence
-                startAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
+                // Start attack sequence - check combat mode to determine attack type
+                if (isMeleeCombatMode() && meleeWeapon != null) {
+                    debugPrint("[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
+                    // Check if already in melee range
+                    double distance = Math.hypot(newTarget.x - selfUnit.x, newTarget.y - selfUnit.y);
+                    double meleeRangePixels = meleeWeapon.getTotalReach() * 7.0; // Convert feet to pixels
+                    
+                    if (distance <= meleeRangePixels) {
+                        // Already in range, attack immediately
+                        startMeleeAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
+                    } else {
+                        // Move to melee range first
+                        debugPrint("[AUTO-TARGET] " + getDisplayName() + " moving to melee range (current distance: " + String.format("%.1f", distance/7.0) + " feet, need: " + meleeWeapon.getTotalReach() + " feet)");
+                        // Set melee movement target - the updateMeleeMovement method will handle the attack when in range
+                        isMovingToMelee = true;
+                        meleeTarget = newTarget;
+                        lastMeleeMovementUpdate = currentTick;
+                    }
+                } else {
+                    debugPrint("[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
+                    startAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
+                }
             } else {
                 // No targets found - disable persistent attack but maintain weapon direction
                 if (persistentAttack) {

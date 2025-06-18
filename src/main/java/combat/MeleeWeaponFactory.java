@@ -138,6 +138,11 @@ public class MeleeWeaponFactory {
             data.weaponAccuracy
         );
         
+        // Set projectile name if provided in JSON
+        if (data.projectileName != null && !data.projectileName.isEmpty()) {
+            weapon.setProjectileName(data.projectileName);
+        }
+        
         // Load weapon states from the weapon type definition (critical for melee combat state management)
         WeaponType weaponType = getWeaponTypeForMeleeType(data.meleeType);
         WeaponTypeData weaponTypeData = dataManager.getWeaponType(weaponType);

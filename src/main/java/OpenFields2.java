@@ -140,7 +140,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     private InputManager inputManager;
     
     private boolean paused = true;
-    private static int stressModifier = -20;
+    private static int stressModifier = -40;
     private final GameClock gameClock = new GameClock();
     private final java.util.PriorityQueue<ScheduledEvent> eventQueue = new java.util.PriorityQueue<>();
     private AudioClip gunshotSound;
