@@ -93,7 +93,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null, // No theme
             85, // High dexterity
-            9, 
+            100, 
             80, // High coolness
             60,
             90, // High reflexes
@@ -120,7 +120,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             75,
-            15, // High health
+            100, // Base health
             70,
             80, // High strength
             70,
@@ -146,7 +146,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             80, // Good dexterity for medical work
-            12,
+            100,
             85, // High coolness under pressure
             65,
             75,
@@ -172,7 +172,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             90, // Very high dexterity
-            11,
+            100,
             75,
             70,
             85, // High reflexes
@@ -199,7 +199,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             95, // Excellent dexterity
-            8,
+            100,
             85, // High coolness
             65,
             80,
@@ -225,7 +225,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             70,
-            18, // Very high health
+            100, // Base health
             60,
             90, // Very high strength
             75,
@@ -254,7 +254,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             75, // Balanced stats
-            12,
+            100,
             75,
             75,
             75,
@@ -271,7 +271,7 @@ public class CharacterFactory {
     private static Character createWeightedRandom() {
         // Generate two sets of random stats and average them for more balanced results
         int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
-        int health1 = random.nextInt(14) + 7, health2 = random.nextInt(14) + 7; // Health between 7-20
+        int health1 = 100, health2 = 100; // Health base 100 consistent with character stats
         int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
         int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
         int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
@@ -315,7 +315,7 @@ public class CharacterFactory {
     private static Character createConfederateSoldier() {
         // Use the same random stat generation as weighted_random
         int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
-        int health1 = random.nextInt(14) + 7, health2 = random.nextInt(14) + 7; // Health between 7-20
+        int health1 = 100, health2 = 100; // Health base 100 consistent with character stats
         int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
         int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
         int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
@@ -358,7 +358,7 @@ public class CharacterFactory {
     private static Character createUnionSoldier() {
         // Use the same random stat generation as weighted_random
         int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
-        int health1 = random.nextInt(14) + 7, health2 = random.nextInt(14) + 7; // Health between 7-20
+        int health1 = 100, health2 = 100; // Health base 100 consistent with character stats
         int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
         int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
         int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
