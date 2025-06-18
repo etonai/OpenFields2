@@ -27,6 +27,9 @@ public class MeleeWeapon extends Weapon {
         this.readyingTime = readyingTime;
         this.isOneHanded = isOneHanded;
         this.isMeleeVersionOfRanged = isMeleeVersionOfRanged;
+        
+        // Debug output for range validation
+        debugPrint("[MELEE-RANGE] " + name + " (" + meleeType + ") total reach: " + String.format("%.1f", getTotalReach()) + " feet (4.0 base + " + String.format("%.1f", weaponLength) + " weapon)");
     }
     
     /**
@@ -41,6 +44,9 @@ public class MeleeWeapon extends Weapon {
         
         // Set default values based on weapon type
         setDefaultValuesForType(meleeType);
+        
+        // Debug output for range validation
+        debugPrint("[MELEE-RANGE] " + name + " (" + meleeType + ") total reach: " + String.format("%.1f", getTotalReach()) + " feet (4.0 base + " + String.format("%.1f", weaponRange) + " weapon)");
     }
     
     /**
@@ -149,10 +155,12 @@ public class MeleeWeapon extends Weapon {
     }
     
     /**
-     * Calculate total reach including character radius (1.5 feet) + weapon range
+     * Calculate total reach including minimum engagement range + weapon length.
+     * Uses 4-foot minimum to account for combat stance, character reach, and tactical positioning.
+     * This provides realistic melee combat distances and ensures weapon viability.
      */
     public double getTotalReach() {
-        return 1.5 + weaponRange; // Character radius + weapon range
+        return 4.0 + weaponRange; // Minimum engagement range + weapon length
     }
     
     /**
@@ -167,6 +175,22 @@ public class MeleeWeapon extends Weapon {
      */
     public boolean isInRange(double distanceToTarget) {
         return distanceToTarget <= getTotalReach();
+    }
+    
+    /**
+     * Debug print helper that only outputs when in debug mode
+     */
+    private void debugPrint(String message) {
+        try {
+            Class<?> gameRendererClass = Class.forName("GameRenderer");
+            java.lang.reflect.Method isDebugModeMethod = gameRendererClass.getMethod("isDebugMode");
+            boolean isDebugMode = (Boolean) isDebugModeMethod.invoke(null);
+            if (isDebugMode) {
+                System.out.println(message);
+            }
+        } catch (Exception e) {
+            // Silent fail for safety
+        }
     }
     
     /**

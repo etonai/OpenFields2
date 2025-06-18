@@ -302,7 +302,37 @@ public class Character {
             isMovingToMelee = false;
             meleeTarget = null;
         }
+        
+        boolean oldMode = isMeleeCombatMode;
         isMeleeCombatMode = !isMeleeCombatMode;
+        
+        // ALWAYS PRINT for diagnosis
+        System.out.println("[COMBAT-MODE] " + getDisplayName() + " toggling from " + (oldMode ? "MELEE" : "RANGED") + " to " + (isMeleeCombatMode ? "MELEE" : "RANGED"));
+        System.out.println("[COMBAT-MODE] Melee weapon: " + (meleeWeapon != null ? meleeWeapon.getName() : "null"));
+        System.out.println("[COMBAT-MODE] Ranged weapon: " + (rangedWeapon != null ? rangedWeapon.getName() : "null"));
+        
+        if (meleeWeapon != null) {
+            System.out.println("[COMBAT-MODE] Melee weapon reach: " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet");
+        }
+        
+        // Ensure character has a melee weapon when switching to melee mode
+        if (isMeleeCombatMode && meleeWeapon == null) {
+            System.out.println("[COMBAT-MODE] No melee weapon assigned - creating default unarmed weapon");
+            meleeWeapon = MeleeWeaponFactory.createUnarmed();
+            System.out.println("[COMBAT-MODE] Assigned unarmed weapon: " + meleeWeapon.getName() + " (reach: " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet)");
+        }
+        
+        // Initialize weapon state to melee weapon's initial state when switching to melee mode
+        if (isMeleeCombatMode && meleeWeapon != null) {
+            WeaponState meleeInitialState = meleeWeapon.getInitialState();
+            if (meleeInitialState != null) {
+                WeaponState oldState = currentWeaponState;
+                currentWeaponState = meleeInitialState;
+                System.out.println("[COMBAT-MODE] Reset weapon state from " + (oldState != null ? oldState.state : "null") + " to " + meleeInitialState.state + " (melee initial state)");
+            } else {
+                System.out.println("[COMBAT-MODE] WARNING: Melee weapon has no initial state defined");
+            }
+        }
     }
     
     /**
@@ -780,11 +810,29 @@ public class Character {
      * Start melee attack sequence from current weapon state
      */
     public void startMeleeAttackSequence(Unit attacker, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (meleeWeapon == null) return;
+        System.out.println("[MELEE-ATTACK] " + getDisplayName() + " startMeleeAttackSequence called");
+        System.out.println("[MELEE-ATTACK] Current tick: " + currentTick + ", Target: " + target.character.getDisplayName());
+        
+        if (meleeWeapon == null) {
+            System.out.println("[MELEE-ATTACK] FAILED - no melee weapon equipped");
+            return;
+        }
+        
+        System.out.println("[MELEE-ATTACK] Weapon: " + meleeWeapon.getName() + " (reach: " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet)");
+        System.out.println("[MELEE-ATTACK] Current weapon state: " + (currentWeaponState != null ? currentWeaponState.state : "null"));
+        System.out.println("[MELEE-ATTACK] Is attacking: " + isAttacking);
+        System.out.println("[MELEE-ATTACK] Is incapacitated: " + isIncapacitated());
         
         // Check if target is within melee range using edge-to-edge calculation
+        double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+        double distanceFeet = distance / 7.0;
+        
+        System.out.println("[MELEE-ATTACK] Distance check: " + String.format("%.2f", distanceFeet) + " feet");
+        
         if (!isInMeleeRange(attacker, target, meleeWeapon)) {
             // Target is out of range - move towards target
+            System.out.println("[MELEE-ATTACK] FAILED - target out of range: " + String.format("%.2f", distanceFeet) + " feet (need " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet)");
+            System.out.println("[MELEE-ATTACK] Initiating movement toward target");
             System.out.println(getDisplayName() + " moving towards " + target.character.getDisplayName() + " for melee attack");
             attacker.setTarget(target.x, target.y);
             
@@ -792,6 +840,8 @@ public class Character {
             scheduleRangeCheckForMeleeAttack(attacker, target, currentTick + 10, eventQueue, ownerId, gameCallbacks);
             return;
         }
+        
+        System.out.println("[MELEE-ATTACK] Target in range: " + String.format("%.2f", distanceFeet) + " feet - proceeding with attack");
         
         // Calculate facing direction to target
         double dx = target.x - attacker.x;
@@ -801,8 +851,13 @@ public class Character {
         if (angleDegrees < 0) angleDegrees += 360;
         lastTargetFacing = angleDegrees;
         
+        System.out.println("[MELEE-ATTACK] Facing target at " + String.format("%.1f", angleDegrees) + " degrees");
+        System.out.println("[MELEE-ATTACK] Calling scheduleMeleeAttackFromCurrentState");
+        
         // Schedule melee attack from current state
         scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+        
+        System.out.println("[MELEE-ATTACK] scheduleMeleeAttackFromCurrentState call completed");
     }
     
     private void scheduleAttackFromCurrentState(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
@@ -851,34 +906,81 @@ public class Character {
      * Schedule melee attack from current weapon state
      */
     private void scheduleMeleeAttackFromCurrentState(Unit attacker, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (meleeWeapon == null) return;
+        System.out.println("[MELEE-STATE] " + getDisplayName() + " scheduleMeleeAttackFromCurrentState called");
+        
+        if (meleeWeapon == null) {
+            System.out.println("[MELEE-STATE] FAILED - no melee weapon");
+            return;
+        }
         
         // Get active weapon for state management (use melee weapon's states)
         Weapon activeWeapon = getActiveWeapon();
         WeaponState currentState = currentWeaponState;
         
+        System.out.println("[MELEE-STATE] Active weapon: " + (activeWeapon != null ? activeWeapon.getName() : "null"));
+        System.out.println("[MELEE-STATE] Current weapon state: " + (currentState != null ? currentState.getState() : "null"));
+        
         if (currentState == null) {
             // Initialize to weapon's initial state if no current state
             currentState = activeWeapon.getInitialState();
             currentWeaponState = currentState;
+            System.out.println("[MELEE-STATE] " + getDisplayName() + " initializing weapon state to: " + (currentState != null ? currentState.getState() : "null"));
         }
         
-        String stateName = currentState.getState();
+        String stateName = currentState != null ? currentState.getState() : "null";
+        System.out.println("[MELEE-STATE] " + getDisplayName() + " current weapon state: " + stateName);
         
         // Handle melee weapon state transitions
         if ("sheathed".equals(stateName)) {
+            System.out.println("[MELEE-STATE] " + getDisplayName() + " unsheathing weapon (" + currentState.ticks + " ticks)");
             scheduleMeleeStateTransition("unsheathing", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
         } else if ("unsheathing".equals(stateName)) {
+            System.out.println("[MELEE-STATE] " + getDisplayName() + " becoming melee ready (" + currentState.ticks + " ticks)");
             scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
         } else if ("melee_ready".equals(stateName)) {
             // Ready to attack - schedule the melee attack
             long attackTime = Math.round(meleeWeapon.getAttackSpeed() * calculateAttackSpeedMultiplier());
+            System.out.println("[MELEE-STATE] " + getDisplayName() + " ready to attack - scheduling attack in " + attackTime + " ticks");
             scheduleMeleeAttack(attacker, target, currentTick + attackTime, eventQueue, ownerId, gameCallbacks);
         } else if ("switching_to_melee".equals(stateName)) {
+            System.out.println("[MELEE-STATE] " + getDisplayName() + " switching to melee ready (" + currentState.ticks + " ticks)");
             scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
         } else {
-            // For any other state, transition to switching_to_melee first
-            scheduleMeleeStateTransition("switching_to_melee", currentTick, 30, attacker, target, eventQueue, ownerId, gameCallbacks);
+            // For any other state (like "slung"), go directly to sheathed state first
+            System.out.println("[MELEE-STATE] " + getDisplayName() + " transitioning from " + stateName + " to sheathed (immediate)");
+            System.out.println("[MELEE-STATE] Available states in " + activeWeapon.getName() + ":");
+            
+            // Debug: list all available states
+            if (activeWeapon.states != null) {
+                for (WeaponState state : activeWeapon.states) {
+                    System.out.println("[MELEE-STATE]   - " + state.state + " (" + state.action + ", " + state.ticks + " ticks)");
+                }
+            } else {
+                System.out.println("[MELEE-STATE]   - NO STATES LOADED");
+            }
+            
+            WeaponState sheathedState = activeWeapon.getStateByName("sheathed");
+            if (sheathedState != null) {
+                currentWeaponState = sheathedState;
+                System.out.println("[MELEE-STATE] Direct transition to sheathed successful, continuing attack sequence");
+                scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+            } else {
+                System.out.println("[MELEE-STATE] ERROR: sheathed state not found, cannot proceed with attack");
+                
+                // Emergency fallback: use any available state or create a simple ready state
+                if (activeWeapon.states != null && !activeWeapon.states.isEmpty()) {
+                    WeaponState firstState = activeWeapon.states.get(0);
+                    System.out.println("[MELEE-STATE] Emergency fallback: using first available state: " + firstState.state);
+                    currentWeaponState = firstState;
+                    scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+                } else {
+                    System.out.println("[MELEE-STATE] CRITICAL: No states available, creating emergency ready state");
+                    // Create a minimal ready state for attack
+                    WeaponState emergencyReady = new WeaponState("melee_ready", "melee_attacking", 15);
+                    currentWeaponState = emergencyReady;
+                    scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+                }
+            }
         }
     }
     
@@ -1148,13 +1250,21 @@ public class Character {
      * Schedule melee state transition
      */
     private void scheduleMeleeStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit attacker, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        System.out.println("[MELEE-STATE] " + getDisplayName() + " scheduleMeleeStateTransition: " + newStateName + " in " + transitionTickLength + " ticks");
+        
         // Apply speed multiplier to weapon preparation states
         if (isWeaponPreparationState(newStateName)) {
             double speedMultiplier = calculateWeaponReadySpeedMultiplier();
             transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
+            System.out.println("[MELEE-STATE] Applied speed multiplier, adjusted to " + transitionTickLength + " ticks");
         }
         
-        WeaponState newState = getActiveWeapon().getStateByName(newStateName);
+        Weapon activeWeapon = getActiveWeapon();
+        System.out.println("[MELEE-STATE] Looking for state '" + newStateName + "' in weapon: " + (activeWeapon != null ? activeWeapon.getName() : "null"));
+        
+        WeaponState newState = activeWeapon != null ? activeWeapon.getStateByName(newStateName) : null;
+        System.out.println("[MELEE-STATE] Found state: " + (newState != null ? newState.state : "null"));
+        
         if (newState != null) {
             // Create final copies for lambda
             final String finalStateName = newStateName;
@@ -1165,8 +1275,24 @@ public class Character {
                 System.out.println(getDisplayName() + " melee weapon state: " + finalStateName + " at tick " + finalTick);
                 
                 // Continue the attack sequence
+                System.out.println("[MELEE-STATE] State transition completed, continuing attack sequence");
                 scheduleMeleeAttackFromCurrentState(attacker, target, finalTick, eventQueue, ownerId, gameCallbacks);
             }, ownerId));
+            
+            System.out.println("[MELEE-STATE] Scheduled state transition event for tick " + (currentTick + transitionTickLength));
+        } else {
+            System.out.println("[MELEE-STATE] ERROR: State '" + newStateName + "' not found in weapon, cannot schedule transition");
+            
+            // Fallback: skip to melee_ready state immediately
+            System.out.println("[MELEE-STATE] Fallback: attempting direct transition to melee_ready");
+            WeaponState readyState = activeWeapon != null ? activeWeapon.getStateByName("melee_ready") : null;
+            if (readyState != null) {
+                currentWeaponState = readyState;
+                System.out.println("[MELEE-STATE] Direct transition to melee_ready successful");
+                scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+            } else {
+                System.out.println("[MELEE-STATE] CRITICAL ERROR: melee_ready state also not found, attack sequence failed");
+            }
         }
     }
     
@@ -1178,9 +1304,17 @@ public class Character {
             // Update movement target to track target's current position
             attacker.setTarget(target.x, target.y);
             
+            // Calculate current distance for debug
+            double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+            double distanceFeet = distance / 7.0;
+            double weaponReach = meleeWeapon.getTotalReach();
+            
+            debugPrint("[MELEE-RANGE] " + getDisplayName() + " range check: " + String.format("%.2f", distanceFeet) + " feet (need " + String.format("%.2f", weaponReach) + " feet)");
+            
             // Check if now in range
             if (isInMeleeRange(attacker, target, meleeWeapon)) {
                 // Now in range - proceed with attack
+                debugPrint("[MELEE-RANGE] " + getDisplayName() + " is now in range, proceeding with melee attack");
                 System.out.println(getDisplayName() + " is now in range, proceeding with melee attack");
                 
                 // Calculate facing direction to target
@@ -1195,6 +1329,7 @@ public class Character {
                 scheduleMeleeAttackFromCurrentState(attacker, target, checkTick, eventQueue, ownerId, gameCallbacks);
             } else {
                 // Still not in range - schedule another check
+                debugPrint("[MELEE-RANGE] " + getDisplayName() + " still not in range, scheduling another check in 10 ticks");
                 scheduleRangeCheckForMeleeAttack(attacker, target, checkTick + 10, eventQueue, ownerId, gameCallbacks);
             }
         }, ownerId));
@@ -1204,24 +1339,49 @@ public class Character {
      * Schedule actual melee attack execution
      */
     private void scheduleMeleeAttack(Unit attacker, Unit target, long attackTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        debugPrint("[MELEE-EVENT] " + getDisplayName() + " scheduling melee attack execution at tick " + attackTick);
+        debugPrint("[MELEE-EVENT] Attack delay: " + (attackTick - ownerId) + " ticks from current time");
+        debugPrint("[MELEE-EVENT] Target: " + target.character.getDisplayName() + " with " + meleeWeapon.getName());
+        
         eventQueue.add(new ScheduledEvent(attackTick, () -> {
+            debugPrint("[MELEE-EVENT] Melee attack event executing at tick " + attackTick);
+            
+            // Validate target is still valid
+            if (target.character.isIncapacitated()) {
+                debugPrint("[MELEE-ATTACK] Attack CANCELLED - target " + target.character.getDisplayName() + " is incapacitated");
+                return;
+            }
+            
+            if (isIncapacitated()) {
+                debugPrint("[MELEE-ATTACK] Attack CANCELLED - attacker " + getDisplayName() + " is incapacitated");
+                return;
+            }
+            
             // Update weapon state to attacking
             WeaponState attackingState = getActiveWeapon().getStateByName("melee_attacking");
             if (attackingState != null) {
                 currentWeaponState = attackingState;
+                debugPrint("[MELEE-STATE] " + getDisplayName() + " weapon state: melee_attacking");
+            } else {
+                debugPrint("[MELEE-STATE] WARNING: melee_attacking state not found for " + getActiveWeapon().getName());
             }
             
+            debugPrint("[MELEE-ATTACK] " + getDisplayName() + " executes melee attack with " + meleeWeapon.getName() + " at tick " + attackTick);
             System.out.println(getDisplayName() + " executes melee attack with " + meleeWeapon.getName() + " at tick " + attackTick);
             
             // Schedule immediate impact (no travel time for melee)
+            debugPrint("[MELEE-EVENT] Calling scheduleMeleeImpact for immediate resolution");
             gameCallbacks.scheduleMeleeImpact(attacker, target, meleeWeapon, attackTick);
             
             // Schedule recovery back to ready state
             long recoveryTime = Math.round(meleeWeapon.getAttackCooldown() * calculateAttackSpeedMultiplier());
+            debugPrint("[MELEE-STATE] " + getDisplayName() + " scheduling recovery to melee_ready in " + recoveryTime + " ticks");
+            
             WeaponState readyState = getActiveWeapon().getStateByName("melee_ready");
             if (readyState != null) {
                 eventQueue.add(new ScheduledEvent(attackTick + recoveryTime, () -> {
                     currentWeaponState = readyState;
+                    debugPrint("[MELEE-STATE] " + getDisplayName() + " recovered to melee_ready at tick " + (attackTick + recoveryTime));
                     System.out.println(getDisplayName() + " melee weapon state: melee_ready at tick " + (attackTick + recoveryTime));
                 }, ownerId));
             }
@@ -1585,10 +1745,14 @@ public class Character {
         // If we're already in range, start attack immediately
         if (distanceFeet <= weaponReach) {
             debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " reached melee range of " + meleeTarget.character.getDisplayName() + " (" + String.format("%.2f", distanceFeet) + " feet)");
+            debugPrint("[MELEE-MOVEMENT] Range satisfied: " + String.format("%.2f", distanceFeet) + " <= " + String.format("%.2f", weaponReach) + " feet");
+            debugPrint("[MELEE-MOVEMENT] Cancelling movement and triggering melee attack");
+            
             Unit targetUnit = meleeTarget; // Save reference before clearing state
             cancelMeleeMovement();
             
             // Start the actual melee attack sequence
+            debugPrint("[MELEE-MOVEMENT] Calling startMeleeAttackSequence from movement completion");
             startMeleeAttackSequence(selfUnit, targetUnit, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
             return;
         }

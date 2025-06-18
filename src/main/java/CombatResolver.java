@@ -366,13 +366,27 @@ public class CombatResolver {
         boolean hits = calculateMeleeHit(attacker, target, weapon);
         
         if (hits) {
+            if (debugMode) {
+                System.out.println("=== MELEE DAMAGE CALCULATION DEBUG ===");
+            }
+            
             // Calculate damage
             int baseDamage = weapon.getDamage();
             int strengthModifier = getStatModifier(attacker.character.strength);
             int actualDamage = Math.max(1, baseDamage + strengthModifier);
             
+            if (debugMode) {
+                System.out.println("Base Weapon Damage: " + baseDamage);
+                System.out.println("Attacker Strength: " + attacker.character.strength + " (modifier: " + strengthModifier + ")");
+                System.out.println("Total Damage: " + baseDamage + " + " + strengthModifier + " = " + actualDamage);
+            }
+            
             // Determine hit location (simplified for basic implementation)
             BodyPart hitLocation = determineHitLocation();
+            
+            if (debugMode) {
+                System.out.println("Hit Location: " + hitLocation.name().toLowerCase());
+            }
             
             // Create hit result
             HitResult hitResult = new HitResult(true, hitLocation, WoundSeverity.LIGHT, actualDamage);
@@ -382,6 +396,7 @@ public class CombatResolver {
             
             if (debugMode) {
                 System.out.println(">>> Melee hit! " + weapon.getName() + " deals " + actualDamage + " damage to " + hitLocation.name().toLowerCase());
+                System.out.println("========================================");
             }
         } else {
             if (debugMode) {
@@ -394,6 +409,12 @@ public class CombatResolver {
      * Calculate if melee attack hits based on attacker skill and target defense
      */
     private boolean calculateMeleeHit(Unit attacker, Unit target, MeleeWeapon weapon) {
+        if (debugMode) {
+            System.out.println("=== MELEE HIT CALCULATION DEBUG ===");
+            System.out.println("Attacker: " + attacker.character.getDisplayName() + " -> Target: " + target.character.getDisplayName());
+            System.out.println("Weapon: " + weapon.getName() + " (accuracy: " + weapon.getWeaponAccuracy() + ")");
+        }
+        
         // Base hit chance calculation
         int attackerDexterity = getStatModifier(attacker.character.dexterity);
         int weaponAccuracy = weapon.getWeaponAccuracy();
@@ -413,17 +434,31 @@ public class CombatResolver {
         // Base hit chance (60%) + modifiers
         int hitChance = 60 + attackModifier - targetDefense;
         
+        if (debugMode) {
+            System.out.println("Attacker Dexterity: " + attacker.character.dexterity + " (modifier: " + attackerDexterity + ")");
+            System.out.println("Weapon Accuracy: " + weaponAccuracy);
+            System.out.println("Skill Bonus: " + skillBonus);
+            System.out.println("Movement Penalty: " + movementPenalty);
+            System.out.println("Attack Modifier: " + attackModifier);
+            System.out.println("Target Defense (Dex): " + target.character.dexterity + " (modifier: " + targetDefense + ")");
+            System.out.println("Base Hit Chance: 60% + " + attackModifier + " - " + targetDefense + " = " + hitChance + "%");
+        }
+        
         // Clamp to reasonable range (5-95%)
         hitChance = Math.max(5, Math.min(95, hitChance));
         
         // Roll for hit
         int roll = (int)(Math.random() * 100) + 1;
+        boolean hits = roll <= hitChance;
         
         if (debugMode) {
-            System.out.println(">>> Melee hit calculation: " + hitChance + "% chance, rolled " + roll);
+            System.out.println("Final Hit Chance: " + hitChance + "% (clamped 5-95%)");
+            System.out.println("[MELEE-COMBAT] Random roll: " + roll + " (need <= " + hitChance + ")");
+            System.out.println("[MELEE-COMBAT] Result: " + (hits ? "HIT!" : "MISS"));
+            System.out.println("===================================");
         }
         
-        return roll <= hitChance;
+        return hits;
     }
     
     /**
@@ -485,6 +520,13 @@ public class CombatResolver {
         // Convert to edge-to-edge by subtracting target radius (1.5 feet = 10.5 pixels)
         double edgeToEdge = centerToCenter - (1.5 * 7.0);
         double pixelRange = weapon.getTotalReach() * 7.0; // Convert feet to pixels (7 pixels = 1 foot)
+        
+        if (debugMode) {
+            System.out.println("[MELEE-RANGE] Center-to-center: " + String.format("%.1f", centerToCenter) + " pixels (" + String.format("%.2f", centerToCenter/7.0) + " feet)");
+            System.out.println("[MELEE-RANGE] Edge-to-edge: " + String.format("%.1f", edgeToEdge) + " pixels (" + String.format("%.2f", edgeToEdge/7.0) + " feet)");
+            System.out.println("[MELEE-RANGE] Weapon reach: " + String.format("%.2f", weapon.getTotalReach()) + " feet (" + String.format("%.1f", pixelRange) + " pixels)");
+            System.out.println("[MELEE-RANGE] In range result: " + (edgeToEdge <= pixelRange) + " (edge " + String.format("%.1f", edgeToEdge) + " <= range " + String.format("%.1f", pixelRange) + ")");
+        }
         
         return edgeToEdge <= pixelRange;
     }

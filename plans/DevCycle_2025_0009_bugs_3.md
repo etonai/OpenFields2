@@ -226,9 +226,61 @@ Successfully completed comprehensive weapon class architecture refactoring in 3 
 
 ---
 
+## BUG-9-008: Automatic Targeting Mode Not Working
+
+**Priority**: High  
+**Status**: Investigating  
+**Category**: Combat System  
+
+**Description**:
+When automatic targeting mode is enabled for a character using Shift+T, nothing happens. The character does not automatically acquire targets or engage in combat even when hostile targets are present.
+
+**Expected Behavior**:
+- Characters with automatic targeting enabled should automatically find and engage hostile targets
+- Should prioritize targets in defined target zones (if any)
+- Should continuously engage targets until disabled or no targets remain
+- Should provide feedback through AUTO-TARGET logging
+
+**Reproduction Steps**:
+1. Select a character (e.g., a faction 1 unit like Alice)
+2. Press Shift+T to enable automatic targeting
+3. Ensure hostile targets are present (e.g., faction 2 units)
+4. Observe that character does not automatically engage targets
+
+**Investigation Status**:
+Added comprehensive debug logging to identify the failure point:
+- `[AUTO-TARGET-DEBUG]` logs show entry/exit conditions for automatic targeting
+- Faction hostility checks with detailed faction comparison logging  
+- Target search process with unit count and selection results
+- Weapon state and attack state monitoring
+
+**Potential Causes**:
+1. **Attack State Issue**: `isAttacking` flag may be stuck preventing automatic targeting execution
+2. **Faction System**: Hostility detection may be failing between factions
+3. **Target Range**: Weapons may not be in range of available targets
+4. **Weapon States**: Weapon state may be preventing attack initiation
+5. **Game Loop Integration**: updateAutomaticTargeting may not be called correctly
+
+**Debugging Added**:
+- Entry condition logging (incapacitated, no weapon, already attacking)
+- Target validation and search process logging
+- Faction comparison detailed output
+- Target selection and acquisition logging
+
+**Files Modified**:
+- `src/main/java/combat/Character.java`: Added debug logging to automatic targeting methods
+
+**Next Steps**:
+1. Run game with automatic targeting enabled
+2. Analyze debug output to identify where the process fails
+3. Fix identified issue based on logging results
+
+---
+
 ## Document History
 
 - **v1.0** (2025-01-17): Initial document creation, ready for new bug reports
 - **v1.1** (2025-01-17): Added BUG-9-006 ammunition initialization issue despite BUG-9-005 fix
 - **v1.2** (2025-01-17): Added BUG-9-007 weapon class architecture refactoring plan
 - **v1.3** (2025-01-17): Completed implementation of both BUG-9-006 and BUG-9-007, updated status to Resolved
+- **v1.4** (2025-01-17): Added BUG-9-008 automatic targeting investigation with comprehensive debug logging

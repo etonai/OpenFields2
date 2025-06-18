@@ -408,12 +408,24 @@ public class InputManager {
                 // Attack with all selected units
                 for (Unit unit : selectionManager.getSelectedUnits()) {
                     if (!unit.character.isIncapacitated() && unit != clickedUnit) {
+                        // Debug the attack decision logic - ALWAYS PRINT for diagnosis
+                        System.out.println("[ATTACK-DECISION] " + unit.character.getDisplayName() + " attack decision:");
+                        System.out.println("[ATTACK-DECISION] isMeleeCombatMode: " + unit.character.isMeleeCombatMode());
+                        System.out.println("[ATTACK-DECISION] meleeWeapon: " + (unit.character.meleeWeapon != null ? unit.character.meleeWeapon.getName() : "null"));
+                        System.out.println("[ATTACK-DECISION] rangedWeapon: " + (unit.character.rangedWeapon != null ? unit.character.rangedWeapon.getName() : "null"));
+                        
+                        if (unit.character.meleeWeapon != null) {
+                            System.out.println("[ATTACK-DECISION] meleeWeapon reach: " + String.format("%.2f", unit.character.meleeWeapon.getTotalReach()) + " feet");
+                        }
+                        
                         // Check if unit is in melee combat mode
                         if (unit.character.isMeleeCombatMode() && unit.character.meleeWeapon != null) {
                             // Handle melee attack
+                            debugPrint("[ATTACK-DECISION] Routing to MELEE attack");
                             startMeleeAttackSequence(unit, clickedUnit);
                         } else {
                             // Handle ranged attack (existing logic)
+                            debugPrint("[ATTACK-DECISION] Routing to RANGED attack (melee mode: " + unit.character.isMeleeCombatMode() + ", melee weapon: " + (unit.character.meleeWeapon != null) + ")");
                             unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), (GameCallbacks) callbacks);
                         }
                     }
@@ -2734,19 +2746,30 @@ public class InputManager {
      * Start melee attack sequence for a unit attacking a target
      */
     private void startMeleeAttackSequence(Unit attacker, Unit target) {
+        System.out.println("[MELEE-TRIGGER] " + attacker.character.getDisplayName() + " attempting to attack " + target.character.getDisplayName());
+        
         MeleeWeapon meleeWeapon = attacker.character.meleeWeapon;
         if (meleeWeapon == null) {
+            System.out.println("[MELEE-TRIGGER] Attack FAILED - no melee weapon equipped");
             System.out.println("*** " + attacker.character.getDisplayName() + " has no melee weapon equipped");
             return;
         }
         
+        System.out.println("[MELEE-TRIGGER] Weapon: " + meleeWeapon.getName() + " (reach: " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet)");
+        System.out.println("[MELEE-TRIGGER] Weapon state: " + attacker.character.currentWeaponState);
+        
         // Check if target is within melee range
-        CombatResolver combatResolver = new CombatResolver(units, eventQueue, false);
-        if (!combatResolver.isInMeleeRange(attacker, target, meleeWeapon)) {
-            double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
-            double distanceFeet = distance / 7.0; // Convert pixels to feet
-            double maxReach = meleeWeapon.getTotalReach();
-            
+        CombatResolver combatResolver = new CombatResolver(units, eventQueue, true); // Force debug mode
+        double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+        double distanceFeet = distance / 7.0; // Convert pixels to feet
+        double maxReach = meleeWeapon.getTotalReach();
+        boolean inRange = combatResolver.isInMeleeRange(attacker, target, meleeWeapon);
+        
+        System.out.println("[MELEE-TRIGGER] Range check: " + String.format("%.2f", distanceFeet) + " feet (need " + String.format("%.2f", maxReach) + " feet)");
+        System.out.println("[MELEE-TRIGGER] In range result: " + inRange);
+        
+        if (!inRange) {
+            System.out.println("[MELEE-TRIGGER] Attack FAILED - target out of range, initiating movement");
             System.out.println("*** " + attacker.character.getDisplayName() + " cannot reach " + target.character.getDisplayName());
             System.out.println("*** Target distance: " + String.format("%.2f", distanceFeet) + " feet, weapon reach: " + String.format("%.2f", maxReach) + " feet");
             
@@ -2755,10 +2778,25 @@ public class InputManager {
             return;
         }
         
+        // Target is in range - proceed with attack
+        System.out.println("[MELEE-TRIGGER] Target in range - proceeding with attack sequence");
+        System.out.println("[MELEE-TRIGGER] Current tick: " + gameClock.getCurrentTick());
+        
         // Schedule melee attack based on weapon state
+        System.out.println("[MELEE-TRIGGER] Calling startMeleeAttackSequence on character");
         attacker.character.startMeleeAttackSequence(attacker, target, gameClock.getCurrentTick(), eventQueue, attacker.getId(), (GameCallbacks) callbacks);
         
+        System.out.println("[MELEE-TRIGGER] Attack sequence call completed");
         System.out.println("*** " + attacker.character.getDisplayName() + " begins melee attack on " + target.character.getDisplayName() + " with " + meleeWeapon.getName());
+    }
+    
+    /**
+     * Debug print helper that only outputs when in debug mode
+     */
+    private void debugPrint(String message) {
+        if (GameRenderer.isDebugMode()) {
+            System.out.println(message);
+        }
     }
     
     /**

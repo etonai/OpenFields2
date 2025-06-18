@@ -733,10 +733,15 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         CombatResolver combatResolver = new CombatResolver(units, eventQueue, GameRenderer.isDebugMode());
         
         if (GameRenderer.isDebugMode()) {
-            System.out.println("--- Melee attack impact scheduled at tick " + attackTick);
+            System.out.println("[MELEE-EVENT] Melee attack impact scheduled at tick " + attackTick);
+            System.out.println("[MELEE-EVENT] Attacker: " + attacker.character.getDisplayName() + " -> Target: " + target.character.getDisplayName());
+            System.out.println("[MELEE-EVENT] Weapon: " + weapon.getName());
         }
         
         eventQueue.add(new ScheduledEvent(attackTick, () -> {
+            if (GameRenderer.isDebugMode()) {
+                System.out.println("[MELEE-EVENT] Executing melee impact resolution at tick " + attackTick);
+            }
             combatResolver.resolveMeleeAttack(attacker, target, weapon, attackTick);
         }, ScheduledEvent.WORLD_OWNER));
     }

@@ -2,6 +2,8 @@ package combat;
 
 import data.DataManager;
 import data.MeleeWeaponData;
+import data.WeaponTypeData;
+import data.WeaponStateData;
 
 /**
  * Factory for creating standard melee weapons with balanced stats.
@@ -120,7 +122,8 @@ public class MeleeWeaponFactory {
             return createUnarmed();
         }
         
-        return new MeleeWeapon(
+        // Create the melee weapon with basic properties
+        MeleeWeapon weapon = new MeleeWeapon(
             data.name,
             data.damage,
             data.soundFile,
@@ -134,6 +137,44 @@ public class MeleeWeaponFactory {
             data.isMeleeVersionOfRanged,
             data.weaponAccuracy
         );
+        
+        // Load weapon states from the weapon type definition (critical for melee combat state management)
+        WeaponType weaponType = getWeaponTypeForMeleeType(data.meleeType);
+        WeaponTypeData weaponTypeData = dataManager.getWeaponType(weaponType);
+        if (weaponTypeData != null) {
+            // Set up the weapon states from the weapon type definition
+            weapon.states = new java.util.ArrayList<>();
+            for (WeaponStateData stateData : weaponTypeData.states) {
+                weapon.states.add(new WeaponState(stateData.state, stateData.action, stateData.ticks));
+            }
+            weapon.initialStateName = weaponTypeData.initialState;
+            
+            System.out.println("[MELEE-WEAPON-FACTORY] Loaded " + weapon.states.size() + " states for " + data.name + " (type: " + weaponType + ", initial: " + weapon.initialStateName + ")");
+        } else {
+            System.err.println("[MELEE-WEAPON-FACTORY] Warning: Could not load weapon type data for " + weaponType);
+        }
+        
+        return weapon;
+    }
+    
+    /**
+     * Map MeleeWeaponType to WeaponType enum for state loading
+     */
+    private static WeaponType getWeaponTypeForMeleeType(MeleeWeaponType meleeType) {
+        switch (meleeType) {
+            case UNARMED:
+                return WeaponType.MELEE_UNARMED;
+            case SHORT:
+                return WeaponType.MELEE_SHORT;
+            case MEDIUM:
+                return WeaponType.MELEE_MEDIUM;
+            case LONG:
+                return WeaponType.MELEE_LONG;
+            case TWO_WEAPON:
+                return WeaponType.MELEE_MEDIUM; // Treat dual weapons as medium
+            default:
+                return WeaponType.MELEE_UNARMED;
+        }
     }
 
     /**

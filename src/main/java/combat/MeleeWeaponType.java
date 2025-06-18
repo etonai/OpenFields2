@@ -7,7 +7,7 @@ package combat;
 public enum MeleeWeaponType {
     /**
      * Unarmed combat - no weapon, basic punching and grappling
-     * Reach: 1.5 feet (character radius only)
+     * Reach: 5.5 feet (4.0 feet minimum engagement + 1.5 feet natural reach)
      */
     UNARMED,
     
