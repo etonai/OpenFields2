@@ -694,19 +694,40 @@ public class InputManager {
                 System.out.println("Incapacitated: " + (selected.character.isIncapacitated() ? "YES" : "NO"));
                 System.out.println("Automatic Targeting: " + (selected.character.isUsesAutomaticTargeting() ? "ON" : "OFF"));
                 
-                if (selected.character.weapon != null) {
-                    System.out.println("--- WEAPON ---");
-                    System.out.println("Name: " + selected.character.weapon.name);
-                    System.out.println("Type: " + selected.character.weapon.weaponType.getDisplayName());
-                    System.out.println("Damage: " + selected.character.weapon.damage);
-                    System.out.println("Accuracy: " + selected.character.weapon.weaponAccuracy);
-                    System.out.println("Max Range: " + ((selected.character.weapon instanceof RangedWeapon) ? ((RangedWeapon)selected.character.weapon).getMaximumRange() : "N/A") + " feet");
-                    System.out.println("Velocity: " + ((selected.character.weapon instanceof RangedWeapon) ? ((RangedWeapon)selected.character.weapon).getVelocityFeetPerSecond() : "N/A") + " feet/second");
-                    System.out.println("Ammunition: " + (selected.character.weapon instanceof RangedWeapon ? ((RangedWeapon)selected.character.weapon).getAmmunition() + "/" + ((RangedWeapon)selected.character.weapon).getMaxAmmunition() : "N/A"));
-                    System.out.println("Current State: " + (selected.character.currentWeaponState != null ? selected.character.currentWeaponState.getState() : "None"));
+                System.out.println("--- WEAPONS ---");
+                
+                // Display ranged weapon
+                if (selected.character.rangedWeapon != null) {
+                    RangedWeapon ranged = selected.character.rangedWeapon;
+                    String activeMarker = !selected.character.isMeleeCombatMode ? " [ACTIVE]" : "";
+                    System.out.println("Ranged: " + ranged.getName() + " (" + ranged.getDamage() + " damage, " + 
+                                     ranged.getWeaponAccuracy() + " accuracy)" + activeMarker);
                 } else {
-                    System.out.println("--- WEAPON ---");
-                    System.out.println("No weapon equipped");
+                    String activeMarker = !selected.character.isMeleeCombatMode ? " [ACTIVE]" : "";
+                    System.out.println("Ranged: No ranged weapon" + activeMarker);
+                }
+                
+                // Display melee weapon
+                if (selected.character.meleeWeapon != null) {
+                    MeleeWeapon melee = selected.character.meleeWeapon;
+                    String activeMarker = selected.character.isMeleeCombatMode ? " [ACTIVE]" : "";
+                    System.out.println("Melee: " + melee.getName() + " (" + melee.getDamage() + " damage, " + 
+                                     melee.getWeaponAccuracy() + " accuracy, " + String.format("%.1f", melee.getTotalReach()) + "ft reach)" + activeMarker);
+                } else {
+                    String activeMarker = selected.character.isMeleeCombatMode ? " [ACTIVE]" : "";
+                    System.out.println("Melee: No melee weapon" + activeMarker);
+                }
+                
+                // Show current weapon state and additional details for active weapon
+                System.out.println("Current State: " + (selected.character.currentWeaponState != null ? selected.character.currentWeaponState.getState() : "None"));
+                
+                // Show additional details for the active weapon
+                if (!selected.character.isMeleeCombatMode && selected.character.rangedWeapon != null) {
+                    RangedWeapon ranged = selected.character.rangedWeapon;
+                    System.out.println("Active Details: Range " + ranged.getMaximumRange() + "ft, Velocity " + ranged.getVelocityFeetPerSecond() + "ft/s, Ammo " + ranged.getAmmunition() + "/" + ranged.getMaxAmmunition());
+                } else if (selected.character.isMeleeCombatMode && selected.character.meleeWeapon != null) {
+                    MeleeWeapon melee = selected.character.meleeWeapon;
+                    System.out.println("Active Details: " + melee.getWeaponType().getDisplayName() + " weapon");
                 }
                 
                 if (!selected.character.getSkills().isEmpty()) {
@@ -739,7 +760,17 @@ public class InputManager {
                                  selected.character.getWoundsInflictedByType(combat.WoundSeverity.LIGHT) + " light, " +
                                  selected.character.getWoundsInflictedByType(combat.WoundSeverity.SERIOUS) + " serious, " +
                                  selected.character.getWoundsInflictedByType(combat.WoundSeverity.CRITICAL) + " critical)");
-                System.out.println("Attacks: " + selected.character.getAttacksAttempted() + " attempted, " + 
+                
+                // Separate combat statistics (DevCycle 12)
+                System.out.println("Ranged Combat: " + selected.character.rangedAttacksAttempted + " attempted, " + 
+                                 selected.character.rangedAttacksSuccessful + " successful, " + 
+                                 selected.character.rangedWoundsInflicted + " wounds inflicted");
+                System.out.println("Melee Combat: " + selected.character.meleeAttacksAttempted + " attempted, " + 
+                                 selected.character.meleeAttacksSuccessful + " successful, " + 
+                                 selected.character.meleeWoundsInflicted + " wounds inflicted");
+                
+                // Legacy combined statistics
+                System.out.println("Total Attacks: " + selected.character.getAttacksAttempted() + " attempted, " + 
                                  selected.character.getAttacksSuccessful() + " successful (" + 
                                  String.format("%.1f", selected.character.getAccuracyPercentage()) + "% accuracy)");
                 System.out.println("Targets Incapacitated: " + selected.character.getTargetsIncapacitated());

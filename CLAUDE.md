@@ -48,6 +48,17 @@ mvn javafx:run                # Run the JavaFX application
 - **Coolness** (1-100): Mental composure under stress, affects stress modifier
 - **Stat Modifiers**: Each stat uses a balanced curve from -20 to +20 modifiers
 
+### Character Generation System (DevCycle 12)
+- **Archetype-Based Health**: Characters now generate varied health based on archetype background
+  - **Gunslinger**: 70-100 health (hardy frontier background)
+  - **Soldier**: 80-100 health (very hardy, military training)
+  - **Medic**: 60-90 health (average physical condition)
+  - **Scout**: 50-90 health (varied backgrounds)
+  - **Marksman**: 40-80 health (focused training, less physical)
+  - **Brawler**: 85-100 health (very hardy, physical background)
+  - **Civil War Soldiers**: 75-100 health (military experience)
+- **Health Variation**: Replaces uniform 100 health assignment with realistic character diversity
+
 ### Movement System
 - **Crawl**: 0.25x base speed (10.5 pixels/sec)
 - **Walk**: 1.0x base speed (42 pixels/sec) - default
@@ -101,6 +112,26 @@ mvn javafx:run                # Run the JavaFX application
 - **Implementation**: `WeaponType` enum with PISTOL, RIFLE, and OTHER values
 - **Display**: Weapon type shown in character stats display (Shift+/)
 
+### Enhanced Combat Tracking (DevCycle 12)
+- **Separate Statistics**: Combat tracking now differentiates between ranged and melee attacks
+  - **Ranged**: `rangedAttacksAttempted`, `rangedAttacksSuccessful`, `rangedWoundsInflicted`
+  - **Melee**: `meleeAttacksAttempted`, `meleeAttacksSuccessful`, `meleeWoundsInflicted`
+- **Legacy Compatibility**: Original total statistics (`attacksAttempted`, `attacksSuccessful`) still maintained
+- **Backward Compatibility**: New methods `getCombinedAttacksAttempted()`, `getCombinedAttacksSuccessful()`, `getCombinedWoundsInflicted()`
+
+### Enhanced Character Stats Display (DevCycle 12)
+- **Dual Weapon Display**: Shows both ranged and melee weapons with active indication
+  - **Format**: `Ranged: Weapon Name (damage, accuracy) [ACTIVE]`
+  - **Format**: `Melee: Weapon Name (damage, accuracy, reach) [ACTIVE]`
+- **Combat Mode Indication**: [ACTIVE] marker shows which weapon type is currently in use
+- **Separate Combat Stats**: Displays ranged and melee combat statistics independently
+- **Enhanced Information**: Shows weapon-specific details (range, velocity, reach) for active weapon
+
+### Melee Combat Audio (DevCycle 12)
+- **Sound Integration**: Melee attacks now play weapon sound effects at moment of execution
+- **Pattern Consistency**: Follows same audio pattern as ranged weapon sounds
+- **Error Handling**: Graceful fallback if sound files missing or audio system unavailable
+
 ## Technical Details
 
 - **Java 21** with JavaFX 21.0.2
@@ -119,6 +150,17 @@ mvn javafx:run                # Run the JavaFX application
   - **Phase Structure**: Brainstorm → Plan → Implement → Debug → Close
 - **Document Naming**: `DevCycle_2025_00##_brainstorm.md`, `DevCycle_2025_00##.md`, `DevCycle_2025_00##_bugs_##.md`
 - **Branch Pattern**: Work in `DC_##` branches, merge to main when complete
+
+## Git and Version Control Rules
+
+- **CRITICAL**: Claude is NOT ALLOWED to commit changes without explicit user permission
+- **Required Process**: 
+  1. Implement all requested changes
+  2. Show user the implementation results and/or diffs
+  3. Wait for explicit approval before committing
+  4. Only commit when user specifically requests it
+- **No Exceptions**: This rule applies to ALL commits including implementations, bug fixes, documentation updates, and any other changes
+- **Violation Consequences**: Unauthorized commits violate the project workflow and must be undone for proper review
 
 ## Documentation Conventions
 

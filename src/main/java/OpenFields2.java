@@ -643,8 +643,9 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
         }
         
-        // Track attack attempt
+        // Track attack attempt (both legacy and separate tracking)
         shooter.character.attacksAttempted++;
+        shooter.character.rangedAttacksAttempted++;
         
         eventQueue.add(new ScheduledEvent(impactTick, () -> {
             resolveCombatImpact(shooter, target, weapon, impactTick, hitResult);

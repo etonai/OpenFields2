@@ -93,7 +93,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null, // No theme
             85, // High dexterity
-            100, 
+            generateArchetypeHealth("gunslinger"), 
             80, // High coolness
             60,
             90, // High reflexes
@@ -120,7 +120,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             75,
-            100, // Base health
+            generateArchetypeHealth("soldier"), // Base health
             70,
             80, // High strength
             70,
@@ -146,7 +146,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             80, // Good dexterity for medical work
-            100,
+            generateArchetypeHealth("medic"),
             85, // High coolness under pressure
             65,
             75,
@@ -172,7 +172,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null,
             90, // Very high dexterity
-            100,
+            generateArchetypeHealth("scout"),
             75,
             70,
             85, // High reflexes
@@ -271,14 +271,12 @@ public class CharacterFactory {
     private static Character createWeightedRandom() {
         // Generate two sets of random stats and average them for more balanced results
         int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
-        int health1 = 100, health2 = 100; // Health base 100 consistent with character stats
         int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
         int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
         int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
         
         // Calculate averages
         int avgDexterity = (dex1 + dex2) / 2;
-        int avgHealth = (health1 + health2) / 2;
         int avgCoolness = (cool1 + cool2) / 2;
         int avgStrength = (str1 + str2) / 2;
         int avgReflexes = (ref1 + ref2) / 2;
@@ -301,7 +299,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null, // No theme
             avgDexterity,
-            avgHealth,
+            generateArchetypeHealth("weighted_random"),
             avgCoolness,
             avgStrength,
             avgReflexes,
@@ -342,7 +340,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null, // No theme
             avgDexterity,
-            avgHealth,
+            generateArchetypeHealth("confederate_soldier"),
             avgCoolness,
             avgStrength,
             avgReflexes,
@@ -358,14 +356,12 @@ public class CharacterFactory {
     private static Character createUnionSoldier() {
         // Use the same random stat generation as weighted_random
         int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
-        int health1 = 100, health2 = 100; // Health base 100 consistent with character stats
         int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
         int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
         int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
         
         // Calculate averages
         int avgDexterity = (dex1 + dex2) / 2;
-        int avgHealth = (health1 + health2) / 2;
         int avgCoolness = (cool1 + cool2) / 2;
         int avgStrength = (str1 + str2) / 2;
         int avgReflexes = (ref1 + ref2) / 2;
@@ -385,7 +381,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null, // No theme
             avgDexterity,
-            avgHealth,
+            generateArchetypeHealth("union_soldier"),
             avgCoolness,
             avgStrength,
             avgReflexes,
@@ -719,6 +715,36 @@ public class CharacterFactory {
         return cal.getTime();
     }
     
+    /**
+     * Generate archetype-specific health values for character creation
+     * @param archetype The character archetype
+     * @return Health value within archetype-appropriate range
+     */
+    private static int generateArchetypeHealth(String archetype) {
+        switch (archetype.toLowerCase()) {
+            case "gunslinger":
+                return 70 + random.nextInt(31); // 70-100 (hardy background)
+            case "soldier":
+                return 80 + random.nextInt(21); // 80-100 (very hardy, military training)
+            case "medic":
+                return 60 + random.nextInt(31); // 60-90 (average physical condition)
+            case "scout":
+                return 50 + random.nextInt(41); // 50-90 (varied backgrounds)
+            case "marksman":
+                return 40 + random.nextInt(41); // 40-80 (focused, less hardy)
+            case "brawler":
+                return 85 + random.nextInt(16); // 85-100 (very hardy, physical background)
+            case "confederate_soldier":
+            case "union_soldier":
+                return 75 + random.nextInt(26); // 75-100 (military training)
+            case "balanced":
+                return 65 + random.nextInt(36); // 65-100 (well-rounded)
+            case "weighted_random":
+            default:
+                return 21 + random.nextInt(80); // 21-100 (general range)
+        }
+    }
+
     /**
      * Lists all available character archetypes
      */

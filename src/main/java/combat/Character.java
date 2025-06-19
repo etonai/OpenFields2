@@ -54,6 +54,16 @@ public class Character {
     public int attacksSuccessful = 0;           // Auto-updated when attacks hit
     public int targetsIncapacitated = 0;        // Auto-updated when targets become incapacitated
     
+    // Separate Ranged Combat Tracking (DevCycle 12)
+    public int rangedAttacksAttempted = 0;      // Auto-updated when ranged attacks are attempted
+    public int rangedAttacksSuccessful = 0;     // Auto-updated when ranged attacks hit
+    public int rangedWoundsInflicted = 0;       // Auto-updated when ranged attacks cause wounds
+    
+    // Separate Melee Combat Tracking (DevCycle 12)
+    public int meleeAttacksAttempted = 0;       // Auto-updated when melee attacks are attempted
+    public int meleeAttacksSuccessful = 0;      // Auto-updated when melee attacks hit
+    public int meleeWoundsInflicted = 0;        // Auto-updated when melee attacks cause wounds
+    
     // Headshot Statistics
     public int headshotsAttempted = 0;          // Auto-updated when attacks target the head
     public int headshotsSuccessful = 0;         // Auto-updated when headshots hit
@@ -1358,6 +1368,9 @@ public class Character {
             debugPrint("[MELEE-ATTACK] " + getDisplayName() + " executes melee attack with " + meleeWeapon.getName() + " at tick " + attackTick);
             System.out.println(getDisplayName() + " executes melee attack with " + meleeWeapon.getName() + " at tick " + attackTick);
             
+            // Play melee weapon sound effect (DevCycle 12)
+            gameCallbacks.playWeaponSound(meleeWeapon);
+            
             // Schedule immediate impact (no travel time for melee)
             debugPrint("[MELEE-EVENT] Calling scheduleMeleeImpact for immediate resolution");
             gameCallbacks.scheduleMeleeImpact(attacker, target, meleeWeapon, attackTick);
@@ -2301,5 +2314,31 @@ public class Character {
             // If reflection fails, silently skip debug output
             // This prevents crashes if GameRenderer class structure changes
         }
+    }
+    
+    // Backward compatibility methods for total combat statistics (DevCycle 12)
+    
+    /**
+     * Returns total attacks attempted across both ranged and melee combat
+     * @return Sum of ranged and melee attacks attempted
+     */
+    public int getCombinedAttacksAttempted() {
+        return rangedAttacksAttempted + meleeAttacksAttempted;
+    }
+    
+    /**
+     * Returns total successful attacks across both ranged and melee combat
+     * @return Sum of ranged and melee successful attacks
+     */
+    public int getCombinedAttacksSuccessful() {
+        return rangedAttacksSuccessful + meleeAttacksSuccessful;
+    }
+    
+    /**
+     * Returns total wounds inflicted across both ranged and melee combat (simple count)
+     * @return Sum of ranged and melee wounds inflicted
+     */
+    public int getCombinedWoundsInflicted() {
+        return rangedWoundsInflicted + meleeWoundsInflicted;
     }
 }

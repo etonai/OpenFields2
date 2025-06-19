@@ -42,9 +42,17 @@ public class CombatResolver {
             System.out.println(combatMessage);
             System.out.println(">>> " + target.character.getDisplayName() + " takes " + actualDamage + " damage");
             
-            // Track successful attack
-            shooter.character.attacksAttempted++;
+            // Track successful attack (legacy tracking)
             shooter.character.attacksSuccessful++;
+            
+            // Track by weapon type (DevCycle 12)
+            if (weapon instanceof MeleeWeapon) {
+                shooter.character.meleeAttacksSuccessful++;
+                shooter.character.meleeWoundsInflicted++;
+            } else {
+                shooter.character.rangedAttacksSuccessful++;
+                shooter.character.rangedWoundsInflicted++;
+            }
             
             // Track wound infliction by type
             switch (woundSeverity) {
@@ -256,6 +264,8 @@ public class CombatResolver {
             
             // Track successful attack for shooter (stray hits still count)
             shooter.character.attacksSuccessful++;
+            shooter.character.rangedAttacksSuccessful++;
+            shooter.character.rangedWoundsInflicted++;
             
             // Track wound infliction by type
             switch (woundSeverity) {
@@ -381,8 +391,9 @@ public class CombatResolver {
             System.out.println(">>> Resolving melee attack: " + attacker.character.getDisplayName() + " attacks " + target.character.getDisplayName() + " with " + weapon.getName());
         }
         
-        // Track attempted attack
+        // Track attempted attack (both legacy and separate tracking)
         attacker.character.attacksAttempted++;
+        attacker.character.meleeAttacksAttempted++;
         
         // Calculate hit probability
         boolean hits = calculateMeleeHit(attacker, target, weapon);
