@@ -94,7 +94,7 @@ private static int generateArchetypeHealth(String archetype) {
 
 **Recommended Solution**: Option C (Archetype-Based Health Ranges)
 
-EDNOTE: In the future we'll have to brainstorm on how to create characters. First off, 100 should be rare for any stat, more rare than 1% of the time. Second, I'm not happy with hardcoded character archetypes.
+EDNOTE: Please go with option C.
 
 **Implementation Complexity**: Low-Medium
 **Impact**: Medium (affects character generation and tactical variety)
