@@ -109,6 +109,17 @@ mvn javafx:run                # Run the JavaFX application
 - **Tick-based timing**: 60 ticks per second, events scheduled by tick number
 - **Canvas rendering**: Custom 2D graphics with zoom/pan support
 
+## Development Workflow
+
+- **Workflow Reference**: See `plans/DevCycle_workflow_plan.md` for complete development cycle process
+- **Key Workflow Principles**:
+  - **No Auto-Commits**: Never commit implementation or bug fixes without explicit approval
+  - **Q&A Process**: Use iterative question/answer cycles for planning clarity
+  - **Review Gates**: All code changes must be reviewed via diff before commit
+  - **Phase Structure**: Brainstorm → Plan → Implement → Debug → Close
+- **Document Naming**: `DevCycle_2025_00##_brainstorm.md`, `DevCycle_2025_00##.md`, `DevCycle_2025_00##_bugs_##.md`
+- **Branch Pattern**: Work in `DC_##` branches, merge to main when complete
+
 ## Documentation Conventions
 
 ### EDNOTE Convention
