@@ -648,7 +648,9 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         shooter.character.rangedAttacksAttempted++;
         
         eventQueue.add(new ScheduledEvent(impactTick, () -> {
-            resolveCombatImpact(shooter, target, weapon, impactTick, hitResult);
+            // Use CombatResolver for consistent tracking (like melee attacks)
+            CombatResolver combatResolver = new CombatResolver(units, eventQueue, GameRenderer.isDebugMode());
+            combatResolver.resolveCombatImpact(shooter, target, weapon, impactTick, hitResult);
         }, ScheduledEvent.WORLD_OWNER));
     }
     
