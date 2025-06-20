@@ -117,6 +117,9 @@ public class Unit {
         // Face movement direction while moving, unless auto-targeting with a target
         if (!(character.usesAutomaticTargeting && character.currentTarget != null)) {
             setTargetFacing(targetX, targetY);
+        } else {
+            // Update facing toward auto-targeting target as character position changes
+            setTargetFacing(character.currentTarget.x, character.currentTarget.y);
         }
 
         double dx = targetX - x;

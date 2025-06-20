@@ -37,6 +37,7 @@ public class DataManager {
         try {
             loadWeapons();
             loadWeaponTypes();
+            loadMeleeWeaponTypes();
             loadSkills();
             loadMeleeWeapons();
             System.out.println("*** Data loaded successfully: " + weapons.size() + " weapons, " + 
@@ -94,6 +95,29 @@ public class DataManager {
                 weaponTypes.put(weaponType, weaponTypeData);
             } catch (Exception e) {
                 System.err.println("Error loading weapon type " + entry.getKey() + ": " + e.getMessage());
+            }
+        });
+    }
+    
+    private void loadMeleeWeaponTypes() throws IOException {
+        String themePath = themeManager.getCurrentThemeDataPath();
+        InputStream is = getClass().getResourceAsStream("/data/" + themePath + "/melee-weapon-types.json");
+        if (is == null) {
+            throw new IOException("Could not find melee-weapon-types.json file for theme: " + themeManager.getCurrentThemeId());
+        }
+        
+        JsonNode rootNode = objectMapper.readTree(is);
+        JsonNode weaponTypesNode = rootNode.get("weaponTypes");
+        
+        // Add melee weapon types to the existing weaponTypes map
+        weaponTypesNode.fields().forEachRemaining(entry -> {
+            try {
+                WeaponType weaponType = WeaponType.valueOf(entry.getKey());
+                WeaponTypeData weaponTypeData = objectMapper.treeToValue(entry.getValue(), WeaponTypeData.class);
+                weaponTypes.put(weaponType, weaponTypeData);
+                System.out.println("*** Loaded melee weapon type: " + weaponType + " with " + weaponTypeData.states.size() + " states");
+            } catch (Exception e) {
+                System.err.println("Error loading melee weapon type " + entry.getKey() + ": " + e.getMessage());
             }
         });
     }

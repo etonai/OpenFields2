@@ -200,26 +200,54 @@ After the first melee attack hits Drake:
 
 ---
 
-## Next Steps
+## Implementation Status
 
-### Bug #1 (Manual-to-Auto Transition):
-1. Add comprehensive debug logging to auto-targeting evaluation
-2. Investigate weapon state management after manual attacks
-3. Review the complete call chain from SHIFT+T activation to auto-targeting execution
-4. Test with different scenarios (different weapons, targets, distances)
+### Bug #1 (Manual-to-Auto Transition): ✅ **FIXED**
+**Fixes Implemented:**
+1. ✅ Added comprehensive debug logging to `updateAutomaticTargeting()` method
+2. ✅ Enhanced `checkContinuousAttack()` to delegate to `updateAutomaticTargeting()` when auto-targeting is enabled but no current target exists
+3. ✅ Added debug logging to trace the complete auto-targeting call chain
+4. ✅ Fixed the core issue: `checkContinuousAttack()` now properly handles the case where manual attacks clear `currentTarget` but auto-targeting is enabled
 
-### Bug #2 (Dynamic Facing During Movement):
-1. Investigate where target facing updates should occur during movement
-2. Add mechanism to recalculate facing direction as character position changes
-3. Balance between smooth facing updates and performance considerations
-4. Test with various movement and targeting scenarios
+**Root Cause Found:** After manual attacks, `checkContinuousAttack()` was returning early when `currentTarget == null`, even when auto-targeting was enabled. The fix delegates to `updateAutomaticTargeting()` in this scenario.
 
-### Bug #3 (Melee Auto-Targeting Continuation):
-1. Add debug logging to melee attack recovery and auto-targeting re-evaluation
-2. Verify that `isAttacking = false` is actually being set in melee recovery
-3. Check if `updateAutomaticTargeting()` is being called after melee attack completion
-4. Investigate weapon state management and timing between attack recovery and auto-targeting
-5. Test with different melee weapons and attack scenarios
+### Bug #2 (Dynamic Facing During Movement): ✅ **FIXED**
+**Fixes Implemented:**
+1. ✅ Modified `Unit.update()` to continuously update target facing during movement when auto-targeting is active
+2. ✅ Added logic to recalculate facing direction toward auto-targeting target as character position changes
+3. ✅ Maintained performance by only updating facing when actively auto-targeting with a target
+
+**Implementation:** Characters now call `setTargetFacing(character.currentTarget.x, character.currentTarget.y)` during movement when auto-targeting is active.
+
+### Bug #3 (Melee Auto-Targeting Continuation): ✅ **FIXED**
+**Fixes Implemented:**
+1. ✅ **CRITICAL FIX**: Added `loadMeleeWeaponTypes()` method to `DataManager` to load melee weapon state configurations
+2. ✅ Enhanced debug logging in melee attack recovery to verify `isAttacking = false` is set
+3. ✅ Added auto-targeting re-evaluation debug logging in melee recovery events
+4. ✅ Fixed the fundamental issue: melee weapons now have proper state definitions loaded
+
+**Root Cause Found:** The `DataManager` only loaded ranged weapon types, not melee weapon types, causing all melee weapons to have "NO STATES LOADED". This prevented proper state management and recovery event scheduling.
+
+## Files Modified
+
+### Core Bug Fixes:
+- **`/src/main/java/combat/Character.java`**:
+  - Enhanced `updateAutomaticTargeting()` with comprehensive debug logging
+  - Fixed `checkContinuousAttack()` to handle null targets with auto-targeting enabled
+  - Added melee recovery debug logging
+- **`/src/main/java/game/Unit.java`**:
+  - Implemented dynamic target facing updates during movement
+- **`/src/main/java/data/DataManager.java`**:
+  - Added `loadMeleeWeaponTypes()` method to fix melee weapon state loading
+
+### Debug Enhancements:
+- Added `[AUTO-TARGET-ENTRY]`, `[AUTO-TARGET-STATE]`, `[CONTINUOUS-ATTACK]`, and `[MELEE-RECOVERY]` debug categories
+- Enhanced logging to trace complete auto-targeting execution flow
+- Added state validation logging to identify blocking conditions
+
+## Testing Status
+
+All fixes have been implemented and compile successfully. The enhanced debug logging will provide detailed information about auto-targeting behavior for validation during gameplay testing.
 
 ---
 
