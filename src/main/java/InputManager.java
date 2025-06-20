@@ -12,7 +12,12 @@ import javafx.scene.input.KeyEvent;
 
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.ArrayList;
 import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import combat.*;
 import game.*;
@@ -124,6 +129,57 @@ public class InputManager {
         QUANTITY,    // Prompting for quantity to add
         SPACING,     // Prompting for character spacing
         PLACEMENT    // Click-to-place mode active
+    }
+    
+    // JSON loading for faction characters
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    
+    static {
+        // Configure ObjectMapper to handle deserialization issues
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false);
+        
+        // Add mixin to ignore problematic fields during deserialization
+        objectMapper.addMixIn(combat.Character.class, CharacterMixin.class);
+    }
+    
+    /**
+     * Mixin class to control Character deserialization
+     */
+    public static abstract class CharacterMixin {
+        // Ignore fields that cause deserialization issues
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public java.awt.Rectangle targetZone;
+        
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public Unit currentTarget;
+        
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public Unit meleeTarget;
+        
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public WeaponState currentWeaponState;
+        
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public List<ScheduledEvent> pausedEvents;
+    }
+    
+    /**
+     * Helper class to hold faction character information
+     */
+    private static class FactionCharacterInfo {
+        String factionName;
+        int totalCharacters;
+        int availableCount;
+        List<combat.Character> availableCharacters;
+        
+        FactionCharacterInfo(String factionName, int totalCharacters, int availableCount, List<combat.Character> availableCharacters) {
+            this.factionName = factionName;
+            this.totalCharacters = totalCharacters;
+            this.availableCount = availableCount;
+            this.availableCharacters = availableCharacters;
+        }
     }
     
     // Victory outcome options for factions
@@ -2889,7 +2945,7 @@ public class InputManager {
         
         // Set melee weapon to ready state for combat
         if (attacker.character.meleeWeapon != null) {
-            attacker.character.startReadyWeaponSequence(attacker, gameClock.getCurrentTick(), eventQueue, attacker.getId());
+            attacker.character.startMeleeWeaponReadySequence(attacker, gameClock.getCurrentTick(), eventQueue, attacker.getId());
             System.out.println("*** " + attacker.character.getDisplayName() + " readying melee weapon " + attacker.character.meleeWeapon.getName() + " for combat");
         }
         
@@ -3140,9 +3196,13 @@ public class InputManager {
         System.out.println("***********************");
         System.out.println("*** DIRECT CHARACTER ADDITION ***");
         System.out.println("Select faction:");
-        System.out.println("1. Union (Blue units)");
-        System.out.println("2. Confederacy (Dark Gray units)");
-        System.out.println("3. Southern Unionists (Light Blue units)");
+        
+        // Display factions with available character counts
+        for (int i = 1; i <= 3; i++) {
+            FactionCharacterInfo info = getFactionCharacterInfo(i);
+            System.out.println(i + ". " + info.factionName + " (" + info.availableCount + " available characters)");
+        }
+        
         System.out.println("0. Cancel addition");
         System.out.println();
         System.out.println("Enter faction (1-3, 0 to cancel): ");
@@ -3158,12 +3218,20 @@ public class InputManager {
                     System.out.println("*** Character addition cancelled ***");
                     cancelDirectCharacterAddition();
                 } else if (inputNumber >= 1 && inputNumber <= 3) {
-                    directAdditionFaction = inputNumber;
-                    directAdditionStep = DirectAdditionStep.QUANTITY;
-                    System.out.println("***********************");
-                    System.out.println("*** CHARACTER QUANTITY ***");
-                    System.out.println("How many characters to add?");
-                    System.out.println("Enter quantity (1-20, 0 to cancel): ");
+                    FactionCharacterInfo info = getFactionCharacterInfo(inputNumber);
+                    if (info.availableCount == 0) {
+                        System.out.println("*** No available characters in " + info.factionName + " ***");
+                        System.out.println("*** Please select a different faction or press 0 to cancel ***");
+                    } else {
+                        directAdditionFaction = inputNumber;
+                        directAdditionStep = DirectAdditionStep.QUANTITY;
+                        System.out.println("***********************");
+                        System.out.println("*** CHARACTER QUANTITY ***");
+                        System.out.println("Selected faction: " + info.factionName);
+                        System.out.println("Available characters: " + info.availableCount);
+                        System.out.println("How many characters to add?");
+                        System.out.println("Enter quantity (1-" + Math.min(20, info.availableCount) + ", 0 to cancel): ");
+                    }
                 } else {
                     System.out.println("*** Invalid faction. Use 1-3 or 0 to cancel ***");
                 }
@@ -3173,26 +3241,32 @@ public class InputManager {
                 if (inputNumber == 0) {
                     System.out.println("*** Character addition cancelled ***");
                     cancelDirectCharacterAddition();
-                } else if (inputNumber >= 1 && inputNumber <= 20) {
-                    directAdditionQuantity = inputNumber;
-                    directAdditionStep = DirectAdditionStep.SPACING;
-                    System.out.println("***********************");
-                    System.out.println("*** CHARACTER SPACING ***");
-                    System.out.println("Set spacing between characters:");
-                    System.out.println("1. 1 foot");
-                    System.out.println("2. 2 feet");
-                    System.out.println("3. 3 feet");
-                    System.out.println("4. 4 feet");
-                    System.out.println("5. 5 feet (default)");
-                    System.out.println("6. 6 feet");
-                    System.out.println("7. 7 feet");
-                    System.out.println("8. 8 feet");
-                    System.out.println("9. 9 feet");
-                    System.out.println("0. Cancel addition");
-                    System.out.println();
-                    System.out.println("Enter spacing (1-9, 0 to cancel): ");
                 } else {
-                    System.out.println("*** Invalid quantity. Use 1-20 or 0 to cancel ***");
+                    FactionCharacterInfo info = getFactionCharacterInfo(directAdditionFaction);
+                    int maxAllowed = Math.min(20, info.availableCount);
+                    
+                    if (inputNumber >= 1 && inputNumber <= maxAllowed) {
+                        directAdditionQuantity = inputNumber;
+                        directAdditionStep = DirectAdditionStep.SPACING;
+                        System.out.println("***********************");
+                        System.out.println("*** CHARACTER SPACING ***");
+                        System.out.println("Set spacing between characters:");
+                        System.out.println("1. 1 foot");
+                        System.out.println("2. 2 feet");
+                        System.out.println("3. 3 feet");
+                        System.out.println("4. 4 feet");
+                        System.out.println("5. 5 feet (default)");
+                        System.out.println("6. 6 feet");
+                        System.out.println("7. 7 feet");
+                        System.out.println("8. 8 feet");
+                        System.out.println("9. 9 feet");
+                        System.out.println("0. Cancel addition");
+                        System.out.println();
+                        System.out.println("Enter spacing (1-9, 0 to cancel): ");
+                    } else {
+                        System.out.println("*** Invalid quantity. Use 1-" + maxAllowed + " or 0 to cancel ***");
+                        System.out.println("*** Available characters: " + info.availableCount + " ***");
+                    }
                 }
                 break;
                 
@@ -3237,19 +3311,37 @@ public class InputManager {
     private void handleCharacterPlacement(double x, double y) {
         System.out.println("***********************");
         System.out.println("*** PLACING CHARACTERS ***");
-        System.out.println("Creating " + directAdditionQuantity + " characters from faction " + directAdditionFaction);
+        System.out.println("Deploying " + directAdditionQuantity + " characters from faction " + directAdditionFaction);
+        
+        // Get available characters from faction
+        FactionCharacterInfo info = getFactionCharacterInfo(directAdditionFaction);
+        if (info.availableCharacters.size() < directAdditionQuantity) {
+            System.out.println("*** Error: Not enough available characters ***");
+            System.out.println("*** Available: " + info.availableCharacters.size() + ", Requested: " + directAdditionQuantity + " ***");
+            cancelDirectCharacterAddition();
+            return;
+        }
         
         // Convert spacing from feet to pixels (7 pixels = 1 foot)
         double spacingPixels = directAdditionSpacing * 7.0;
         
-        // Create characters in a horizontal line going right
+        // Deploy characters in a horizontal line going right
         for (int i = 0; i < directAdditionQuantity; i++) {
             // Calculate position for this character
             double charX = x + (i * (spacingPixels + 21)); // spacing + character diameter (21 pixels)
             double charY = y;
             
-            // Generate a random character for the selected faction
-            combat.Character character = generateRandomCharacterForFaction(directAdditionFaction);
+            // Get the next available character from faction
+            combat.Character character = info.availableCharacters.get(i);
+            
+            // Set up weapons for the character if not already set
+            if (character.weapon == null) {
+                character.weapon = data.WeaponFactory.createWeapon("wpn_colt_peacemaker");
+                character.currentWeaponState = character.weapon.getInitialState();
+            }
+            if (character.meleeWeapon == null) {
+                character.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_sword");
+            }
             
             // Get faction color
             javafx.scene.paint.Color factionColor = getFactionColor(directAdditionFaction);
@@ -3260,10 +3352,10 @@ public class InputManager {
             // Add to units list
             units.add(newUnit);
             
-            System.out.println("Character " + (i + 1) + " placed at (" + String.format("%.0f", charX) + ", " + String.format("%.0f", charY) + ")");
+            System.out.println("Character " + (i + 1) + ": " + character.getDisplayName() + " placed at (" + String.format("%.0f", charX) + ", " + String.format("%.0f", charY) + ")");
         }
         
-        System.out.println("*** Character placement complete ***");
+        System.out.println("*** Character deployment complete ***");
         System.out.println("***********************");
         
         // Reset state
@@ -3306,5 +3398,64 @@ public class InputManager {
         character.currentWeaponState = character.weapon.getInitialState();
         
         return character;
+    }
+    
+    /**
+     * Get faction character information including available character count
+     */
+    private FactionCharacterInfo getFactionCharacterInfo(int factionId) {
+        try {
+            // Load faction file
+            File factionFile = new File("factions/" + factionId + ".json");
+            if (!factionFile.exists()) {
+                return new FactionCharacterInfo("Unknown Faction", 0, 0, new ArrayList<>());
+            }
+            
+            JsonNode rootNode = objectMapper.readTree(factionFile);
+            JsonNode factionNode = rootNode.get("faction");
+            String factionName = factionNode.get("name").asText();
+            
+            JsonNode charactersNode = rootNode.get("characters");
+            List<combat.Character> allCharacters = new ArrayList<>();
+            List<combat.Character> availableCharacters = new ArrayList<>();
+            
+            // Load all characters from faction file
+            if (charactersNode != null && charactersNode.isArray()) {
+                for (JsonNode charNode : charactersNode) {
+                    try {
+                        combat.Character character = objectMapper.treeToValue(charNode, combat.Character.class);
+                        allCharacters.add(character);
+                        
+                        // Check if character is available (not already deployed and not incapacitated)
+                        if (isCharacterAvailable(character)) {
+                            availableCharacters.add(character);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error loading character from faction " + factionId + ": " + e.getMessage());
+                    }
+                }
+            }
+            
+            return new FactionCharacterInfo(factionName, allCharacters.size(), availableCharacters.size(), availableCharacters);
+            
+        } catch (IOException e) {
+            System.err.println("Error loading faction file " + factionId + ".json: " + e.getMessage());
+            return new FactionCharacterInfo("Error Loading Faction", 0, 0, new ArrayList<>());
+        }
+    }
+    
+    /**
+     * Check if a character is available for deployment
+     */
+    private boolean isCharacterAvailable(combat.Character character) {
+        // Check if character is already deployed on the map
+        for (Unit unit : units) {
+            if (unit.character != null && unit.character.id == character.id) {
+                return false; // Character is already deployed
+            }
+        }
+        
+        // Check if character is incapacitated using Character class logic
+        return !character.isIncapacitated();
     }
 }

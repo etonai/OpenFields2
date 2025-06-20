@@ -12,18 +12,18 @@
   },
   "characters" : [ {
     "id" : 1006,
-    "nickname" : "Ralph",
-    "firstName" : "Ralph",
-    "lastName" : "Johnson",
-    "birthdate" : "June 9, 1860",
+    "nickname" : "Alexander",
+    "firstName" : "Alexander",
+    "lastName" : "Jones",
+    "birthdate" : "June 9, 1859",
     "themeId" : null,
-    "dexterity" : 75,
-    "currentDexterity" : 75,
-    "health" : 93,
-    "currentHealth" : 93,
-    "coolness" : 70,
-    "strength" : 80,
-    "reflexes" : 70,
+    "dexterity" : 85,
+    "currentDexterity" : 85,
+    "health" : 95,
+    "currentHealth" : 95,
+    "coolness" : 80,
+    "strength" : 60,
+    "reflexes" : 90,
     "handedness" : "RIGHT_HANDED",
     "baseMovementSpeed" : 42.0,
     "currentMovementType" : "WALK",
@@ -31,14 +31,14 @@
     "weaponId" : null,
     "currentWeaponState" : null,
     "skills" : [ {
-      "skillName" : "skl_rifle",
+      "skillName" : "skl_pistol",
+      "level" : 8
+    }, {
+      "skillName" : "skl_quickdraw",
       "level" : 7
     }, {
-      "skillName" : "skl_athletics",
+      "skillName" : "skl_observation",
       "level" : 6
-    }, {
-      "skillName" : "skl_intimidation",
-      "level" : 5
     } ],
     "wounds" : [ ],
     "usesAutomaticTargeting" : false,

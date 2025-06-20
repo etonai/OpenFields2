@@ -1,14 +1,14 @@
 {
-  "nextCharacterId" : 1008,
+  "nextCharacterId" : 1007,
   "characters" : {
-    "1007" : {
-      "id" : 1007,
-      "nickname" : "Jessie",
-      "firstName" : "Jessie",
-      "lastName" : "Brown",
-      "birthdate" : "June 9, 1847",
+    "1006" : {
+      "id" : 1006,
+      "nickname" : "Alexander",
+      "firstName" : "Alexander",
+      "lastName" : "Jones",
+      "birthdate" : "June 9, 1859",
       "dexterity" : 85,
-      "health" : 91,
+      "health" : 95,
       "coolness" : 80,
       "strength" : 60,
       "reflexes" : 90,
@@ -33,41 +33,6 @@
       }, {
         "skillName" : "skl_observation",
         "level" : 6
-      } ],
-      "wounds" : [ ]
-    },
-    "1006" : {
-      "id" : 1006,
-      "nickname" : "Ralph",
-      "firstName" : "Ralph",
-      "lastName" : "Johnson",
-      "birthdate" : "June 9, 1860",
-      "dexterity" : 75,
-      "health" : 93,
-      "coolness" : 70,
-      "strength" : 80,
-      "reflexes" : 70,
-      "handedness" : "RIGHT_HANDED",
-      "baseMovementSpeed" : 42.0,
-      "faction" : 0,
-      "combatEngagements" : 0,
-      "woundsReceived" : 0,
-      "woundsInflictedScratch" : 0,
-      "woundsInflictedLight" : 0,
-      "woundsInflictedSerious" : 0,
-      "woundsInflictedCritical" : 0,
-      "attacksAttempted" : 0,
-      "attacksSuccessful" : 0,
-      "targetsIncapacitated" : 0,
-      "skills" : [ {
-        "skillName" : "skl_rifle",
-        "level" : 7
-      }, {
-        "skillName" : "skl_athletics",
-        "level" : 6
-      }, {
-        "skillName" : "skl_intimidation",
-        "level" : 5
       } ],
       "wounds" : [ ]
     },

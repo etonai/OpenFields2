@@ -831,6 +831,86 @@ public class Character {
     }
     
     /**
+     * Start melee weapon ready sequence from current weapon state
+     */
+    public void startMeleeWeaponReadySequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        if (meleeWeapon == null) {
+            debugPrint("[MELEE-READY] " + getDisplayName() + " no melee weapon equipped");
+            return;
+        }
+        
+        // Initialize weapon state if needed
+        if (currentWeaponState == null) {
+            currentWeaponState = meleeWeapon.getInitialState();
+            debugPrint("[MELEE-READY] " + getDisplayName() + " initializing melee weapon state to: " + currentWeaponState.getState());
+        }
+        
+        debugPrint("[MELEE-READY] " + getDisplayName() + " starting melee weapon ready sequence from state: " + currentWeaponState.getState());
+        scheduleMeleeWeaponReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
+    }
+    
+    /**
+     * Schedule melee weapon ready progression from current state
+     */
+    private void scheduleMeleeWeaponReadyFromCurrentState(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        if (meleeWeapon == null || currentWeaponState == null) return;
+        
+        String stateName = currentWeaponState.getState();
+        debugPrint("[MELEE-READY] " + getDisplayName() + " processing ready sequence from state: " + stateName);
+        
+        // Handle melee weapon state transitions for readiness
+        if ("sheathed".equals(stateName)) {
+            debugPrint("[MELEE-READY] " + getDisplayName() + " unsheathing melee weapon (" + currentWeaponState.ticks + " ticks)");
+            scheduleMeleeWeaponStateTransition("unsheathing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+        } else if ("unsheathing".equals(stateName)) {
+            debugPrint("[MELEE-READY] " + getDisplayName() + " becoming melee ready (" + currentWeaponState.ticks + " ticks)");
+            scheduleMeleeWeaponStateTransition("melee_ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+        } else if ("slung".equals(stateName)) {
+            debugPrint("[MELEE-READY] " + getDisplayName() + " transitioning from slung to sheathed (immediate)");
+            WeaponState sheathState = meleeWeapon.getStateByName("sheathed");
+            if (sheathState != null) {
+                currentWeaponState = sheathState;
+                scheduleMeleeWeaponReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
+            }
+        } else if ("melee_ready".equals(stateName)) {
+            debugPrint("[MELEE-READY] " + getDisplayName() + " already melee ready");
+        } else {
+            debugPrint("[MELEE-READY] " + getDisplayName() + " unhandled state: " + stateName + " - transitioning to sheathed");
+            WeaponState sheathState = meleeWeapon.getStateByName("sheathed");
+            if (sheathState != null) {
+                currentWeaponState = sheathState;
+                scheduleMeleeWeaponReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
+            }
+        }
+    }
+    
+    /**
+     * Schedule melee weapon state transition for readiness (not attack)
+     */
+    private void scheduleMeleeWeaponStateTransition(String targetState, long currentTick, long transitionTicks, Unit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        // Apply weapon speed modifiers
+        long adjustedTicks = Math.round(transitionTicks * getWeaponReadySpeedMultiplier());
+        long targetTick = currentTick + adjustedTicks;
+        
+        debugPrint("[MELEE-READY] " + getDisplayName() + " scheduling transition to " + targetState + " at tick " + targetTick);
+        
+        ScheduledEvent readyEvent = new ScheduledEvent(targetTick, () -> {
+            WeaponState targetWeaponState = meleeWeapon.getStateByName(targetState);
+            if (targetWeaponState != null) {
+                currentWeaponState = targetWeaponState;
+                debugPrint("[MELEE-READY] " + getDisplayName() + " transitioned to " + targetState);
+                
+                // Continue ready sequence if not at final ready state
+                if (!"melee_ready".equals(targetState)) {
+                    scheduleMeleeWeaponReadyFromCurrentState(unit, targetTick, eventQueue, ownerId);
+                }
+            }
+        }, ownerId);
+        
+        eventQueue.add(readyEvent);
+    }
+    
+    /**
      * Start melee attack sequence from current weapon state
      */
     public void startMeleeAttackSequence(Unit attacker, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
@@ -1842,14 +1922,14 @@ public class Character {
         // Check if target is still valid
         if (meleeTarget.character.isIncapacitated()) {
             debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.character.getDisplayName() + " incapacitated during approach - cancelling movement");
-            cancelMeleeMovement();
+            cancelMeleeMovement(selfUnit);
             return;
         }
         
         MeleeWeapon meleeWeapon = this.meleeWeapon;
         if (meleeWeapon == null) {
             debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " lost melee weapon during movement - cancelling");
-            cancelMeleeMovement();
+            cancelMeleeMovement(selfUnit);
             return;
         }
         
@@ -1865,7 +1945,7 @@ public class Character {
             debugPrint("[MELEE-MOVEMENT] Cancelling movement and triggering melee attack");
             
             Unit targetUnit = meleeTarget; // Save reference before clearing state
-            cancelMeleeMovement();
+            cancelMeleeMovement(selfUnit);
             
             // Start the actual melee attack sequence
             debugPrint("[MELEE-MOVEMENT] Calling startMeleeAttackSequence from movement completion");
@@ -1896,7 +1976,7 @@ public class Character {
             } else {
                 // Target too far away - give up pursuit
                 debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.character.getDisplayName() + " too far away (" + String.format("%.2f", distanceFeet) + " feet) - cancelling pursuit");
-                cancelMeleeMovement();
+                cancelMeleeMovement(selfUnit);
             }
         }
     }
@@ -1932,9 +2012,15 @@ public class Character {
     /**
      * Cancel melee movement and clear related state
      */
-    private void cancelMeleeMovement() {
+    private void cancelMeleeMovement(Unit selfUnit) {
         isMovingToMelee = false;
         meleeTarget = null;
+        
+        // Stop movement by setting target to current position
+        if (selfUnit != null && selfUnit.hasTarget) {
+            selfUnit.setTarget(selfUnit.x, selfUnit.y);
+            debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " movement stopped at current position");
+        }
     }
     
     private void checkContinuousAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
