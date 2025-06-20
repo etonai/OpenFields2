@@ -17,44 +17,33 @@
 - [ ] **Documentation commits made** - Plan updates and completion notes committed
 - [ ] **Branch is current** - Development branch has all necessary changes
 
-## Git Workflow Closure
+## Streamlined Closure Workflow
 
-### 1. Clean Up Working Directory
+### 1. Update Cycle Documentation
+- [ ] **Update main cycle document header** - Add CLOSED timestamp
+- [ ] **Mark implementation items complete** - Change all `[ ]` to `[x]` for completed items
+- [ ] **Update success criteria** - Mark all requirements as `[x]` completed
+- [ ] **Add post-implementation review** - Include summary of actual implementation and any lessons learned
+- [ ] **Update CLAUDE.md if needed** - Add any new features, commands, or mechanics
+
+### 2. Move Files to Completed Directory
 ```bash
-# Check for uncommitted changes
-git status
-
-# Add and commit any remaining changes
-git add [remaining-files]
-git commit -m "DC-X: Final cleanup and documentation updates"
+# Move all DevCycle files to completed folder (replace 13 with actual cycle number)
+cd plans
+./move_cycle_to_completed.sh 13
 ```
 
-### 2. Switch to Main Branch
+### 3. Commit Closure Changes
 ```bash
-# Switch to main branch
-git checkout main
-
-# Pull latest changes from remote
-git pull origin main
+# Add and commit all documentation updates
+git add -A
+git commit -m "DC-13: Close DevCycle 13 - [brief summary of cycle]"
 ```
 
-### 3. Merge Development Branch
+### 4. Merge Branch and Push
 ```bash
-# Merge development branch (replace X with cycle number)
-git merge devcycle-YYYY-NNNN
-
-# If merge conflicts occur, resolve them and commit
-# git add [resolved-files]
-# git commit -m "DC-X: Resolve merge conflicts"
-```
-
-### 4. Create Completion Tag
-```bash
-# Create annotated tag for cycle completion
-git tag devcycle-YYYY-NNNN-complete -m "DevCycle YYYY_NNNN: [Brief description] - Complete"
-
-# Push main branch and tags to remote
-git push origin main --tags
+# Merge development branch into main and push (replace DC_13 with actual branch name)
+./merge_and_push.sh DC_13
 ```
 
 ### 5. Final Verification
@@ -62,46 +51,8 @@ git push origin main --tags
 # Verify compilation
 mvn compile
 
-# Run tests (optional - may have pre-existing failures)
-mvn test
-
 # Verify application starts
 mvn javafx:run
-```
-
-## Documentation Management
-
-### Move Completed Plan
-- [ ] **Move plan to completed directory**
-  ```bash
-  mv plans/DevCycle_YYYY_NNNN.md plans/completed/
-  ```
-- [ ] **Update plan status** - Change status to "Complete - Archived"
-- [ ] **Add completion timestamp** - Record actual completion date/time
-- [ ] **Commit documentation changes**
-  ```bash
-  git add plans/completed/DevCycle_YYYY_NNNN.md
-  git commit -m "Archive completed DevCycle YYYY_NNNN plan"
-  git push origin main
-  ```
-
-### Update Project Documentation
-- [ ] **Update CLAUDE.md** - Add any new features, commands, or mechanics if applicable
-- [ ] **Update README** - Modify if significant user-facing changes were made
-- [ ] **Update FutureTasks.md** - Remove any completed items that were moved from future tasks
-
-## Branch Cleanup (Optional)
-
-### Local Branch Cleanup
-```bash
-# Delete local development branch (only after successful merge)
-git branch -d devcycle-YYYY-NNNN
-```
-
-### Remote Branch Cleanup
-```bash
-# Delete remote development branch if it was pushed
-git push origin --delete devcycle-YYYY-NNNN
 ```
 
 ## Post-Closure Activities
@@ -160,18 +111,14 @@ git push origin --delete devcycle-YYYY-NNNN
 ## Quick Reference Commands
 
 ```bash
-# Standard DevCycle Closure Workflow
-git status                                    # Check working directory
-git add [files] && git commit -m "DC-X: ..." # Commit remaining changes
-git checkout main                             # Switch to main
-git pull origin main                          # Get latest main
-git merge devcycle-YYYY-NNNN                  # Merge development branch
-git tag devcycle-YYYY-NNNN-complete          # Tag completion
-git push origin main --tags                   # Push to remote
+# Streamlined DevCycle Closure Workflow
+cd plans                                      # Navigate to plans directory
+./move_cycle_to_completed.sh 13              # Move all cycle files to completed
+git add -A                                    # Stage all changes
+git commit -m "DC-13: Close DevCycle 13 - [summary]"  # Commit closure
+./merge_and_push.sh DC_13                     # Merge branch and push to main
 mvn compile                                   # Verify build
-mv plans/DevCycle_YYYY_NNNN.md plans/completed/ # Archive plan
-git add plans/completed/ && git commit -m "Archive DevCycle YYYY_NNNN"
-git push origin main                          # Push archive commit
+mvn javafx:run                                # Verify application starts
 ```
 
 ---
