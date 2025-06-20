@@ -143,6 +143,9 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             for (Unit u : units) {
                 u.update(gameClock.getCurrentTick());
                 // Update automatic targeting for characters that have it enabled
+                if (u.character.usesAutomaticTargeting) {
+                    System.out.println("[GAME-LOOP] Calling updateAutomaticTargeting for " + u.character.getDisplayName() + " at tick " + gameClock.getCurrentTick());
+                }
                 u.character.updateAutomaticTargeting(u, gameClock.getCurrentTick(), eventQueue, this);
                 // Update melee movement progress and trigger attacks when in range
                 u.character.updateMeleeMovement(u, gameClock.getCurrentTick(), eventQueue, this);

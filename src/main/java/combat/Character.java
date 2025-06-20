@@ -1110,6 +1110,7 @@ public class Character {
                         System.out.println(getDisplayName() + " weapon state: aiming at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
                         isAttacking = false; // Attack sequence complete
                         // Check for persistent attack
+                        System.out.println("[SCHEDULE-FIRING] " + getDisplayName() + " calling checkContinuousAttack after attack completion at tick " + (fireTick + firingState.ticks + recoveringState.ticks));
                         checkContinuousAttack(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId, gameCallbacks);
                     }
                 }, ownerId));
@@ -1377,20 +1378,24 @@ public class Character {
             
             // Schedule recovery back to ready state
             long recoveryTime = Math.round(meleeWeapon.getAttackCooldown() * calculateAttackSpeedMultiplier());
-            debugPrint("[MELEE-STATE] " + getDisplayName() + " scheduling recovery to melee_ready in " + recoveryTime + " ticks");
+            System.out.println("[MELEE-STATE] " + getDisplayName() + " scheduling recovery to melee_ready in " + recoveryTime + " ticks");
             
             WeaponState readyState = getActiveWeapon().getStateByName("melee_ready");
             if (readyState != null) {
                 eventQueue.add(new ScheduledEvent(attackTick + recoveryTime, () -> {
                     currentWeaponState = readyState;
                     isAttacking = false; // Clear attacking flag to allow auto-targeting to continue
-                    debugPrint("[MELEE-RECOVERY] " + getDisplayName() + " recovered to melee_ready, isAttacking=false at tick " + (attackTick + recoveryTime));
+                    System.out.println("[MELEE-RECOVERY] " + getDisplayName() + " recovered to melee_ready, isAttacking=false at tick " + (attackTick + recoveryTime));
                     System.out.println(getDisplayName() + " melee weapon state: melee_ready at tick " + (attackTick + recoveryTime));
                     
                     // Additional debug: check if auto-targeting should continue
                     if (usesAutomaticTargeting) {
-                        debugPrint("[MELEE-RECOVERY] " + getDisplayName() + " has auto-targeting enabled, should re-evaluate targets");
+                        System.out.println("[MELEE-RECOVERY] " + getDisplayName() + " has auto-targeting enabled, should re-evaluate targets");
                     }
+                    
+                    // Call checkContinuousAttack to trigger auto-targeting re-evaluation (similar to ranged weapon recovery)
+                    System.out.println("[MELEE-RECOVERY] " + getDisplayName() + " calling checkContinuousAttack for auto-targeting re-evaluation");
+                    checkContinuousAttack(attacker, attackTick + recoveryTime, eventQueue, ownerId, gameCallbacks);
                 }, ownerId));
             }
         }, ownerId));
@@ -1670,45 +1675,45 @@ public class Character {
     public void updateAutomaticTargeting(Unit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
         // Debug: Always log when this method is called for characters with auto-targeting enabled
         if (usesAutomaticTargeting) {
-            debugPrint("[AUTO-TARGET-ENTRY] " + getDisplayName() + " updateAutomaticTargeting called at tick " + currentTick);
+            System.out.println("[AUTO-TARGET-ENTRY] " + getDisplayName() + " updateAutomaticTargeting called at tick " + currentTick);
         }
         
         // Only execute if automatic targeting is enabled
         if (!usesAutomaticTargeting) {
             // Only log this for characters that recently had auto-targeting enabled
             if (currentTarget != null || persistentAttack) {
-                debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: auto-targeting disabled");
+                System.out.println("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: auto-targeting disabled");
             }
             return;
         }
         
         // Skip if character is incapacitated
         if (this.isIncapacitated()) {
-            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: incapacitated");
+            System.out.println("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: incapacitated");
             return;
         }
         
         // Skip if character has no weapon
         if (weapon == null) {
-            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: no weapon");
+            System.out.println("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: no weapon");
             return;
         }
         
         // Skip if character is already attacking (let existing attack complete)
         if (isAttacking) {
-            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: already attacking (isAttacking=" + isAttacking + 
+            System.out.println("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: already attacking (isAttacking=" + isAttacking + 
                       ", weapon state: " + (currentWeaponState != null ? currentWeaponState.getState() : "null") + 
                       ", persistentAttack=" + persistentAttack + ")");
             return;
         }
         
         // Additional debug info about current state
-        debugPrint("[AUTO-TARGET-STATE] " + getDisplayName() + " state check: isAttacking=" + isAttacking + 
+        System.out.println("[AUTO-TARGET-STATE] " + getDisplayName() + " state check: isAttacking=" + isAttacking + 
                   ", weapon state=" + (currentWeaponState != null ? currentWeaponState.getState() : "null") + 
                   ", persistentAttack=" + persistentAttack + 
                   ", currentTarget=" + (currentTarget != null ? currentTarget.character.getDisplayName() : "null"));
         
-        debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " executing automatic targeting (current target: " + 
+        System.out.println("[AUTO-TARGET-DEBUG] " + getDisplayName() + " executing automatic targeting (current target: " + 
                              (currentTarget != null ? currentTarget.character.getDisplayName() : "none") + ")");
         
         // Check if current target is still valid
@@ -1717,7 +1722,7 @@ public class Character {
             && this.isHostileTo(currentTarget.character);
         
         if (!currentTargetValid) {
-            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " current target invalid, searching for new target...");
+            System.out.println("[AUTO-TARGET-DEBUG] " + getDisplayName() + " current target invalid, searching for new target...");
             // Find a new target with target zone priority
             Unit newTarget = findNearestHostileTargetWithZonePriority(selfUnit, gameCallbacks);
             
@@ -1886,25 +1891,25 @@ public class Character {
     
     private void checkContinuousAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Debug logging for checkContinuousAttack entry
-        debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " checkContinuousAttack called - persistentAttack=" + persistentAttack + ", usesAutomaticTargeting=" + usesAutomaticTargeting);
+        System.out.println("[CONTINUOUS-ATTACK] " + getDisplayName() + " checkContinuousAttack called - persistentAttack=" + persistentAttack + ", usesAutomaticTargeting=" + usesAutomaticTargeting);
         
         // Continue only if persistent attack is enabled OR auto-targeting is enabled
         if (!persistentAttack && !usesAutomaticTargeting) {
-            debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " exiting: neither persistentAttack nor usesAutomaticTargeting enabled");
+            System.out.println("[CONTINUOUS-ATTACK] " + getDisplayName() + " exiting: neither persistentAttack nor usesAutomaticTargeting enabled");
             return;
         }
         
-        debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " proceeding with continuous attack evaluation");
+        System.out.println("[CONTINUOUS-ATTACK] " + getDisplayName() + " proceeding with continuous attack evaluation");
         
         // Handle case where we have auto-targeting enabled but no current target
         if (currentTarget == null) {
             if (usesAutomaticTargeting) {
-                debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " no current target but auto-targeting enabled - delegating to updateAutomaticTargeting");
+                System.out.println("[CONTINUOUS-ATTACK] " + getDisplayName() + " no current target but auto-targeting enabled - delegating to updateAutomaticTargeting");
                 // Delegate to the auto-targeting system to find a new target
                 updateAutomaticTargeting(shooter, currentTick, eventQueue, gameCallbacks);
                 return;
             } else {
-                debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " no current target and no auto-targeting - exiting");
+                System.out.println("[CONTINUOUS-ATTACK] " + getDisplayName() + " no current target and no auto-targeting - exiting");
                 return;
             }
         }
