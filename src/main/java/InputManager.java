@@ -62,6 +62,7 @@ public class InputManager {
     private boolean waitingForVictoryOutcome = false;
     private boolean waitingForScenarioName = false;
     private boolean waitingForThemeSelection = false;
+    private boolean waitingForDirectCharacterAddition = false;
     
     // Manual victory state
     private java.util.List<Integer> scenarioFactions = new java.util.ArrayList<>();
@@ -94,6 +95,12 @@ public class InputManager {
     private DeploymentStep deploymentStep = DeploymentStep.FACTION;
     private java.util.List<combat.Character> deploymentCharacters = new java.util.ArrayList<>();
     
+    // Direct character addition state
+    private int directAdditionFaction = 0;
+    private int directAdditionQuantity = 0;
+    private double directAdditionSpacing = 5.0; // Default 5 feet
+    private DirectAdditionStep directAdditionStep = DirectAdditionStep.FACTION;
+    
     // Batch creation workflow steps
     private enum BatchCreationStep {
         QUANTITY,    // Prompting for quantity
@@ -107,6 +114,14 @@ public class InputManager {
         QUANTITY,    // Prompting for quantity to deploy
         WEAPON,      // Prompting for weapon selection
         FORMATION,   // Prompting for formation type
+        SPACING,     // Prompting for character spacing
+        PLACEMENT    // Click-to-place mode active
+    }
+    
+    // Direct character addition workflow steps
+    private enum DirectAdditionStep {
+        FACTION,     // Prompting for faction selection
+        QUANTITY,    // Prompting for quantity to add
         SPACING,     // Prompting for character spacing
         PLACEMENT    // Click-to-place mode active
     }
@@ -254,6 +269,13 @@ public class InputManager {
                 selectionManager.selectUnit(clickedUnit);
                 displayEnhancedCharacterStats(clickedUnit);
             } else {
+                // Check if we're in character placement mode
+                if (waitingForDirectCharacterAddition && directAdditionStep == DirectAdditionStep.PLACEMENT) {
+                    // Handle character placement at clicked location
+                    handleCharacterPlacement(x, y);
+                    return;
+                }
+                
                 // Start rectangle selection
                 selectionManager.startRectangleSelection(x, y);
             }
@@ -616,12 +638,12 @@ public class InputManager {
         }
         if (e.getCode() == KeyCode.A && e.isControlDown()) {
             if (callbacks.isEditMode() && !isWaitingForInput()) {
-                callbacks.promptForCharacterCreation();
-                waitingForCharacterCreation = true;
+                promptForDirectCharacterAddition();
+                waitingForDirectCharacterAddition = true;
             } else if (!callbacks.isEditMode()) {
-                System.out.println("*** Character creation only available in edit mode (Ctrl+E) ***");
+                System.out.println("*** Character addition only available in edit mode (Ctrl+E) ***");
             } else if (isWaitingForInput()) {
-                System.out.println("*** Please complete current operation before creating characters ***");
+                System.out.println("*** Please complete current operation before adding characters ***");
             }
         }
         if (e.getCode() == KeyCode.V && e.isControlDown() && e.isShiftDown()) {
@@ -1080,8 +1102,8 @@ public class InputManager {
             return; // Don't process other input while waiting for theme selection
         }
         
-        // Handle number key input for save/load slot selection, character creation, weapon selection, faction selection, batch character creation, and character deployment
-        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || waitingForCharacterDeployment || waitingForCharacterRangedWeapon || waitingForCharacterMeleeWeapon) {
+        // Handle number key input for save/load slot selection, character creation, weapon selection, faction selection, batch character creation, character deployment, and direct character addition
+        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || waitingForCharacterDeployment || waitingForCharacterRangedWeapon || waitingForCharacterMeleeWeapon || waitingForDirectCharacterAddition) {
             int slotNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) slotNumber = 1;
             else if (e.getCode() == KeyCode.DIGIT2) slotNumber = 2;
@@ -1128,6 +1150,9 @@ public class InputManager {
                 } else if (waitingForCharacterDeployment) {
                     System.out.println("*** Character deployment cancelled ***");
                     cancelCharacterDeployment();
+                } else if (waitingForDirectCharacterAddition) {
+                    System.out.println("*** Character addition cancelled ***");
+                    cancelDirectCharacterAddition();
                 } else {
                     System.out.println("*** Save/Load cancelled ***");
                     waitingForSaveSlot = false;
@@ -1222,6 +1247,8 @@ public class InputManager {
                     handleBatchCharacterCreationInput(slotNumber);
                 } else if (waitingForCharacterDeployment) {
                     handleCharacterDeploymentInput(slotNumber);
+                } else if (waitingForDirectCharacterAddition) {
+                    handleDirectCharacterAdditionInput(slotNumber);
                 }
             }
         }
@@ -1277,7 +1304,8 @@ public class InputManager {
                waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection ||
                waitingForFactionSelection || waitingForBatchCharacterCreation || 
                waitingForCharacterDeployment || waitingForDeletionConfirmation || waitingForVictoryOutcome ||
-               waitingForScenarioName || waitingForThemeSelection || waitingForCharacterRangedWeapon || waitingForCharacterMeleeWeapon;
+               waitingForScenarioName || waitingForThemeSelection || waitingForCharacterRangedWeapon || 
+               waitingForCharacterMeleeWeapon || waitingForDirectCharacterAddition;
     }
     
     /**
@@ -2859,6 +2887,12 @@ public class InputManager {
         attacker.character.isMovingToMelee = true;
         attacker.character.meleeTarget = target;
         
+        // Set melee weapon to ready state for combat
+        if (attacker.character.meleeWeapon != null) {
+            attacker.character.startReadyWeaponSequence(attacker, gameClock.getCurrentTick(), eventQueue, attacker.getId());
+            System.out.println("*** " + attacker.character.getDisplayName() + " readying melee weapon " + attacker.character.meleeWeapon.getName() + " for combat");
+        }
+        
         // Initiate movement using existing movement system
         attacker.setTarget(approachX, approachY);
         
@@ -3091,5 +3125,186 @@ public class InputManager {
             default:
                 return javafx.scene.paint.Color.CYAN; // Default color for other archetypes
         }
+    }
+    
+    /**
+     * Start the direct character addition workflow
+     */
+    private void promptForDirectCharacterAddition() {
+        waitingForDirectCharacterAddition = true;
+        directAdditionStep = DirectAdditionStep.FACTION;
+        directAdditionFaction = 0;
+        directAdditionQuantity = 0;
+        directAdditionSpacing = 5.0; // Default 5 feet
+        
+        System.out.println("***********************");
+        System.out.println("*** DIRECT CHARACTER ADDITION ***");
+        System.out.println("Select faction:");
+        System.out.println("1. Union (Blue units)");
+        System.out.println("2. Confederacy (Dark Gray units)");
+        System.out.println("3. Southern Unionists (Light Blue units)");
+        System.out.println("0. Cancel addition");
+        System.out.println();
+        System.out.println("Enter faction (1-3, 0 to cancel): ");
+    }
+    
+    /**
+     * Handle user input for direct character addition workflow
+     */
+    private void handleDirectCharacterAdditionInput(int inputNumber) {
+        switch (directAdditionStep) {
+            case FACTION:
+                if (inputNumber == 0) {
+                    System.out.println("*** Character addition cancelled ***");
+                    cancelDirectCharacterAddition();
+                } else if (inputNumber >= 1 && inputNumber <= 3) {
+                    directAdditionFaction = inputNumber;
+                    directAdditionStep = DirectAdditionStep.QUANTITY;
+                    System.out.println("***********************");
+                    System.out.println("*** CHARACTER QUANTITY ***");
+                    System.out.println("How many characters to add?");
+                    System.out.println("Enter quantity (1-20, 0 to cancel): ");
+                } else {
+                    System.out.println("*** Invalid faction. Use 1-3 or 0 to cancel ***");
+                }
+                break;
+                
+            case QUANTITY:
+                if (inputNumber == 0) {
+                    System.out.println("*** Character addition cancelled ***");
+                    cancelDirectCharacterAddition();
+                } else if (inputNumber >= 1 && inputNumber <= 20) {
+                    directAdditionQuantity = inputNumber;
+                    directAdditionStep = DirectAdditionStep.SPACING;
+                    System.out.println("***********************");
+                    System.out.println("*** CHARACTER SPACING ***");
+                    System.out.println("Set spacing between characters:");
+                    System.out.println("1. 1 foot");
+                    System.out.println("2. 2 feet");
+                    System.out.println("3. 3 feet");
+                    System.out.println("4. 4 feet");
+                    System.out.println("5. 5 feet (default)");
+                    System.out.println("6. 6 feet");
+                    System.out.println("7. 7 feet");
+                    System.out.println("8. 8 feet");
+                    System.out.println("9. 9 feet");
+                    System.out.println("0. Cancel addition");
+                    System.out.println();
+                    System.out.println("Enter spacing (1-9, 0 to cancel): ");
+                } else {
+                    System.out.println("*** Invalid quantity. Use 1-20 or 0 to cancel ***");
+                }
+                break;
+                
+            case SPACING:
+                if (inputNumber == 0) {
+                    System.out.println("*** Character addition cancelled ***");
+                    cancelDirectCharacterAddition();
+                } else if (inputNumber >= 1 && inputNumber <= 9) {
+                    directAdditionSpacing = inputNumber; // feet
+                    directAdditionStep = DirectAdditionStep.PLACEMENT;
+                    System.out.println("***********************");
+                    System.out.println("*** CHARACTER PLACEMENT ***");
+                    System.out.println("Click on the map to place " + directAdditionQuantity + " characters");
+                    System.out.println("Faction: " + directAdditionFaction + " | Spacing: " + directAdditionSpacing + " feet");
+                    System.out.println("Characters will be placed in a line going right from your click point");
+                    System.out.println("Press ESC to cancel");
+                } else {
+                    System.out.println("*** Invalid spacing. Use 1-9 feet or 0 to cancel ***");
+                }
+                break;
+                
+            case PLACEMENT:
+                // Placement is handled by mouse clicks, not number input
+                break;
+        }
+    }
+    
+    /**
+     * Cancel the direct character addition workflow and reset state
+     */
+    private void cancelDirectCharacterAddition() {
+        waitingForDirectCharacterAddition = false;
+        directAdditionStep = DirectAdditionStep.FACTION;
+        directAdditionFaction = 0;
+        directAdditionQuantity = 0;
+        directAdditionSpacing = 5.0;
+    }
+    
+    /**
+     * Handle character placement at the clicked location
+     */
+    private void handleCharacterPlacement(double x, double y) {
+        System.out.println("***********************");
+        System.out.println("*** PLACING CHARACTERS ***");
+        System.out.println("Creating " + directAdditionQuantity + " characters from faction " + directAdditionFaction);
+        
+        // Convert spacing from feet to pixels (7 pixels = 1 foot)
+        double spacingPixels = directAdditionSpacing * 7.0;
+        
+        // Create characters in a horizontal line going right
+        for (int i = 0; i < directAdditionQuantity; i++) {
+            // Calculate position for this character
+            double charX = x + (i * (spacingPixels + 21)); // spacing + character diameter (21 pixels)
+            double charY = y;
+            
+            // Generate a random character for the selected faction
+            combat.Character character = generateRandomCharacterForFaction(directAdditionFaction);
+            
+            // Get faction color
+            javafx.scene.paint.Color factionColor = getFactionColor(directAdditionFaction);
+            
+            // Create and place the unit with all required parameters
+            Unit newUnit = new Unit(character, charX, charY, factionColor, nextUnitId++);
+            
+            // Add to units list
+            units.add(newUnit);
+            
+            System.out.println("Character " + (i + 1) + " placed at (" + String.format("%.0f", charX) + ", " + String.format("%.0f", charY) + ")");
+        }
+        
+        System.out.println("*** Character placement complete ***");
+        System.out.println("***********************");
+        
+        // Reset state
+        cancelDirectCharacterAddition();
+    }
+    
+    /**
+     * Generate a random character for the specified faction
+     */
+    private combat.Character generateRandomCharacterForFaction(int faction) {
+        // Generate random stats for the character
+        java.util.Random random = new java.util.Random();
+        
+        // Generate random names
+        String[] firstNames = {"John", "Mary", "James", "Sarah", "Robert", "Jane", "William", "Emma"};
+        String[] lastNames = {"Smith", "Johnson", "Brown", "Wilson", "Davis", "Miller", "Moore", "Taylor"};
+        String firstName = firstNames[random.nextInt(firstNames.length)];
+        String lastName = lastNames[random.nextInt(lastNames.length)];
+        String nickname = firstName + " " + lastName.charAt(0) + ".";
+        
+        // Generate random stats (40-90 range for variety)
+        int dexterity = 40 + random.nextInt(51); // 40-90
+        int strength = 40 + random.nextInt(51);  // 40-90
+        int reflexes = 40 + random.nextInt(51);  // 40-90
+        int coolness = 40 + random.nextInt(51);  // 40-90
+        int health = 60 + random.nextInt(41);    // 60-100
+        
+        // Random handedness
+        combat.Handedness handedness = random.nextBoolean() ? combat.Handedness.RIGHT_HANDED : combat.Handedness.LEFT_HANDED;
+        
+        // Create character using simple constructor
+        combat.Character character = new combat.Character(nickname, dexterity, health, coolness, strength, reflexes, handedness);
+        
+        // Set faction
+        character.faction = faction;
+        
+        // Add basic weapons
+        character.weapon = data.WeaponFactory.createWeapon("wpn_colt_peacemaker");
+        character.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_sword");
+        character.currentWeaponState = character.weapon.getInitialState();
+        
+        return character;
     }
 }
