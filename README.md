@@ -1,4 +1,4 @@
-# OpenFields2 - AI-Assisted Tactical Combat Simulation
+# OpenFields2 - TTRPG + RTS
 
 ## Project Vision
 
