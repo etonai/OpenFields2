@@ -966,16 +966,6 @@ public class InputManager {
                         boolean newState = !currentState;
                         unit.character.setUsesAutomaticTargeting(newState);
                         
-                        // Add immediate state dump for debugging
-                        if (newState) {
-                            System.out.println("[SHIFT-T-STATE] " + unit.character.getDisplayName() + " AUTO-TARGETING ENABLED - State Dump:");
-                            System.out.println("[SHIFT-T-STATE]   usesAutomaticTargeting: " + unit.character.usesAutomaticTargeting);
-                            System.out.println("[SHIFT-T-STATE]   isAttacking: " + unit.character.isAttacking);
-                            System.out.println("[SHIFT-T-STATE]   currentTarget: " + (unit.character.currentTarget != null ? unit.character.currentTarget.character.getDisplayName() : "null"));
-                            System.out.println("[SHIFT-T-STATE]   persistentAttack: " + unit.character.persistentAttack);
-                            System.out.println("[SHIFT-T-STATE]   currentWeaponState: " + unit.character.currentWeaponState.getState());
-                            System.out.println("[SHIFT-T-STATE]   isIncapacitated: " + unit.character.isIncapacitated());
-                        }
                         
                         if (newState) {
                             enabledCount++;
