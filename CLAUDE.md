@@ -153,16 +153,66 @@ mvn javafx:run                # Run the JavaFX application
 
 ## Git and Version Control Rules
 
-- **CRITICAL**: Claude is NOT ALLOWED to commit changes without explicit user permission
-- **Required Process**: 
-  1. Implement all requested changes
-  2. Show user the implementation results and/or diffs
-  3. Wait for explicit approval before committing
-  4. Only commit when user specifically requests it
-- **No Exceptions**: This rule applies to ALL commits including implementations, bug fixes, documentation updates, and any other changes
-- **Violation Consequences**: Unauthorized commits violate the project workflow and must be undone for proper review
+### Absolute Prohibitions
+- **CRITICAL**: Claude is ABSOLUTELY FORBIDDEN from executing ANY git commands that modify repository state without explicit user permission
+- **FORBIDDEN COMMANDS**: 
+  - `git commit` (any variant)
+  - `git checkout -b` (branch creation)
+  - `git branch` (branch creation)
+  - `git merge`
+  - `git rebase`
+  - `git push`
+  - `git pull` (unless explicitly requested)
+  - `git tag`
+  - Any other git command that modifies repository state
+
+### Required Process for ANY Git Operations
+1. **ASK PERMISSION FIRST**: Always ask explicit permission before executing any git command
+2. **Implement all requested changes** (using non-git tools)
+3. **Show user the implementation results and/or diffs**
+4. **Wait for explicit approval** before executing git commands
+5. **Only execute git commands when user specifically requests them**
+
+### Enforcement Rules
+- **NO EXCEPTIONS**: These rules apply to ALL git operations including branch creation, commits, merges, pushes, and any repository modifications
+- **NO ASSUMPTIONS**: Never assume user wants git commands executed, even if they seem logical or part of a workflow
+- **ASK EXPLICITLY**: Always ask "Should I create a branch?" or "Should I commit these changes?" before executing
+- **VIOLATION CONSEQUENCES**: Unauthorized git operations violate the project workflow and must be undone immediately
+
+### Permitted Git Operations (Read-Only)
+Claude MAY execute these git commands without permission (read-only operations):
+- `git status`
+- `git diff`
+- `git log`
+- `git show`
+- `git ls-files`
+- Other read-only git inspection commands
 
 ## Documentation Conventions
+
+### Document Review Process
+
+#### Definition
+When asked to "review a document", "look at a document and think about it", or similar instructions, Claude must perform a comprehensive analysis following this mandatory checklist.
+
+#### Document Review Checklist
+1. **Read the entire document** thoroughly from beginning to end
+2. **Analyze completeness** - identify missing information, incomplete sections, or unclear requirements
+3. **Check consistency** - verify information aligns across sections and with existing project standards
+4. **Identify potential issues** - technical risks, implementation challenges, design conflicts, or ambiguities
+5. **Formulate clarifying questions** - prepare specific, actionable questions about unclear or incomplete areas
+6. **Add questions to document** - **MANDATORY**: Append all questions to the end of the document being reviewed (never provide questions separately in response)
+7. **Follow specific instructions** - if user provides additional review instructions, execute them precisely
+
+#### Question Format Requirements
+- **Organization**: Group questions by category (Technical, Requirements, Implementation, Scope, etc.)
+- **Numbering**: Use sequential numbering for easy reference
+- **Specificity**: Each question must be actionable and specific
+- **Placement**: **ALWAYS** add questions as a new section at the end of the document
+- **Section Title**: Use "Planning Questions for User Review" or similar clear heading
+
+#### Critical Rule
+**NEVER provide review questions separately from the document**. Questions must be added directly to the document being reviewed. This ensures all review information stays with the document for future reference.
 
 ### EDNOTE Convention
 - **EDNOTE**: Prefix used for notes from the project owner (Edward T. Tonai) in planning and brainstorming documents
