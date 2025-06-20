@@ -1383,6 +1383,7 @@ public class Character {
             if (readyState != null) {
                 eventQueue.add(new ScheduledEvent(attackTick + recoveryTime, () -> {
                     currentWeaponState = readyState;
+                    isAttacking = false; // Clear attacking flag to allow auto-targeting to continue
                     debugPrint("[MELEE-STATE] " + getDisplayName() + " recovered to melee_ready at tick " + (attackTick + recoveryTime));
                     System.out.println(getDisplayName() + " melee weapon state: melee_ready at tick " + (attackTick + recoveryTime));
                 }, ownerId));
@@ -1502,6 +1503,7 @@ public class Character {
         List<Unit> allUnits = gameCallbacks.getUnits();
         Unit nearestTarget = null;
         double nearestDistance = Double.MAX_VALUE;
+        java.util.Random random = new java.util.Random();
         
         for (Unit unit : allUnits) {
             // Skip self
@@ -1527,6 +1529,11 @@ public class Character {
             if (distance < nearestDistance) {
                 nearestDistance = distance;
                 nearestTarget = unit;
+            } else if (distance == nearestDistance && nearestTarget != null) {
+                // Random selection for equidistant targets
+                if (random.nextBoolean()) {
+                    nearestTarget = unit;
+                }
             }
         }
         
@@ -1541,6 +1548,7 @@ public class Character {
         double nearestZoneDistance = Double.MAX_VALUE;
         double nearestGlobalDistance = Double.MAX_VALUE;
         int hostilesFound = 0;
+        java.util.Random random = new java.util.Random();
         
         for (Unit unit : allUnits) {
             // Skip self
@@ -1578,12 +1586,22 @@ public class Character {
                 if (distance < nearestZoneDistance) {
                     nearestZoneDistance = distance;
                     nearestZoneTarget = unit;
+                } else if (distance == nearestZoneDistance && nearestZoneTarget != null) {
+                    // Random selection for equidistant targets
+                    if (random.nextBoolean()) {
+                        nearestZoneTarget = unit;
+                    }
                 }
             } else {
                 // Target is not in zone - track as global fallback
                 if (distance < nearestGlobalDistance) {
                     nearestGlobalDistance = distance;
                     nearestGlobalTarget = unit;
+                } else if (distance == nearestGlobalDistance && nearestGlobalTarget != null) {
+                    // Random selection for equidistant targets
+                    if (random.nextBoolean()) {
+                        nearestGlobalTarget = unit;
+                    }
                 }
             }
         }
@@ -1844,7 +1862,8 @@ public class Character {
     }
     
     private void checkContinuousAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (!persistentAttack) return;
+        // Continue only if persistent attack is enabled OR auto-targeting is enabled
+        if (!persistentAttack && !usesAutomaticTargeting) return;
         if (currentTarget == null) return;
         if (currentTarget.character.isIncapacitated()) {
             // Target incapacitated - schedule automatic target change after 1 second delay

@@ -114,8 +114,10 @@ public class Unit {
             return;
         }
         
-        // Face movement direction while moving
-        setTargetFacing(targetX, targetY);
+        // Face movement direction while moving, unless auto-targeting with a target
+        if (!(character.usesAutomaticTargeting && character.currentTarget != null)) {
+            setTargetFacing(targetX, targetY);
+        }
 
         double dx = targetX - x;
         double dy = targetY - y;
