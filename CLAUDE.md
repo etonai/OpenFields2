@@ -132,6 +132,22 @@ mvn javafx:run                # Run the JavaFX application
 - **Pattern Consistency**: Follows same audio pattern as ranged weapon sounds
 - **Error Handling**: Graceful fallback if sound files missing or audio system unavailable
 
+### CTRL-A Character Addition System (DevCycle 14)
+- **Direct Character Deployment**: CTRL-A directly adds existing characters from faction files without creation step
+- **Console-Based Interface**: Faction selection, quantity (1-20), and spacing (1-9 feet) via console menus
+- **Faction Character Loading**: Characters sourced from existing faction JSON files using proper CharacterData deserialization
+- **Character Availability**: Excludes already deployed and incapacitated characters from selection pool
+- **Horizontal Lineup**: Characters placed in line formation with configurable spacing in feet
+- **Error Handling**: Graceful handling of missing faction files and JSON parsing issues
+
+### Enhanced Melee Combat System (DevCycle 14)
+- **Target Incapacitation Response**: Melee characters immediately stop movement when targets become incapacitated
+- **Unified Weapon Readiness**: Both ranged and melee weapons use the same proven state management system
+- **Movement Integration**: Weapon readiness begins immediately when moving to targets, ready upon arrival
+- **State Persistence**: Weapon states properly maintained through movement phases without resets
+- **Combat Mode Awareness**: System automatically detects ranged vs. melee mode for appropriate behavior
+- **Enhanced Movement Logic**: `cancelMeleeMovement()` properly stops units using `Unit.setTarget(currentX, currentY)`
+
 ## Technical Details
 
 - **Java 21** with JavaFX 21.0.2
