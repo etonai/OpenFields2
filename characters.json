@@ -1,17 +1,17 @@
 {
-  "nextCharacterId" : 1007,
+  "nextCharacterId" : 1011,
   "characters" : {
-    "1006" : {
-      "id" : 1006,
-      "nickname" : "Alexander",
-      "firstName" : "Alexander",
-      "lastName" : "Jones",
-      "birthdate" : "June 9, 1859",
-      "dexterity" : 85,
-      "health" : 95,
-      "coolness" : 80,
-      "strength" : 60,
-      "reflexes" : 90,
+    "1008" : {
+      "id" : 1008,
+      "nickname" : "Henry",
+      "firstName" : "Henry",
+      "lastName" : "Wilson",
+      "birthdate" : "June 9, 1861",
+      "dexterity" : 57,
+      "health" : 96,
+      "coolness" : 69,
+      "strength" : 33,
+      "reflexes" : 66,
       "handedness" : "RIGHT_HANDED",
       "baseMovementSpeed" : 42.0,
       "faction" : 0,
@@ -25,13 +25,65 @@
       "attacksSuccessful" : 0,
       "targetsIncapacitated" : 0,
       "skills" : [ {
-        "skillName" : "skl_pistol",
-        "level" : 8
-      }, {
-        "skillName" : "skl_quickdraw",
-        "level" : 7
-      }, {
-        "skillName" : "skl_observation",
+        "skillName" : "skl_rifle",
+        "level" : 6
+      } ],
+      "wounds" : [ ]
+    },
+    "1007" : {
+      "id" : 1007,
+      "nickname" : "Panther",
+      "firstName" : "Francis",
+      "lastName" : "Anderson",
+      "birthdate" : "June 9, 1853",
+      "dexterity" : 54,
+      "health" : 89,
+      "coolness" : 35,
+      "strength" : 59,
+      "reflexes" : 75,
+      "handedness" : "LEFT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "faction" : 0,
+      "combatEngagements" : 0,
+      "woundsReceived" : 0,
+      "woundsInflictedScratch" : 0,
+      "woundsInflictedLight" : 0,
+      "woundsInflictedSerious" : 0,
+      "woundsInflictedCritical" : 0,
+      "attacksAttempted" : 0,
+      "attacksSuccessful" : 0,
+      "targetsIncapacitated" : 0,
+      "skills" : [ {
+        "skillName" : "skl_rifle",
+        "level" : 6
+      } ],
+      "wounds" : [ ]
+    },
+    "1006" : {
+      "id" : 1006,
+      "nickname" : "John",
+      "firstName" : "John",
+      "lastName" : "Thompson",
+      "birthdate" : "June 9, 1853",
+      "dexterity" : 62,
+      "health" : 82,
+      "coolness" : 62,
+      "strength" : 28,
+      "reflexes" : 48,
+      "handedness" : "RIGHT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "faction" : 0,
+      "combatEngagements" : 0,
+      "woundsReceived" : 0,
+      "woundsInflictedScratch" : 0,
+      "woundsInflictedLight" : 0,
+      "woundsInflictedSerious" : 0,
+      "woundsInflictedCritical" : 0,
+      "attacksAttempted" : 0,
+      "attacksSuccessful" : 0,
+      "targetsIncapacitated" : 0,
+      "skills" : [ {
+        "skillName" : "skl_rifle",
         "level" : 6
       } ],
       "wounds" : [ ]
@@ -201,6 +253,64 @@
       "skills" : [ {
         "skillName" : "skl_submachine_gun",
         "level" : 4
+      } ],
+      "wounds" : [ ]
+    },
+    "1010" : {
+      "id" : 1010,
+      "nickname" : "Max",
+      "firstName" : "James",
+      "lastName" : "Wilson",
+      "birthdate" : "June 9, 1846",
+      "dexterity" : 80,
+      "health" : 96,
+      "coolness" : 57,
+      "strength" : 44,
+      "reflexes" : 65,
+      "handedness" : "RIGHT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "faction" : 0,
+      "combatEngagements" : 0,
+      "woundsReceived" : 0,
+      "woundsInflictedScratch" : 0,
+      "woundsInflictedLight" : 0,
+      "woundsInflictedSerious" : 0,
+      "woundsInflictedCritical" : 0,
+      "attacksAttempted" : 0,
+      "attacksSuccessful" : 0,
+      "targetsIncapacitated" : 0,
+      "skills" : [ {
+        "skillName" : "skl_rifle",
+        "level" : 6
+      } ],
+      "wounds" : [ ]
+    },
+    "1009" : {
+      "id" : 1009,
+      "nickname" : "Jim",
+      "firstName" : "Jim",
+      "lastName" : "Moore",
+      "birthdate" : "June 9, 1862",
+      "dexterity" : 81,
+      "health" : 98,
+      "coolness" : 83,
+      "strength" : 52,
+      "reflexes" : 25,
+      "handedness" : "RIGHT_HANDED",
+      "baseMovementSpeed" : 42.0,
+      "faction" : 0,
+      "combatEngagements" : 0,
+      "woundsReceived" : 0,
+      "woundsInflictedScratch" : 0,
+      "woundsInflictedLight" : 0,
+      "woundsInflictedSerious" : 0,
+      "woundsInflictedCritical" : 0,
+      "attacksAttempted" : 0,
+      "attacksSuccessful" : 0,
+      "targetsIncapacitated" : 0,
+      "skills" : [ {
+        "skillName" : "skl_rifle",
+        "level" : 6
       } ],
       "wounds" : [ ]
     }
