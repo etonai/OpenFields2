@@ -156,3 +156,33 @@ Character weapon state: unsheathing at tick 0
 ## Success Criteria
 - **Bug 3A**: CTRL-A shows correct available character counts and successfully loads characters from faction files
 - **Bug 3C**: Melee characters are ready to attack immediately upon reaching targets without weapon state resets
+
+## Implementation Plan Based on User Answers
+
+### Bug 3A Implementation Strategy (Priority 1)
+Based on the user's responses, the approach for Bug 3A will be:
+
+1. **Start with debug logging** - Add debug output to see the actual `charNode` content vs Character class expectations
+2. **Examine CTRL-C character creation functionality** - Study how characters are successfully created and placed in faction files as a reference for proper serialization/deserialization
+3. **Continue with full Character deserialization** - Maintain the approach of deserializing the entire Character object rather than manual field parsing
+4. **Investigate both potential causes** - Check for issues in both the Character class fields and the JSON structure in faction files
+
+### Bug 3C Implementation Strategy (Priority 2)
+Based on the user's responses, the approach for Bug 3C will be:
+
+1. **Study the working ranged weapon system** - Analyze `scheduleReadyFromCurrentState()` to understand why it succeeds
+2. **Add comprehensive debug logging** - Track exactly where melee weapon state transitions fail
+3. **Investigate WeaponState.getStateByName() calls** - Verify that melee weapons have the expected state names
+4. **Unify weapon systems** - Both ranged and melee weapons should use the same state management approach since "they are weapons"
+5. **Fix the existing melee system** - Improve the current implementation rather than reverting
+
+### Execution Order
+- **Focus**: Complete Bug 3A entirely before moving to Bug 3C
+- **Reference Point**: Use CTRL-C character creation as the model for successful Character serialization
+- **Technical Approach**: Unified weapon state system for both ranged and melee weapons
+
+### Key Insights from User Feedback
+- Character creation (CTRL-C) provides a working example of Character serialization
+- Weapon readiness should work identically for both weapon types
+- Debug logging is essential for identifying the specific failure points
+- Full object deserialization is preferred over manual field parsing
