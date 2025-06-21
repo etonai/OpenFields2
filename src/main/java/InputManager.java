@@ -185,6 +185,9 @@ public class InputManager {
     /** Handles character creation, deployment, and edit mode workflows */
     private final EditModeManager editModeManager;
     
+    /** Handles save/load operations, scenario management, and victory processing */
+    private final GameStateManager gameStateManager;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -666,6 +669,9 @@ public class InputManager {
         
         // DevCycle 15d: Initialize workflow components
         this.editModeManager = new EditModeManager(stateTracker, selectionManager, units, callbacks);
+        
+        // DevCycle 15e: Initialize game state components
+        this.gameStateManager = new GameStateManager(stateTracker, units, callbacks);
         
         // Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
@@ -1263,17 +1269,17 @@ public class InputManager {
         // DevCycle 15d: Delegate edit mode operations to EditModeManager
         editModeManager.handleEditModeKeys(e);
         
-        // Handle remaining operations not yet extracted to EditModeManager (GameStateManager candidates)
+        // DevCycle 15e: Delegate game state operations to GameStateManager
         if (e.getCode() == KeyCode.V && e.isControlDown() && e.isShiftDown()) {
             if (!isWaitingForInput()) {
-                promptForManualVictory();
+                gameStateManager.promptForManualVictory();
             } else {
                 System.out.println("*** Please complete current operation before processing victory ***");
             }
         }
         if (e.getCode() == KeyCode.N && e.isControlDown() && e.isShiftDown()) {
             if (!isWaitingForInput()) {
-                promptForNewScenario();
+                gameStateManager.promptForNewScenario();
             } else {
                 System.out.println("*** Please complete current operation before creating new scenario ***");
             }
@@ -1642,16 +1648,8 @@ public class InputManager {
      * @param e KeyEvent
      */
     private void handleSaveLoadControls(KeyEvent e) {
-        if (e.getCode() == KeyCode.S && e.isControlDown()) {
-            if (!stateTracker.isWaitingForSaveSlot() && !stateTracker.isWaitingForLoadSlot()) {
-                callbacks.promptForSaveSlot();
-            }
-        }
-        if (e.getCode() == KeyCode.L && e.isControlDown()) {
-            if (!stateTracker.isWaitingForSaveSlot() && !stateTracker.isWaitingForLoadSlot()) {
-                callbacks.promptForLoadSlot();
-            }
-        }
+        // DevCycle 15e: Delegate save/load operations to GameStateManager
+        gameStateManager.handleSaveLoadControls(e);
     }
     
     /**
@@ -1670,7 +1668,7 @@ public class InputManager {
             return; // Don't process other input while waiting for deletion confirmation
         }
         
-        // Handle victory outcome selection
+        // DevCycle 15e: Handle victory outcome selection
         if (stateTracker.isWaitingForVictoryOutcome()) {
             int outcomeNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) outcomeNumber = 1;
@@ -1680,30 +1678,20 @@ public class InputManager {
             else if (e.getCode() == KeyCode.ESCAPE) outcomeNumber = 0;
             
             if (outcomeNumber >= 0) {
-                handleVictoryOutcomeInput(outcomeNumber);
+                // DevCycle 15e: Delegate to GameStateManager
+                gameStateManager.handleVictoryOutcomeInput(outcomeNumber);
             }
             return; // Don't process other input while waiting for victory outcome
         }
         
-        // Handle scenario name input
+        // DevCycle 15e: Handle scenario name input
         if (stateTracker.isWaitingForScenarioName()) {
-            if (e.getCode() == KeyCode.ENTER) {
-                handleScenarioNameInput();
-            } else if (e.getCode() == KeyCode.ESCAPE) {
-                cancelNewScenario();
-            } else if (e.getCode() == KeyCode.BACK_SPACE && newScenarioName.length() > 0) {
-                newScenarioName = newScenarioName.substring(0, newScenarioName.length() - 1);
-                System.out.print("\b \b"); // Backspace effect
-            } else if (e.getText() != null && !e.getText().isEmpty() && e.getText().matches("[a-zA-Z0-9 \\-_]")) {
-                if (newScenarioName.length() < 50) { // Limit name length
-                    newScenarioName += e.getText();
-                    System.out.print(e.getText());
-                }
-            }
+            // DevCycle 15e: Delegate to GameStateManager
+            gameStateManager.handleScenarioNameTextInput(e);
             return; // Don't process other input while waiting for scenario name
         }
         
-        // Handle theme selection
+        // DevCycle 15e: Handle theme selection
         if (stateTracker.isWaitingForThemeSelection()) {
             int themeNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) themeNumber = 1;
@@ -1715,7 +1703,8 @@ public class InputManager {
             else if (e.getCode() == KeyCode.ESCAPE) themeNumber = 0;
             
             if (themeNumber >= 0) {
-                handleThemeSelectionInput(themeNumber);
+                // DevCycle 15e: Delegate to GameStateManager
+                gameStateManager.handleThemeSelectionInput(themeNumber);
             }
             return; // Don't process other input while waiting for theme selection
         }
@@ -1772,28 +1761,15 @@ public class InputManager {
                     System.out.println("*** Character addition cancelled ***");
                     cancelDirectCharacterAddition();
                 } else {
-                    System.out.println("*** Save/Load cancelled ***");
-                    stateTracker.setWaitingForSaveSlot(false);
-                    stateTracker.setWaitingForLoadSlot(false);
+                    // DevCycle 15e: Delegate save/load cancellation to GameStateManager
+                    gameStateManager.cancelSaveLoad();
                 }
             }
             
             if (slotNumber >= 0 && slotNumber <= 9) {
-                if (stateTracker.isWaitingForSaveSlot()) {
-                    if (slotNumber >= 1 && slotNumber <= 9) {
-                        callbacks.saveGameToSlot(slotNumber);
-                    } else {
-                        System.out.println("*** Invalid save slot. Use 1-9 ***");
-                    }
-                } else if (stateTracker.isWaitingForLoadSlot()) {
-                    if (slotNumber == 0) {
-                        System.out.println("*** Load cancelled ***");
-                        stateTracker.setWaitingForLoadSlot(false);
-                    } else if (slotNumber >= 1 && slotNumber <= 9) {
-                        callbacks.loadGameFromSlot(slotNumber);
-                    } else {
-                        System.out.println("*** Invalid load slot. Use 1-9 or 0 to cancel ***");
-                    }
+                if (stateTracker.isWaitingForSaveSlot() || stateTracker.isWaitingForLoadSlot()) {
+                    // DevCycle 15e: Delegate save/load slot handling to GameStateManager
+                    gameStateManager.handleSaveLoadInput(slotNumber);
                 } else if (stateTracker.isWaitingForCharacterCreation()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Character creation cancelled ***");
@@ -1912,15 +1888,18 @@ public class InputManager {
     }
     
     public void setWaitingForVictoryOutcome(boolean waiting) {
-        this.stateTracker.setWaitingForVictoryOutcome(waiting);
+        // DevCycle 15e: Delegate to GameStateManager
+        gameStateManager.setWaitingForVictoryOutcome(waiting);
     }
     
     public void setWaitingForScenarioName(boolean waiting) {
-        this.stateTracker.setWaitingForScenarioName(waiting);
+        // DevCycle 15e: Delegate to GameStateManager
+        gameStateManager.setWaitingForScenarioName(waiting);
     }
     
     public void setWaitingForThemeSelection(boolean waiting) {
-        this.stateTracker.setWaitingForThemeSelection(waiting);
+        // DevCycle 15e: Delegate to GameStateManager
+        gameStateManager.setWaitingForThemeSelection(waiting);
     }
     
     public boolean isWaitingForInput() {
