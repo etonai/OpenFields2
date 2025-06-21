@@ -182,6 +182,9 @@ public class InputManager {
     /** Manages all input-related state flags and provides centralized state tracking */
     private final InputStateTracker stateTracker;
     
+    /** Handles character creation, deployment, and edit mode workflows */
+    private final EditModeManager editModeManager;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -661,6 +664,9 @@ public class InputManager {
         this.eventRouter = new InputEventRouter();
         this.stateTracker = new InputStateTracker();
         
+        // DevCycle 15d: Initialize workflow components
+        this.editModeManager = new EditModeManager(stateTracker, selectionManager, units, callbacks);
+        
         // Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
             debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
@@ -745,18 +751,20 @@ public class InputManager {
         if (e.getButton() == MouseButton.PRIMARY) {
             // DevCycle 15c: Use InputEventRouter to determine handling
             InputEventRouter.MouseEventRoute route = eventRouter.routeMouseEvent(e, 
-                isInDeploymentPlacementMode(), 
-                stateTracker.isWaitingForDirectCharacterAddition() && directAdditionStep == DirectAdditionStep.PLACEMENT,
+                editModeManager.isInDeploymentPlacementMode(), 
+                editModeManager.isInDirectAdditionPlacementMode(),
                 editMode);
             
             switch (route) {
                 case DEPLOYMENT_PLACEMENT:
-                    handleDeploymentPlacement(x, y);
+                    // DevCycle 15d: Delegate to EditModeManager
+                    editModeManager.completeCharacterDeployment(x, y);
                     return;
                 case CHARACTER_PLACEMENT:
                     debugWorkflowState("DIRECT_ADDITION", "PLACEMENT", "Placing character at (" + 
                                      String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
-                    handleCharacterPlacement(x, y);
+                    // DevCycle 15d: Delegate to EditModeManager
+                    editModeManager.handleCharacterPlacement(x, y);
                     endPerformanceTimer("MousePressed");
                     return;
                 case UNIT_SELECTION:
@@ -1252,51 +1260,10 @@ public class InputManager {
      * @param e KeyEvent
      */
     private void handleEditModeKeys(KeyEvent e) {
-        if (e.getCode() == KeyCode.C && e.isControlDown()) {
-            if (callbacks.isEditMode() && !isWaitingForInput()) {
-                promptForBatchCharacterCreation();
-            } else if (!callbacks.isEditMode()) {
-                System.out.println("*** Character creation only available in edit mode (Ctrl+E) ***");
-            } else if (isWaitingForInput()) {
-                System.out.println("*** Please complete current operation before creating characters ***");
-            }
-        }
-        if (e.getCode() == KeyCode.W && e.isControlDown()) {
-            if (callbacks.isEditMode() && !isWaitingForInput()) {
-                if (selectionManager.hasSelection()) {
-                    callbacks.promptForWeaponSelection();
-                } else {
-                    System.out.println("*** No units selected - select a unit first ***");
-                }
-            } else if (!callbacks.isEditMode()) {
-                System.out.println("*** Weapon selection only available in edit mode (Ctrl+E) ***");
-            } else if (isWaitingForInput()) {
-                System.out.println("*** Please complete current operation before changing weapons ***");
-            }
-        }
-        if (e.getCode() == KeyCode.F && e.isControlDown()) {
-            if (callbacks.isEditMode() && !isWaitingForInput()) {
-                if (selectionManager.hasSelection()) {
-                    callbacks.promptForFactionSelection();
-                } else {
-                    System.out.println("*** No units selected - select a unit first ***");
-                }
-            } else if (!callbacks.isEditMode()) {
-                System.out.println("*** Faction selection only available in edit mode (Ctrl+E) ***");
-            } else if (isWaitingForInput()) {
-                System.out.println("*** Please complete current operation before changing factions ***");
-            }
-        }
-        if (e.getCode() == KeyCode.A && e.isControlDown()) {
-            if (callbacks.isEditMode() && !isWaitingForInput()) {
-                promptForDirectCharacterAddition();
-                stateTracker.setWaitingForDirectCharacterAddition(true);
-            } else if (!callbacks.isEditMode()) {
-                System.out.println("*** Character addition only available in edit mode (Ctrl+E) ***");
-            } else if (isWaitingForInput()) {
-                System.out.println("*** Please complete current operation before adding characters ***");
-            }
-        }
+        // DevCycle 15d: Delegate edit mode operations to EditModeManager
+        editModeManager.handleEditModeKeys(e);
+        
+        // Handle remaining operations not yet extracted to EditModeManager (GameStateManager candidates)
         if (e.getCode() == KeyCode.V && e.isControlDown() && e.isShiftDown()) {
             if (!isWaitingForInput()) {
                 promptForManualVictory();
@@ -1770,15 +1737,15 @@ public class InputManager {
                 if (stateTracker.isWaitingForCharacterCreation()) {
                     System.out.println("*** Character creation cancelled ***");
                     stateTracker.setWaitingForCharacterCreation(false);
-                    resetCharacterCreationState();
+                    // DevCycle 15d: Reset handled by EditModeManager
                 } else if (stateTracker.isWaitingForCharacterRangedWeapon()) {
                     System.out.println("*** Character creation cancelled ***");
                     stateTracker.setWaitingForCharacterRangedWeapon(false);
-                    resetCharacterCreationState();
+                    // DevCycle 15d: Reset handled by EditModeManager
                 } else if (stateTracker.isWaitingForCharacterMeleeWeapon()) {
                     System.out.println("*** Character creation cancelled ***");
                     stateTracker.setWaitingForCharacterMeleeWeapon(false);
-                    resetCharacterCreationState();
+                    // DevCycle 15d: Reset handled by EditModeManager
                 } else if (stateTracker.isWaitingForWeaponSelection()) {
                     System.out.println("*** Weapon selection cancelled ***");
                     stateTracker.setWaitingForWeaponSelection(false);
@@ -1831,9 +1798,10 @@ public class InputManager {
                     if (slotNumber == 0) {
                         System.out.println("*** Character creation cancelled ***");
                         stateTracker.setWaitingForCharacterCreation(false);
-                        resetCharacterCreationState();
+                        // DevCycle 15d: Reset handled by EditModeManager
                     } else if (slotNumber >= 1 && slotNumber <= 9) {
-                        handleCharacterArchetypeSelection(slotNumber);
+                        // DevCycle 15d: Delegate to EditModeManager
+                        editModeManager.handleCharacterArchetypeSelection(slotNumber);
                     } else {
                         System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
                     }
@@ -1841,17 +1809,19 @@ public class InputManager {
                     if (slotNumber == 0) {
                         System.out.println("*** Character creation cancelled ***");
                         stateTracker.setWaitingForCharacterRangedWeapon(false);
-                        resetCharacterCreationState();
+                        // DevCycle 15d: Reset handled by EditModeManager
                     } else {
-                        handleCharacterRangedWeaponSelection(slotNumber);
+                        // DevCycle 15d: Delegate to EditModeManager
+                        editModeManager.handleCharacterRangedWeaponSelection(slotNumber);
                     }
                 } else if (stateTracker.isWaitingForCharacterMeleeWeapon()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Character creation cancelled ***");
                         stateTracker.setWaitingForCharacterMeleeWeapon(false);
-                        resetCharacterCreationState();
+                        // DevCycle 15d: Reset handled by EditModeManager
                     } else {
-                        handleCharacterMeleeWeaponSelection(slotNumber);
+                        // DevCycle 15d: Delegate to EditModeManager
+                        editModeManager.handleCharacterMeleeWeaponSelection(slotNumber);
                     }
                 } else if (stateTracker.isWaitingForWeaponSelection()) {
                     // Handle weapon type selection (1=Ranged, 2=Melee)
@@ -1895,11 +1865,14 @@ public class InputManager {
                         callbacks.assignFactionToSelectedUnits(slotNumber);
                     }
                 } else if (stateTracker.isWaitingForBatchCharacterCreation()) {
-                    handleBatchCharacterCreationInput(slotNumber);
+                    // DevCycle 15d: Delegate to EditModeManager
+                    editModeManager.handleBatchCharacterCreationInput(slotNumber);
                 } else if (stateTracker.isWaitingForCharacterDeployment()) {
-                    handleCharacterDeploymentInput(slotNumber);
+                    // DevCycle 15d: Delegate to EditModeManager
+                    editModeManager.handleCharacterDeploymentInput(slotNumber);
                 } else if (stateTracker.isWaitingForDirectCharacterAddition()) {
-                    handleDirectCharacterAdditionInput(slotNumber);
+                    // DevCycle 15d: Delegate to EditModeManager
+                    editModeManager.handleDirectCharacterAdditionInput(slotNumber);
                 }
             }
         }
