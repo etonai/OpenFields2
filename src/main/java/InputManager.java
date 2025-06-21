@@ -25,10 +25,7 @@ import data.SkillsManager;
 import data.SaveGameManager;
 import data.UniversalCharacterRegistry;
 
-// Utility imports for Phase 3 refactoring (TODO: Re-enable after utility compilation)
-// import static InputUtilities.*;
-// import static DisplayHelpers.*;
-// import static InputConstants.*;
+// DevCycle 15e Phase 4: Utility imports removed - functionality delegated to components
 
 /**
  * InputManager handles all user input for the OpenFields2 game.
@@ -491,38 +488,7 @@ public class InputManager {
     // ─────────────────────────────────────────────────────────────────────────────────
     // Configurable debug features with zero performance impact when disabled
     
-    /** Master debug flag - enables all debug features when true */
-    private static boolean DEBUG_ENABLED = false;
-    
-    /** Enable debug logging for input events (mouse, keyboard) */
-    private static boolean DEBUG_INPUT_EVENTS = false;
-    
-    /** Enable debug logging for state transitions */
-    private static boolean DEBUG_STATE_TRANSITIONS = false;
-    
-    /** Enable performance timing for complex operations */
-    private static boolean DEBUG_PERFORMANCE_TIMING = false;
-    
-    /** Enable input event trace functionality */
-    private static boolean DEBUG_INPUT_TRACE = false;
-    
-    /** Enable memory usage diagnostic output */
-    private static boolean DEBUG_MEMORY_USAGE = false;
-    
-    /** Enable workflow state debugging */
-    private static boolean DEBUG_WORKFLOW_STATES = false;
-    
-    /** Enable combat command debugging */
-    private static boolean DEBUG_COMBAT_COMMANDS = false;
-    
-    /** Enable selection debugging */
-    private static boolean DEBUG_SELECTION_OPERATIONS = false;
-    
-    // Performance timing storage for debug operations
-    private static long lastOperationStartTime = 0;
-    private static final java.util.Map<String, Long> performanceTimings = new java.util.HashMap<>();
-    private static final java.util.List<String> inputEventTrace = new java.util.ArrayList<>();
-    private static final int MAX_TRACE_EVENTS = 100; // Limit trace size to prevent memory issues
+    // DevCycle 15e Phase 4: Debug functionality moved to DisplayCoordinator
     
     /**
      * Callback interface for operations that require access to main game functionality.
@@ -675,11 +641,187 @@ public class InputManager {
         // DevCycle 15e: Initialize display coordination components
         this.displayCoordinator = new DisplayCoordinator(selectionManager, gameClock, callbacks);
         
-        // Set up debug callback for state tracking integration
+        // DevCycle 15e Phase 4: Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
-            debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
+            displayCoordinator.debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
                                 newValue ? stateName : "NONE");
         });
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 3.1.1 Component Lifecycle Management (DevCycle 15e Phase 4)
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
+    /**
+     * Initialize all components and establish coordination patterns.
+     * Called automatically by constructor but can be called for reinitialization.
+     */
+    public void initializeComponents() {
+        displayCoordinator.debugLog("LIFECYCLE", "Initializing InputManager components");
+        
+        // DevCycle 15e Phase 4: Component cross-references established via dependency injection
+        
+        // Set up component lifecycle callbacks
+        stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
+            displayCoordinator.debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
+                                newValue ? stateName : "NONE");
+        });
+        
+        displayCoordinator.debugLog("LIFECYCLE", "Component initialization complete");
+    }
+    
+    /**
+     * Validate component health and integration integrity.
+     * Should be called periodically to ensure all components are functioning correctly.
+     */
+    public boolean validateComponentIntegrity() {
+        displayCoordinator.debugLog("LIFECYCLE", "Validating component integrity");
+        
+        boolean allHealthy = true;
+        
+        // Validate each component
+        if (eventRouter == null) {
+            displayCoordinator.debugLog("ERROR", "InputEventRouter not initialized");
+            allHealthy = false;
+        }
+        
+        if (stateTracker == null) {
+            displayCoordinator.debugLog("ERROR", "InputStateTracker not initialized");
+            allHealthy = false;
+        }
+        
+        if (editModeManager == null) {
+            displayCoordinator.debugLog("ERROR", "EditModeManager not initialized");
+            allHealthy = false;
+        }
+        
+        if (gameStateManager == null) {
+            displayCoordinator.debugLog("ERROR", "GameStateManager not initialized");
+            allHealthy = false;
+        }
+        
+        if (combatCommandProcessor == null) {
+            displayCoordinator.debugLog("ERROR", "CombatCommandProcessor not initialized");
+            allHealthy = false;
+        }
+        
+        if (displayCoordinator == null) {
+            System.err.println("ERROR: DisplayCoordinator not initialized");
+            allHealthy = false;
+        }
+        
+        if (allHealthy) {
+            displayCoordinator.debugLog("LIFECYCLE", "All components healthy");
+        } else {
+            displayCoordinator.debugLog("ERROR", "Component integrity validation failed");
+        }
+        
+        return allHealthy;
+    }
+    
+    /**
+     * Get comprehensive component status for debugging and monitoring.
+     */
+    public String getComponentStatus() {
+        StringBuilder status = new StringBuilder();
+        status.append("=== InputManager Component Status ===\n");
+        status.append("InputEventRouter: ").append(eventRouter != null ? "✓ Active" : "✗ Missing").append("\n");
+        status.append("InputStateTracker: ").append(stateTracker != null ? "✓ Active" : "✗ Missing").append("\n");
+        status.append("EditModeManager: ").append(editModeManager != null ? "✓ Active" : "✗ Missing").append("\n");
+        status.append("GameStateManager: ").append(gameStateManager != null ? "✓ Active" : "✗ Missing").append("\n");
+        status.append("CombatCommandProcessor: ").append(combatCommandProcessor != null ? "✓ Active" : "✗ Missing").append("\n");
+        status.append("DisplayCoordinator: ").append(displayCoordinator != null ? "✓ Active" : "✗ Missing").append("\n");
+        status.append("=====================================");
+        return status.toString();
+    }
+    
+    /**
+     * Cleanup and shutdown all components gracefully.
+     * Should be called when the application is closing.
+     */
+    public void shutdownComponents() {
+        displayCoordinator.debugLog("LIFECYCLE", "Shutting down InputManager components");
+        
+        // Clear any debug data
+        if (displayCoordinator != null) {
+            displayCoordinator.clearPerformanceStatistics();
+            displayCoordinator.clearInputEventTrace();
+        }
+        
+        // DevCycle 15e Phase 4: Component cleanup - state reset handled by application lifecycle
+        
+        displayCoordinator.debugLog("LIFECYCLE", "Component shutdown complete");
+    }
+    
+    /**
+     * Comprehensive system validation and performance testing.
+     * This method implements DevCycle 15b testing principles for all components.
+     */
+    public boolean performSystemValidation() {
+        displayCoordinator.debugLog("VALIDATION", "Starting comprehensive system validation");
+        
+        boolean validationPassed = true;
+        
+        // Test component integrity
+        if (!validateComponentIntegrity()) {
+            displayCoordinator.debugLog("ERROR", "Component integrity validation failed");
+            validationPassed = false;
+        }
+        
+        // Test state management
+        try {
+            displayCoordinator.debugLog("VALIDATION", "Testing state management");
+            boolean originalEditMode = callbacks.isEditMode();
+            
+            // Test state transitions
+            stateTracker.setWaitingForSaveSlot(true);
+            if (!stateTracker.isWaitingForSaveSlot()) {
+                displayCoordinator.debugLog("ERROR", "State tracker save slot test failed");
+                validationPassed = false;
+            }
+            stateTracker.setWaitingForSaveSlot(false);
+            
+            displayCoordinator.debugLog("VALIDATION", "State management test completed");
+        } catch (Exception e) {
+            displayCoordinator.debugLog("ERROR", "State management test failed: " + e.getMessage());
+            validationPassed = false;
+        }
+        
+        // Test display coordination
+        try {
+            displayCoordinator.debugLog("VALIDATION", "Testing display coordination");
+            displayCoordinator.logMemoryUsage("Validation test");
+            displayCoordinator.debugLog("VALIDATION", "Display coordination test completed");
+        } catch (Exception e) {
+            displayCoordinator.debugLog("ERROR", "Display coordination test failed: " + e.getMessage());
+            validationPassed = false;
+        }
+        
+        // Performance validation
+        try {
+            displayCoordinator.debugLog("VALIDATION", "Testing performance systems");
+            displayCoordinator.startPerformanceTimer("ValidationTest");
+            Thread.sleep(1); // Minimal operation
+            displayCoordinator.endPerformanceTimer("ValidationTest");
+            
+            var stats = displayCoordinator.getPerformanceStatistics();
+            if (!stats.containsKey("ValidationTest")) {
+                displayCoordinator.debugLog("ERROR", "Performance timing test failed");
+                validationPassed = false;
+            }
+            displayCoordinator.debugLog("VALIDATION", "Performance systems test completed");
+        } catch (Exception e) {
+            displayCoordinator.debugLog("ERROR", "Performance systems test failed: " + e.getMessage());
+            validationPassed = false;
+        }
+        
+        if (validationPassed) {
+            displayCoordinator.debugLog("VALIDATION", "✓ All system validation tests passed");
+        } else {
+            displayCoordinator.debugLog("ERROR", "✗ System validation failed");
+        }
+        
+        return validationPassed;
     }
     
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -748,13 +890,13 @@ public class InputManager {
      * @param e MouseEvent containing button type and screen coordinates
      */
     private void handleMousePressed(MouseEvent e) {
-        startPerformanceTimer("MousePressed");
+        displayCoordinator.startPerformanceTimer("MousePressed");
         double x = gameRenderer.screenToWorldX(e.getX());
         double y = gameRenderer.screenToWorldY(e.getY());
         
-        debugInputEvent("MOUSE_PRESS", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + 
+        displayCoordinator.debugInputEvent("MOUSE_PRESS", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + 
                        ") world(" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
-        addInputTraceEvent("Mouse pressed: " + e.getButton() + " at (" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
+        displayCoordinator.addInputTraceEvent("Mouse pressed: " + e.getButton() + " at (" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
         
         if (e.getButton() == MouseButton.PRIMARY) {
             // DevCycle 15c: Use InputEventRouter to determine handling
@@ -769,11 +911,11 @@ public class InputManager {
                     editModeManager.completeCharacterDeployment(x, y);
                     return;
                 case CHARACTER_PLACEMENT:
-                    debugWorkflowState("DIRECT_ADDITION", "PLACEMENT", "Placing character at (" + 
+                    displayCoordinator.debugWorkflowState("DIRECT_ADDITION", "PLACEMENT", "Placing character at (" + 
                                      String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
                     // DevCycle 15d: Delegate to EditModeManager
                     editModeManager.handleCharacterPlacement(x, y);
-                    endPerformanceTimer("MousePressed");
+                    displayCoordinator.endPerformanceTimer("MousePressed");
                     return;
                 case UNIT_SELECTION:
                     // Continue with normal selection logic below
@@ -791,13 +933,13 @@ public class InputManager {
             
             if (clickedUnit != null) {
                 // Single unit selection
-                debugSelectionOperation("SELECT_UNIT", clickedUnit.character.getDisplayName() + " at (" + 
+                displayCoordinator.debugSelectionOperation("SELECT_UNIT", clickedUnit.character.getDisplayName() + " at (" + 
                                       String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
                 selectionManager.selectUnit(clickedUnit);
                 displayEnhancedCharacterStats(clickedUnit);
             } else {
                 // Start rectangle selection
-                debugSelectionOperation("START_RECTANGLE", "Starting at (" + 
+                displayCoordinator.debugSelectionOperation("START_RECTANGLE", "Starting at (" + 
                                        String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
                 selectionManager.startRectangleSelection(x, y);
             }
@@ -820,8 +962,8 @@ public class InputManager {
             }
         }
         
-        endPerformanceTimer("MousePressed");
-        logMemoryUsage("After MousePressed");
+        displayCoordinator.endPerformanceTimer("MousePressed");
+        displayCoordinator.logMemoryUsage("After MousePressed");
     }
     
     /**
@@ -840,7 +982,7 @@ public class InputManager {
         if (selectionManager.isSelecting()) {
             double x = gameRenderer.screenToWorldX(e.getX());
             double y = gameRenderer.screenToWorldY(e.getY());
-            debugSelectionOperation("UPDATE_RECTANGLE", "Dragging to (" + 
+            displayCoordinator.debugSelectionOperation("UPDATE_RECTANGLE", "Dragging to (" + 
                                    String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
             selectionManager.updateRectangleSelection(x, y);
         }
@@ -859,16 +1001,16 @@ public class InputManager {
      * @param e MouseEvent containing button type and final release position
      */
     private void handleMouseReleased(MouseEvent e) {
-        debugInputEvent("MOUSE_RELEASE", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + ")");
-        addInputTraceEvent("Mouse released: " + e.getButton());
+        displayCoordinator.debugInputEvent("MOUSE_RELEASE", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + ")");
+        displayCoordinator.addInputTraceEvent("Mouse released: " + e.getButton());
         
         if (selectionManager.isSelecting() && e.getButton() == MouseButton.PRIMARY) {
             // Complete rectangle selection
-            debugSelectionOperation("COMPLETE_RECTANGLE", "Finishing rectangle selection");
+            displayCoordinator.debugSelectionOperation("COMPLETE_RECTANGLE", "Finishing rectangle selection");
             selectionManager.completeRectangleSelection(units);
             
             if (selectionManager.hasSelection()) {
-                debugSelectionOperation("MULTI_SELECT_COMPLETE", selectionManager.getSelectionCount() + " units selected");
+                displayCoordinator.debugSelectionOperation("MULTI_SELECT_COMPLETE", selectionManager.getSelectionCount() + " units selected");
                 displayMultiCharacterSelection();
             }
         } else if (combatCommandProcessor.isSelectingTargetZone() && e.getButton() == MouseButton.SECONDARY && e.isShiftDown()) {
@@ -876,7 +1018,7 @@ public class InputManager {
             double x = gameRenderer.screenToWorldX(e.getX());
             double y = gameRenderer.screenToWorldY(e.getY());
             
-            debugSelectionOperation("COMPLETE_TARGET_ZONE", "Target zone at (" + 
+            displayCoordinator.debugSelectionOperation("COMPLETE_TARGET_ZONE", "Target zone at (" + 
                                    String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
             combatCommandProcessor.completeTargetZoneSelection(x, y);
         }
@@ -1028,41 +1170,43 @@ public class InputManager {
      * @param e KeyEvent containing key code and modifier states
      */
     private void handleKeyPressed(KeyEvent e) {
-        startPerformanceTimer("KeyPressed");
+        // DevCycle 15e Phase 4: Delegate debug operations to DisplayCoordinator
+        displayCoordinator.startPerformanceTimer("KeyPressed");
         String modifiers = (e.isShiftDown() ? "Shift+" : "") + (e.isControlDown() ? "Ctrl+" : "") + (e.isAltDown() ? "Alt+" : "");
-        debugInputEvent("KEY_PRESS", modifiers + e.getCode());
-        addInputTraceEvent("Key pressed: " + modifiers + e.getCode());
+        displayCoordinator.debugInputEvent("KEY_PRESS", modifiers + e.getCode());
+        displayCoordinator.addInputTraceEvent("Key pressed: " + modifiers + e.getCode());
         
         // Camera controls
         if (e.getCode() == KeyCode.UP) {
-            debugInputEvent("CAMERA_CONTROL", "Pan up");
+            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan up");
             gameRenderer.adjustOffset(0, 20);
         }
         if (e.getCode() == KeyCode.DOWN) {
-            debugInputEvent("CAMERA_CONTROL", "Pan down");
+            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan down");
             gameRenderer.adjustOffset(0, -20);
         }
         if (e.getCode() == KeyCode.LEFT) {
-            debugInputEvent("CAMERA_CONTROL", "Pan left");
+            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan left");
             gameRenderer.adjustOffset(20, 0);
         }
         if (e.getCode() == KeyCode.RIGHT) {
-            debugInputEvent("CAMERA_CONTROL", "Pan right");
+            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan right");
             gameRenderer.adjustOffset(-20, 0);
         }
         if (e.getCode() == KeyCode.EQUALS || e.getCode() == KeyCode.PLUS) {
-            debugInputEvent("CAMERA_CONTROL", "Zoom in");
+            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Zoom in");
             gameRenderer.adjustZoom(1.1);
         }
         if (e.getCode() == KeyCode.MINUS) {
-            debugInputEvent("CAMERA_CONTROL", "Zoom out");
+            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Zoom out");
             gameRenderer.adjustZoom(1.0 / 1.1);
         }
         
         // Game controls
         if (e.getCode() == KeyCode.SPACE) {
             boolean newPauseState = !callbacks.isPaused();
-            debugStateTransition("GAME_STATE", callbacks.isPaused() ? "PAUSED" : "RUNNING", 
+            // DevCycle 15e Phase 4: Delegate state transition debugging to DisplayCoordinator
+            displayCoordinator.debugStateTransition("GAME_STATE", callbacks.isPaused() ? "PAUSED" : "RUNNING", 
                                 newPauseState ? "PAUSED" : "RUNNING");
             callbacks.setPaused(newPauseState);
             // DevCycle 15e: Delegate pause status display to DisplayCoordinator
@@ -1076,27 +1220,23 @@ public class InputManager {
             displayCoordinator.displayDebugModeStatus(GameRenderer.isDebugMode());
         }
         
-        // InputManager debug hotkeys
+        // DevCycle 15e Phase 4: All debug operations delegated to DisplayCoordinator
         if (e.getCode() == KeyCode.F1 && e.isControlDown()) {
-            // Ctrl+F1: Toggle InputManager debug logging
-            setDebugEnabled(!isDebugEnabled());
-            // DevCycle 15e: Delegate debug status display to DisplayCoordinator
-            displayCoordinator.setDebugEnabled(isDebugEnabled());
+            // Ctrl+F1: Toggle debug logging
+            displayCoordinator.setDebugEnabled(!displayCoordinator.isDebugEnabled());
         }
         
         if (e.getCode() == KeyCode.F2 && e.isControlDown()) {
             // Ctrl+F2: Configure debug categories
-            configureDebugFeatures(true, true, true, false, false, true, true, true);
-            // DevCycle 15e: Delegate debug configuration display to DisplayCoordinator
             displayCoordinator.configureDebugFeatures(true, true, true, false, false, true, true, true);
         }
         
         if (e.getCode() == KeyCode.F3 && e.isControlDown()) {
             // Ctrl+F3: System state dump
-            if (isDebugEnabled()) {
-                // DevCycle 15e: Delegate system state dump to DisplayCoordinator
+            if (displayCoordinator.isDebugEnabled()) {
                 String stateDump = displayCoordinator.generateSystemStateDump(
-                    stateTracker, getPerformanceStatistics(), getInputEventTrace(), combatCommandProcessor);
+                    stateTracker, displayCoordinator.getPerformanceStatistics(), 
+                    displayCoordinator.getInputEventTrace(), combatCommandProcessor);
                 System.out.println(stateDump);
             } else {
                 System.out.println("*** Debug mode must be enabled for system state dump ***");
@@ -1105,33 +1245,29 @@ public class InputManager {
         
         if (e.getCode() == KeyCode.F4 && e.isControlDown()) {
             // Ctrl+F4: Performance statistics
-            if (isDebugEnabled()) {
-                // DevCycle 15e: Delegate performance statistics display to DisplayCoordinator
-                displayCoordinator.displayPerformanceStatistics(getPerformanceStatistics());
+            if (displayCoordinator.isDebugEnabled()) {
+                displayCoordinator.displayPerformanceStatistics(displayCoordinator.getPerformanceStatistics());
             }
         }
         
         if (e.getCode() == KeyCode.F5 && e.isControlDown()) {
             // Ctrl+F5: Input trace
-            if (isDebugEnabled()) {
-                // DevCycle 15e: Delegate input trace display to DisplayCoordinator
-                displayCoordinator.displayInputEventTrace(getInputEventTrace());
+            if (displayCoordinator.isDebugEnabled()) {
+                displayCoordinator.displayInputEventTrace(displayCoordinator.getInputEventTrace());
             }
         }
         
         if (e.getCode() == KeyCode.F6 && e.isControlDown()) {
             // Ctrl+F6: System integrity validation
-            // DevCycle 15e: Delegate system integrity display to DisplayCoordinator
             displayCoordinator.displaySystemIntegrityResults();
             validateSystemIntegrity();
         }
         
         if (e.getCode() == KeyCode.F7 && e.isControlDown()) {
             // Ctrl+F7: Clear debug data
-            if (isDebugEnabled()) {
-                clearPerformanceStatistics();
-                clearInputEventTrace();
-                // DevCycle 15e: Delegate debug data cleared display to DisplayCoordinator
+            if (displayCoordinator.isDebugEnabled()) {
+                displayCoordinator.clearPerformanceStatistics();
+                displayCoordinator.clearInputEventTrace();
                 displayCoordinator.displayDebugDataCleared();
             }
         }
@@ -1166,8 +1302,8 @@ public class InputManager {
         // Handle prompt responses
         handlePromptInputs(e);
         
-        endPerformanceTimer("KeyPressed");
-        logMemoryUsage("After KeyPressed");
+        displayCoordinator.endPerformanceTimer("KeyPressed");
+        displayCoordinator.logMemoryUsage("After KeyPressed");
     }
     
     /**
@@ -3607,361 +3743,7 @@ public class InputManager {
     }
     
     // ═══════════════════════════════════════════════════════════════════════════════════
-    // SECTION 12: DEBUG AND DIAGNOSTIC METHODS
+    // DevCycle 15e Phase 4: Debug and diagnostic methods moved to DisplayCoordinator
     // ═══════════════════════════════════════════════════════════════════════════════════
-    
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // 12.1 Debug Configuration and Control
-    // ─────────────────────────────────────────────────────────────────────────────────
-    
-    /**
-     * Enable or disable all debug features.
-     * 
-     * @param enabled true to enable debug features, false to disable
-     */
-    public static void setDebugEnabled(boolean enabled) {
-        DEBUG_ENABLED = enabled;
-        if (enabled) {
-            debugLog("DEBUG", "Debug mode enabled - all debug features activated");
-        }
-    }
-    
-    /**
-     * Configure specific debug categories.
-     * 
-     * @param inputEvents Enable input event debugging
-     * @param stateTransitions Enable state transition debugging  
-     * @param performance Enable performance timing
-     * @param inputTrace Enable input event tracing
-     * @param memoryUsage Enable memory usage monitoring
-     * @param workflowStates Enable workflow state debugging
-     * @param combatCommands Enable combat command debugging
-     * @param selectionOps Enable selection operation debugging
-     */
-    public static void configureDebugFeatures(boolean inputEvents, boolean stateTransitions,
-                                            boolean performance, boolean inputTrace,
-                                            boolean memoryUsage, boolean workflowStates,
-                                            boolean combatCommands, boolean selectionOps) {
-        DEBUG_INPUT_EVENTS = inputEvents;
-        DEBUG_STATE_TRANSITIONS = stateTransitions;
-        DEBUG_PERFORMANCE_TIMING = performance;
-        DEBUG_INPUT_TRACE = inputTrace;
-        DEBUG_MEMORY_USAGE = memoryUsage;
-        DEBUG_WORKFLOW_STATES = workflowStates;
-        DEBUG_COMBAT_COMMANDS = combatCommands;
-        DEBUG_SELECTION_OPERATIONS = selectionOps;
-        
-        if (DEBUG_ENABLED) {
-            debugLog("DEBUG", "Debug features configured - InputEvents:" + inputEvents + 
-                    " StateTransitions:" + stateTransitions + " Performance:" + performance +
-                    " InputTrace:" + inputTrace + " Memory:" + memoryUsage +
-                    " Workflows:" + workflowStates + " Combat:" + combatCommands +
-                    " Selection:" + selectionOps);
-        }
-    }
-    
-    /**
-     * Check if any debug features are enabled.
-     * 
-     * @return true if debugging is active
-     */
-    public static boolean isDebugEnabled() {
-        return DEBUG_ENABLED;
-    }
-    
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // 12.2 Debug Logging Methods
-    // ─────────────────────────────────────────────────────────────────────────────────
-    
-    /**
-     * Core debug logging method with zero performance impact when disabled.
-     * 
-     * @param category Debug category (INPUT, STATE, PERF, TRACE, MEMORY, WORKFLOW, COMBAT, SELECTION)
-     * @param message Debug message to log
-     */
-    private static void debugLog(String category, String message) {
-        if (DEBUG_ENABLED) {
-            long timestamp = System.currentTimeMillis();
-            System.out.println("[DEBUG-" + category + "] " + timestamp + ": " + message);
-        }
-    }
-    
-    /**
-     * Log input events when debug is enabled.
-     * 
-     * @param eventType Type of input event (MOUSE_PRESS, MOUSE_RELEASE, KEY_PRESS, etc.)
-     * @param details Additional event details
-     */
-    private static void debugInputEvent(String eventType, String details) {
-        if (DEBUG_ENABLED && DEBUG_INPUT_EVENTS) {
-            debugLog("INPUT", eventType + " - " + details);
-        }
-    }
-    
-    /**
-     * Log state transitions when debug is enabled.
-     * 
-     * @param stateType Type of state changing (INPUT_STATE, WORKFLOW_STATE, GAME_STATE)
-     * @param fromState Previous state
-     * @param toState New state
-     */
-    private static void debugStateTransition(String stateType, String fromState, String toState) {
-        if (DEBUG_ENABLED && DEBUG_STATE_TRANSITIONS) {
-            debugLog("STATE", stateType + ": " + fromState + " → " + toState);
-        }
-    }
-    
-    /**
-     * Log workflow state changes when debug is enabled.
-     * 
-     * @param workflowName Name of the workflow (BATCH_CREATION, DEPLOYMENT, etc.)
-     * @param step Current workflow step
-     * @param details Additional workflow details
-     */
-    private static void debugWorkflowState(String workflowName, String step, String details) {
-        if (DEBUG_ENABLED && DEBUG_WORKFLOW_STATES) {
-            debugLog("WORKFLOW", workflowName + " - Step: " + step + " - " + details);
-        }
-    }
-    
-    /**
-     * Log combat commands when debug is enabled.
-     * 
-     * @param commandType Type of combat command (ATTACK, MOVE_TO_MELEE, TARGET_SELECTION, etc.)
-     * @param unitInfo Information about the unit executing the command
-     * @param targetInfo Information about the target (if applicable)
-     */
-    private static void debugCombatCommand(String commandType, String unitInfo, String targetInfo) {
-        if (DEBUG_ENABLED && DEBUG_COMBAT_COMMANDS) {
-            String message = commandType + " - Unit: " + unitInfo;
-            if (targetInfo != null && !targetInfo.isEmpty()) {
-                message += " - Target: " + targetInfo;
-            }
-            debugLog("COMBAT", message);
-        }
-    }
-    
-    /**
-     * Log selection operations when debug is enabled.
-     * 
-     * @param operation Type of selection operation (SELECT_UNIT, START_RECTANGLE, etc.)
-     * @param details Operation details
-     */
-    private static void debugSelectionOperation(String operation, String details) {
-        if (DEBUG_ENABLED && DEBUG_SELECTION_OPERATIONS) {
-            debugLog("SELECTION", operation + " - " + details);
-        }
-    }
-    
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // 12.3 Performance Monitoring
-    // ─────────────────────────────────────────────────────────────────────────────────
-    
-    /**
-     * Start timing an operation for performance monitoring.
-     * 
-     * @param operationName Name of the operation being timed
-     */
-    private static void startPerformanceTimer(String operationName) {
-        if (DEBUG_ENABLED && DEBUG_PERFORMANCE_TIMING) {
-            lastOperationStartTime = System.nanoTime();
-            debugLog("PERF", "START: " + operationName);
-        }
-    }
-    
-    /**
-     * End timing an operation and log the duration.
-     * 
-     * @param operationName Name of the operation that completed
-     */
-    private static void endPerformanceTimer(String operationName) {
-        if (DEBUG_ENABLED && DEBUG_PERFORMANCE_TIMING && lastOperationStartTime > 0) {
-            long duration = System.nanoTime() - lastOperationStartTime;
-            double durationMs = duration / 1_000_000.0;
-            performanceTimings.put(operationName, duration);
-            debugLog("PERF", "END: " + operationName + " - Duration: " + String.format("%.3f", durationMs) + "ms");
-            lastOperationStartTime = 0;
-        }
-    }
-    
-    /**
-     * Get performance statistics for all timed operations.
-     * 
-     * @return Map of operation names to durations in nanoseconds
-     */
-    public static java.util.Map<String, Long> getPerformanceStatistics() {
-        return new java.util.HashMap<>(performanceTimings);
-    }
-    
-    /**
-     * Clear all performance timing data.
-     */
-    public static void clearPerformanceStatistics() {
-        performanceTimings.clear();
-        debugLog("PERF", "Performance statistics cleared");
-    }
-    
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // 12.4 Input Event Tracing
-    // ─────────────────────────────────────────────────────────────────────────────────
-    
-    /**
-     * Add an event to the input trace when tracing is enabled.
-     * 
-     * @param event Description of the input event
-     */
-    private static void addInputTraceEvent(String event) {
-        if (DEBUG_ENABLED && DEBUG_INPUT_TRACE) {
-            synchronized (inputEventTrace) {
-                // Maintain maximum trace size to prevent memory issues
-                if (inputEventTrace.size() >= MAX_TRACE_EVENTS) {
-                    inputEventTrace.remove(0);
-                }
-                inputEventTrace.add(System.currentTimeMillis() + ": " + event);
-            }
-            debugLog("TRACE", event);
-        }
-    }
-    
-    /**
-     * Get the current input event trace.
-     * 
-     * @return List of recent input events
-     */
-    public static java.util.List<String> getInputEventTrace() {
-        synchronized (inputEventTrace) {
-            return new java.util.ArrayList<>(inputEventTrace);
-        }
-    }
-    
-    /**
-     * Clear the input event trace.
-     */
-    public static void clearInputEventTrace() {
-        synchronized (inputEventTrace) {
-            inputEventTrace.clear();
-        }
-        debugLog("TRACE", "Input event trace cleared");
-    }
-    
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // 12.5 System State Diagnostics
-    // ─────────────────────────────────────────────────────────────────────────────────
-    
-    /**
-     * Generate a comprehensive system state dump for debugging.
-     * 
-     * @return String containing current system state information
-     */
-    public String generateSystemStateDump() {
-        StringBuilder dump = new StringBuilder();
-        dump.append("=== InputManager System State Dump ===\n");
-        dump.append("Timestamp: ").append(new java.util.Date()).append("\n\n");
-        
-        // Debug configuration
-        dump.append("DEBUG CONFIGURATION:\n");
-        dump.append("  Master Debug: ").append(DEBUG_ENABLED).append("\n");
-        dump.append("  Input Events: ").append(DEBUG_INPUT_EVENTS).append("\n");
-        dump.append("  State Transitions: ").append(DEBUG_STATE_TRANSITIONS).append("\n");
-        dump.append("  Performance Timing: ").append(DEBUG_PERFORMANCE_TIMING).append("\n");
-        dump.append("  Input Trace: ").append(DEBUG_INPUT_TRACE).append("\n");
-        dump.append("  Memory Usage: ").append(DEBUG_MEMORY_USAGE).append("\n");
-        dump.append("  Workflow States: ").append(DEBUG_WORKFLOW_STATES).append("\n");
-        dump.append("  Combat Commands: ").append(DEBUG_COMBAT_COMMANDS).append("\n");
-        dump.append("  Selection Operations: ").append(DEBUG_SELECTION_OPERATIONS).append("\n\n");
-        
-        // Game state
-        dump.append("GAME STATE:\n");
-        dump.append("  Paused: ").append(callbacks.isPaused()).append("\n");
-        dump.append("  Edit Mode: ").append(callbacks.isEditMode()).append("\n");
-        dump.append("  Units Count: ").append(units.size()).append("\n");
-        dump.append("  Selected Units: ").append(selectionManager.getSelectionCount()).append("\n");
-        dump.append("  Current Tick: ").append(gameClock.getCurrentTick()).append("\n");
-        dump.append("  Event Queue Size: ").append(eventQueue.size()).append("\n\n");
-        
-        // Input state flags
-        dump.append("INPUT STATE FLAGS:\n");
-        dump.append("  Waiting for Save Slot: ").append(stateTracker.isWaitingForSaveSlot()).append("\n");
-        dump.append("  Waiting for Load Slot: ").append(stateTracker.isWaitingForLoadSlot()).append("\n");
-        dump.append("  Waiting for Character Creation: ").append(stateTracker.isWaitingForCharacterCreation()).append("\n");
-        dump.append("  Waiting for Weapon Selection: ").append(stateTracker.isWaitingForWeaponSelection()).append("\n");
-        dump.append("  Waiting for Faction Selection: ").append(stateTracker.isWaitingForFactionSelection()).append("\n");
-        dump.append("  Waiting for Batch Character Creation: ").append(stateTracker.isWaitingForBatchCharacterCreation()).append("\n");
-        dump.append("  Waiting for Character Deployment: ").append(stateTracker.isWaitingForCharacterDeployment()).append("\n");
-        dump.append("  Waiting for Deletion Confirmation: ").append(stateTracker.isWaitingForDeletionConfirmation()).append("\n");
-        dump.append("  Waiting for Victory Outcome: ").append(stateTracker.isWaitingForVictoryOutcome()).append("\n");
-        dump.append("  Waiting for Scenario Name: ").append(stateTracker.isWaitingForScenarioName()).append("\n");
-        dump.append("  Waiting for Theme Selection: ").append(stateTracker.isWaitingForThemeSelection()).append("\n");
-        dump.append("  Waiting for Direct Character Addition: ").append(stateTracker.isWaitingForDirectCharacterAddition()).append("\n\n");
-        
-        // Workflow states
-        dump.append("WORKFLOW STATES:\n");
-        dump.append("  Batch Creation Step: ").append(batchCreationStep).append("\n");
-        dump.append("  Deployment Step: ").append(deploymentStep).append("\n");
-        dump.append("  Direct Addition Step: ").append(directAdditionStep).append("\n");
-        dump.append("  Victory Faction Index: ").append(currentVictoryFactionIndex).append("\n\n");
-        
-        // Target zone selection - DevCycle 15e: Now handled by CombatCommandProcessor
-        dump.append("TARGET ZONE SELECTION (from CombatCommandProcessor):\n");
-        dump.append("  Is Selecting: ").append(combatCommandProcessor.isSelectingTargetZone()).append("\n");
-        dump.append("  Start X: ").append(combatCommandProcessor.getTargetZoneStartX()).append("\n");
-        dump.append("  Start Y: ").append(combatCommandProcessor.getTargetZoneStartY()).append("\n");
-        dump.append("  Target Unit: ").append(combatCommandProcessor.getTargetZoneUnit() != null ? combatCommandProcessor.getTargetZoneUnit().character.getDisplayName() : "None").append("\n\n");
-        
-        // Memory usage (if enabled)
-        if (DEBUG_MEMORY_USAGE) {
-            Runtime runtime = Runtime.getRuntime();
-            long totalMemory = runtime.totalMemory();
-            long freeMemory = runtime.freeMemory();
-            long usedMemory = totalMemory - freeMemory;
-            
-            dump.append("MEMORY USAGE:\n");
-            dump.append("  Total Memory: ").append(totalMemory / (1024 * 1024)).append(" MB\n");
-            dump.append("  Used Memory: ").append(usedMemory / (1024 * 1024)).append(" MB\n");
-            dump.append("  Free Memory: ").append(freeMemory / (1024 * 1024)).append(" MB\n");
-            dump.append("  Max Memory: ").append(runtime.maxMemory() / (1024 * 1024)).append(" MB\n\n");
-        }
-        
-        // Performance statistics
-        if (!performanceTimings.isEmpty()) {
-            dump.append("PERFORMANCE STATISTICS:\n");
-            for (java.util.Map.Entry<String, Long> entry : performanceTimings.entrySet()) {
-                double durationMs = entry.getValue() / 1_000_000.0;
-                dump.append("  ").append(entry.getKey()).append(": ").append(String.format("%.3f", durationMs)).append("ms\n");
-            }
-            dump.append("\n");
-        }
-        
-        // Recent input trace
-        if (!inputEventTrace.isEmpty()) {
-            dump.append("RECENT INPUT EVENTS:\n");
-            synchronized (inputEventTrace) {
-                int start = Math.max(0, inputEventTrace.size() - 10);
-                for (int i = start; i < inputEventTrace.size(); i++) {
-                    dump.append("  ").append(inputEventTrace.get(i)).append("\n");
-                }
-            }
-            dump.append("\n");
-        }
-        
-        dump.append("=== End System State Dump ===");
-        return dump.toString();
-    }
-    
-    /**
-     * Log memory usage statistics when memory debugging is enabled.
-     */
-    private static void logMemoryUsage(String context) {
-        if (DEBUG_ENABLED && DEBUG_MEMORY_USAGE) {
-            Runtime runtime = Runtime.getRuntime();
-            long totalMemory = runtime.totalMemory();
-            long freeMemory = runtime.freeMemory();
-            long usedMemory = totalMemory - freeMemory;
-            
-            debugLog("MEMORY", context + " - Used: " + (usedMemory / (1024 * 1024)) + "MB, " +
-                    "Free: " + (freeMemory / (1024 * 1024)) + "MB, " +
-                    "Total: " + (totalMemory / (1024 * 1024)) + "MB");
-        }
-    }
     
 }
