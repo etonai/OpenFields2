@@ -191,6 +191,9 @@ public class InputManager {
     /** Handles combat-specific input processing and command coordination */
     private final CombatCommandProcessor combatCommandProcessor;
     
+    /** Handles input-related display management, feedback coordination, and UI state */
+    private final DisplayCoordinator displayCoordinator;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -669,6 +672,9 @@ public class InputManager {
         // DevCycle 15e: Initialize combat command components
         this.combatCommandProcessor = new CombatCommandProcessor(selectionManager, gameClock, eventQueue);
         
+        // DevCycle 15e: Initialize display coordination components
+        this.displayCoordinator = new DisplayCoordinator(selectionManager, gameClock, callbacks);
+        
         // Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
             debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
@@ -938,25 +944,8 @@ public class InputManager {
                         double distancePixels = Math.hypot(dx, dy);
                         double distanceFeet = callbacks.convertPixelsToFeet(distancePixels);
                         
-                        System.out.println("*** RANGE CHECK ***");
-                        System.out.println("Distance from " + selected.character.getDisplayName() + " to " + clickedUnit.character.getDisplayName() + ": " + 
-                                         String.format("%.2f", distanceFeet) + " feet");
-                        
-                        if (selected.character.weapon != null) {
-                            double maxRange = (selected.character.weapon instanceof RangedWeapon) ? ((RangedWeapon)selected.character.weapon).getMaximumRange() : 0.0;
-                            System.out.println("Weapon: " + selected.character.weapon.name + " (max range: " + 
-                                             String.format("%.2f", maxRange) + " feet)");
-                            
-                            if (distanceFeet <= maxRange) {
-                                System.out.println("Target is WITHIN range");
-                            } else {
-                                System.out.println("Target is OUT OF RANGE (exceeds by " + 
-                                                 String.format("%.2f", distanceFeet - maxRange) + " feet)");
-                            }
-                        } else {
-                            System.out.println("No weapon equipped");
-                        }
-                        System.out.println("******************");
+                        // DevCycle 15e: Delegate range check display to DisplayCoordinator
+                        displayCoordinator.displayRangeCheck(selected, clickedUnit, distanceFeet);
                     }
                     return;
                 }
@@ -982,7 +971,8 @@ public class InputManager {
                     unit.hasTarget = false;
                     unit.isStopped = false;
                 }
-                System.out.println("TELEPORT " + selectionManager.getSelectionCount() + " units to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+                // DevCycle 15e: Delegate unit movement display to DisplayCoordinator
+                displayCoordinator.displayUnitMovement(selectionManager.getSelectionCount(), x, y, true);
             } else {
                 // Normal movement with movement rules - relative to selection center
                 // Recalculate selection center to account for unit movement
@@ -1003,7 +993,8 @@ public class InputManager {
                         unit.setTarget(newTargetX, newTargetY);
                     }
                 }
-                System.out.println("MOVE " + selectionManager.getSelectionCount() + " units to (" + String.format("%.0f", x) + ", " + String.format("%.0f", y) + ")");
+                // DevCycle 15e: Delegate unit movement display to DisplayCoordinator
+                displayCoordinator.displayUnitMovement(selectionManager.getSelectionCount(), x, y, false);
             }
         }
     }
@@ -1074,42 +1065,39 @@ public class InputManager {
             debugStateTransition("GAME_STATE", callbacks.isPaused() ? "PAUSED" : "RUNNING", 
                                 newPauseState ? "PAUSED" : "RUNNING");
             callbacks.setPaused(newPauseState);
-            if (newPauseState) {
-                System.out.println("***********************");
-                System.out.println("*** Game paused at tick " + gameClock.getCurrentTick());
-                System.out.println("***********************");
-            } else {
-                System.out.println("***********************");
-                System.out.println("*** Game resumed");
-                System.out.println("***********************");
-            }
+            // DevCycle 15e: Delegate pause status display to DisplayCoordinator
+            displayCoordinator.displayPauseStatus(newPauseState, gameClock.getCurrentTick());
         }
         
         // Debug mode toggle
         if (e.getCode() == KeyCode.D && e.isControlDown()) {
             GameRenderer.setDebugMode(!GameRenderer.isDebugMode());
-            System.out.println("***********************");
-            System.out.println("*** Debug mode " + (GameRenderer.isDebugMode() ? "ENABLED" : "DISABLED"));
-            System.out.println("***********************");
+            // DevCycle 15e: Delegate debug mode status display to DisplayCoordinator
+            displayCoordinator.displayDebugModeStatus(GameRenderer.isDebugMode());
         }
         
         // InputManager debug hotkeys
         if (e.getCode() == KeyCode.F1 && e.isControlDown()) {
             // Ctrl+F1: Toggle InputManager debug logging
             setDebugEnabled(!isDebugEnabled());
-            System.out.println("*** InputManager Debug " + (isDebugEnabled() ? "ENABLED" : "DISABLED") + " ***");
+            // DevCycle 15e: Delegate debug status display to DisplayCoordinator
+            displayCoordinator.setDebugEnabled(isDebugEnabled());
         }
         
         if (e.getCode() == KeyCode.F2 && e.isControlDown()) {
             // Ctrl+F2: Configure debug categories
             configureDebugFeatures(true, true, true, false, false, true, true, true);
-            System.out.println("*** InputManager Debug Categories Configured ***");
+            // DevCycle 15e: Delegate debug configuration display to DisplayCoordinator
+            displayCoordinator.configureDebugFeatures(true, true, true, false, false, true, true, true);
         }
         
         if (e.getCode() == KeyCode.F3 && e.isControlDown()) {
             // Ctrl+F3: System state dump
             if (isDebugEnabled()) {
-                System.out.println(generateSystemStateDump());
+                // DevCycle 15e: Delegate system state dump to DisplayCoordinator
+                String stateDump = displayCoordinator.generateSystemStateDump(
+                    stateTracker, getPerformanceStatistics(), getInputEventTrace(), combatCommandProcessor);
+                System.out.println(stateDump);
             } else {
                 System.out.println("*** Debug mode must be enabled for system state dump ***");
             }
@@ -1118,37 +1106,23 @@ public class InputManager {
         if (e.getCode() == KeyCode.F4 && e.isControlDown()) {
             // Ctrl+F4: Performance statistics
             if (isDebugEnabled()) {
-                java.util.Map<String, Long> stats = getPerformanceStatistics();
-                if (stats.isEmpty()) {
-                    System.out.println("*** No performance statistics available ***");
-                } else {
-                    System.out.println("*** Performance Statistics ***");
-                    for (java.util.Map.Entry<String, Long> entry : stats.entrySet()) {
-                        double ms = entry.getValue() / 1_000_000.0;
-                        System.out.println("  " + entry.getKey() + ": " + String.format("%.3f", ms) + "ms");
-                    }
-                }
+                // DevCycle 15e: Delegate performance statistics display to DisplayCoordinator
+                displayCoordinator.displayPerformanceStatistics(getPerformanceStatistics());
             }
         }
         
         if (e.getCode() == KeyCode.F5 && e.isControlDown()) {
             // Ctrl+F5: Input trace
             if (isDebugEnabled()) {
-                java.util.List<String> trace = getInputEventTrace();
-                if (trace.isEmpty()) {
-                    System.out.println("*** No input trace available ***");
-                } else {
-                    System.out.println("*** Recent Input Events ***");
-                    for (String event : trace) {
-                        System.out.println("  " + event);
-                    }
-                }
+                // DevCycle 15e: Delegate input trace display to DisplayCoordinator
+                displayCoordinator.displayInputEventTrace(getInputEventTrace());
             }
         }
         
         if (e.getCode() == KeyCode.F6 && e.isControlDown()) {
             // Ctrl+F6: System integrity validation
-            System.out.println("*** Running System Integrity Validation ***");
+            // DevCycle 15e: Delegate system integrity display to DisplayCoordinator
+            displayCoordinator.displaySystemIntegrityResults();
             validateSystemIntegrity();
         }
         
@@ -1157,7 +1131,8 @@ public class InputManager {
             if (isDebugEnabled()) {
                 clearPerformanceStatistics();
                 clearInputEventTrace();
-                System.out.println("*** Debug data cleared ***");
+                // DevCycle 15e: Delegate debug data cleared display to DisplayCoordinator
+                displayCoordinator.displayDebugDataCleared();
             }
         }
         
@@ -1165,14 +1140,8 @@ public class InputManager {
         if (e.getCode() == KeyCode.E && e.isControlDown()) {
             boolean newEditMode = !callbacks.isEditMode();
             callbacks.setEditMode(newEditMode);
-            System.out.println("***********************");
-            System.out.println("*** Edit mode " + (newEditMode ? "ENABLED" : "DISABLED"));
-            if (newEditMode) {
-                System.out.println("*** Combat disabled, instant movement enabled");
-            } else {
-                System.out.println("*** Combat enabled, normal movement rules apply");
-            }
-            System.out.println("***********************");
+            // DevCycle 15e: Delegate edit mode status display to DisplayCoordinator
+            displayCoordinator.displayEditModeStatus(newEditMode);
         }
         
         // Edit mode operations
@@ -1181,8 +1150,8 @@ public class InputManager {
         // Unit deletion
         handleUnitDeletion(e);
         
-        // Character stats display
-        handleCharacterStatsDisplay(e);
+        // DevCycle 15e: Delegate character stats display to DisplayCoordinator
+        displayCoordinator.handleCharacterStatsDisplay(e);
         
         // Movement and aiming controls
         handleMovementControls(e);
@@ -1232,143 +1201,7 @@ public class InputManager {
      * 
      * @param e KeyEvent
      */
-    private void handleCharacterStatsDisplay(KeyEvent e) {
-        if (e.getCode() == KeyCode.SLASH && e.isShiftDown()) {
-            if (selectionManager.getSelectionCount() == 1) {
-                Unit selected = selectionManager.getSelected();
-                System.out.println("***********************");
-                System.out.println("*** CHARACTER STATS ***");
-                System.out.println("***********************");
-                System.out.println("Character ID: " + selected.character.id);
-                System.out.println("Unit ID: " + selected.id);
-                System.out.println("Nickname: " + selected.character.nickname);
-                System.out.println("Faction: " + selected.character.faction);
-                System.out.println("Full Name: " + selected.character.getFullName());
-                SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM d, yyyy");
-                System.out.println("Birthdate: " + dateFormat.format(selected.character.birthdate));
-                System.out.println("Dexterity: " + selected.character.dexterity + " (modifier: " + callbacks.convertStatToModifier(selected.character.dexterity) + ")");
-                System.out.println("Strength: " + selected.character.strength + " (modifier: " + callbacks.convertStatToModifier(selected.character.strength) + ")");
-                System.out.println("Reflexes: " + selected.character.reflexes + " (modifier: " + callbacks.convertStatToModifier(selected.character.reflexes) + ")");
-                System.out.println("Health: " + selected.character.health);
-                System.out.println("Coolness: " + selected.character.coolness + " (modifier: " + callbacks.convertStatToModifier(selected.character.coolness) + ")");
-                System.out.println("Handedness: " + selected.character.handedness.getDisplayName());
-                System.out.println("Base Movement Speed: " + selected.character.baseMovementSpeed + " pixels/second");
-                System.out.println("Current Movement: " + selected.character.getCurrentMovementType().getDisplayName() + 
-                                 " (" + String.format("%.1f", selected.character.getEffectiveMovementSpeed()) + " pixels/sec)");
-                
-                // Show movement restrictions if any
-                combat.MovementType maxAllowed = selected.character.getMaxAllowedMovementType();
-                if (maxAllowed != combat.MovementType.RUN) {
-                    if (selected.character.hasBothLegsWounded()) {
-                        System.out.println("Movement Restricted: Both legs wounded - CRAWL ONLY, forced prone");
-                    } else if (selected.character.hasAnyLegWound()) {
-                        System.out.println("Movement Restricted: Leg wound - maximum " + maxAllowed.getDisplayName());
-                    }
-                }
-                
-                System.out.println("Current Aiming Speed: " + selected.character.getCurrentAimingSpeed().getDisplayName() + 
-                                 " (timing: " + String.format("%.2fx", selected.character.getCurrentAimingSpeed().getTimingMultiplier()) + 
-                                 ", accuracy: " + String.format("%+.0f", selected.character.getCurrentAimingSpeed().getAccuracyModifier()) + ")");
-                System.out.println("Current Position: " + selected.character.getCurrentPosition().getDisplayName());
-                
-                // Show weapon ready speed
-                double readySpeedMultiplier = selected.character.getWeaponReadySpeedMultiplier();
-                int quickdrawLevel = selected.character.getSkillLevel(SkillsManager.QUICKDRAW);
-                String quickdrawInfo = quickdrawLevel > 0 ? " (Quickdraw " + quickdrawLevel + ")" : "";
-                System.out.println("Weapon Ready Speed: " + String.format("%.2fx", readySpeedMultiplier) + quickdrawInfo + 
-                                 " (reflexes: " + String.format("%+d", callbacks.convertStatToModifier(selected.character.reflexes)) + ")");
-                
-                System.out.println("Incapacitated: " + (selected.character.isIncapacitated() ? "YES" : "NO"));
-                System.out.println("Automatic Targeting: " + (selected.character.isUsesAutomaticTargeting() ? "ON" : "OFF"));
-                
-                System.out.println("--- WEAPONS ---");
-                
-                // Display ranged weapon
-                if (selected.character.rangedWeapon != null) {
-                    RangedWeapon ranged = selected.character.rangedWeapon;
-                    String activeMarker = !selected.character.isMeleeCombatMode ? " [ACTIVE]" : "";
-                    System.out.println("Ranged: " + ranged.getName() + " (" + ranged.getDamage() + " damage, " + 
-                                     ranged.getWeaponAccuracy() + " accuracy)" + activeMarker);
-                } else {
-                    String activeMarker = !selected.character.isMeleeCombatMode ? " [ACTIVE]" : "";
-                    System.out.println("Ranged: No ranged weapon" + activeMarker);
-                }
-                
-                // Display melee weapon
-                if (selected.character.meleeWeapon != null) {
-                    MeleeWeapon melee = selected.character.meleeWeapon;
-                    String activeMarker = selected.character.isMeleeCombatMode ? " [ACTIVE]" : "";
-                    System.out.println("Melee: " + melee.getName() + " (" + melee.getDamage() + " damage, " + 
-                                     melee.getWeaponAccuracy() + " accuracy, " + String.format("%.1f", melee.getTotalReach()) + "ft reach)" + activeMarker);
-                } else {
-                    String activeMarker = selected.character.isMeleeCombatMode ? " [ACTIVE]" : "";
-                    System.out.println("Melee: No melee weapon" + activeMarker);
-                }
-                
-                // Show current weapon state and additional details for active weapon
-                System.out.println("Current State: " + (selected.character.currentWeaponState != null ? selected.character.currentWeaponState.getState() : "None"));
-                
-                // Show additional details for the active weapon
-                if (!selected.character.isMeleeCombatMode && selected.character.rangedWeapon != null) {
-                    RangedWeapon ranged = selected.character.rangedWeapon;
-                    System.out.println("Active Details: Range " + ranged.getMaximumRange() + "ft, Velocity " + ranged.getVelocityFeetPerSecond() + "ft/s, Ammo " + ranged.getAmmunition() + "/" + ranged.getMaxAmmunition());
-                } else if (selected.character.isMeleeCombatMode && selected.character.meleeWeapon != null) {
-                    MeleeWeapon melee = selected.character.meleeWeapon;
-                    System.out.println("Active Details: " + melee.getWeaponType().getDisplayName() + " weapon");
-                }
-                
-                if (!selected.character.getSkills().isEmpty()) {
-                    System.out.println("--- SKILLS ---");
-                    for (combat.Skill skill : selected.character.getSkills()) {
-                        System.out.println(skill.getSkillName() + ": " + skill.getLevel());
-                    }
-                } else {
-                    System.out.println("--- SKILLS ---");
-                    System.out.println("No skills");
-                }
-                
-                if (!selected.character.wounds.isEmpty()) {
-                    System.out.println("--- WOUNDS ---");
-                    for (combat.Wound wound : selected.character.wounds) {
-                        System.out.println(wound.getBodyPart().name().toLowerCase() + ": " + wound.getSeverity().name().toLowerCase() + 
-                                         ", " + wound.getDamage() + " damage (from " + wound.getProjectileName() + ", weapon: " + wound.getWeaponId() + ")");
-                    }
-                } else {
-                    System.out.println("--- WOUNDS ---");
-                    System.out.println("No wounds");
-                }
-                
-                // Combat Experience Display
-                System.out.println("--- COMBAT EXPERIENCE ---");
-                System.out.println("Combat Engagements: " + selected.character.getCombatEngagements());
-                System.out.println("Wounds Received: " + selected.character.getWoundsReceived());
-                System.out.println("Wounds Inflicted: " + selected.character.getTotalWoundsInflicted() + " total (" + 
-                                 selected.character.getWoundsInflictedByType(combat.WoundSeverity.SCRATCH) + " scratch, " +
-                                 selected.character.getWoundsInflictedByType(combat.WoundSeverity.LIGHT) + " light, " +
-                                 selected.character.getWoundsInflictedByType(combat.WoundSeverity.SERIOUS) + " serious, " +
-                                 selected.character.getWoundsInflictedByType(combat.WoundSeverity.CRITICAL) + " critical)");
-                
-                // Separate combat statistics (DevCycle 12)
-                System.out.println("Ranged Combat: " + selected.character.rangedAttacksAttempted + " attempted, " + 
-                                 selected.character.rangedAttacksSuccessful + " successful, " + 
-                                 selected.character.rangedWoundsInflicted + " wounds inflicted");
-                System.out.println("Melee Combat: " + selected.character.meleeAttacksAttempted + " attempted, " + 
-                                 selected.character.meleeAttacksSuccessful + " successful, " + 
-                                 selected.character.meleeWoundsInflicted + " wounds inflicted");
-                
-                // Legacy combined statistics
-                System.out.println("Total Attacks: " + selected.character.getAttacksAttempted() + " attempted, " + 
-                                 selected.character.getAttacksSuccessful() + " successful (" + 
-                                 String.format("%.1f", selected.character.getAccuracyPercentage()) + "% accuracy)");
-                System.out.println("Targets Incapacitated: " + selected.character.getTargetsIncapacitated());
-                System.out.println("***********************");
-            } else if (!selectionManager.hasSelection()) {
-                System.out.println("*** No character selected - select a character first ***");
-            } else {
-                System.out.println("*** Character stats unavailable for multiple unit selection ***");
-            }
-        }
-    }
+    // DevCycle 15e: handleCharacterStatsDisplay method removed - delegated to DisplayCoordinator
     
     /**
      * Handle movement type controls (W/S keys)
@@ -1394,8 +1227,8 @@ public class InputManager {
             if (selectionManager.getSelectionCount() == 1) {
                 Unit unit = selectionManager.getSelected();
                 combat.MovementType newType = unit.character.getCurrentMovementType();
-                System.out.println("*** " + unit.character.getDisplayName() + " movement increased to " + newType.getDisplayName() + 
-                                 " (speed: " + String.format("%.1f", unit.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                // DevCycle 15e: Delegate movement status display to DisplayCoordinator
+                displayCoordinator.displayMovementTypeChange(unit, newType);
             } else {
                 System.out.println("*** " + selectionManager.getSelectionCount() + " units movement speed increased");
             }
@@ -1418,8 +1251,8 @@ public class InputManager {
             if (selectionManager.getSelectionCount() == 1) {
                 Unit unit = selectionManager.getSelected();
                 combat.MovementType newType = unit.character.getCurrentMovementType();
-                System.out.println("*** " + unit.character.getDisplayName() + " movement decreased to " + newType.getDisplayName() + 
-                                 " (speed: " + String.format("%.1f", unit.character.getEffectiveMovementSpeed()) + " pixels/sec)");
+                // DevCycle 15e: Delegate movement status display to DisplayCoordinator
+                displayCoordinator.displayMovementTypeChange(unit, newType);
             } else {
                 System.out.println("*** " + selectionManager.getSelectionCount() + " units movement speed decreased");
             }
@@ -1443,8 +1276,8 @@ public class InputManager {
             if (selectionManager.getSelectionCount() == 1) {
                 Unit unit = selectionManager.getSelected();
                 combat.AimingSpeed newSpeed = unit.character.getCurrentAimingSpeed();
-                System.out.println("*** " + unit.character.getDisplayName() + " aiming speed increased to " + newSpeed.getDisplayName() + 
-                                 " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
+                // DevCycle 15e: Delegate aiming speed status display to DisplayCoordinator
+                displayCoordinator.displayAimingSpeedChange(unit, newSpeed);
             } else {
                 System.out.println("*** " + selectionManager.getSelectionCount() + " units aiming speed increased");
             }
@@ -1477,8 +1310,8 @@ public class InputManager {
             if (selectionManager.getSelectionCount() == 1) {
                 Unit unit = selectionManager.getSelected();
                 combat.AimingSpeed newSpeed = unit.character.getCurrentAimingSpeed();
-                System.out.println("*** " + unit.character.getDisplayName() + " aiming speed decreased to " + newSpeed.getDisplayName() + 
-                                 " (timing: " + String.format("%.2fx", newSpeed.getTimingMultiplier()) + ", accuracy: " + String.format("%+.0f", newSpeed.getAccuracyModifier()) + ")");
+                // DevCycle 15e: Delegate aiming speed status display to DisplayCoordinator
+                displayCoordinator.displayAimingSpeedChange(unit, newSpeed);
             } else {
                 System.out.println("*** " + selectionManager.getSelectionCount() + " units aiming speed decreased");
             }
