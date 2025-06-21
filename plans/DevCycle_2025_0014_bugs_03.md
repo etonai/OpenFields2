@@ -32,6 +32,20 @@ The Jackson configuration may not be sufficient to handle all deserialization is
 - **Mixin Applied**: CharacterMixin class ignoring problematic fields
 - **Updated Faction Data**: Alexander character updated in faction 1
 
+### Specific Debug Investigation Required
+**Problem Location**: The issue occurs in `InputManager.java` in the `getFactionCharacterInfo()` function on line 3426 (originally line 3395) when `objectMapper.treeToValue(charNode, combat.Character.class)` attempts to convert the JsonNode `charNode` into a `combat.Character` object.
+
+**Debugging Approach**: Add debug output to log the actual `charNode` content so it can be compared with what the Character class expects. This will allow for field-by-field comparison to identify specific deserialization conflicts between the JSON structure and the Character class fields.
+
+**Recommended Debug Code**:
+```java
+// Add before the objectMapper.treeToValue() call
+System.out.println("[DEBUG] Attempting to deserialize character node:");
+System.out.println("[DEBUG] charNode content: " + charNode.toString());
+```
+
+This should make it relatively easy to compare the JSON structure with the Character class field requirements and identify exactly which fields are causing the deserialization failure.
+
 ### Impact Assessment
 - **Severity**: Critical - Completely blocks CTRL-A character addition
 - **User Impact**: Feature is unusable despite implementation
@@ -58,6 +72,27 @@ Despite implementing dedicated melee weapon readiness methods, weapon readiness 
 - Weapon readiness may still not persist properly through movement
 - Characters may still experience delays when starting melee attacks
 - Weapon state management between movement and attack needs verification
+
+### Comparative Analysis: Ranged vs Melee Weapon Readiness
+**Key Finding**: Readying a weapon works correctly for ranged weapons but fails for melee weapons.
+
+**Test Case Evidence**:
+- **Alice (Ranged - Uzi)**: `READY WEAPON` → `unsling at tick 0` → `ready at tick 86` → `weapon is already ready`
+- **Chris (Melee - Battle Axe)**: `READY WEAPON` → `unsheathing at tick 0` → **No completion message, weapon never becomes ready**
+
+**Observed Differences**:
+1. **Ranged weapons** complete their readiness sequence and show "weapon is already ready"
+2. **Melee weapons** start the unsheathing process but never complete it
+3. **State progression** works for ranged but fails for melee
+
+**Code Analysis Required**:
+The implementation difference between ranged and melee weapon readiness systems needs investigation. The ranged weapon system (original `startReadyWeaponSequence()`) successfully completes state transitions, while the new melee-specific system (`startMeleeWeaponReadySequence()`) appears to start but not complete the readiness process.
+
+**Specific Investigation Points**:
+1. Compare event scheduling between `scheduleReadyFromCurrentState()` (ranged) and `scheduleMeleeWeaponReadyFromCurrentState()` (melee)
+2. Verify that `scheduleMeleeWeaponStateTransition()` properly schedules and executes transition events
+3. Check if melee weapon states have the correct progression path from "sheathed" → "unsheathing" → "melee_ready"
+4. Ensure melee weapon readiness events are being added to the event queue and processed correctly
 
 ### Sample Issue Pattern (From Previous Bug Report)
 ```
