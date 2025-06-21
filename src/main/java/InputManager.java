@@ -2943,9 +2943,9 @@ public class InputManager {
         attacker.character.isMovingToMelee = true;
         attacker.character.meleeTarget = target;
         
-        // Set melee weapon to ready state for combat
+        // Set melee weapon to ready state for combat (using unified weapon system)
         if (attacker.character.meleeWeapon != null) {
-            attacker.character.startMeleeWeaponReadySequence(attacker, gameClock.getCurrentTick(), eventQueue, attacker.getId());
+            attacker.character.startReadyWeaponSequence(attacker, gameClock.getCurrentTick(), eventQueue, attacker.getId());
             System.out.println("*** " + attacker.character.getDisplayName() + " readying melee weapon " + attacker.character.meleeWeapon.getName() + " for combat");
         }
         
@@ -3419,19 +3419,37 @@ public class InputManager {
             List<combat.Character> allCharacters = new ArrayList<>();
             List<combat.Character> availableCharacters = new ArrayList<>();
             
-            // Load all characters from faction file
+            // Load all characters from faction file using the proper approach
             if (charactersNode != null && charactersNode.isArray()) {
                 for (JsonNode charNode : charactersNode) {
                     try {
-                        combat.Character character = objectMapper.treeToValue(charNode, combat.Character.class);
+                        // Add debug logging to see the actual charNode content
+                        debugPrint("[DEBUG] Attempting to deserialize character node:");
+                        debugPrint("[DEBUG] charNode content: " + charNode.toString());
+                        
+                        // Use CharacterData for proper JSON deserialization (same approach as CTRL-C)
+                        data.CharacterData characterData = objectMapper.treeToValue(charNode, data.CharacterData.class);
+                        debugPrint("[DEBUG] Successfully deserialized to CharacterData: " + characterData.nickname);
+                        
+                        // Convert CharacterData to Character using CharacterPersistenceManager approach
+                        combat.Character character = convertFromCharacterData(characterData);
                         allCharacters.add(character);
+                        
+                        debugPrint("[DEBUG] Successfully converted to Character: " + character.getDisplayName());
                         
                         // Check if character is available (not already deployed and not incapacitated)
                         if (isCharacterAvailable(character)) {
                             availableCharacters.add(character);
+                            debugPrint("[DEBUG] Character " + character.getDisplayName() + " is available for deployment");
+                        } else {
+                            debugPrint("[DEBUG] Character " + character.getDisplayName() + " is not available (already deployed or incapacitated)");
                         }
                     } catch (Exception e) {
                         System.err.println("Error loading character from faction " + factionId + ": " + e.getMessage());
+                        debugPrint("[DEBUG] Full exception details: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        if (e.getCause() != null) {
+                            debugPrint("[DEBUG] Caused by: " + e.getCause().getClass().getSimpleName() + ": " + e.getCause().getMessage());
+                        }
                     }
                 }
             }
@@ -3457,5 +3475,68 @@ public class InputManager {
         
         // Check if character is incapacitated using Character class logic
         return !character.isIncapacitated();
+    }
+    
+    /**
+     * Convert CharacterData to Character object (same approach as CharacterPersistenceManager)
+     */
+    private combat.Character convertFromCharacterData(data.CharacterData data) {
+        // Create character with basic info - use the full constructor
+        combat.Character character = new combat.Character(data.id, data.nickname, data.firstName, data.lastName, 
+                                          data.birthdate, data.themeId, data.dexterity, data.health, 
+                                          data.coolness, data.strength, data.reflexes, data.handedness);
+        
+        // Set remaining stats not covered by constructor
+        character.currentDexterity = data.currentDexterity;
+        character.currentHealth = data.currentHealth;
+        character.baseMovementSpeed = data.baseMovementSpeed;
+        
+        // Set current state
+        character.currentMovementType = data.currentMovementType;
+        character.currentAimingSpeed = data.currentAimingSpeed;
+        character.usesAutomaticTargeting = data.usesAutomaticTargeting;
+        character.preferredFiringMode = data.preferredFiringMode;
+        
+        // Set faction
+        character.setFaction(data.faction);
+        
+        // Set battle statistics
+        character.combatEngagements = data.combatEngagements;
+        character.woundsReceived = data.woundsReceived;
+        character.woundsInflictedScratch = data.woundsInflictedScratch;
+        character.woundsInflictedLight = data.woundsInflictedLight;
+        character.woundsInflictedSerious = data.woundsInflictedSerious;
+        character.woundsInflictedCritical = data.woundsInflictedCritical;
+        character.attacksAttempted = data.attacksAttempted;
+        character.attacksSuccessful = data.attacksSuccessful;
+        character.targetsIncapacitated = data.targetsIncapacitated;
+        character.headshotsAttempted = data.headshotsAttempted;
+        character.headshotsSuccessful = data.headshotsSuccessful;
+        character.headshotsKills = data.headshotsKills;
+        character.battlesParticipated = data.battlesParticipated;
+        character.victories = data.victories;
+        character.defeats = data.defeats;
+        
+        // Set skills
+        if (data.skills != null) {
+            for (data.CharacterData.SkillData skillData : data.skills) {
+                character.setSkillLevel(skillData.skillName, skillData.level);
+            }
+        }
+        
+        // Set wounds
+        if (data.wounds != null) {
+            for (data.CharacterData.WoundData woundData : data.wounds) {
+                try {
+                    combat.BodyPart bodyPart = combat.BodyPart.valueOf(woundData.bodyPart);
+                    combat.WoundSeverity severity = combat.WoundSeverity.valueOf(woundData.severity);
+                    character.addWound(new combat.Wound(bodyPart, severity, "Persistent wound", "", woundData.damage));
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Warning: Invalid wound data - " + e.getMessage());
+                }
+            }
+        }
+        
+        return character;
     }
 }

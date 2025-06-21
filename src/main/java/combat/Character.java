@@ -825,90 +825,37 @@ public class Character {
     }
     
     public void startReadyWeaponSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        if (weapon == null || currentWeaponState == null) return;
+        // Handle both ranged and melee weapons in unified system
+        if (isMeleeCombatMode) {
+            // Melee mode - ready the melee weapon
+            if (meleeWeapon == null) {
+                debugPrint("[WEAPON-READY] " + getDisplayName() + " no melee weapon equipped");
+                return;
+            }
+            
+            // Initialize weapon state if needed for melee weapon
+            if (currentWeaponState == null) {
+                currentWeaponState = meleeWeapon.getInitialState();
+                debugPrint("[WEAPON-READY] " + getDisplayName() + " initializing melee weapon state to: " + currentWeaponState.getState());
+            }
+        } else {
+            // Ranged mode - ready the ranged weapon
+            if (weapon == null) {
+                debugPrint("[WEAPON-READY] " + getDisplayName() + " no ranged weapon equipped");
+                return;
+            }
+            
+            // Initialize weapon state if needed for ranged weapon
+            if (currentWeaponState == null) {
+                currentWeaponState = weapon.getInitialState();
+                debugPrint("[WEAPON-READY] " + getDisplayName() + " initializing ranged weapon state to: " + currentWeaponState.getState());
+            }
+        }
         
+        debugPrint("[WEAPON-READY] " + getDisplayName() + " starting weapon ready sequence from state: " + currentWeaponState.getState());
         scheduleReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
     }
     
-    /**
-     * Start melee weapon ready sequence from current weapon state
-     */
-    public void startMeleeWeaponReadySequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        if (meleeWeapon == null) {
-            debugPrint("[MELEE-READY] " + getDisplayName() + " no melee weapon equipped");
-            return;
-        }
-        
-        // Initialize weapon state if needed
-        if (currentWeaponState == null) {
-            currentWeaponState = meleeWeapon.getInitialState();
-            debugPrint("[MELEE-READY] " + getDisplayName() + " initializing melee weapon state to: " + currentWeaponState.getState());
-        }
-        
-        debugPrint("[MELEE-READY] " + getDisplayName() + " starting melee weapon ready sequence from state: " + currentWeaponState.getState());
-        scheduleMeleeWeaponReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
-    }
-    
-    /**
-     * Schedule melee weapon ready progression from current state
-     */
-    private void scheduleMeleeWeaponReadyFromCurrentState(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        if (meleeWeapon == null || currentWeaponState == null) return;
-        
-        String stateName = currentWeaponState.getState();
-        debugPrint("[MELEE-READY] " + getDisplayName() + " processing ready sequence from state: " + stateName);
-        
-        // Handle melee weapon state transitions for readiness
-        if ("sheathed".equals(stateName)) {
-            debugPrint("[MELEE-READY] " + getDisplayName() + " unsheathing melee weapon (" + currentWeaponState.ticks + " ticks)");
-            scheduleMeleeWeaponStateTransition("unsheathing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("unsheathing".equals(stateName)) {
-            debugPrint("[MELEE-READY] " + getDisplayName() + " becoming melee ready (" + currentWeaponState.ticks + " ticks)");
-            scheduleMeleeWeaponStateTransition("melee_ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("slung".equals(stateName)) {
-            debugPrint("[MELEE-READY] " + getDisplayName() + " transitioning from slung to sheathed (immediate)");
-            WeaponState sheathState = meleeWeapon.getStateByName("sheathed");
-            if (sheathState != null) {
-                currentWeaponState = sheathState;
-                scheduleMeleeWeaponReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
-            }
-        } else if ("melee_ready".equals(stateName)) {
-            debugPrint("[MELEE-READY] " + getDisplayName() + " already melee ready");
-        } else {
-            debugPrint("[MELEE-READY] " + getDisplayName() + " unhandled state: " + stateName + " - transitioning to sheathed");
-            WeaponState sheathState = meleeWeapon.getStateByName("sheathed");
-            if (sheathState != null) {
-                currentWeaponState = sheathState;
-                scheduleMeleeWeaponReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
-            }
-        }
-    }
-    
-    /**
-     * Schedule melee weapon state transition for readiness (not attack)
-     */
-    private void scheduleMeleeWeaponStateTransition(String targetState, long currentTick, long transitionTicks, Unit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        // Apply weapon speed modifiers
-        long adjustedTicks = Math.round(transitionTicks * getWeaponReadySpeedMultiplier());
-        long targetTick = currentTick + adjustedTicks;
-        
-        debugPrint("[MELEE-READY] " + getDisplayName() + " scheduling transition to " + targetState + " at tick " + targetTick);
-        
-        ScheduledEvent readyEvent = new ScheduledEvent(targetTick, () -> {
-            WeaponState targetWeaponState = meleeWeapon.getStateByName(targetState);
-            if (targetWeaponState != null) {
-                currentWeaponState = targetWeaponState;
-                debugPrint("[MELEE-READY] " + getDisplayName() + " transitioned to " + targetState);
-                
-                // Continue ready sequence if not at final ready state
-                if (!"melee_ready".equals(targetState)) {
-                    scheduleMeleeWeaponReadyFromCurrentState(unit, targetTick, eventQueue, ownerId);
-                }
-            }
-        }, ownerId);
-        
-        eventQueue.add(readyEvent);
-    }
     
     /**
      * Start melee attack sequence from current weapon state
@@ -1214,33 +1161,51 @@ public class Character {
     
     
     private void scheduleReadyFromCurrentState(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        if (weapon == null || currentWeaponState == null) return;
+        // Check weapon and state availability for both ranged and melee
+        if (currentWeaponState == null) return;
+        if (!isMeleeCombatMode && weapon == null) return;
+        if (isMeleeCombatMode && meleeWeapon == null) return;
         
         String currentState = currentWeaponState.getState();
+        String targetReadyState = isMeleeCombatMode ? "melee_ready" : "ready";
         
-        if ("ready".equals(currentState)) {
-            System.out.println(getDisplayName() + " weapon is already ready");
+        debugPrint("[WEAPON-READY] " + getDisplayName() + " scheduleReadyFromCurrentState - current: " + currentState + ", target: " + targetReadyState);
+        
+        if (targetReadyState.equals(currentState)) {
+            debugPrint(getDisplayName() + " weapon is already ready");
             return;
         }
         
+        // Handle weapon state transitions for both ranged and melee
         if ("holstered".equals(currentState)) {
             scheduleReadyStateTransition("drawing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("drawing".equals(currentState)) {
-            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+            scheduleReadyStateTransition(targetReadyState, currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("slung".equals(currentState)) {
             scheduleReadyStateTransition("unsling", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("unsling".equals(currentState)) {
-            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+            scheduleReadyStateTransition(targetReadyState, currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("sheathed".equals(currentState)) {
             scheduleReadyStateTransition("unsheathing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("unsheathing".equals(currentState)) {
-            scheduleReadyStateTransition("ready", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
+            scheduleReadyStateTransition(targetReadyState, currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
         } else if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
-            WeaponState readyState = weapon.getStateByName("ready");
+            // Get the appropriate weapon for state lookup
+            Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
+            WeaponState readyState = activeWeapon.getStateByName(targetReadyState);
             eventQueue.add(new ScheduledEvent(currentTick + currentWeaponState.ticks, () -> {
                 currentWeaponState = readyState;
-                System.out.println(getDisplayName() + " weapon state: ready at tick " + (currentTick + currentWeaponState.ticks));
+                debugPrint(getDisplayName() + " weapon state: " + targetReadyState + " at tick " + (currentTick + currentWeaponState.ticks));
             }, ownerId));
+        } else {
+            debugPrint("[WEAPON-READY] " + getDisplayName() + " unhandled state: " + currentState + " - attempting direct transition to " + targetReadyState);
+            // For unknown states, try direct transition to ready state
+            Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
+            WeaponState readyState = activeWeapon.getStateByName(targetReadyState);
+            if (readyState != null) {
+                currentWeaponState = readyState;
+                debugPrint(getDisplayName() + " weapon state: " + targetReadyState + " (immediate transition)");
+            }
         }
     }
     
@@ -1271,15 +1236,22 @@ public class Character {
         }
         
         long transitionTick = currentTick + transitionTickLength;
+        debugPrint("[WEAPON-READY] " + getDisplayName() + " scheduling transition to " + newStateName + " at tick " + transitionTick);
+        
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
-            currentWeaponState = weapon.getStateByName(newStateName);
-            System.out.println(getDisplayName() + " weapon state: " + newStateName + " at tick " + transitionTick);
+            // Get the appropriate weapon for state lookup
+            Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
+            currentWeaponState = activeWeapon.getStateByName(newStateName);
+            debugPrint(getDisplayName() + " weapon state: " + newStateName + " at tick " + transitionTick);
+            
+            // Continue the ready sequence recursively
             scheduleReadyFromCurrentState(unit, transitionTick, eventQueue, ownerId);
         }, ownerId));
     }
     
     private boolean isWeaponPreparationState(String stateName) {
-        return "drawing".equals(stateName) || "unsheathing".equals(stateName) || "unsling".equals(stateName) || "ready".equals(stateName);
+        return "drawing".equals(stateName) || "unsheathing".equals(stateName) || "unsling".equals(stateName) || 
+               "ready".equals(stateName) || "melee_ready".equals(stateName);
     }
     
     private AimingSpeed determineAimingSpeedForShot() {
