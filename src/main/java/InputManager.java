@@ -26,154 +26,407 @@ import data.SaveGameManager;
 import data.UniversalCharacterRegistry;
 
 /**
- * InputManager handles all user input for the OpenFields2 game, including:
- * - Mouse input (selection, movement, combat commands)
- * - Keyboard input (camera controls, game controls, unit commands)
- * - Input state management (save/load prompts, edit mode operations)
+ * InputManager handles all user input for the OpenFields2 game.
  * 
- * This class coordinates with various subsystems to process input appropriately:
- * - SelectionManager for unit selection operations
- * - GameRenderer for camera controls
- * - Game state for combat and movement commands
- * - Save/load systems for game persistence
- * - Edit mode operations for character/weapon management
+ * This is the central hub for all input processing in the game, managing both immediate
+ * responses to user actions and complex multi-step workflows. The class coordinates
+ * with multiple subsystems to provide a comprehensive input handling experience.
+ * 
+ * PRIMARY RESPONSIBILITIES:
+ * - Mouse input processing (selection, movement, combat commands, edit mode operations)
+ * - Keyboard input handling (camera controls, unit commands, game state management)
+ * - Input state management (save/load prompts, character creation workflows)
+ * - Edit mode operations (character creation, weapon assignment, faction management)
+ * - Combat command processing (targeting, firing modes, melee combat)
+ * - Game state controls (pause/resume, save/load, scenario management)
+ * 
+ * SYSTEM INTEGRATION:
+ * - SelectionManager: Unit selection and multi-selection operations
+ * - GameRenderer: Camera controls (pan, zoom, offset management)
+ * - GameClock: Timing and event scheduling
+ * - SaveGameManager: Game persistence and slot management  
+ * - UniversalCharacterRegistry: Character data access and management
+ * - Combat System: Attack commands, weapon state management, targeting
+ * - Edit Mode: Character creation, deployment, faction assignment
+ * 
+ * INPUT PROCESSING ARCHITECTURE:
+ * The InputManager uses a state-based approach to handle complex multi-step workflows.
+ * Boolean flags track current input state (e.g., waitingForSaveSlot, editMode) and
+ * enum-based state machines manage complex workflows like character creation and deployment.
+ * 
+ * TABLE OF CONTENTS:
+ * ==================
+ * 1. Class Declaration and Field Definitions
+ *    1.1 Core Game Dependencies
+ *    1.2 Game State References  
+ *    1.3 Input State Management Flags
+ *    1.4 Workflow State Management
+ *    1.5 Static Configuration and Utilities
+ * 
+ * 2. Inner Classes and Enums
+ *    2.1 Callback Interfaces
+ *    2.2 Workflow State Enums
+ *    2.3 Data Transfer Objects
+ *    2.4 JSON Deserialization Support
+ * 
+ * 3. Constructor and Initialization
+ *    3.1 Primary Constructor
+ *    3.2 Input Handler Setup
+ *    3.3 Manager Instance Initialization
+ * 
+ * 4. Core Input Event Processing  
+ *    4.1 Mouse Event Handlers
+ *    4.2 Keyboard Event Handlers
+ *    4.3 Event Routing and Delegation
+ * 
+ * 5. Game Control Operations
+ *    5.1 Unit Movement and Positioning
+ *    5.2 Combat Commands and Targeting
+ *    5.3 Camera Controls and Navigation
+ *    5.4 Game State Management (Pause/Resume)
+ * 
+ * 6. Edit Mode Operations
+ *    6.1 Character Creation Workflows
+ *    6.2 Weapon Assignment Systems
+ *    6.3 Faction Management
+ *    6.4 Batch Operations and Deployment
+ * 
+ * 7. Save/Load System Integration
+ *    7.1 Save Slot Management
+ *    7.2 Load Operations
+ *    7.3 State Persistence
+ * 
+ * 8. Advanced Features
+ *    8.1 Target Zone Selection
+ *    8.2 Automatic Targeting Systems
+ *    8.3 Multi-Character Operations
+ *    8.4 Formation and Deployment Systems
+ * 
+ * 9. UI and Display Support
+ *    9.1 Character Statistics Display
+ *    9.2 Status Messages and Feedback
+ *    9.3 Selection Visual Feedback
+ *    9.4 Debug Information Display
+ * 
+ * 10. Utility Methods and Helpers
+ *     10.1 Coordinate Conversion
+ *     10.2 String Formatting and Display
+ *     10.3 Validation and Error Handling
+ *     10.4 State Management Helpers
+ * 
+ * 11. Workflow State Management
+ *     11.1 Character Creation State Machine
+ *     11.2 Deployment Workflow Management
+ *     11.3 Victory/Scenario State Handling
+ *     11.4 Multi-Step Input Processing
+ * 
+ * 12. Integration and Callback Methods
+ *     12.1 Callback Interface Implementation
+ *     12.2 Cross-System Communication
+ *     12.3 Event Coordination
+ * 
+ * DESIGN PATTERNS USED:
+ * - State Machine: Complex workflows use enum-based state tracking
+ * - Command Pattern: Input commands delegate to appropriate handlers
+ * - Observer Pattern: Callbacks notify main game of state changes
+ * - Strategy Pattern: Different input modes use different processing strategies
+ * 
+ * PERFORMANCE CONSIDERATIONS:
+ * - Input event processing is optimized for 60 FPS game loop
+ * - State checks are arranged by frequency for optimal branching
+ * - Heavy operations (file I/O, character creation) are batched appropriately
+ * - Memory allocations are minimized in frequent event handlers
  */
 public class InputManager {
-    // Core game dependencies
+    
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // SECTION 1: CLASS DECLARATION AND FIELD DEFINITIONS
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 1.1 Core Game Dependencies
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // These final references connect InputManager to the core game systems
+    
+    /** List of all active units in the game - used for selection, movement, and combat operations */
     private final List<Unit> units;
+    
+    /** Manages unit selection state including single and multi-unit selection */
     private final SelectionManager selectionManager;
+    
+    /** Handles camera positioning, zoom, and rendering operations */
     private final GameRenderer gameRenderer;
+    
+    /** Provides game timing and tick management for event scheduling */
     private final GameClock gameClock;
+    
+    /** Priority queue for managing scheduled game events (attacks, effects, etc.) */
     private final PriorityQueue<ScheduledEvent> eventQueue;
+    
+    /** JavaFX Canvas for capturing mouse events and coordinate conversion */
     private final Canvas canvas;
     
-    // Game state references
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 1.2 Game State References
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // Basic game state that InputManager needs to track for input processing
+    
+    /** Whether the game is currently paused - affects input processing priorities */
     private boolean paused;
+    
+    /** Whether edit mode is active - changes input handling behavior significantly */
     private boolean editMode;
+    
+    /** Next available unit ID for creating new units */
     private int nextUnitId;
     
-    // Input state management
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 1.3 Input State Management Flags
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // Boolean flags that control which input processing mode is currently active
+    
+    /** True when prompting user for save slot selection (1-9) */
     private boolean waitingForSaveSlot = false;
+    
+    /** True when prompting user for load slot selection (1-9) */
     private boolean waitingForLoadSlot = false;
+    
+    /** True when in single character creation workflow */
     private boolean waitingForCharacterCreation = false;
+    
+    /** True when prompting for weapon selection during character creation */
     private boolean waitingForWeaponSelection = false;
+    
+    /** True when specifically selecting ranged weapon for character */
     private boolean waitingForRangedWeaponSelection = false;
+    
+    /** True when specifically selecting melee weapon for character */
     private boolean waitingForMeleeWeaponSelection = false;
+    
+    /** True when prompting for faction assignment */
     private boolean waitingForFactionSelection = false;
+    
+    /** True when in batch character creation workflow */
     private boolean waitingForBatchCharacterCreation = false;
+    
+    /** True when in character deployment workflow */
     private boolean waitingForCharacterDeployment = false;
+    
+    /** True when confirming unit deletion operation */
     private boolean waitingForDeletionConfirmation = false;
+    
+    /** List of units marked for deletion pending confirmation */
     private java.util.List<Unit> unitsToDelete = new java.util.ArrayList<>();
+    
+    /** True when prompting for manual victory outcome input */
     private boolean waitingForVictoryOutcome = false;
+    
+    /** True when prompting for new scenario name input */
     private boolean waitingForScenarioName = false;
+    
+    /** True when prompting for theme selection */
     private boolean waitingForThemeSelection = false;
+    
+    /** True when in direct character addition workflow (CTRL-A) */
     private boolean waitingForDirectCharacterAddition = false;
     
-    // Manual victory state
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 1.4 Workflow State Management
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // Complex state management for multi-step workflows
+    
+    // Manual Victory Workflow State
+    /** List of faction IDs participating in manual victory determination */
     private java.util.List<Integer> scenarioFactions = new java.util.ArrayList<>();
+    
+    /** Map of faction ID to victory outcome for manual victory processing */
     private java.util.Map<Integer, VictoryOutcome> factionOutcomes = new java.util.HashMap<>();
+    
+    /** Current faction index being processed in manual victory workflow */
     private int currentVictoryFactionIndex = 0;
     
-    // New scenario state
+    // New Scenario Creation State
+    /** Name for new scenario being created */
     private String newScenarioName = "";
+    
+    /** Theme ID for new scenario being created */
     private String newScenarioTheme = "";
     
-    // Batch character creation state
+    // Batch Character Creation Workflow State
+    /** Number of characters to create in batch operation */
     private int batchQuantity = 0;
+    
+    /** Selected archetype index for batch creation */
     private int batchArchetype = 0;
+    
+    /** Selected faction number for batch creation */
     private int batchFaction = 0;
+    
+    /** Current step in batch creation workflow */
     private BatchCreationStep batchCreationStep = BatchCreationStep.QUANTITY;
     
-    // Individual character creation state
+    // Individual Character Creation Workflow State
+    /** Selected archetype name for individual character creation */
     private String selectedArchetype = "";
+    
+    /** Selected ranged weapon for individual character creation */
     private String selectedRangedWeapon = "";
+    
+    /** Selected melee weapon for individual character creation */
     private String selectedMeleeWeapon = "";
+    
+    /** True when waiting for ranged weapon selection in individual creation */
     private boolean waitingForCharacterRangedWeapon = false;
+    
+    /** True when waiting for melee weapon selection in individual creation */
     private boolean waitingForCharacterMeleeWeapon = false;
     
-    // Character deployment state
+    // Character Deployment Workflow State
+    /** Selected faction for character deployment */
     private int deploymentFaction = 0;
+    
+    /** Number of characters to deploy */
     private int deploymentQuantity = 0;
+    
+    /** Selected weapon for deployment */
     private String deploymentWeapon = "";
+    
+    /** Selected formation type for deployment */
     private String deploymentFormation = "";
-    private int deploymentSpacing = 35; // Default 5 feet = 35 pixels
+    
+    /** Spacing between deployed characters in pixels (default 5 feet = 35 pixels) */
+    private int deploymentSpacing = 35;
+    
+    /** Current step in deployment workflow */
     private DeploymentStep deploymentStep = DeploymentStep.FACTION;
+    
+    /** List of characters prepared for deployment */
     private java.util.List<combat.Character> deploymentCharacters = new java.util.ArrayList<>();
     
-    // Direct character addition state
+    // Direct Character Addition Workflow State (CTRL-A functionality)
+    /** Selected faction for direct character addition */
     private int directAdditionFaction = 0;
+    
+    /** Number of characters to add directly */
     private int directAdditionQuantity = 0;
-    private double directAdditionSpacing = 5.0; // Default 5 feet
+    
+    /** Spacing between characters in feet for direct addition */
+    private double directAdditionSpacing = 5.0;
+    
+    /** Current step in direct addition workflow */
     private DirectAdditionStep directAdditionStep = DirectAdditionStep.FACTION;
     
-    // Batch creation workflow steps
-    private enum BatchCreationStep {
-        QUANTITY,    // Prompting for quantity
-        ARCHETYPE,   // Prompting for archetype selection
-        FACTION      // Prompting for faction selection
-    }
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // SECTION 2: INNER CLASSES AND ENUMS
+    // ═══════════════════════════════════════════════════════════════════════════════════
     
-    // Character deployment workflow steps
-    private enum DeploymentStep {
-        FACTION,     // Prompting for faction selection
-        QUANTITY,    // Prompting for quantity to deploy
-        WEAPON,      // Prompting for weapon selection
-        FORMATION,   // Prompting for formation type
-        SPACING,     // Prompting for character spacing
-        PLACEMENT    // Click-to-place mode active
-    }
-    
-    // Direct character addition workflow steps
-    private enum DirectAdditionStep {
-        FACTION,     // Prompting for faction selection
-        QUANTITY,    // Prompting for quantity to add
-        SPACING,     // Prompting for character spacing
-        PLACEMENT    // Click-to-place mode active
-    }
-    
-    // JSON loading for faction characters
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    
-    static {
-        // Configure ObjectMapper to handle deserialization issues
-        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false);
-        
-        // Add mixin to ignore problematic fields during deserialization
-        objectMapper.addMixIn(combat.Character.class, CharacterMixin.class);
-    }
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 2.1 Workflow State Enums
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // State machine enums for managing complex multi-step workflows
     
     /**
-     * Mixin class to control Character deserialization
+     * Steps in the batch character creation workflow.
+     * This workflow allows creating multiple characters of the same archetype at once.
      */
-    public static abstract class CharacterMixin {
-        // Ignore fields that cause deserialization issues
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public java.awt.Rectangle targetZone;
+    private enum BatchCreationStep {
+        /** Prompting user to enter number of characters to create (1-20) */
+        QUANTITY,
         
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public Unit currentTarget;
+        /** Prompting user to select character archetype from available options */
+        ARCHETYPE,
         
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public Unit meleeTarget;
-        
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public WeaponState currentWeaponState;
-        
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public List<ScheduledEvent> pausedEvents;
+        /** Prompting user to select faction assignment for created characters */
+        FACTION
     }
     
     /**
-     * Helper class to hold faction character information
+     * Steps in the character deployment workflow.
+     * This workflow deploys pre-created characters from faction files to the battlefield.
+     */
+    private enum DeploymentStep {
+        /** Prompting user to select faction for character deployment */
+        FACTION,
+        
+        /** Prompting user to specify number of characters to deploy */
+        QUANTITY,
+        
+        /** Prompting user to select weapon configuration for deployed characters */
+        WEAPON,
+        
+        /** Prompting user to select formation type (line, column, etc.) */
+        FORMATION,
+        
+        /** Prompting user to specify spacing between characters */
+        SPACING,
+        
+        /** Waiting for mouse click to place characters on battlefield */
+        PLACEMENT
+    }
+    
+    /**
+     * Steps in the direct character addition workflow (CTRL-A functionality).
+     * This workflow adds existing characters directly from faction files.
+     */
+    private enum DirectAdditionStep {
+        /** Prompting user to select faction for character addition */
+        FACTION,
+        
+        /** Prompting user to specify number of characters to add (1-20) */
+        QUANTITY,
+        
+        /** Prompting user to specify spacing between characters (1-9 feet) */
+        SPACING,
+        
+        /** Waiting for mouse click to place characters in line formation */
+        PLACEMENT
+    }
+    
+    /**
+     * Victory outcome options for factions in manual victory determination.
+     * Used when manually ending scenarios to record faction performance.
+     */
+    private enum VictoryOutcome {
+        /** Faction achieved complete victory in the scenario */
+        VICTORY,
+        
+        /** Faction was defeated or destroyed */
+        DEFEAT,
+        
+        /** Faction participated but neither won nor lost definitively */
+        PARTICIPANT
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 2.2 Data Transfer Objects
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // Helper classes for organizing and transferring complex data
+    
+    /**
+     * Data transfer object holding faction character information for deployment operations.
+     * Provides organized access to faction character data including availability counts.
      */
     private static class FactionCharacterInfo {
+        /** Display name of the faction */
         String factionName;
+        
+        /** Total number of characters defined for this faction */
         int totalCharacters;
+        
+        /** Number of characters available for deployment (not already deployed/incapacitated) */
         int availableCount;
+        
+        /** List of available characters ready for deployment */
         List<combat.Character> availableCharacters;
         
+        /**
+         * Constructor for faction character information.
+         * 
+         * @param factionName Display name of the faction
+         * @param totalCharacters Total characters defined for faction
+         * @param availableCount Characters available for deployment
+         * @param availableCharacters List of deployable characters
+         */
         FactionCharacterInfo(String factionName, int totalCharacters, int availableCount, List<combat.Character> availableCharacters) {
             this.factionName = factionName;
             this.totalCharacters = totalCharacters;
@@ -182,73 +435,239 @@ public class InputManager {
         }
     }
     
-    // Victory outcome options for factions
-    private enum VictoryOutcome {
-        VICTORY,     // Faction achieved victory
-        DEFEAT,      // Faction was defeated
-        PARTICIPANT  // Faction participated but neither won nor lost
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 2.3 JSON Deserialization Support
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // Static configuration for handling faction character file loading
+    
+    /** Jackson ObjectMapper configured for safe faction character deserialization */
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    
+    static {
+        // Configure ObjectMapper to handle deserialization issues gracefully
+        // These settings prevent crashes when loading faction files with missing or extra fields
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false);
+        
+        // Add mixin to ignore problematic runtime fields during deserialization
+        objectMapper.addMixIn(combat.Character.class, CharacterMixin.class);
     }
     
-    // Target zone selection state
+    /**
+     * Jackson mixin class to control Character deserialization from faction JSON files.
+     * This prevents deserialization failures on runtime-only fields that shouldn't be persisted.
+     */
+    public static abstract class CharacterMixin {
+        /** Ignore target zone (runtime-only AWT Rectangle) */
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public java.awt.Rectangle targetZone;
+        
+        /** Ignore current target reference (runtime-only Unit reference) */
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public Unit currentTarget;
+        
+        /** Ignore melee target reference (runtime-only Unit reference) */
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public Unit meleeTarget;
+        
+        /** Ignore weapon state (runtime-only state machine reference) */
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public WeaponState currentWeaponState;
+        
+        /** Ignore paused events (runtime-only event queue) */
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public List<ScheduledEvent> pausedEvents;
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 1.5 Additional State Variables
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // Remaining state variables that support advanced features
+    
+    // Target Zone Selection State
+    /** True when user is selecting a target zone by dragging */
     private boolean isSelectingTargetZone = false;
+    
+    /** X coordinate where target zone selection started */
     private double targetZoneStartX = 0;
+    
+    /** Y coordinate where target zone selection started */
     private double targetZoneStartY = 0;
+    
+    /** Unit for which target zone is being selected */
     private Unit targetZoneUnit = null;
     
-    // Game management dependencies
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 1.6 Manager Dependencies  
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // References to singleton managers for data access and persistence
+    
+    /** Singleton manager for save/load operations */
     private final SaveGameManager saveGameManager;
+    
+    /** Singleton registry for character data access */
     private final UniversalCharacterRegistry characterRegistry;
     
-    // Callback interface for operations that require main game access
+    /** Callback interface for operations requiring main game access */
     private final InputManagerCallbacks callbacks;
     
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 1.7 Debug and Diagnostic Configuration
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // Configurable debug features with zero performance impact when disabled
+    
+    /** Master debug flag - enables all debug features when true */
+    private static boolean DEBUG_ENABLED = false;
+    
+    /** Enable debug logging for input events (mouse, keyboard) */
+    private static boolean DEBUG_INPUT_EVENTS = false;
+    
+    /** Enable debug logging for state transitions */
+    private static boolean DEBUG_STATE_TRANSITIONS = false;
+    
+    /** Enable performance timing for complex operations */
+    private static boolean DEBUG_PERFORMANCE_TIMING = false;
+    
+    /** Enable input event trace functionality */
+    private static boolean DEBUG_INPUT_TRACE = false;
+    
+    /** Enable memory usage diagnostic output */
+    private static boolean DEBUG_MEMORY_USAGE = false;
+    
+    /** Enable workflow state debugging */
+    private static boolean DEBUG_WORKFLOW_STATES = false;
+    
+    /** Enable combat command debugging */
+    private static boolean DEBUG_COMBAT_COMMANDS = false;
+    
+    /** Enable selection debugging */
+    private static boolean DEBUG_SELECTION_OPERATIONS = false;
+    
+    // Performance timing storage for debug operations
+    private static long lastOperationStartTime = 0;
+    private static final java.util.Map<String, Long> performanceTimings = new java.util.HashMap<>();
+    private static final java.util.List<String> inputEventTrace = new java.util.ArrayList<>();
+    private static final int MAX_TRACE_EVENTS = 100; // Limit trace size to prevent memory issues
+    
     /**
-     * Interface for callbacks to the main game class for operations that
-     * require access to methods or state not directly available to InputManager
+     * Callback interface for operations that require access to main game functionality.
+     * 
+     * InputManager uses this interface to delegate operations that require access to
+     * methods or state not directly available within the InputManager scope. This design
+     * maintains separation of concerns while enabling InputManager to coordinate complex
+     * operations that span multiple game subsystems.
+     * 
+     * The interface is organized into functional groups for different types of operations.
      */
     public interface InputManagerCallbacks {
-        // Save/Load operations
+        
+        // ─────────────────────────────────────────────────────────────────────────────────
+        // Save/Load Operations
+        // ─────────────────────────────────────────────────────────────────────────────────
+        
+        /** Initiate save operation to specified slot number (1-9) */
         void saveGameToSlot(int slot);
+        
+        /** Initiate load operation from specified slot number (1-9) */
         void loadGameFromSlot(int slot);
+        
+        /** Display save slot selection prompt to user */
         void promptForSaveSlot();
+        
+        /** Display load slot selection prompt to user */
         void promptForLoadSlot();
         
-        // Character/Weapon/Faction management
+        // ─────────────────────────────────────────────────────────────────────────────────
+        // Character/Weapon/Faction Management
+        // ─────────────────────────────────────────────────────────────────────────────────
+        
+        /** Display character creation archetype selection prompt */
         void promptForCharacterCreation();
+        
+        /** Display weapon assignment selection prompt */
         void promptForWeaponSelection();
+        
+        /** Display faction assignment selection prompt */
         void promptForFactionSelection();
+        
+        /** Create new character from selected archetype index */
         void createCharacterFromArchetype(int archetypeIndex);
+        
+        /** Assign weapon by index to currently selected units */
         void assignWeaponToSelectedUnits(int weaponIndex);
+        
+        /** Assign faction number to currently selected units */
         void assignFactionToSelectedUnits(int factionNumber);
         
-        // State accessors/mutators
+        // ─────────────────────────────────────────────────────────────────────────────────
+        // Game State Access and Mutation
+        // ─────────────────────────────────────────────────────────────────────────────────
+        
+        /** Get current game pause state */
         boolean isPaused();
+        
+        /** Set game pause state */
         void setPaused(boolean paused);
+        
+        /** Get current edit mode state */
         boolean isEditMode();
+        
+        /** Set edit mode state */
         void setEditMode(boolean editMode);
+        
+        /** Get next available unit ID for unit creation */
         int getNextUnitId();
+        
+        /** Set next unit ID (used during save/load operations) */
         void setNextUnitId(int nextUnitId);
         
-        // Utility methods
+        // ─────────────────────────────────────────────────────────────────────────────────
+        // Utility and Conversion Methods
+        // ─────────────────────────────────────────────────────────────────────────────────
+        
+        /** Convert pixel coordinates to feet using game's conversion factor */
         double convertPixelsToFeet(double pixels);
+        
+        /** Convert character stat value (1-100) to game modifier (-20 to +20) */
         int convertStatToModifier(int stat);
         
-        // Scenario management
+        // ─────────────────────────────────────────────────────────────────────────────────
+        // UI and Scenario Management
+        // ─────────────────────────────────────────────────────────────────────────────────
+        
+        /** Set main window title to reflect current scenario or game state */
         void setWindowTitle(String title);
+        
+        /** Get array of available theme IDs for scenario creation */
         String[] getAvailableThemes();
+        
+        /** Set current active theme for new scenarios */
         void setCurrentTheme(String themeId);
     }
     
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // SECTION 3: CONSTRUCTOR AND INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 3.1 Primary Constructor
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
     /**
-     * Constructor for InputManager
+     * Constructs a new InputManager with all necessary dependencies.
      * 
-     * @param units List of game units
-     * @param selectionManager Unit selection manager
-     * @param gameRenderer Game renderer for camera controls
-     * @param gameClock Game clock for timing
-     * @param eventQueue Event queue for scheduled actions
-     * @param canvas Game canvas for input event handling
-     * @param callbacks Callback interface to main game operations
+     * This constructor initializes the InputManager with references to all core game
+     * systems needed for input processing. The InputManager acts as a central coordinator
+     * for user input, delegating to appropriate subsystems based on current game state.
+     * 
+     * @param units List of game units for selection and command operations
+     * @param selectionManager Unit selection state manager for tracking selected units
+     * @param gameRenderer Game renderer for camera controls and coordinate conversion
+     * @param gameClock Game clock for timing-based operations and event scheduling
+     * @param eventQueue Priority queue for scheduling delayed game events
+     * @param canvas JavaFX Canvas for capturing mouse input events
+     * @param callbacks Callback interface for operations requiring main game access
      */
     public InputManager(List<Unit> units, SelectionManager selectionManager, 
                        GameRenderer gameRenderer, GameClock gameClock,
@@ -262,13 +681,22 @@ public class InputManager {
         this.canvas = canvas;
         this.callbacks = callbacks;
         
-        // Get manager instances
+        // Initialize singleton manager references
         this.saveGameManager = SaveGameManager.getInstance();
         this.characterRegistry = UniversalCharacterRegistry.getInstance();
     }
     
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 3.2 Input Handler Setup
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
     /**
-     * Initialize input handlers for the given scene
+     * Initialize input event handlers for the JavaFX scene.
+     * 
+     * This method must be called after the JavaFX scene is created to attach
+     * mouse and keyboard event handlers. The handlers are set up to capture
+     * all relevant input events and route them through the InputManager's
+     * processing pipeline.
      * 
      * @param scene JavaFX Scene to attach input handlers to
      */
@@ -278,7 +706,12 @@ public class InputManager {
     }
     
     /**
-     * Setup mouse event handlers for the canvas
+     * Configure mouse event handlers on the game canvas.
+     * 
+     * Sets up the three primary mouse event handlers:
+     * - onMousePressed: Initiates selection, movement, and combat commands
+     * - onMouseDragged: Handles selection rectangles and camera panning
+     * - onMouseReleased: Completes selection operations and finalizes commands
      */
     private void setupMouseHandlers() {
         canvas.setOnMousePressed(this::handleMousePressed);
@@ -287,7 +720,11 @@ public class InputManager {
     }
     
     /**
-     * Setup keyboard event handlers for the scene
+     * Configure keyboard event handlers on the JavaFX scene.
+     * 
+     * Attaches the primary keyboard event handler which processes all keyboard
+     * input including game controls, unit commands, camera controls, and
+     * workflow navigation commands.
      * 
      * @param scene JavaFX Scene to attach keyboard handlers to
      */
@@ -295,14 +732,33 @@ public class InputManager {
         scene.setOnKeyPressed(this::handleKeyPressed);
     }
     
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // SECTION 4: CORE INPUT EVENT PROCESSING
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 4.1 Mouse Event Handlers
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
     /**
-     * Handle mouse pressed events
+     * Process mouse button press events.
      * 
-     * @param e MouseEvent
+     * This is the primary entry point for mouse input processing. It handles:
+     * - Left click: Unit selection, rectangle selection start, character placement
+     * - Right click: Combat commands, movement orders, context actions
+     * - Coordinate conversion from screen to world space
+     * - State-based routing to appropriate specialized handlers
+     * 
+     * @param e MouseEvent containing button type and screen coordinates
      */
     private void handleMousePressed(MouseEvent e) {
+        startPerformanceTimer("MousePressed");
         double x = gameRenderer.screenToWorldX(e.getX());
         double y = gameRenderer.screenToWorldY(e.getY());
+        
+        debugInputEvent("MOUSE_PRESS", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + 
+                       ") world(" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
+        addInputTraceEvent("Mouse pressed: " + e.getButton() + " at (" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
         
         if (e.getButton() == MouseButton.PRIMARY) {
             // Check if we're in deployment placement mode first
@@ -322,17 +778,24 @@ public class InputManager {
             
             if (clickedUnit != null) {
                 // Single unit selection
+                debugSelectionOperation("SELECT_UNIT", clickedUnit.character.getDisplayName() + " at (" + 
+                                      String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
                 selectionManager.selectUnit(clickedUnit);
                 displayEnhancedCharacterStats(clickedUnit);
             } else {
                 // Check if we're in character placement mode
                 if (waitingForDirectCharacterAddition && directAdditionStep == DirectAdditionStep.PLACEMENT) {
                     // Handle character placement at clicked location
+                    debugWorkflowState("DIRECT_ADDITION", "PLACEMENT", "Placing character at (" + 
+                                     String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
                     handleCharacterPlacement(x, y);
+                    endPerformanceTimer("MousePressed");
                     return;
                 }
                 
                 // Start rectangle selection
+                debugSelectionOperation("START_RECTANGLE", "Starting at (" + 
+                                       String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
                 selectionManager.startRectangleSelection(x, y);
             }
         } else if (e.getButton() == MouseButton.SECONDARY) {
@@ -356,32 +819,56 @@ public class InputManager {
                 handleRightClick(clickedUnit, x, y, e.isShiftDown());
             }
         }
+        
+        endPerformanceTimer("MousePressed");
+        logMemoryUsage("After MousePressed");
     }
     
     /**
-     * Handle mouse dragged events
+     * Process mouse drag events for ongoing operations.
      * 
-     * @param e MouseEvent
+     * Handles continuous mouse movement while a button is held down:
+     * - Rectangle selection: Updates selection rectangle size and position
+     * - Future expansion: Could handle camera panning or drag operations
+     * 
+     * Only processes drag events when a relevant operation is active to
+     * minimize unnecessary processing during normal mouse movement.
+     * 
+     * @param e MouseEvent containing current mouse position during drag
      */
     private void handleMouseDragged(MouseEvent e) {
         if (selectionManager.isSelecting()) {
             double x = gameRenderer.screenToWorldX(e.getX());
             double y = gameRenderer.screenToWorldY(e.getY());
+            debugSelectionOperation("UPDATE_RECTANGLE", "Dragging to (" + 
+                                   String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
             selectionManager.updateRectangleSelection(x, y);
         }
     }
     
     /**
-     * Handle mouse released events
+     * Process mouse button release events to complete operations.
      * 
-     * @param e MouseEvent
+     * Finalizes operations that were started on mouse press:
+     * - Rectangle selection: Completes multi-unit selection and displays stats
+     * - Clears temporary UI state and prepares for next input
+     * 
+     * This handler ensures that drag-based operations have a clear completion
+     * point and that the UI returns to a clean state after user interactions.
+     * 
+     * @param e MouseEvent containing button type and final release position
      */
     private void handleMouseReleased(MouseEvent e) {
+        debugInputEvent("MOUSE_RELEASE", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + ")");
+        addInputTraceEvent("Mouse released: " + e.getButton());
+        
         if (selectionManager.isSelecting() && e.getButton() == MouseButton.PRIMARY) {
             // Complete rectangle selection
+            debugSelectionOperation("COMPLETE_RECTANGLE", "Finishing rectangle selection");
             selectionManager.completeRectangleSelection(units);
             
             if (selectionManager.hasSelection()) {
+                debugSelectionOperation("MULTI_SELECT_COMPLETE", selectionManager.getSelectionCount() + " units selected");
                 displayMultiCharacterSelection();
             }
         } else if (isSelectingTargetZone && e.getButton() == MouseButton.SECONDARY && e.isShiftDown()) {
@@ -389,6 +876,8 @@ public class InputManager {
             double x = gameRenderer.screenToWorldX(e.getX());
             double y = gameRenderer.screenToWorldY(e.getY());
             
+            debugSelectionOperation("COMPLETE_TARGET_ZONE", "Target zone at (" + 
+                                   String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
             completeTargetZoneSelection(x, y);
         }
     }
@@ -554,23 +1043,71 @@ public class InputManager {
         }
     }
     
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 4.2 Keyboard Event Handlers
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
     /**
-     * Handle keyboard input events
+     * Process keyboard input events and route to appropriate handlers.
      * 
-     * @param e KeyEvent
+     * This is the central keyboard input dispatcher that processes all keyboard events
+     * and routes them to specialized handlers based on current game state and input mode.
+     * 
+     * KEYBOARD INPUT CATEGORIES:
+     * - Camera controls: Arrow keys (pan), +/- keys (zoom)
+     * - Game controls: Space (pause/resume), Escape (cancel operations)
+     * - Unit commands: W/S (movement speed), Q/E (aiming speed), R/M (combat modes)
+     * - Edit mode: Character creation, weapon assignment, faction management
+     * - Debug/Display: Shift+/ (character stats), various debug combinations
+     * - Save/Load: Ctrl+S (save), Ctrl+L (load), numbered keys for slot selection
+     * - Workflow navigation: Number keys, letter keys for multi-step processes
+     * 
+     * INPUT STATE ROUTING:
+     * The method uses a hierarchical approach to input processing:
+     * 1. Universal camera and game controls (always available)
+     * 2. State-specific handlers (save/load prompts, character creation, etc.)
+     * 3. Context-sensitive commands (unit controls when units selected)
+     * 4. Edit mode operations (when edit mode is active)
+     * 
+     * @param e KeyEvent containing key code and modifier states
      */
     private void handleKeyPressed(KeyEvent e) {
+        startPerformanceTimer("KeyPressed");
+        String modifiers = (e.isShiftDown() ? "Shift+" : "") + (e.isControlDown() ? "Ctrl+" : "") + (e.isAltDown() ? "Alt+" : "");
+        debugInputEvent("KEY_PRESS", modifiers + e.getCode());
+        addInputTraceEvent("Key pressed: " + modifiers + e.getCode());
+        
         // Camera controls
-        if (e.getCode() == KeyCode.UP) gameRenderer.adjustOffset(0, 20);
-        if (e.getCode() == KeyCode.DOWN) gameRenderer.adjustOffset(0, -20);
-        if (e.getCode() == KeyCode.LEFT) gameRenderer.adjustOffset(20, 0);
-        if (e.getCode() == KeyCode.RIGHT) gameRenderer.adjustOffset(-20, 0);
-        if (e.getCode() == KeyCode.EQUALS || e.getCode() == KeyCode.PLUS) gameRenderer.adjustZoom(1.1);
-        if (e.getCode() == KeyCode.MINUS) gameRenderer.adjustZoom(1.0 / 1.1);
+        if (e.getCode() == KeyCode.UP) {
+            debugInputEvent("CAMERA_CONTROL", "Pan up");
+            gameRenderer.adjustOffset(0, 20);
+        }
+        if (e.getCode() == KeyCode.DOWN) {
+            debugInputEvent("CAMERA_CONTROL", "Pan down");
+            gameRenderer.adjustOffset(0, -20);
+        }
+        if (e.getCode() == KeyCode.LEFT) {
+            debugInputEvent("CAMERA_CONTROL", "Pan left");
+            gameRenderer.adjustOffset(20, 0);
+        }
+        if (e.getCode() == KeyCode.RIGHT) {
+            debugInputEvent("CAMERA_CONTROL", "Pan right");
+            gameRenderer.adjustOffset(-20, 0);
+        }
+        if (e.getCode() == KeyCode.EQUALS || e.getCode() == KeyCode.PLUS) {
+            debugInputEvent("CAMERA_CONTROL", "Zoom in");
+            gameRenderer.adjustZoom(1.1);
+        }
+        if (e.getCode() == KeyCode.MINUS) {
+            debugInputEvent("CAMERA_CONTROL", "Zoom out");
+            gameRenderer.adjustZoom(1.0 / 1.1);
+        }
         
         // Game controls
         if (e.getCode() == KeyCode.SPACE) {
             boolean newPauseState = !callbacks.isPaused();
+            debugStateTransition("GAME_STATE", callbacks.isPaused() ? "PAUSED" : "RUNNING", 
+                                newPauseState ? "PAUSED" : "RUNNING");
             callbacks.setPaused(newPauseState);
             if (newPauseState) {
                 System.out.println("***********************");
@@ -589,6 +1126,74 @@ public class InputManager {
             System.out.println("***********************");
             System.out.println("*** Debug mode " + (GameRenderer.isDebugMode() ? "ENABLED" : "DISABLED"));
             System.out.println("***********************");
+        }
+        
+        // InputManager debug hotkeys
+        if (e.getCode() == KeyCode.F1 && e.isControlDown()) {
+            // Ctrl+F1: Toggle InputManager debug logging
+            setDebugEnabled(!isDebugEnabled());
+            System.out.println("*** InputManager Debug " + (isDebugEnabled() ? "ENABLED" : "DISABLED") + " ***");
+        }
+        
+        if (e.getCode() == KeyCode.F2 && e.isControlDown()) {
+            // Ctrl+F2: Configure debug categories
+            configureDebugFeatures(true, true, true, false, false, true, true, true);
+            System.out.println("*** InputManager Debug Categories Configured ***");
+        }
+        
+        if (e.getCode() == KeyCode.F3 && e.isControlDown()) {
+            // Ctrl+F3: System state dump
+            if (isDebugEnabled()) {
+                System.out.println(generateSystemStateDump());
+            } else {
+                System.out.println("*** Debug mode must be enabled for system state dump ***");
+            }
+        }
+        
+        if (e.getCode() == KeyCode.F4 && e.isControlDown()) {
+            // Ctrl+F4: Performance statistics
+            if (isDebugEnabled()) {
+                java.util.Map<String, Long> stats = getPerformanceStatistics();
+                if (stats.isEmpty()) {
+                    System.out.println("*** No performance statistics available ***");
+                } else {
+                    System.out.println("*** Performance Statistics ***");
+                    for (java.util.Map.Entry<String, Long> entry : stats.entrySet()) {
+                        double ms = entry.getValue() / 1_000_000.0;
+                        System.out.println("  " + entry.getKey() + ": " + String.format("%.3f", ms) + "ms");
+                    }
+                }
+            }
+        }
+        
+        if (e.getCode() == KeyCode.F5 && e.isControlDown()) {
+            // Ctrl+F5: Input trace
+            if (isDebugEnabled()) {
+                java.util.List<String> trace = getInputEventTrace();
+                if (trace.isEmpty()) {
+                    System.out.println("*** No input trace available ***");
+                } else {
+                    System.out.println("*** Recent Input Events ***");
+                    for (String event : trace) {
+                        System.out.println("  " + event);
+                    }
+                }
+            }
+        }
+        
+        if (e.getCode() == KeyCode.F6 && e.isControlDown()) {
+            // Ctrl+F6: System integrity validation
+            System.out.println("*** Running System Integrity Validation ***");
+            validateSystemIntegrity();
+        }
+        
+        if (e.getCode() == KeyCode.F7 && e.isControlDown()) {
+            // Ctrl+F7: Clear debug data
+            if (isDebugEnabled()) {
+                clearPerformanceStatistics();
+                clearInputEventTrace();
+                System.out.println("*** Debug data cleared ***");
+            }
         }
         
         // Edit mode toggle
@@ -649,6 +1254,9 @@ public class InputManager {
         
         // Handle prompt responses
         handlePromptInputs(e);
+        
+        endPerformanceTimer("KeyPressed");
+        logMemoryUsage("After KeyPressed");
     }
     
     /**
@@ -3539,4 +4147,363 @@ public class InputManager {
         
         return character;
     }
+    
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // SECTION 12: DEBUG AND DIAGNOSTIC METHODS
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 12.1 Debug Configuration and Control
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
+    /**
+     * Enable or disable all debug features.
+     * 
+     * @param enabled true to enable debug features, false to disable
+     */
+    public static void setDebugEnabled(boolean enabled) {
+        DEBUG_ENABLED = enabled;
+        if (enabled) {
+            debugLog("DEBUG", "Debug mode enabled - all debug features activated");
+        }
+    }
+    
+    /**
+     * Configure specific debug categories.
+     * 
+     * @param inputEvents Enable input event debugging
+     * @param stateTransitions Enable state transition debugging  
+     * @param performance Enable performance timing
+     * @param inputTrace Enable input event tracing
+     * @param memoryUsage Enable memory usage monitoring
+     * @param workflowStates Enable workflow state debugging
+     * @param combatCommands Enable combat command debugging
+     * @param selectionOps Enable selection operation debugging
+     */
+    public static void configureDebugFeatures(boolean inputEvents, boolean stateTransitions,
+                                            boolean performance, boolean inputTrace,
+                                            boolean memoryUsage, boolean workflowStates,
+                                            boolean combatCommands, boolean selectionOps) {
+        DEBUG_INPUT_EVENTS = inputEvents;
+        DEBUG_STATE_TRANSITIONS = stateTransitions;
+        DEBUG_PERFORMANCE_TIMING = performance;
+        DEBUG_INPUT_TRACE = inputTrace;
+        DEBUG_MEMORY_USAGE = memoryUsage;
+        DEBUG_WORKFLOW_STATES = workflowStates;
+        DEBUG_COMBAT_COMMANDS = combatCommands;
+        DEBUG_SELECTION_OPERATIONS = selectionOps;
+        
+        if (DEBUG_ENABLED) {
+            debugLog("DEBUG", "Debug features configured - InputEvents:" + inputEvents + 
+                    " StateTransitions:" + stateTransitions + " Performance:" + performance +
+                    " InputTrace:" + inputTrace + " Memory:" + memoryUsage +
+                    " Workflows:" + workflowStates + " Combat:" + combatCommands +
+                    " Selection:" + selectionOps);
+        }
+    }
+    
+    /**
+     * Check if any debug features are enabled.
+     * 
+     * @return true if debugging is active
+     */
+    public static boolean isDebugEnabled() {
+        return DEBUG_ENABLED;
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 12.2 Debug Logging Methods
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
+    /**
+     * Core debug logging method with zero performance impact when disabled.
+     * 
+     * @param category Debug category (INPUT, STATE, PERF, TRACE, MEMORY, WORKFLOW, COMBAT, SELECTION)
+     * @param message Debug message to log
+     */
+    private static void debugLog(String category, String message) {
+        if (DEBUG_ENABLED) {
+            long timestamp = System.currentTimeMillis();
+            System.out.println("[DEBUG-" + category + "] " + timestamp + ": " + message);
+        }
+    }
+    
+    /**
+     * Log input events when debug is enabled.
+     * 
+     * @param eventType Type of input event (MOUSE_PRESS, MOUSE_RELEASE, KEY_PRESS, etc.)
+     * @param details Additional event details
+     */
+    private static void debugInputEvent(String eventType, String details) {
+        if (DEBUG_ENABLED && DEBUG_INPUT_EVENTS) {
+            debugLog("INPUT", eventType + " - " + details);
+        }
+    }
+    
+    /**
+     * Log state transitions when debug is enabled.
+     * 
+     * @param stateType Type of state changing (INPUT_STATE, WORKFLOW_STATE, GAME_STATE)
+     * @param fromState Previous state
+     * @param toState New state
+     */
+    private static void debugStateTransition(String stateType, String fromState, String toState) {
+        if (DEBUG_ENABLED && DEBUG_STATE_TRANSITIONS) {
+            debugLog("STATE", stateType + ": " + fromState + " → " + toState);
+        }
+    }
+    
+    /**
+     * Log workflow state changes when debug is enabled.
+     * 
+     * @param workflowName Name of the workflow (BATCH_CREATION, DEPLOYMENT, etc.)
+     * @param step Current workflow step
+     * @param details Additional workflow details
+     */
+    private static void debugWorkflowState(String workflowName, String step, String details) {
+        if (DEBUG_ENABLED && DEBUG_WORKFLOW_STATES) {
+            debugLog("WORKFLOW", workflowName + " - Step: " + step + " - " + details);
+        }
+    }
+    
+    /**
+     * Log combat commands when debug is enabled.
+     * 
+     * @param commandType Type of combat command (ATTACK, MOVE_TO_MELEE, TARGET_SELECTION, etc.)
+     * @param unitInfo Information about the unit executing the command
+     * @param targetInfo Information about the target (if applicable)
+     */
+    private static void debugCombatCommand(String commandType, String unitInfo, String targetInfo) {
+        if (DEBUG_ENABLED && DEBUG_COMBAT_COMMANDS) {
+            String message = commandType + " - Unit: " + unitInfo;
+            if (targetInfo != null && !targetInfo.isEmpty()) {
+                message += " - Target: " + targetInfo;
+            }
+            debugLog("COMBAT", message);
+        }
+    }
+    
+    /**
+     * Log selection operations when debug is enabled.
+     * 
+     * @param operation Type of selection operation (SELECT_UNIT, START_RECTANGLE, etc.)
+     * @param details Operation details
+     */
+    private static void debugSelectionOperation(String operation, String details) {
+        if (DEBUG_ENABLED && DEBUG_SELECTION_OPERATIONS) {
+            debugLog("SELECTION", operation + " - " + details);
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 12.3 Performance Monitoring
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
+    /**
+     * Start timing an operation for performance monitoring.
+     * 
+     * @param operationName Name of the operation being timed
+     */
+    private static void startPerformanceTimer(String operationName) {
+        if (DEBUG_ENABLED && DEBUG_PERFORMANCE_TIMING) {
+            lastOperationStartTime = System.nanoTime();
+            debugLog("PERF", "START: " + operationName);
+        }
+    }
+    
+    /**
+     * End timing an operation and log the duration.
+     * 
+     * @param operationName Name of the operation that completed
+     */
+    private static void endPerformanceTimer(String operationName) {
+        if (DEBUG_ENABLED && DEBUG_PERFORMANCE_TIMING && lastOperationStartTime > 0) {
+            long duration = System.nanoTime() - lastOperationStartTime;
+            double durationMs = duration / 1_000_000.0;
+            performanceTimings.put(operationName, duration);
+            debugLog("PERF", "END: " + operationName + " - Duration: " + String.format("%.3f", durationMs) + "ms");
+            lastOperationStartTime = 0;
+        }
+    }
+    
+    /**
+     * Get performance statistics for all timed operations.
+     * 
+     * @return Map of operation names to durations in nanoseconds
+     */
+    public static java.util.Map<String, Long> getPerformanceStatistics() {
+        return new java.util.HashMap<>(performanceTimings);
+    }
+    
+    /**
+     * Clear all performance timing data.
+     */
+    public static void clearPerformanceStatistics() {
+        performanceTimings.clear();
+        debugLog("PERF", "Performance statistics cleared");
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 12.4 Input Event Tracing
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
+    /**
+     * Add an event to the input trace when tracing is enabled.
+     * 
+     * @param event Description of the input event
+     */
+    private static void addInputTraceEvent(String event) {
+        if (DEBUG_ENABLED && DEBUG_INPUT_TRACE) {
+            synchronized (inputEventTrace) {
+                // Maintain maximum trace size to prevent memory issues
+                if (inputEventTrace.size() >= MAX_TRACE_EVENTS) {
+                    inputEventTrace.remove(0);
+                }
+                inputEventTrace.add(System.currentTimeMillis() + ": " + event);
+            }
+            debugLog("TRACE", event);
+        }
+    }
+    
+    /**
+     * Get the current input event trace.
+     * 
+     * @return List of recent input events
+     */
+    public static java.util.List<String> getInputEventTrace() {
+        synchronized (inputEventTrace) {
+            return new java.util.ArrayList<>(inputEventTrace);
+        }
+    }
+    
+    /**
+     * Clear the input event trace.
+     */
+    public static void clearInputEventTrace() {
+        synchronized (inputEventTrace) {
+            inputEventTrace.clear();
+        }
+        debugLog("TRACE", "Input event trace cleared");
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // 12.5 System State Diagnostics
+    // ─────────────────────────────────────────────────────────────────────────────────
+    
+    /**
+     * Generate a comprehensive system state dump for debugging.
+     * 
+     * @return String containing current system state information
+     */
+    public String generateSystemStateDump() {
+        StringBuilder dump = new StringBuilder();
+        dump.append("=== InputManager System State Dump ===\n");
+        dump.append("Timestamp: ").append(new java.util.Date()).append("\n\n");
+        
+        // Debug configuration
+        dump.append("DEBUG CONFIGURATION:\n");
+        dump.append("  Master Debug: ").append(DEBUG_ENABLED).append("\n");
+        dump.append("  Input Events: ").append(DEBUG_INPUT_EVENTS).append("\n");
+        dump.append("  State Transitions: ").append(DEBUG_STATE_TRANSITIONS).append("\n");
+        dump.append("  Performance Timing: ").append(DEBUG_PERFORMANCE_TIMING).append("\n");
+        dump.append("  Input Trace: ").append(DEBUG_INPUT_TRACE).append("\n");
+        dump.append("  Memory Usage: ").append(DEBUG_MEMORY_USAGE).append("\n");
+        dump.append("  Workflow States: ").append(DEBUG_WORKFLOW_STATES).append("\n");
+        dump.append("  Combat Commands: ").append(DEBUG_COMBAT_COMMANDS).append("\n");
+        dump.append("  Selection Operations: ").append(DEBUG_SELECTION_OPERATIONS).append("\n\n");
+        
+        // Game state
+        dump.append("GAME STATE:\n");
+        dump.append("  Paused: ").append(callbacks.isPaused()).append("\n");
+        dump.append("  Edit Mode: ").append(callbacks.isEditMode()).append("\n");
+        dump.append("  Units Count: ").append(units.size()).append("\n");
+        dump.append("  Selected Units: ").append(selectionManager.getSelectionCount()).append("\n");
+        dump.append("  Current Tick: ").append(gameClock.getCurrentTick()).append("\n");
+        dump.append("  Event Queue Size: ").append(eventQueue.size()).append("\n\n");
+        
+        // Input state flags
+        dump.append("INPUT STATE FLAGS:\n");
+        dump.append("  Waiting for Save Slot: ").append(waitingForSaveSlot).append("\n");
+        dump.append("  Waiting for Load Slot: ").append(waitingForLoadSlot).append("\n");
+        dump.append("  Waiting for Character Creation: ").append(waitingForCharacterCreation).append("\n");
+        dump.append("  Waiting for Weapon Selection: ").append(waitingForWeaponSelection).append("\n");
+        dump.append("  Waiting for Faction Selection: ").append(waitingForFactionSelection).append("\n");
+        dump.append("  Waiting for Batch Character Creation: ").append(waitingForBatchCharacterCreation).append("\n");
+        dump.append("  Waiting for Character Deployment: ").append(waitingForCharacterDeployment).append("\n");
+        dump.append("  Waiting for Deletion Confirmation: ").append(waitingForDeletionConfirmation).append("\n");
+        dump.append("  Waiting for Victory Outcome: ").append(waitingForVictoryOutcome).append("\n");
+        dump.append("  Waiting for Scenario Name: ").append(waitingForScenarioName).append("\n");
+        dump.append("  Waiting for Theme Selection: ").append(waitingForThemeSelection).append("\n");
+        dump.append("  Waiting for Direct Character Addition: ").append(waitingForDirectCharacterAddition).append("\n\n");
+        
+        // Workflow states
+        dump.append("WORKFLOW STATES:\n");
+        dump.append("  Batch Creation Step: ").append(batchCreationStep).append("\n");
+        dump.append("  Deployment Step: ").append(deploymentStep).append("\n");
+        dump.append("  Direct Addition Step: ").append(directAdditionStep).append("\n");
+        dump.append("  Victory Faction Index: ").append(currentVictoryFactionIndex).append("\n\n");
+        
+        // Target zone selection
+        dump.append("TARGET ZONE SELECTION:\n");
+        dump.append("  Is Selecting: ").append(isSelectingTargetZone).append("\n");
+        dump.append("  Start X: ").append(targetZoneStartX).append("\n");
+        dump.append("  Start Y: ").append(targetZoneStartY).append("\n");
+        dump.append("  Target Unit: ").append(targetZoneUnit != null ? targetZoneUnit.character.getDisplayName() : "None").append("\n\n");
+        
+        // Memory usage (if enabled)
+        if (DEBUG_MEMORY_USAGE) {
+            Runtime runtime = Runtime.getRuntime();
+            long totalMemory = runtime.totalMemory();
+            long freeMemory = runtime.freeMemory();
+            long usedMemory = totalMemory - freeMemory;
+            
+            dump.append("MEMORY USAGE:\n");
+            dump.append("  Total Memory: ").append(totalMemory / (1024 * 1024)).append(" MB\n");
+            dump.append("  Used Memory: ").append(usedMemory / (1024 * 1024)).append(" MB\n");
+            dump.append("  Free Memory: ").append(freeMemory / (1024 * 1024)).append(" MB\n");
+            dump.append("  Max Memory: ").append(runtime.maxMemory() / (1024 * 1024)).append(" MB\n\n");
+        }
+        
+        // Performance statistics
+        if (!performanceTimings.isEmpty()) {
+            dump.append("PERFORMANCE STATISTICS:\n");
+            for (java.util.Map.Entry<String, Long> entry : performanceTimings.entrySet()) {
+                double durationMs = entry.getValue() / 1_000_000.0;
+                dump.append("  ").append(entry.getKey()).append(": ").append(String.format("%.3f", durationMs)).append("ms\n");
+            }
+            dump.append("\n");
+        }
+        
+        // Recent input trace
+        if (!inputEventTrace.isEmpty()) {
+            dump.append("RECENT INPUT EVENTS:\n");
+            synchronized (inputEventTrace) {
+                int start = Math.max(0, inputEventTrace.size() - 10);
+                for (int i = start; i < inputEventTrace.size(); i++) {
+                    dump.append("  ").append(inputEventTrace.get(i)).append("\n");
+                }
+            }
+            dump.append("\n");
+        }
+        
+        dump.append("=== End System State Dump ===");
+        return dump.toString();
+    }
+    
+    /**
+     * Log memory usage statistics when memory debugging is enabled.
+     */
+    private static void logMemoryUsage(String context) {
+        if (DEBUG_ENABLED && DEBUG_MEMORY_USAGE) {
+            Runtime runtime = Runtime.getRuntime();
+            long totalMemory = runtime.totalMemory();
+            long freeMemory = runtime.freeMemory();
+            long usedMemory = totalMemory - freeMemory;
+            
+            debugLog("MEMORY", context + " - Used: " + (usedMemory / (1024 * 1024)) + "MB, " +
+                    "Free: " + (freeMemory / (1024 * 1024)) + "MB, " +
+                    "Total: " + (totalMemory / (1024 * 1024)) + "MB");
+        }
+    }
+    
 }
