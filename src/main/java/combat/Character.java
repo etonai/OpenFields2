@@ -1055,8 +1055,7 @@ public class Character {
             currentWeaponState = weapon.getStateByName("firing");
             System.out.println(getDisplayName() + " weapon state: firing at tick " + fireTick);
             
-            if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0) {
-                System.out.println("*** " + getDisplayName() + " tries to fire " + weapon.name + " but it's out of ammunition!");
+            if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0) {System.out.println("*** " + getDisplayName() + " tries to fire " + weapon.name + " but it's out of ammunition!");
             } else if (weapon instanceof RangedWeapon) {
                 ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
                 System.out.println("*** " + getDisplayName() + " fires a " + weapon.getProjectileName() + " from " + weapon.name + " (ammo remaining: " + ((RangedWeapon)weapon).getAmmunition() + ")");
