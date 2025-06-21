@@ -56,7 +56,7 @@ import data.UniversalCharacterRegistry;
  * 
  * INPUT PROCESSING ARCHITECTURE:
  * The InputManager uses a state-based approach to handle complex multi-step workflows.
- * Boolean flags track current input state (e.g., waitingForSaveSlot, editMode) and
+ * Boolean flags track current input state (e.g., stateTracker.isWaitingForSaveSlot(), editMode) and
  * enum-based state machines manage complex workflows like character creation and deployment.
  * 
  * TABLE OF CONTENTS:
@@ -172,6 +172,17 @@ public class InputManager {
     private final Canvas canvas;
     
     // ─────────────────────────────────────────────────────────────────────────────────
+    // 1.1.1 Component Architecture (DevCycle 15c)
+    // ─────────────────────────────────────────────────────────────────────────────────
+    // Extracted components for incremental refactoring
+    
+    /** Routes input events to appropriate handlers based on application state */
+    private final InputEventRouter eventRouter;
+    
+    /** Manages all input-related state flags and provides centralized state tracking */
+    private final InputStateTracker stateTracker;
+    
+    // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
     // Basic game state that InputManager needs to track for input processing
@@ -179,61 +190,21 @@ public class InputManager {
     /** Whether the game is currently paused - affects input processing priorities */
     private boolean paused;
     
-    /** Whether edit mode is active - changes input handling behavior significantly */
-    private boolean editMode;
-    
     /** Next available unit ID for creating new units */
     private int nextUnitId;
     
     // ─────────────────────────────────────────────────────────────────────────────────
-    // 1.3 Input State Management Flags
+    // 1.3 Input State Management (DevCycle 15c)
     // ─────────────────────────────────────────────────────────────────────────────────
-    // Boolean flags that control which input processing mode is currently active
+    // State management is now handled by InputStateTracker component.
+    // All waitingFor... boolean flags have been moved to stateTracker.
+    // Edit mode remains here as it's a core game state flag.
     
-    /** True when prompting user for save slot selection (1-9) */
-    private boolean waitingForSaveSlot = false;
-    
-    /** True when prompting user for load slot selection (1-9) */
-    private boolean waitingForLoadSlot = false;
-    
-    /** True when in single character creation workflow */
-    private boolean waitingForCharacterCreation = false;
-    
-    /** True when prompting for weapon selection during character creation */
-    private boolean waitingForWeaponSelection = false;
-    
-    /** True when specifically selecting ranged weapon for character */
-    private boolean waitingForRangedWeaponSelection = false;
-    
-    /** True when specifically selecting melee weapon for character */
-    private boolean waitingForMeleeWeaponSelection = false;
-    
-    /** True when prompting for faction assignment */
-    private boolean waitingForFactionSelection = false;
-    
-    /** True when in batch character creation workflow */
-    private boolean waitingForBatchCharacterCreation = false;
-    
-    /** True when in character deployment workflow */
-    private boolean waitingForCharacterDeployment = false;
-    
-    /** True when confirming unit deletion operation */
-    private boolean waitingForDeletionConfirmation = false;
+    /** Whether edit mode is active - changes input handling behavior significantly */
+    private boolean editMode;
     
     /** List of units marked for deletion pending confirmation */
     private java.util.List<Unit> unitsToDelete = new java.util.ArrayList<>();
-    
-    /** True when prompting for manual victory outcome input */
-    private boolean waitingForVictoryOutcome = false;
-    
-    /** True when prompting for new scenario name input */
-    private boolean waitingForScenarioName = false;
-    
-    /** True when prompting for theme selection */
-    private boolean waitingForThemeSelection = false;
-    
-    /** True when in direct character addition workflow (CTRL-A) */
-    private boolean waitingForDirectCharacterAddition = false;
     
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.4 Workflow State Management
@@ -280,11 +251,7 @@ public class InputManager {
     /** Selected melee weapon for individual character creation */
     private String selectedMeleeWeapon = "";
     
-    /** True when waiting for ranged weapon selection in individual creation */
-    private boolean waitingForCharacterRangedWeapon = false;
-    
-    /** True when waiting for melee weapon selection in individual creation */
-    private boolean waitingForCharacterMeleeWeapon = false;
+    // Character weapon selection state moved to InputStateTracker
     
     // Character Deployment Workflow State
     /** Selected faction for character deployment */
@@ -689,6 +656,16 @@ public class InputManager {
         // Initialize singleton manager references
         this.saveGameManager = SaveGameManager.getInstance();
         this.characterRegistry = UniversalCharacterRegistry.getInstance();
+        
+        // DevCycle 15c: Initialize extracted components
+        this.eventRouter = new InputEventRouter();
+        this.stateTracker = new InputStateTracker();
+        
+        // Set up debug callback for state tracking integration
+        this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
+            debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
+                                newValue ? stateName : "NONE");
+        });
     }
     
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -766,10 +743,25 @@ public class InputManager {
         addInputTraceEvent("Mouse pressed: " + e.getButton() + " at (" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
         
         if (e.getButton() == MouseButton.PRIMARY) {
-            // Check if we're in deployment placement mode first
-            if (isInDeploymentPlacementMode()) {
-                handleDeploymentPlacement(x, y);
-                return;
+            // DevCycle 15c: Use InputEventRouter to determine handling
+            InputEventRouter.MouseEventRoute route = eventRouter.routeMouseEvent(e, 
+                isInDeploymentPlacementMode(), 
+                stateTracker.isWaitingForDirectCharacterAddition() && directAdditionStep == DirectAdditionStep.PLACEMENT,
+                editMode);
+            
+            switch (route) {
+                case DEPLOYMENT_PLACEMENT:
+                    handleDeploymentPlacement(x, y);
+                    return;
+                case CHARACTER_PLACEMENT:
+                    debugWorkflowState("DIRECT_ADDITION", "PLACEMENT", "Placing character at (" + 
+                                     String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
+                    handleCharacterPlacement(x, y);
+                    endPerformanceTimer("MousePressed");
+                    return;
+                case UNIT_SELECTION:
+                    // Continue with normal selection logic below
+                    break;
             }
             
             // Left click - single unit selection or start rectangle selection
@@ -788,16 +780,6 @@ public class InputManager {
                 selectionManager.selectUnit(clickedUnit);
                 displayEnhancedCharacterStats(clickedUnit);
             } else {
-                // Check if we're in character placement mode
-                if (waitingForDirectCharacterAddition && directAdditionStep == DirectAdditionStep.PLACEMENT) {
-                    // Handle character placement at clicked location
-                    debugWorkflowState("DIRECT_ADDITION", "PLACEMENT", "Placing character at (" + 
-                                     String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
-                    handleCharacterPlacement(x, y);
-                    endPerformanceTimer("MousePressed");
-                    return;
-                }
-                
                 // Start rectangle selection
                 debugSelectionOperation("START_RECTANGLE", "Starting at (" + 
                                        String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
@@ -1308,7 +1290,7 @@ public class InputManager {
         if (e.getCode() == KeyCode.A && e.isControlDown()) {
             if (callbacks.isEditMode() && !isWaitingForInput()) {
                 promptForDirectCharacterAddition();
-                waitingForDirectCharacterAddition = true;
+                stateTracker.setWaitingForDirectCharacterAddition(true);
             } else if (!callbacks.isEditMode()) {
                 System.out.println("*** Character addition only available in edit mode (Ctrl+E) ***");
             } else if (isWaitingForInput()) {
@@ -1694,12 +1676,12 @@ public class InputManager {
      */
     private void handleSaveLoadControls(KeyEvent e) {
         if (e.getCode() == KeyCode.S && e.isControlDown()) {
-            if (!waitingForSaveSlot && !waitingForLoadSlot) {
+            if (!stateTracker.isWaitingForSaveSlot() && !stateTracker.isWaitingForLoadSlot()) {
                 callbacks.promptForSaveSlot();
             }
         }
         if (e.getCode() == KeyCode.L && e.isControlDown()) {
-            if (!waitingForSaveSlot && !waitingForLoadSlot) {
+            if (!stateTracker.isWaitingForSaveSlot() && !stateTracker.isWaitingForLoadSlot()) {
                 callbacks.promptForLoadSlot();
             }
         }
@@ -1712,7 +1694,7 @@ public class InputManager {
      */
     private void handlePromptInputs(KeyEvent e) {
         // Handle deletion confirmation with Y/N keys
-        if (waitingForDeletionConfirmation) {
+        if (stateTracker.isWaitingForDeletionConfirmation()) {
             if (e.getCode() == KeyCode.Y) {
                 confirmUnitDeletion();
             } else if (e.getCode() == KeyCode.N || e.getCode() == KeyCode.ESCAPE) {
@@ -1722,7 +1704,7 @@ public class InputManager {
         }
         
         // Handle victory outcome selection
-        if (waitingForVictoryOutcome) {
+        if (stateTracker.isWaitingForVictoryOutcome()) {
             int outcomeNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) outcomeNumber = 1;
             else if (e.getCode() == KeyCode.DIGIT2) outcomeNumber = 2;
@@ -1737,7 +1719,7 @@ public class InputManager {
         }
         
         // Handle scenario name input
-        if (waitingForScenarioName) {
+        if (stateTracker.isWaitingForScenarioName()) {
             if (e.getCode() == KeyCode.ENTER) {
                 handleScenarioNameInput();
             } else if (e.getCode() == KeyCode.ESCAPE) {
@@ -1755,7 +1737,7 @@ public class InputManager {
         }
         
         // Handle theme selection
-        if (waitingForThemeSelection) {
+        if (stateTracker.isWaitingForThemeSelection()) {
             int themeNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) themeNumber = 1;
             else if (e.getCode() == KeyCode.DIGIT2) themeNumber = 2;
@@ -1772,7 +1754,7 @@ public class InputManager {
         }
         
         // Handle number key input for save/load slot selection, character creation, weapon selection, faction selection, batch character creation, character deployment, and direct character addition
-        if (waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection || waitingForFactionSelection || waitingForBatchCharacterCreation || waitingForCharacterDeployment || waitingForCharacterRangedWeapon || waitingForCharacterMeleeWeapon || waitingForDirectCharacterAddition) {
+        if (stateTracker.isWaitingForSaveSlot() || stateTracker.isWaitingForLoadSlot() || stateTracker.isWaitingForCharacterCreation() || stateTracker.isWaitingForWeaponSelection() || stateTracker.isWaitingForRangedWeaponSelection() || stateTracker.isWaitingForMeleeWeaponSelection() || stateTracker.isWaitingForFactionSelection() || stateTracker.isWaitingForBatchCharacterCreation() || stateTracker.isWaitingForCharacterDeployment() || stateTracker.isWaitingForCharacterRangedWeapon() || stateTracker.isWaitingForCharacterMeleeWeapon() || stateTracker.isWaitingForDirectCharacterAddition()) {
             int slotNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) slotNumber = 1;
             else if (e.getCode() == KeyCode.DIGIT2) slotNumber = 2;
@@ -1785,138 +1767,138 @@ public class InputManager {
             else if (e.getCode() == KeyCode.DIGIT9) slotNumber = 9;
             else if (e.getCode() == KeyCode.DIGIT0) slotNumber = 0;
             else if (e.getCode() == KeyCode.ESCAPE) {
-                if (waitingForCharacterCreation) {
+                if (stateTracker.isWaitingForCharacterCreation()) {
                     System.out.println("*** Character creation cancelled ***");
-                    waitingForCharacterCreation = false;
+                    stateTracker.setWaitingForCharacterCreation(false);
                     resetCharacterCreationState();
-                } else if (waitingForCharacterRangedWeapon) {
+                } else if (stateTracker.isWaitingForCharacterRangedWeapon()) {
                     System.out.println("*** Character creation cancelled ***");
-                    waitingForCharacterRangedWeapon = false;
+                    stateTracker.setWaitingForCharacterRangedWeapon(false);
                     resetCharacterCreationState();
-                } else if (waitingForCharacterMeleeWeapon) {
+                } else if (stateTracker.isWaitingForCharacterMeleeWeapon()) {
                     System.out.println("*** Character creation cancelled ***");
-                    waitingForCharacterMeleeWeapon = false;
+                    stateTracker.setWaitingForCharacterMeleeWeapon(false);
                     resetCharacterCreationState();
-                } else if (waitingForWeaponSelection) {
+                } else if (stateTracker.isWaitingForWeaponSelection()) {
                     System.out.println("*** Weapon selection cancelled ***");
-                    waitingForWeaponSelection = false;
-                } else if (waitingForRangedWeaponSelection) {
+                    stateTracker.setWaitingForWeaponSelection(false);
+                } else if (stateTracker.isWaitingForRangedWeaponSelection()) {
                     System.out.println("*** Ranged weapon selection cancelled ***");
-                    waitingForRangedWeaponSelection = false;
-                } else if (waitingForMeleeWeaponSelection) {
+                    stateTracker.setWaitingForRangedWeaponSelection(false);
+                } else if (stateTracker.isWaitingForMeleeWeaponSelection()) {
                     System.out.println("*** Melee weapon selection cancelled ***");
-                    waitingForMeleeWeaponSelection = false;
-                } else if (waitingForFactionSelection) {
+                    stateTracker.setWaitingForMeleeWeaponSelection(false);
+                } else if (stateTracker.isWaitingForFactionSelection()) {
                     System.out.println("*** Faction selection cancelled ***");
-                    waitingForFactionSelection = false;
-                } else if (waitingForBatchCharacterCreation) {
+                    stateTracker.setWaitingForFactionSelection(false);
+                } else if (stateTracker.isWaitingForBatchCharacterCreation()) {
                     System.out.println("*** Batch character creation cancelled ***");
-                    waitingForBatchCharacterCreation = false;
+                    stateTracker.setWaitingForBatchCharacterCreation(false);
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
                     batchCreationStep = BatchCreationStep.QUANTITY;
-                } else if (waitingForCharacterDeployment) {
+                } else if (stateTracker.isWaitingForCharacterDeployment()) {
                     System.out.println("*** Character deployment cancelled ***");
                     cancelCharacterDeployment();
-                } else if (waitingForDirectCharacterAddition) {
+                } else if (stateTracker.isWaitingForDirectCharacterAddition()) {
                     System.out.println("*** Character addition cancelled ***");
                     cancelDirectCharacterAddition();
                 } else {
                     System.out.println("*** Save/Load cancelled ***");
-                    waitingForSaveSlot = false;
-                    waitingForLoadSlot = false;
+                    stateTracker.setWaitingForSaveSlot(false);
+                    stateTracker.setWaitingForLoadSlot(false);
                 }
             }
             
             if (slotNumber >= 0 && slotNumber <= 9) {
-                if (waitingForSaveSlot) {
+                if (stateTracker.isWaitingForSaveSlot()) {
                     if (slotNumber >= 1 && slotNumber <= 9) {
                         callbacks.saveGameToSlot(slotNumber);
                     } else {
                         System.out.println("*** Invalid save slot. Use 1-9 ***");
                     }
-                } else if (waitingForLoadSlot) {
+                } else if (stateTracker.isWaitingForLoadSlot()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Load cancelled ***");
-                        waitingForLoadSlot = false;
+                        stateTracker.setWaitingForLoadSlot(false);
                     } else if (slotNumber >= 1 && slotNumber <= 9) {
                         callbacks.loadGameFromSlot(slotNumber);
                     } else {
                         System.out.println("*** Invalid load slot. Use 1-9 or 0 to cancel ***");
                     }
-                } else if (waitingForCharacterCreation) {
+                } else if (stateTracker.isWaitingForCharacterCreation()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Character creation cancelled ***");
-                        waitingForCharacterCreation = false;
+                        stateTracker.setWaitingForCharacterCreation(false);
                         resetCharacterCreationState();
                     } else if (slotNumber >= 1 && slotNumber <= 9) {
                         handleCharacterArchetypeSelection(slotNumber);
                     } else {
                         System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
                     }
-                } else if (waitingForCharacterRangedWeapon) {
+                } else if (stateTracker.isWaitingForCharacterRangedWeapon()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Character creation cancelled ***");
-                        waitingForCharacterRangedWeapon = false;
+                        stateTracker.setWaitingForCharacterRangedWeapon(false);
                         resetCharacterCreationState();
                     } else {
                         handleCharacterRangedWeaponSelection(slotNumber);
                     }
-                } else if (waitingForCharacterMeleeWeapon) {
+                } else if (stateTracker.isWaitingForCharacterMeleeWeapon()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Character creation cancelled ***");
-                        waitingForCharacterMeleeWeapon = false;
+                        stateTracker.setWaitingForCharacterMeleeWeapon(false);
                         resetCharacterCreationState();
                     } else {
                         handleCharacterMeleeWeaponSelection(slotNumber);
                     }
-                } else if (waitingForWeaponSelection) {
+                } else if (stateTracker.isWaitingForWeaponSelection()) {
                     // Handle weapon type selection (1=Ranged, 2=Melee)
                     if (slotNumber == 0) {
                         System.out.println("*** Weapon selection cancelled ***");
-                        waitingForWeaponSelection = false;
+                        stateTracker.setWaitingForWeaponSelection(false);
                     } else if (slotNumber == 1) {
                         // User chose ranged weapons
-                        waitingForWeaponSelection = false;
-                        waitingForRangedWeaponSelection = true;
+                        stateTracker.setWaitingForWeaponSelection(false);
+                        stateTracker.setWaitingForRangedWeaponSelection(true);
                         ((EditModeController)callbacks).promptForRangedWeaponSelection();
                     } else if (slotNumber == 2) {
                         // User chose melee weapons
-                        waitingForWeaponSelection = false;
-                        waitingForMeleeWeaponSelection = true;
+                        stateTracker.setWaitingForWeaponSelection(false);
+                        stateTracker.setWaitingForMeleeWeaponSelection(true);
                         ((EditModeController)callbacks).promptForMeleeWeaponSelection();
                     } else {
                         System.out.println("*** Invalid weapon type selection. Use 1 for Ranged, 2 for Melee, or 0 to cancel ***");
                     }
-                } else if (waitingForRangedWeaponSelection) {
+                } else if (stateTracker.isWaitingForRangedWeaponSelection()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Ranged weapon selection cancelled ***");
-                        waitingForRangedWeaponSelection = false;
+                        stateTracker.setWaitingForRangedWeaponSelection(false);
                     } else {
                         ((EditModeController)callbacks).assignRangedWeaponToSelectedUnits(slotNumber);
-                        waitingForRangedWeaponSelection = false;
+                        stateTracker.setWaitingForRangedWeaponSelection(false);
                     }
-                } else if (waitingForMeleeWeaponSelection) {
+                } else if (stateTracker.isWaitingForMeleeWeaponSelection()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Melee weapon selection cancelled ***");
-                        waitingForMeleeWeaponSelection = false;
+                        stateTracker.setWaitingForMeleeWeaponSelection(false);
                     } else {
                         ((EditModeController)callbacks).assignMeleeWeaponToSelectedUnits(slotNumber);
-                        waitingForMeleeWeaponSelection = false;
+                        stateTracker.setWaitingForMeleeWeaponSelection(false);
                     }
-                } else if (waitingForFactionSelection) {
+                } else if (stateTracker.isWaitingForFactionSelection()) {
                     if (slotNumber == 0) {
                         System.out.println("*** Faction selection cancelled ***");
-                        waitingForFactionSelection = false;
+                        stateTracker.setWaitingForFactionSelection(false);
                     } else {
                         callbacks.assignFactionToSelectedUnits(slotNumber);
                     }
-                } else if (waitingForBatchCharacterCreation) {
+                } else if (stateTracker.isWaitingForBatchCharacterCreation()) {
                     handleBatchCharacterCreationInput(slotNumber);
-                } else if (waitingForCharacterDeployment) {
+                } else if (stateTracker.isWaitingForCharacterDeployment()) {
                     handleCharacterDeploymentInput(slotNumber);
-                } else if (waitingForDirectCharacterAddition) {
+                } else if (stateTracker.isWaitingForDirectCharacterAddition()) {
                     handleDirectCharacterAdditionInput(slotNumber);
                 }
             }
@@ -1925,63 +1907,63 @@ public class InputManager {
     
     // State management methods for coordination with main class
     public void setWaitingForSaveSlot(boolean waiting) {
-        this.waitingForSaveSlot = waiting;
+        this.stateTracker.setWaitingForSaveSlot(waiting);
     }
     
     public void setWaitingForLoadSlot(boolean waiting) {
-        this.waitingForLoadSlot = waiting;
+        this.stateTracker.setWaitingForLoadSlot(waiting);
     }
     
     public void setWaitingForCharacterCreation(boolean waiting) {
-        this.waitingForCharacterCreation = waiting;
+        this.stateTracker.setWaitingForCharacterCreation(waiting);
     }
     
     public void setWaitingForWeaponSelection(boolean waiting) {
-        this.waitingForWeaponSelection = waiting;
+        this.stateTracker.setWaitingForWeaponSelection(waiting);
     }
     
     public void setWaitingForFactionSelection(boolean waiting) {
-        this.waitingForFactionSelection = waiting;
+        this.stateTracker.setWaitingForFactionSelection(waiting);
     }
     
     public void setWaitingForBatchCharacterCreation(boolean waiting) {
-        this.waitingForBatchCharacterCreation = waiting;
+        this.stateTracker.setWaitingForBatchCharacterCreation(waiting);
     }
     
     public void setWaitingForCharacterDeployment(boolean waiting) {
-        this.waitingForCharacterDeployment = waiting;
+        this.stateTracker.setWaitingForCharacterDeployment(waiting);
     }
     
     public void setWaitingForDeletionConfirmation(boolean waiting) {
-        this.waitingForDeletionConfirmation = waiting;
+        this.stateTracker.setWaitingForDeletionConfirmation(waiting);
     }
     
     public void setWaitingForVictoryOutcome(boolean waiting) {
-        this.waitingForVictoryOutcome = waiting;
+        this.stateTracker.setWaitingForVictoryOutcome(waiting);
     }
     
     public void setWaitingForScenarioName(boolean waiting) {
-        this.waitingForScenarioName = waiting;
+        this.stateTracker.setWaitingForScenarioName(waiting);
     }
     
     public void setWaitingForThemeSelection(boolean waiting) {
-        this.waitingForThemeSelection = waiting;
+        this.stateTracker.setWaitingForThemeSelection(waiting);
     }
     
     public boolean isWaitingForInput() {
-        return waitingForSaveSlot || waitingForLoadSlot || waitingForCharacterCreation || 
-               waitingForWeaponSelection || waitingForRangedWeaponSelection || waitingForMeleeWeaponSelection ||
-               waitingForFactionSelection || waitingForBatchCharacterCreation || 
-               waitingForCharacterDeployment || waitingForDeletionConfirmation || waitingForVictoryOutcome ||
-               waitingForScenarioName || waitingForThemeSelection || waitingForCharacterRangedWeapon || 
-               waitingForCharacterMeleeWeapon || waitingForDirectCharacterAddition;
+        return stateTracker.isWaitingForSaveSlot() || stateTracker.isWaitingForLoadSlot() || stateTracker.isWaitingForCharacterCreation() || 
+               stateTracker.isWaitingForWeaponSelection() || stateTracker.isWaitingForRangedWeaponSelection() || stateTracker.isWaitingForMeleeWeaponSelection() ||
+               stateTracker.isWaitingForFactionSelection() || stateTracker.isWaitingForBatchCharacterCreation() || 
+               stateTracker.isWaitingForCharacterDeployment() || stateTracker.isWaitingForDeletionConfirmation() || stateTracker.isWaitingForVictoryOutcome() ||
+               stateTracker.isWaitingForScenarioName() || stateTracker.isWaitingForThemeSelection() || stateTracker.isWaitingForCharacterRangedWeapon() || 
+               stateTracker.isWaitingForCharacterMeleeWeapon() || stateTracker.isWaitingForDirectCharacterAddition();
     }
     
     /**
      * Start the batch character creation workflow
      */
     private void promptForBatchCharacterCreation() {
-        waitingForBatchCharacterCreation = true;
+        stateTracker.setWaitingForBatchCharacterCreation(true);
         batchCreationStep = BatchCreationStep.QUANTITY;
         batchQuantity = 0;
         batchArchetype = 0;
@@ -2003,7 +1985,7 @@ public class InputManager {
             case QUANTITY:
                 if (inputNumber == 0) {
                     System.out.println("*** Batch character creation cancelled ***");
-                    waitingForBatchCharacterCreation = false;
+                    stateTracker.setWaitingForBatchCharacterCreation(false);
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
@@ -2020,7 +2002,7 @@ public class InputManager {
             case ARCHETYPE:
                 if (inputNumber == 0) {
                     System.out.println("*** Batch character creation cancelled ***");
-                    waitingForBatchCharacterCreation = false;
+                    stateTracker.setWaitingForBatchCharacterCreation(false);
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
@@ -2037,7 +2019,7 @@ public class InputManager {
             case FACTION:
                 if (inputNumber == 0) {
                     System.out.println("*** Batch character creation cancelled ***");
-                    waitingForBatchCharacterCreation = false;
+                    stateTracker.setWaitingForBatchCharacterCreation(false);
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
@@ -2046,7 +2028,7 @@ public class InputManager {
                     batchFaction = inputNumber;
                     createBatchCharacters();
                     // Reset state after creation
-                    waitingForBatchCharacterCreation = false;
+                    stateTracker.setWaitingForBatchCharacterCreation(false);
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
@@ -2285,7 +2267,7 @@ public class InputManager {
      * Start the character deployment workflow
      */
     private void promptForCharacterDeployment() {
-        waitingForCharacterDeployment = true;
+        stateTracker.setWaitingForCharacterDeployment(true);
         deploymentStep = DeploymentStep.FACTION;
         deploymentFaction = 0;
         deploymentQuantity = 0;
@@ -2519,7 +2501,7 @@ public class InputManager {
      * Cancel character deployment and reset state
      */
     private void cancelCharacterDeployment() {
-        waitingForCharacterDeployment = false;
+        stateTracker.setWaitingForCharacterDeployment(false);
         deploymentStep = DeploymentStep.FACTION;
         deploymentFaction = 0;
         deploymentQuantity = 0;
@@ -2566,7 +2548,7 @@ public class InputManager {
      * Check if we're in deployment placement mode
      */
     public boolean isInDeploymentPlacementMode() {
-        return waitingForCharacterDeployment && deploymentStep == DeploymentStep.PLACEMENT;
+        return stateTracker.isWaitingForCharacterDeployment() && deploymentStep == DeploymentStep.PLACEMENT;
     }
     
     /**
@@ -2676,7 +2658,7 @@ public class InputManager {
         unitsToDelete.clear();
         unitsToDelete.addAll(selectionManager.getSelectedUnits());
         
-        waitingForDeletionConfirmation = true;
+        stateTracker.setWaitingForDeletionConfirmation(true);
         
         System.out.println("***********************");
         System.out.println("*** UNIT DELETION CONFIRMATION ***");
@@ -2734,7 +2716,7 @@ public class InputManager {
      */
     private void cancelUnitDeletion() {
         System.out.println("*** Unit deletion cancelled ***");
-        waitingForDeletionConfirmation = false;
+        stateTracker.setWaitingForDeletionConfirmation(false);
         unitsToDelete.clear();
     }
     
@@ -2821,7 +2803,7 @@ public class InputManager {
             return;
         }
         
-        waitingForVictoryOutcome = true;
+        stateTracker.setWaitingForVictoryOutcome(true);
         int currentFactionId = scenarioFactions.get(currentVictoryFactionIndex);
         
         System.out.println("***********************");
@@ -2887,7 +2869,7 @@ public class InputManager {
         
         // Move to next faction
         currentVictoryFactionIndex++;
-        waitingForVictoryOutcome = false;
+        stateTracker.setWaitingForVictoryOutcome(false);
         
         // Continue with next faction or execute victory
         promptForNextFactionOutcome();
@@ -3048,7 +3030,7 @@ public class InputManager {
      * Cancel manual victory and reset state
      */
     private void cancelManualVictory() {
-        waitingForVictoryOutcome = false;
+        stateTracker.setWaitingForVictoryOutcome(false);
         scenarioFactions.clear();
         factionOutcomes.clear();
         currentVictoryFactionIndex = 0;
@@ -3084,7 +3066,7 @@ public class InputManager {
         System.out.println("Enter scenario name (or press ESC to cancel): ");
         System.out.print("> ");
         
-        waitingForScenarioName = true;
+        stateTracker.setWaitingForScenarioName(true);
     }
     
     /**
@@ -3101,7 +3083,7 @@ public class InputManager {
         System.out.println();
         System.out.println("Scenario name: \"" + newScenarioName.trim() + "\"");
         
-        waitingForScenarioName = false;
+        stateTracker.setWaitingForScenarioName(false);
         promptForThemeSelection();
     }
     
@@ -3109,7 +3091,7 @@ public class InputManager {
      * Prompt for theme selection
      */
     private void promptForThemeSelection() {
-        waitingForThemeSelection = true;
+        stateTracker.setWaitingForThemeSelection(true);
         
         System.out.println("***********************");
         System.out.println("*** THEME SELECTION ***");
@@ -3143,7 +3125,7 @@ public class InputManager {
         }
         
         newScenarioTheme = themes[themeNumber - 1];
-        waitingForThemeSelection = false;
+        stateTracker.setWaitingForThemeSelection(false);
         
         System.out.println("Selected theme: " + getThemeDisplayName(newScenarioTheme));
         
@@ -3200,8 +3182,8 @@ public class InputManager {
     private void cancelNewScenario() {
         System.out.println();
         System.out.println("*** Scenario creation cancelled ***");
-        waitingForScenarioName = false;
-        waitingForThemeSelection = false;
+        stateTracker.setWaitingForScenarioName(false);
+        stateTracker.setWaitingForThemeSelection(false);
         newScenarioName = "";
         newScenarioTheme = "";
     }
@@ -3579,9 +3561,9 @@ public class InputManager {
         selectedArchetype = "";
         selectedRangedWeapon = "";
         selectedMeleeWeapon = "";
-        waitingForCharacterCreation = false;
-        waitingForCharacterRangedWeapon = false;
-        waitingForCharacterMeleeWeapon = false;
+        stateTracker.setWaitingForCharacterCreation(false);
+        stateTracker.setWaitingForCharacterRangedWeapon(false);
+        stateTracker.setWaitingForCharacterMeleeWeapon(false);
     }
     
     /**
@@ -3594,8 +3576,8 @@ public class InputManager {
             selectedArchetype = archetypes[archetypeIndex - 1];
             
             // Move to ranged weapon selection
-            waitingForCharacterCreation = false;
-            waitingForCharacterRangedWeapon = true;
+            stateTracker.setWaitingForCharacterCreation(false);
+            stateTracker.setWaitingForCharacterRangedWeapon(true);
             promptForCharacterRangedWeaponSelection();
         } else {
             System.out.println("*** Invalid archetype selection ***");
@@ -3639,8 +3621,8 @@ public class InputManager {
             selectedRangedWeapon = weaponIds[weaponIndex - 1];
             
             // Move to melee weapon selection
-            waitingForCharacterRangedWeapon = false;
-            waitingForCharacterMeleeWeapon = true;
+            stateTracker.setWaitingForCharacterRangedWeapon(false);
+            stateTracker.setWaitingForCharacterMeleeWeapon(true);
             promptForCharacterMeleeWeaponSelection();
         } else {
             System.out.println("*** Invalid weapon selection ***");
@@ -3800,7 +3782,7 @@ public class InputManager {
      * Start the direct character addition workflow
      */
     private void promptForDirectCharacterAddition() {
-        waitingForDirectCharacterAddition = true;
+        stateTracker.setWaitingForDirectCharacterAddition(true);
         directAdditionStep = DirectAdditionStep.FACTION;
         directAdditionFaction = 0;
         directAdditionQuantity = 0;
@@ -3911,7 +3893,7 @@ public class InputManager {
      * Cancel the direct character addition workflow and reset state
      */
     private void cancelDirectCharacterAddition() {
-        waitingForDirectCharacterAddition = false;
+        stateTracker.setWaitingForDirectCharacterAddition(false);
         directAdditionStep = DirectAdditionStep.FACTION;
         directAdditionFaction = 0;
         directAdditionQuantity = 0;
@@ -4428,18 +4410,18 @@ public class InputManager {
         
         // Input state flags
         dump.append("INPUT STATE FLAGS:\n");
-        dump.append("  Waiting for Save Slot: ").append(waitingForSaveSlot).append("\n");
-        dump.append("  Waiting for Load Slot: ").append(waitingForLoadSlot).append("\n");
-        dump.append("  Waiting for Character Creation: ").append(waitingForCharacterCreation).append("\n");
-        dump.append("  Waiting for Weapon Selection: ").append(waitingForWeaponSelection).append("\n");
-        dump.append("  Waiting for Faction Selection: ").append(waitingForFactionSelection).append("\n");
-        dump.append("  Waiting for Batch Character Creation: ").append(waitingForBatchCharacterCreation).append("\n");
-        dump.append("  Waiting for Character Deployment: ").append(waitingForCharacterDeployment).append("\n");
-        dump.append("  Waiting for Deletion Confirmation: ").append(waitingForDeletionConfirmation).append("\n");
-        dump.append("  Waiting for Victory Outcome: ").append(waitingForVictoryOutcome).append("\n");
-        dump.append("  Waiting for Scenario Name: ").append(waitingForScenarioName).append("\n");
-        dump.append("  Waiting for Theme Selection: ").append(waitingForThemeSelection).append("\n");
-        dump.append("  Waiting for Direct Character Addition: ").append(waitingForDirectCharacterAddition).append("\n\n");
+        dump.append("  Waiting for Save Slot: ").append(stateTracker.isWaitingForSaveSlot()).append("\n");
+        dump.append("  Waiting for Load Slot: ").append(stateTracker.isWaitingForLoadSlot()).append("\n");
+        dump.append("  Waiting for Character Creation: ").append(stateTracker.isWaitingForCharacterCreation()).append("\n");
+        dump.append("  Waiting for Weapon Selection: ").append(stateTracker.isWaitingForWeaponSelection()).append("\n");
+        dump.append("  Waiting for Faction Selection: ").append(stateTracker.isWaitingForFactionSelection()).append("\n");
+        dump.append("  Waiting for Batch Character Creation: ").append(stateTracker.isWaitingForBatchCharacterCreation()).append("\n");
+        dump.append("  Waiting for Character Deployment: ").append(stateTracker.isWaitingForCharacterDeployment()).append("\n");
+        dump.append("  Waiting for Deletion Confirmation: ").append(stateTracker.isWaitingForDeletionConfirmation()).append("\n");
+        dump.append("  Waiting for Victory Outcome: ").append(stateTracker.isWaitingForVictoryOutcome()).append("\n");
+        dump.append("  Waiting for Scenario Name: ").append(stateTracker.isWaitingForScenarioName()).append("\n");
+        dump.append("  Waiting for Theme Selection: ").append(stateTracker.isWaitingForThemeSelection()).append("\n");
+        dump.append("  Waiting for Direct Character Addition: ").append(stateTracker.isWaitingForDirectCharacterAddition()).append("\n\n");
         
         // Workflow states
         dump.append("WORKFLOW STATES:\n");
