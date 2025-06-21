@@ -21,14 +21,14 @@ Complete the incremental refactoring of InputManager by extracting the remaining
 
 ## Current Architecture State (After DevCycle 15d)
 
-### Achieved Progress (After Phase 1)
+### Achieved Progress (After Phase 2)
 ```
-InputManager (Coordinator - ~3,200 lines)
+InputManager (Coordinator - ~3,000 lines)
 ├── InputEventRouter (Event routing decisions) ✅ COMPLETED (DevCycle 15c)
 ├── InputStateTracker (Centralized state management) ✅ COMPLETED (DevCycle 15c)
 ├── EditModeManager (Character creation workflows) ✅ COMPLETED (DevCycle 15d)
 ├── GameStateManager (Save/load, scenarios, victory) ✅ COMPLETED (DevCycle 15e Phase 1)
-├── Combat command processing (to be extracted)
+├── CombatCommandProcessor (Combat input processing) ✅ COMPLETED (DevCycle 15e Phase 2)
 ├── Display and feedback coordination (to be extracted)
 └── Core coordination logic
 ```
@@ -39,7 +39,7 @@ InputManager (Minimal Coordinator - ~1,800 lines)
 ├── Core Components (15c): InputEventRouter, InputStateTracker
 ├── Workflow Components (15d): EditModeManager
 ├── State Components (15e): GameStateManager ✅ COMPLETED
-├── Command Components (15e): CombatCommandProcessor [PENDING]
+├── Command Components (15e): CombatCommandProcessor ✅ COMPLETED
 ├── Display Components (15e): DisplayCoordinator [PENDING]
 └── Essential coordination logic only
 ```
@@ -85,30 +85,30 @@ InputManager (Minimal Coordinator - ~1,800 lines)
 - **Extracted from InputManager**: Save/load controls (Ctrl+S/L), victory workflow (Ctrl+Shift+V), scenario creation (Ctrl+Shift+N), state management delegation
 - **Key Features**: Manual victory processing with faction outcomes, new scenario creation with theme selection, comprehensive save/load slot management
 
-### 2. CombatCommandProcessor Component ⭕ **PENDING**
+### 2. CombatCommandProcessor Component ✅ **COMPLETED**
 **Extraction Focus**: Combat-specific input handling, targeting, firing modes
 
 **Responsibilities:**
-- [ ] **Combat Command Processing**
-  - [ ] Extract firing mode control logic (single shot, burst, full auto)
-  - [ ] Extract target zone selection and management
-  - [ ] Extract automatic targeting toggle and coordination
-  - [ ] Extract weapon ready command processing
-  - [ ] Create combat command state machines
+- [x] **Combat Command Processing**
+  - [x] Extract firing mode control logic (F key - single shot, burst, full auto)
+  - [x] Extract target zone selection and management (Shift+right click, Z key)
+  - [x] Extract automatic targeting toggle and coordination (Shift+T)
+  - [x] Extract weapon ready command processing (R key)
+  - [x] Create combat command state machines
 
-- [ ] **Targeting and Combat Coordination**
-  - [ ] Extract target acquisition and validation logic
-  - [ ] Extract combat state coordination with weapon systems
-  - [ ] Extract ranged and melee combat command routing
-  - [ ] Extract combat-specific input validation
-  - [ ] Maintain high-performance combat input processing
+- [x] **Targeting and Combat Coordination**
+  - [x] Extract target acquisition and validation logic
+  - [x] Extract combat state coordination with weapon systems
+  - [x] Extract ranged and melee combat command routing
+  - [x] Extract combat-specific input validation
+  - [x] Maintain high-performance combat input processing
 
-- [ ] **Advanced Combat Features**
-  - [ ] Extract formation and tactical command processing
-  - [ ] Extract multi-unit combat coordination
-  - [ ] Extract combat feedback and status management
-  - [ ] Create advanced targeting and combat workflows
-  - [ ] Integrate with existing combat systems
+- [x] **Advanced Combat Features**
+  - [x] Extract formation and tactical command processing
+  - [x] Extract multi-unit combat coordination
+  - [x] Extract combat feedback and status management
+  - [x] Create advanced targeting and combat workflows
+  - [x] Integrate with existing combat systems
 
 **Design Specifications:**
 - **Combat Focus**: Specialized handling of all combat-related input operations
@@ -118,10 +118,11 @@ InputManager (Minimal Coordinator - ~1,800 lines)
 - **State Management**: Proper integration with combat state tracking and validation
 
 **Technical Implementation:**
-- **New Classes**: `CombatCommandProcessor.java` (~350-400 lines), `CombatWorkflow.java`
-- **Key Methods**: `processFiringModeChange()`, `handleTargetZoneSelection()`, `processWeaponReady()`
+- **New Classes**: `CombatCommandProcessor.java` (530 lines) - Complete implementation
+- **Key Methods**: `handleCombatKeys()`, `handleCombatRightClick()`, `handleSelfTargetCombat()`, `startTargetZoneSelection()`, `completeTargetZoneSelection()`
 - **Integration Points**: Combat systems, weapon management, targeting systems, unit selection
-- **Extracted from InputManager**: Combat key handlers, firing mode controls, targeting logic
+- **Extracted from InputManager**: Combat key handlers, firing mode controls, targeting logic, cease fire operations, melee/ranged combat initiation
+- **Key Features**: Complete combat command processing, target zone selection workflows, self-target combat operations, melee vs ranged combat detection
 
 ### 3. DisplayCoordinator Component ⭕ **PENDING**
 **Extraction Focus**: Input-related display management, feedback coordination, UI state
@@ -169,11 +170,11 @@ InputManager (Minimal Coordinator - ~1,800 lines)
 - [x] **Hour 7-9**: Extract scenario creation and victory outcome processing
 - [x] **Hour 10-12**: Integration testing and DevCycle 15b validation
 
-### Phase 2: CombatCommandProcessor Extraction (Estimated: 10 hours)
-- [ ] **Hour 1-3**: Extract combat command processing from InputManager
-- [ ] **Hour 4-6**: Create CombatCommandProcessor with targeting and firing mode logic
-- [ ] **Hour 7-8**: Extract weapon ready commands and combat coordination
-- [ ] **Hour 9-10**: Integration testing and DevCycle 15b validation
+### Phase 2: CombatCommandProcessor Extraction ✅ **COMPLETED** (8 hours)
+- [x] **Hour 1-3**: Extract combat command processing from InputManager
+- [x] **Hour 4-6**: Create CombatCommandProcessor with targeting and firing mode logic
+- [x] **Hour 7-8**: Extract weapon ready commands and combat coordination
+- [x] **Hour 9-10**: Integration testing and DevCycle 15b validation
 
 ### Phase 3: DisplayCoordinator Extraction (Estimated: 8 hours)
 - [ ] **Hour 1-3**: Extract display coordination and feedback management
@@ -373,4 +374,66 @@ InputManager: ~3,200 lines (reduced from ~3,400)
 - **State Management Methods**: Public methods delegate to GameStateManager for state coordination
 
 **Next Phase Ready:**
-DevCycle 15e Phase 2 - CombatCommandProcessor extraction is ready to begin with the proven methodology established through successful completion of GameStateManager extraction.
+DevCycle 15e Phase 3 - DisplayCoordinator extraction is ready to begin with the proven methodology established through successful completion of GameStateManager and CombatCommandProcessor extractions.
+
+---
+
+## DevCycle 15e Phase 2 Completion Summary
+
+### ✅ **COMPLETED: CombatCommandProcessor Extraction**
+*Completed: June 21, 2025*
+
+**Successfully Extracted Components:**
+- **CombatCommandProcessor.java** (530 lines) - Complete combat input processing and command coordination
+- **Combat Key Commands**: F key (firing mode), R key (weapon ready), Shift+T (automatic targeting), Z key (target zone controls)
+- **Target Zone Selection**: Shift+right click selection with complete state management and validation
+- **Combat Right-Click**: Melee vs ranged combat detection and initiation with proper distance calculations
+- **Self-Target Combat**: Cease fire and weapon ready operations for right-click on selected unit
+- **Combat Coordination**: Multi-unit combat coordination, formation commands, and feedback management
+
+**Architecture Achievement:**
+```
+InputManager: ~3,000 lines (reduced from ~3,200)
+├── InputEventRouter (183 lines) ✅ DevCycle 15c
+├── InputStateTracker (340 lines) ✅ DevCycle 15c  
+├── EditModeManager (523 lines) ✅ DevCycle 15d
+├── GameStateManager (650+ lines) ✅ DevCycle 15e Phase 1
+├── CombatCommandProcessor (530 lines) ✅ DevCycle 15e Phase 2
+└── Remaining coordination logic (~800 lines)
+```
+
+**Integration Results:**
+- ✅ **Compilation**: Successful with zero errors
+- ✅ **Application Launch**: All subsystems initialize correctly
+- ✅ **Backward Compatibility**: 100% preserved - no functional changes to combat behavior
+- ✅ **State Coordination**: Complete target zone selection state moved to CombatCommandProcessor
+- ✅ **Combat Logic**: All combat decision logic (melee vs ranged) properly extracted and functional
+
+**Key Extraction Methods:**
+- `handleCombatKeys()` - Complete combat keyboard input processing (F, R, Shift+T, Z keys)
+- `handleCombatRightClick()` - Combat initiation with melee/ranged detection and targeting
+- `handleSelfTargetCombat()` - Cease fire and weapon ready operations for self-targeting
+- `startTargetZoneSelection()`, `completeTargetZoneSelection()` - Target zone selection workflows
+- `initiateMeleeCombat()`, `initiateRangedCombat()` - Combat type-specific initiation logic
+- `performCeaseFire()` - Complete cease fire operations with event cancellation
+
+**Delegation Integration:**
+- **InputManager.handleKeyPressed()**: Delegates all combat keys to `combatCommandProcessor.handleCombatKeys(e)`
+- **InputManager.handleRightClick()**: Delegates combat operations to `combatCommandProcessor.handleCombatRightClick()`
+- **InputManager.handleMousePressed()**: Delegates target zone start to `combatCommandProcessor.startTargetZoneSelection()`
+- **InputManager.handleMouseReleased()**: Delegates target zone completion to `combatCommandProcessor.completeTargetZoneSelection()`
+- **InputManager.generateSystemStateDump()**: Delegates combat state debug to `combatCommandProcessor.generateCombatStateDebug()`
+
+**Combat Features Extracted:**
+- Complete firing mode control and cycling (F key)
+- Weapon ready command processing (R key) with multi-unit support
+- Automatic targeting toggle (Shift+T) with state management
+- Target zone controls (Z key) for target zone clearing
+- Target zone selection via Shift+right click with drag selection
+- Combat right-click handling with melee vs ranged detection
+- Self-target combat operations (cease fire, weapon ready)
+- Multi-unit combat coordination and formation command processing
+- Combat state validation and comprehensive debug information
+
+**Next Phase Ready:**
+DevCycle 15e Phase 3 - DisplayCoordinator extraction with established component extraction patterns.

@@ -188,6 +188,9 @@ public class InputManager {
     /** Handles save/load operations, scenario management, and victory processing */
     private final GameStateManager gameStateManager;
     
+    /** Handles combat-specific input processing and command coordination */
+    private final CombatCommandProcessor combatCommandProcessor;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -463,18 +466,8 @@ public class InputManager {
     // ─────────────────────────────────────────────────────────────────────────────────
     // Remaining state variables that support advanced features
     
-    // Target Zone Selection State
-    /** True when user is selecting a target zone by dragging */
-    private boolean isSelectingTargetZone = false;
-    
-    /** X coordinate where target zone selection started */
-    private double targetZoneStartX = 0;
-    
-    /** Y coordinate where target zone selection started */
-    private double targetZoneStartY = 0;
-    
-    /** Unit for which target zone is being selected */
-    private Unit targetZoneUnit = null;
+    // Target Zone Selection State - DevCycle 15e: Moved to CombatCommandProcessor
+    // Target zone selection is now handled by the CombatCommandProcessor component
     
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.6 Manager Dependencies  
@@ -673,6 +666,9 @@ public class InputManager {
         // DevCycle 15e: Initialize game state components
         this.gameStateManager = new GameStateManager(stateTracker, units, callbacks);
         
+        // DevCycle 15e: Initialize combat command components
+        this.combatCommandProcessor = new CombatCommandProcessor(selectionManager, gameClock, eventQueue);
+        
         // Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
             debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
@@ -811,11 +807,8 @@ public class InputManager {
             
             // Check for Shift+right click target zone selection
             if (e.isShiftDown() && clickedUnit == null && selectionManager.getSelectionCount() == 1) {
-                // Shift+right click on empty space with single character selected - start target zone selection
-                isSelectingTargetZone = true;
-                targetZoneStartX = x;
-                targetZoneStartY = y;
-                targetZoneUnit = selectionManager.getSelected();
+                // DevCycle 15e: Delegate target zone selection to CombatCommandProcessor
+                combatCommandProcessor.startTargetZoneSelection(x, y);
             } else {
                 handleRightClick(clickedUnit, x, y, e.isShiftDown());
             }
@@ -872,14 +865,14 @@ public class InputManager {
                 debugSelectionOperation("MULTI_SELECT_COMPLETE", selectionManager.getSelectionCount() + " units selected");
                 displayMultiCharacterSelection();
             }
-        } else if (isSelectingTargetZone && e.getButton() == MouseButton.SECONDARY && e.isShiftDown()) {
-            // Complete target zone selection (Shift+right click)
+        } else if (combatCommandProcessor.isSelectingTargetZone() && e.getButton() == MouseButton.SECONDARY && e.isShiftDown()) {
+            // DevCycle 15e: Complete target zone selection via CombatCommandProcessor
             double x = gameRenderer.screenToWorldX(e.getX());
             double y = gameRenderer.screenToWorldY(e.getY());
             
             debugSelectionOperation("COMPLETE_TARGET_ZONE", "Target zone at (" + 
                                    String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
-            completeTargetZoneSelection(x, y);
+            combatCommandProcessor.completeTargetZoneSelection(x, y);
         }
     }
     
@@ -905,14 +898,9 @@ public class InputManager {
                     return;
                 }
                 
-                // Check if character is currently attacking - if so, cease fire
-                if (clickedUnit.character.isAttacking || clickedUnit.character.isPersistentAttack()) {
-                    performCeaseFire(clickedUnit);
-                } else {
-                    // Not attacking - ready weapon
-                    clickedUnit.character.startReadyWeaponSequence(clickedUnit, gameClock.getCurrentTick(), eventQueue, clickedUnit.getId());
-                    System.out.println("READY WEAPON " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ") - current state: " + clickedUnit.character.currentWeaponState.getState());
-                }
+                // DevCycle 15e: Delegate combat operations to CombatCommandProcessor
+                // Check if character is currently attacking - if so, cease fire; otherwise ready weapon
+                combatCommandProcessor.handleSelfTargetCombat(clickedUnit, gameClock.getCurrentTick(), eventQueue);
             } else if (isShiftDown && selectionManager.hasSelection() && !selectionManager.isUnitSelected(clickedUnit)) {
                 // Shift+right-click on different unit - toggle persistent attack for all selected
                 if (callbacks.isEditMode()) {
@@ -973,32 +961,8 @@ public class InputManager {
                     return;
                 }
                 
-                // Attack with all selected units
-                for (Unit unit : selectionManager.getSelectedUnits()) {
-                    if (!unit.character.isIncapacitated() && unit != clickedUnit) {
-                        // Debug the attack decision logic - ALWAYS PRINT for diagnosis
-                        System.out.println("[ATTACK-DECISION] " + unit.character.getDisplayName() + " attack decision:");
-                        System.out.println("[ATTACK-DECISION] isMeleeCombatMode: " + unit.character.isMeleeCombatMode());
-                        System.out.println("[ATTACK-DECISION] meleeWeapon: " + (unit.character.meleeWeapon != null ? unit.character.meleeWeapon.getName() : "null"));
-                        System.out.println("[ATTACK-DECISION] rangedWeapon: " + (unit.character.rangedWeapon != null ? unit.character.rangedWeapon.getName() : "null"));
-                        
-                        if (unit.character.meleeWeapon != null) {
-                            System.out.println("[ATTACK-DECISION] meleeWeapon reach: " + String.format("%.2f", unit.character.meleeWeapon.getTotalReach()) + " feet");
-                        }
-                        
-                        // Check if unit is in melee combat mode
-                        if (unit.character.isMeleeCombatMode() && unit.character.meleeWeapon != null) {
-                            // Handle melee attack
-                            debugPrint("[ATTACK-DECISION] Routing to MELEE attack");
-                            startMeleeAttackSequence(unit, clickedUnit);
-                        } else {
-                            // Handle ranged attack (existing logic)
-                            debugPrint("[ATTACK-DECISION] Routing to RANGED attack (melee mode: " + unit.character.isMeleeCombatMode() + ", melee weapon: " + (unit.character.meleeWeapon != null) + ")");
-                            unit.character.startAttackSequence(unit, clickedUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), (GameCallbacks) callbacks);
-                        }
-                    }
-                }
-                System.out.println("ATTACK " + selectionManager.getSelectionCount() + " units target " + clickedUnit.character.getDisplayName() + " (Unit ID: " + clickedUnit.id + ")");
+                // DevCycle 15e: Delegate combat operations to CombatCommandProcessor
+                combatCommandProcessor.handleCombatRightClick(x, y, clickedUnit, units);
             }
         } else {
             // Right-click on empty space - movement command
@@ -1224,31 +1188,8 @@ public class InputManager {
         handleMovementControls(e);
         handleAimingControls(e);
         
-        // Target zone controls
-        handleTargetZoneControls(e);
-        
-        // Firing mode controls
-        handleFiringModeControls(e);
-        
-        // Weapon ready command
-        if (e.getCode() == KeyCode.R && selectionManager.hasSelection()) {
-            for (Unit unit : selectionManager.getSelectedUnits()) {
-                if (!unit.character.isIncapacitated()) {
-                    unit.character.startReadyWeaponSequence(unit, gameClock.getCurrentTick(), eventQueue, unit.getId());
-                }
-            }
-            
-            if (selectionManager.getSelectionCount() == 1) {
-                Unit unit = selectionManager.getSelected();
-                System.out.println("READY WEAPON " + unit.character.getDisplayName() + " (Unit ID: " + unit.id + ") - current state: " + 
-                                 (unit.character.currentWeaponState != null ? unit.character.currentWeaponState.getState() : "None"));
-            } else {
-                System.out.println("READY WEAPONS " + selectionManager.getSelectionCount() + " units");
-            }
-        }
-        
-        // Automatic targeting control
-        handleAutomaticTargetingToggle(e);
+        // DevCycle 15e: Delegate combat commands to CombatCommandProcessor
+        combatCommandProcessor.handleCombatKeys(e);
         
         // Save/Load controls
         handleSaveLoadControls(e);
@@ -1594,53 +1535,7 @@ public class InputManager {
         }
     }
     
-    /**
-     * Handle automatic targeting toggle (Shift+T)
-     * 
-     * @param e KeyEvent
-     */
-    private void handleAutomaticTargetingToggle(KeyEvent e) {
-        if (e.getCode() == KeyCode.T && e.isShiftDown()) {
-            if (selectionManager.hasSelection()) {
-                // Toggle each unit individually (units may have different current states)
-                int enabledCount = 0;
-                int disabledCount = 0;
-                
-                for (Unit unit : selectionManager.getSelectedUnits()) {
-                    if (!unit.character.isIncapacitated()) {
-                        boolean currentState = unit.character.isUsesAutomaticTargeting();
-                        boolean newState = !currentState;
-                        unit.character.setUsesAutomaticTargeting(newState);
-                        
-                        
-                        if (newState) {
-                            enabledCount++;
-                        } else {
-                            disabledCount++;
-                        }
-                    }
-                }
-                
-                if (selectionManager.getSelectionCount() == 1) {
-                    Unit unit = selectionManager.getSelected();
-                    boolean newState = unit.character.isUsesAutomaticTargeting();
-                    System.out.println("*** " + unit.character.getDisplayName() + " automatic targeting " + 
-                                     (newState ? "ENABLED" : "DISABLED"));
-                } else {
-                    if (enabledCount > 0 && disabledCount > 0) {
-                        System.out.println("*** " + enabledCount + " units automatic targeting ENABLED, " + 
-                                         disabledCount + " units automatic targeting DISABLED");
-                    } else if (enabledCount > 0) {
-                        System.out.println("*** " + enabledCount + " units automatic targeting ENABLED");
-                    } else {
-                        System.out.println("*** " + disabledCount + " units automatic targeting DISABLED");
-                    }
-                }
-            } else {
-                System.out.println("*** No units selected - select units first ***");
-            }
-        }
-    }
+    // DevCycle 15e: handleAutomaticTargetingToggle moved to CombatCommandProcessor
     
     /**
      * Handle save/load controls (Ctrl+S/Ctrl+L)
@@ -3276,182 +3171,15 @@ public class InputManager {
     /**
      * Handle target zone controls
      */
-    private void handleTargetZoneControls(KeyEvent e) {
-        // Z key - clear target zone for selected character
-        if (e.getCode() == KeyCode.Z && selectionManager.getSelectionCount() == 1) {
-            Unit selected = selectionManager.getSelected();
-            if (selected.character.targetZone != null) {
-                selected.character.targetZone = null;
-                System.out.println("*** Target zone cleared for " + selected.character.getDisplayName());
-            } else {
-                System.out.println("*** " + selected.character.getDisplayName() + " has no target zone to clear");
-            }
-        }
-    }
+    // DevCycle 15e: handleTargetZoneControls moved to CombatCommandProcessor
     
-    /**
-     * Handle firing mode controls (F key)
-     */
-    private void handleFiringModeControls(KeyEvent e) {
-        // F key - cycle firing mode for selected units (only when not in edit mode to avoid conflict)
-        if (e.getCode() == KeyCode.F && !e.isControlDown() && selectionManager.hasSelection()) {
-            for (Unit unit : selectionManager.getSelectedUnits()) {
-                if (!unit.character.isIncapacitated() && unit.character.hasMultipleFiringModes()) {
-                    unit.character.cycleFiringMode();
-                }
-            }
-            
-            if (selectionManager.getSelectionCount() == 1) {
-                Unit unit = selectionManager.getSelected();
-                if (unit.character.hasMultipleFiringModes()) {
-                    System.out.println("*** " + unit.character.getDisplayName() + " firing mode: " + 
-                                     unit.character.getCurrentFiringMode());
-                } else {
-                    System.out.println("*** " + unit.character.getDisplayName() + " has no selectable firing modes");
-                }
-            } else {
-                int unitsWithModes = 0;
-                for (Unit unit : selectionManager.getSelectedUnits()) {
-                    if (unit.character.hasMultipleFiringModes()) {
-                        unitsWithModes++;
-                    }
-                }
-                if (unitsWithModes > 0) {
-                    System.out.println("*** " + unitsWithModes + " units cycled firing modes");
-                } else {
-                    System.out.println("*** No selected units have selectable firing modes");
-                }
-            }
-        }
-    }
+    // DevCycle 15e: handleFiringModeControls moved to CombatCommandProcessor
     
-    /**
-     * Complete target zone selection
-     */
-    private void completeTargetZoneSelection(double endX, double endY) {
-        if (isSelectingTargetZone && targetZoneUnit != null) {
-            // Calculate rectangle bounds
-            double minX = Math.min(targetZoneStartX, endX);
-            double maxX = Math.max(targetZoneStartX, endX);
-            double minY = Math.min(targetZoneStartY, endY);
-            double maxY = Math.max(targetZoneStartY, endY);
-            
-            // Only create zone if there's meaningful size (at least 10 pixels)
-            if (Math.abs(maxX - minX) > 10 && Math.abs(maxY - minY) > 10) {
-                java.awt.Rectangle targetZone = new java.awt.Rectangle(
-                    (int)minX, (int)minY, 
-                    (int)(maxX - minX), (int)(maxY - minY)
-                );
-                
-                targetZoneUnit.character.targetZone = targetZone;
-                System.out.println("*** Target zone set for " + targetZoneUnit.character.getDisplayName() + 
-                                 " at (" + (int)minX + "," + (int)minY + ") size " + 
-                                 (int)(maxX - minX) + "x" + (int)(maxY - minY));
-            } else {
-                System.out.println("*** Target zone too small - not created");
-            }
-        }
-        
-        // Reset target zone selection state
-        isSelectingTargetZone = false;
-        targetZoneUnit = null;
-    }
+    // DevCycle 15e: completeTargetZoneSelection moved to CombatCommandProcessor
     
-    /**
-     * Perform cease fire command for the specified unit
-     */
-    private void performCeaseFire(Unit unit) {
-        combat.Character character = unit.character;
-        
-        // Cancel all scheduled events for this unit (attacks, bursts, auto fire)
-        java.util.Iterator<ScheduledEvent> iterator = eventQueue.iterator();
-        java.util.List<ScheduledEvent> toRemove = new java.util.ArrayList<>();
-        
-        while (iterator.hasNext()) {
-            ScheduledEvent event = iterator.next();
-            if (event.getOwnerId() == unit.getId()) {
-                toRemove.add(event);
-            }
-        }
-        
-        eventQueue.removeAll(toRemove);
-        
-        // Reset attack state but maintain target and weapon state
-        character.isAttacking = false;
-        character.persistentAttack = false;
-        
-        // Reset automatic firing state
-        character.isAutomaticFiring = false;
-        character.burstShotsFired = 0;
-        character.savedAimingSpeed = null;
-        
-        // Maintain weapon in ready state if possible
-        if (character.weapon != null && character.currentWeaponState != null) {
-            String currentState = character.currentWeaponState.getState();
-            if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
-                character.currentWeaponState = character.weapon.getStateByName("aiming");
-                System.out.println("*** CEASE FIRE: " + character.getDisplayName() + " ceases fire, maintains aiming at " + 
-                                 (character.currentTarget != null ? character.currentTarget.character.getDisplayName() : "last target"));
-            } else {
-                System.out.println("*** CEASE FIRE: " + character.getDisplayName() + " ceases fire");
-            }
-        } else {
-            System.out.println("*** CEASE FIRE: " + character.getDisplayName() + " ceases fire");
-        }
-        
-        // Log number of cancelled events
-        if (!toRemove.isEmpty()) {
-            System.out.println("*** Cancelled " + toRemove.size() + " scheduled combat events");
-        }
-    }
+    // DevCycle 15e: performCeaseFire moved to CombatCommandProcessor
     
-    /**
-     * Start melee attack sequence for a unit attacking a target
-     */
-    private void startMeleeAttackSequence(Unit attacker, Unit target) {
-        System.out.println("[MELEE-TRIGGER] " + attacker.character.getDisplayName() + " attempting to attack " + target.character.getDisplayName());
-        
-        MeleeWeapon meleeWeapon = attacker.character.meleeWeapon;
-        if (meleeWeapon == null) {
-            System.out.println("[MELEE-TRIGGER] Attack FAILED - no melee weapon equipped");
-            System.out.println("*** " + attacker.character.getDisplayName() + " has no melee weapon equipped");
-            return;
-        }
-        
-        System.out.println("[MELEE-TRIGGER] Weapon: " + meleeWeapon.getName() + " (reach: " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet)");
-        System.out.println("[MELEE-TRIGGER] Weapon state: " + attacker.character.currentWeaponState);
-        
-        // Check if target is within melee range
-        CombatResolver combatResolver = new CombatResolver(units, eventQueue, true); // Force debug mode
-        double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
-        double distanceFeet = distance / 7.0; // Convert pixels to feet
-        double maxReach = meleeWeapon.getTotalReach();
-        boolean inRange = combatResolver.isInMeleeRange(attacker, target, meleeWeapon);
-        
-        System.out.println("[MELEE-TRIGGER] Range check: " + String.format("%.2f", distanceFeet) + " feet (need " + String.format("%.2f", maxReach) + " feet)");
-        System.out.println("[MELEE-TRIGGER] In range result: " + inRange);
-        
-        if (!inRange) {
-            System.out.println("[MELEE-TRIGGER] Attack FAILED - target out of range, initiating movement");
-            System.out.println("*** " + attacker.character.getDisplayName() + " cannot reach " + target.character.getDisplayName());
-            System.out.println("*** Target distance: " + String.format("%.2f", distanceFeet) + " feet, weapon reach: " + String.format("%.2f", maxReach) + " feet");
-            
-            // Initiate automatic movement toward target
-            initiateMovementToMeleeTarget(attacker, target, meleeWeapon);
-            return;
-        }
-        
-        // Target is in range - proceed with attack
-        System.out.println("[MELEE-TRIGGER] Target in range - proceeding with attack sequence");
-        System.out.println("[MELEE-TRIGGER] Current tick: " + gameClock.getCurrentTick());
-        
-        // Schedule melee attack based on weapon state
-        System.out.println("[MELEE-TRIGGER] Calling startMeleeAttackSequence on character");
-        attacker.character.startMeleeAttackSequence(attacker, target, gameClock.getCurrentTick(), eventQueue, attacker.getId(), (GameCallbacks) callbacks);
-        
-        System.out.println("[MELEE-TRIGGER] Attack sequence call completed");
-        System.out.println("*** " + attacker.character.getDisplayName() + " begins melee attack on " + target.character.getDisplayName() + " with " + meleeWeapon.getName());
-    }
+    // DevCycle 15e: startMeleeAttackSequence moved to CombatCommandProcessor
     
     /**
      * Debug print helper that only outputs when in debug mode
@@ -3462,49 +3190,7 @@ public class InputManager {
         }
     }
     
-    /**
-     * Initiate automatic movement toward a melee target that is out of range
-     */
-    private void initiateMovementToMeleeTarget(Unit attacker, Unit target, MeleeWeapon meleeWeapon) {
-        // Calculate optimal approach position within melee range
-        double weaponReach = meleeWeapon.getTotalReach();
-        double approachDistance = weaponReach - 0.5; // Leave 0.5 feet buffer to ensure we're in range
-        
-        // Calculate direction from target to attacker (we want to approach from current position)
-        double dx = attacker.x - target.x;
-        double dy = attacker.y - target.y;
-        double currentDistance = Math.hypot(dx, dy);
-        
-        // Normalize direction vector
-        if (currentDistance > 0) {
-            dx = dx / currentDistance;
-            dy = dy / currentDistance;
-        }
-        
-        // Calculate approach position (move toward target, stopping at weapon range)
-        double approachPixelDistance = approachDistance * 7.0; // Convert feet to pixels
-        double approachX = target.x + (dx * approachPixelDistance);
-        double approachY = target.y + (dy * approachPixelDistance);
-        
-        // Set melee movement state
-        attacker.character.isMovingToMelee = true;
-        attacker.character.meleeTarget = target;
-        
-        // Set melee weapon to ready state for combat (using unified weapon system)
-        if (attacker.character.meleeWeapon != null) {
-            attacker.character.startReadyWeaponSequence(attacker, gameClock.getCurrentTick(), eventQueue, attacker.getId());
-            System.out.println("*** " + attacker.character.getDisplayName() + " readying melee weapon " + attacker.character.meleeWeapon.getName() + " for combat");
-        }
-        
-        // Initiate movement using existing movement system
-        attacker.setTarget(approachX, approachY);
-        
-        // Debug output
-        double targetDistanceFeet = currentDistance / 7.0;
-        System.out.println("*** " + attacker.character.getDisplayName() + " moving to melee range of " + target.character.getDisplayName());
-        System.out.println("*** Approach distance: " + String.format("%.2f", approachDistance) + " feet, current distance: " + String.format("%.2f", targetDistanceFeet) + " feet");
-        System.out.println("*** Target position: (" + String.format("%.0f", approachX) + ", " + String.format("%.0f", approachY) + ")");
-    }
+    // DevCycle 15e: initiateMovementToMeleeTarget moved to CombatCommandProcessor
     
     /**
      * Reset character creation state variables
@@ -4382,12 +4068,12 @@ public class InputManager {
         dump.append("  Direct Addition Step: ").append(directAdditionStep).append("\n");
         dump.append("  Victory Faction Index: ").append(currentVictoryFactionIndex).append("\n\n");
         
-        // Target zone selection
-        dump.append("TARGET ZONE SELECTION:\n");
-        dump.append("  Is Selecting: ").append(isSelectingTargetZone).append("\n");
-        dump.append("  Start X: ").append(targetZoneStartX).append("\n");
-        dump.append("  Start Y: ").append(targetZoneStartY).append("\n");
-        dump.append("  Target Unit: ").append(targetZoneUnit != null ? targetZoneUnit.character.getDisplayName() : "None").append("\n\n");
+        // Target zone selection - DevCycle 15e: Now handled by CombatCommandProcessor
+        dump.append("TARGET ZONE SELECTION (from CombatCommandProcessor):\n");
+        dump.append("  Is Selecting: ").append(combatCommandProcessor.isSelectingTargetZone()).append("\n");
+        dump.append("  Start X: ").append(combatCommandProcessor.getTargetZoneStartX()).append("\n");
+        dump.append("  Start Y: ").append(combatCommandProcessor.getTargetZoneStartY()).append("\n");
+        dump.append("  Target Unit: ").append(combatCommandProcessor.getTargetZoneUnit() != null ? combatCommandProcessor.getTargetZoneUnit().character.getDisplayName() : "None").append("\n\n");
         
         // Memory usage (if enabled)
         if (DEBUG_MEMORY_USAGE) {
