@@ -25,6 +25,11 @@ import data.SkillsManager;
 import data.SaveGameManager;
 import data.UniversalCharacterRegistry;
 
+// Utility imports for Phase 3 refactoring (TODO: Re-enable after utility compilation)
+// import static InputUtilities.*;
+// import static DisplayHelpers.*;
+// import static InputConstants.*;
+
 /**
  * InputManager handles all user input for the OpenFields2 game.
  * 
