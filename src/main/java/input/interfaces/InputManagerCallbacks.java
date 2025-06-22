@@ -79,6 +79,12 @@ public interface InputManagerCallbacks {
     /** Set character deployment state */
     void setWaitingForCharacterDeployment(boolean waiting);
     
+    /** Get current victory outcome state */
+    boolean isWaitingForVictoryOutcome();
+    
+    /** Set victory outcome state */
+    void setWaitingForVictoryOutcome(boolean waiting);
+    
     /** Get next available unit ID for unit creation */
     int getNextUnitId();
     
