@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import combat.*;
 import game.*;
+import game.GameCallbacks;
 
 /**
  * CombatCommandProcessor handles all combat-specific input processing and command coordination.
@@ -45,6 +46,7 @@ public class CombatCommandProcessor {
     private final SelectionManager selectionManager;
     private final GameClock gameClock;
     private final PriorityQueue<ScheduledEvent> eventQueue;
+    private final GameCallbacks gameCallbacks;
     
     // ====================
     // TARGET ZONE SELECTION STATE
@@ -70,10 +72,11 @@ public class CombatCommandProcessor {
      * Creates a new CombatCommandProcessor with required dependencies.
      */
     public CombatCommandProcessor(SelectionManager selectionManager, GameClock gameClock,
-                                PriorityQueue<ScheduledEvent> eventQueue) {
+                                PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
         this.selectionManager = selectionManager;
         this.gameClock = gameClock;
         this.eventQueue = eventQueue;
+        this.gameCallbacks = gameCallbacks;
     }
     
     // ====================
@@ -313,18 +316,12 @@ public class CombatCommandProcessor {
             // Right click on unit - initiate combat
             for (Unit attackingUnit : selectionManager.getSelectedUnits()) {
                 if (!attackingUnit.character.isIncapacitated() && attackingUnit != clickedUnit) {
-                    // Check if this is melee or ranged combat
-                    double distance = Math.sqrt(Math.pow(attackingUnit.x - clickedUnit.x, 2) + 
-                                              Math.pow(attackingUnit.y - clickedUnit.y, 2));
-                    
-                    // Convert distance to feet for melee range check
-                    double distanceFeet = distance / 7.0;
-                    if (attackingUnit.character.meleeWeapon != null && 
-                        distanceFeet <= attackingUnit.character.meleeWeapon.getTotalReach()) {
-                        // Initiate melee combat
+                    // Check combat mode first, then distance for melee attacks
+                    if (attackingUnit.character.isMeleeCombatMode) {
+                        // Character is in melee mode - always initiate melee combat (will move if needed)
                         initiateMeleeCombat(attackingUnit, clickedUnit);
                     } else {
-                        // Initiate ranged combat
+                        // Character is in ranged mode - initiate ranged combat
                         initiateRangedCombat(attackingUnit, clickedUnit);
                     }
                 }
@@ -339,11 +336,11 @@ public class CombatCommandProcessor {
      * Initiates ranged combat between attacking unit and target.
      */
     private void initiateRangedCombat(Unit attackingUnit, Unit targetUnit) {
-        // Set target for attacking unit
-        attackingUnit.setTarget(targetUnit.x, targetUnit.y);
+        // Set combat target for attacking unit (do NOT set movement target for ranged attacks)
+        attackingUnit.setCombatTarget(targetUnit);
         
         // Schedule ranged attack using existing startAttackSequence method
-        attackingUnit.character.startAttackSequence(attackingUnit, targetUnit, gameClock.getCurrentTick(), eventQueue, attackingUnit.getId(), null);
+        attackingUnit.character.startAttackSequence(attackingUnit, targetUnit, gameClock.getCurrentTick(), eventQueue, attackingUnit.getId(), gameCallbacks);
         
         System.out.println("*** " + attackingUnit.character.getDisplayName() + 
                           " targeting " + targetUnit.character.getDisplayName() + " for ranged attack ***");

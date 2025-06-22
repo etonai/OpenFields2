@@ -165,9 +165,13 @@ public class DisplayCoordinator {
         
         System.out.println("--- WEAPONS ---");
         
-        // Display ranged weapon
-        if (unit.character.rangedWeapon != null) {
-            RangedWeapon ranged = unit.character.rangedWeapon;
+        // Display ranged weapon - check both rangedWeapon and legacy weapon fields
+        RangedWeapon ranged = unit.character.rangedWeapon;
+        if (ranged == null && unit.character.weapon instanceof RangedWeapon) {
+            ranged = (RangedWeapon) unit.character.weapon;
+        }
+        
+        if (ranged != null) {
             String activeMarker = !unit.character.isMeleeCombatMode ? " [ACTIVE]" : "";
             System.out.println("Ranged: " + ranged.getName() + " (" + ranged.getDamage() + " damage, " + 
                              ranged.getWeaponAccuracy() + " accuracy)" + activeMarker);
@@ -191,8 +195,7 @@ public class DisplayCoordinator {
         System.out.println("Current State: " + (unit.character.currentWeaponState != null ? unit.character.currentWeaponState.getState() : "None"));
         
         // Show additional details for the active weapon
-        if (!unit.character.isMeleeCombatMode && unit.character.rangedWeapon != null) {
-            RangedWeapon ranged = unit.character.rangedWeapon;
+        if (!unit.character.isMeleeCombatMode && ranged != null) {
             System.out.println("Active Details: Range " + ranged.getMaximumRange() + "ft, Velocity " + ranged.getVelocityFeetPerSecond() + "ft/s, Ammo " + ranged.getAmmunition() + "/" + ranged.getMaxAmmunition());
         } else if (unit.character.isMeleeCombatMode && unit.character.meleeWeapon != null) {
             MeleeWeapon melee = unit.character.meleeWeapon;

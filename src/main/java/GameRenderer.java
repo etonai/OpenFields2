@@ -198,6 +198,10 @@ public class GameRenderer {
         }
         
         // Check weapon state - only render for visible states
+        if (unit.character.currentWeaponState == null) {
+            System.err.println("Warning: Null weapon state for " + unit.character.getDisplayName() + " - skipping weapon render");
+            return;
+        }
         String weaponState = unit.character.currentWeaponState.getState();
         WeaponRenderState renderState = WeaponRenderState.fromWeaponState(weaponState);
         if (!renderState.isVisible()) {
