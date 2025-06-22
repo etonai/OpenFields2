@@ -53,7 +53,7 @@ DevCycle 15h implements a comprehensive file splitting strategy for InputManager
 - **Package Structure**: Established 6-tier input package hierarchy
 - **Backwards Compatibility**: All existing save files and component integrations preserved
 
-### 2. Workflow Controller Extraction ⭕ **IN PROGRESS** (Phase 2.1 Complete)
+### 2. Workflow Controller Extraction ⭕ **IN PROGRESS** (Phase 2.2 Complete)
 - [x] **2.1 Character Creation Controller**
   - [x] Create `CharacterCreationController.java` with batch creation workflows
   - [x] Extract character creation methods and state management (~291 lines)
@@ -63,13 +63,13 @@ DevCycle 15h implements a comprehensive file splitting strategy for InputManager
   - [x] Establish delegation pattern from InputManager to controller
   - [x] Test character creation workflows (Ctrl+C batch creation)
 
-- [ ] **2.2 Deployment Controller**
-  - [ ] Create `input/controllers/DeploymentController.java`
-  - [ ] Extract deployment workflow methods (~150-200 lines)
-  - [ ] Extract formation logic (line_right, line_down formations)
-  - [ ] Extract character deployment from faction files
-  - [ ] Maintain integration with EditModeManager
-  - [ ] Test deployment operations and formation placement
+- [x] **2.2 Deployment Controller**
+  - [x] Create `input/controllers/DeploymentController.java`
+  - [x] Extract deployment workflow methods (~150-200 lines)
+  - [x] Extract formation logic (line_right, line_down formations)
+  - [x] Extract character deployment from faction files
+  - [x] Maintain integration with EditModeManager
+  - [x] Test deployment operations and formation placement
 
 - [ ] **2.3 Victory Outcome Controller**
   - [ ] Create `input/controllers/VictoryOutcomeController.java`

@@ -73,6 +73,12 @@ public interface InputManagerCallbacks {
     /** Set edit mode state */
     void setEditMode(boolean editMode);
     
+    /** Get current character deployment state */
+    boolean isWaitingForCharacterDeployment();
+    
+    /** Set character deployment state */
+    void setWaitingForCharacterDeployment(boolean waiting);
+    
     /** Get next available unit ID for unit creation */
     int getNextUnitId();
     

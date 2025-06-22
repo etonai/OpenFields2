@@ -939,6 +939,16 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     }
     
     @Override
+    public boolean isWaitingForCharacterDeployment() {
+        return inputManager.getStateTracker().isWaitingForCharacterDeployment();
+    }
+    
+    @Override
+    public void setWaitingForCharacterDeployment(boolean waiting) {
+        inputManager.getStateTracker().setWaitingForCharacterDeployment(waiting);
+    }
+    
+    @Override
     public int getNextUnitId() {
         return nextUnitId;
     }
