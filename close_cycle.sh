@@ -61,7 +61,10 @@ show_usage() {
 
 # Function to check if we're in a git repository
 check_git_repo() {
-    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        # We are in a git repository
+        true
+    else
         print_error "Not in a git repository"
         exit 1
     fi
@@ -70,7 +73,10 @@ check_git_repo() {
 # Function to check if branch exists
 check_branch_exists() {
     local branch="$1"
-    if ! git show-ref --verify --quiet refs/heads/"$branch"; then
+    if git show-ref --verify --quiet refs/heads/"$branch"; then
+        # Branch exists
+        true
+    else
         print_error "Branch '$branch' does not exist"
         print_info "Available branches:"
         git branch -a
@@ -80,7 +86,10 @@ check_branch_exists() {
 
 # Function to check working directory is clean
 check_clean_working_dir() {
-    if ! git diff-index --quiet HEAD --; then
+    if git diff-index --quiet HEAD --; then
+        # Working directory is clean
+        true
+    else
         print_error "Working directory is not clean"
         print_info "Please commit or stash your changes before proceeding"
         git status --porcelain
@@ -116,14 +125,18 @@ prepare_main_branch() {
     
     # Switch to main branch
     print_info "Switching to main branch"
-    if ! git checkout main; then
+    if git checkout main; then
+        print_success "Switched to main branch"
+    else
         print_error "Failed to switch to main branch"
         exit 1
     fi
     
     # Pull latest changes
     print_info "Pulling latest changes from origin/main"
-    if ! git pull origin main; then
+    if git pull origin main; then
+        print_success "Pulled latest changes"
+    else
         print_warning "Failed to pull from origin/main (remote may not exist or be accessible)"
         print_info "Continuing with local main branch..."
     fi
@@ -153,14 +166,14 @@ merge_development_branch() {
     
     # Perform the merge
     print_info "Merging '$branch' into main"
-    if ! git merge "$branch" --no-edit; then
+    if git merge "$branch" --no-edit; then
+        print_success "Successfully merged '$branch' into main"
+    else
         print_error "Merge failed - you may need to resolve conflicts"
         print_info "To abort the merge: git merge --abort"
         print_info "To continue after resolving conflicts: git commit"
         exit 1
     fi
-    
-    print_success "Successfully merged '$branch' into main"
 }
 
 # Function to delete development branch
@@ -176,7 +189,9 @@ cleanup_development_branch() {
     
     # Delete local branch
     print_info "Deleting local branch '$branch'"
-    if ! git branch -d "$branch"; then
+    if git branch -d "$branch"; then
+        print_success "Deleted local branch '$branch'"
+    else
         print_warning "Failed to delete branch '$branch' - it may have unmerged changes"
         print_info "Use 'git branch -D $branch' to force delete if you're sure"
         read -p "Force delete the branch? (y/N): " -n 1 -r
@@ -187,17 +202,15 @@ cleanup_development_branch() {
         else
             print_warning "Local branch '$branch' was not deleted"
         fi
-    else
-        print_success "Deleted local branch '$branch'"
     fi
     
     # Check if remote branch exists and delete it
     if git show-ref --verify --quiet refs/remotes/origin/"$branch"; then
         print_info "Deleting remote branch 'origin/$branch'"
-        if ! git push origin --delete "$branch"; then
-            print_warning "Failed to delete remote branch (remote may not be accessible)"
-        else
+        if git push origin --delete "$branch"; then
             print_success "Deleted remote branch 'origin/$branch'"
+        else
+            print_warning "Failed to delete remote branch (remote may not be accessible)"
         fi
     else
         print_info "No remote branch 'origin/$branch' to delete"
@@ -214,11 +227,11 @@ push_to_remote() {
     fi
     
     print_info "Pushing main branch to origin"
-    if ! git push origin main; then
+    if git push origin main; then
+        print_success "Successfully pushed changes to origin/main"
+    else
         print_warning "Failed to push to origin/main (remote may not be accessible)"
         print_info "You can push manually later with: git push origin main"
-    else
-        print_success "Successfully pushed changes to origin/main"
     fi
 }
 
