@@ -199,6 +199,9 @@ public class InputManager {
     /** Handles character deployment workflows including faction selection and formation placement */
     private final input.controllers.DeploymentController deploymentController;
     
+    /** Handles victory outcome processing workflows including faction outcomes and scenario completion */
+    private final VictoryOutcomeController victoryOutcomeController;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -229,14 +232,6 @@ public class InputManager {
     // Complex state management for multi-step workflows
     
     // Manual Victory Workflow State
-    /** List of faction IDs participating in manual victory determination */
-    private java.util.List<Integer> scenarioFactions = new java.util.ArrayList<>();
-    
-    /** Map of faction ID to victory outcome for manual victory processing */
-    private java.util.Map<Integer, InputStates.VictoryOutcome> factionOutcomes = new java.util.HashMap<>();
-    
-    /** Current faction index being processed in manual victory workflow */
-    private int currentVictoryFactionIndex = 0;
     
     // New Scenario Creation State
     /** Name for new scenario being created */
@@ -365,6 +360,9 @@ public class InputManager {
         
         // DevCycle 15h: Initialize deployment controller
         this.deploymentController = new input.controllers.DeploymentController(callbacks, units);
+        
+        // DevCycle 15h: Initialize victory outcome controller
+        this.victoryOutcomeController = new VictoryOutcomeController(callbacks, units, selectionManager, eventQueue);
         
         // DevCycle 15e Phase 4: Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
@@ -1718,10 +1716,6 @@ public class InputManager {
      */
     private void promptForManualVictory() {
         // Identify factions in the current scenario
-        scenarioFactions.clear();
-        factionOutcomes.clear();
-        currentVictoryFactionIndex = 0;
-        
         java.util.Set<Integer> factionsInScenario = new java.util.HashSet<>();
         for (Unit unit : units) {
             factionsInScenario.add(unit.character.getFaction());
@@ -1733,13 +1727,13 @@ public class InputManager {
             return;
         }
         
-        scenarioFactions.addAll(factionsInScenario);
+        java.util.List<Integer> factionList = new java.util.ArrayList<>(factionsInScenario);
         
         System.out.println("***********************");
         System.out.println("*** MANUAL VICTORY SYSTEM ***");
-        System.out.println("Factions in current scenario: " + scenarioFactions.size());
+        System.out.println("Factions in current scenario: " + factionList.size());
         
-        for (Integer factionId : scenarioFactions) {
+        for (Integer factionId : factionList) {
             int characterCount = 0;
             for (Unit unit : units) {
                 if (unit.character.getFaction() == factionId) {
@@ -1753,267 +1747,39 @@ public class InputManager {
         System.out.println("You will now assign victory outcomes to each faction.");
         System.out.println("***********************");
         
-        // Start the outcome selection workflow
-        promptForNextFactionOutcome();
+        // DevCycle 15h: Delegate to VictoryOutcomeController
+        victoryOutcomeController.setScenarioFactions(factionList);
+        victoryOutcomeController.promptForNextFactionOutcome();
     }
     
     /**
      * Prompt for the next faction's victory outcome
      */
     private void promptForNextFactionOutcome() {
-        if (currentVictoryFactionIndex >= scenarioFactions.size()) {
-            // All factions processed, execute victory
-            executeManualVictory();
-            return;
-        }
-        
-        stateTracker.setWaitingForVictoryOutcome(true);
-        int currentFactionId = scenarioFactions.get(currentVictoryFactionIndex);
-        
-        System.out.println("***********************");
-        System.out.println("*** FACTION OUTCOME: " + getFactionName(currentFactionId + 1) + " ***");
-        
-        // Show characters in this faction
-        java.util.List<Unit> factionUnits = new java.util.ArrayList<>();
-        for (Unit unit : units) {
-            if (unit.character.getFaction() == currentFactionId) {
-                factionUnits.add(unit);
-            }
-        }
-        
-        System.out.println("Characters in faction (" + factionUnits.size() + " total):");
-        for (Unit unit : factionUnits) {
-            String status = unit.character.isIncapacitated() ? "INCAPACITATED" : "Active";
-            System.out.println("  " + unit.character.getDisplayName() + " (" + status + 
-                             ", Health: " + unit.character.currentHealth + "/" + unit.character.health + ")");
-        }
-        
-        System.out.println();
-        System.out.println("Select outcome for " + getFactionName(currentFactionId + 1) + ":");
-        System.out.println("1. Victory - Faction achieved victory");
-        System.out.println("2. Defeat - Faction was defeated");
-        System.out.println("3. Participant - Faction participated but neither won nor lost");
-        System.out.println("0. Cancel manual victory");
-        System.out.println();
-        System.out.println("Enter selection (1-3, 0 to cancel): ");
+        // DevCycle 15h: Delegate to VictoryOutcomeController
+        victoryOutcomeController.promptForNextFactionOutcome();
     }
     
     /**
-     * Handle input for victory outcome selection
+     * Handle input for victory outcome selection (DevCycle 15h: Delegated to VictoryOutcomeController)
      * 
      * @param outcomeNumber The number entered by the user
      */
     private void handleVictoryOutcomeInput(int outcomeNumber) {
-        if (outcomeNumber == 0) {
-            System.out.println("*** Manual victory cancelled ***");
-            cancelManualVictory();
-            return;
-        }
-        
-        if (outcomeNumber < 1 || outcomeNumber > 3) {
-            System.out.println("*** Invalid selection. Use 1-3 or 0 to cancel ***");
-            return;
-        }
-        
-        // Store the outcome for the current faction
-        int currentFactionId = scenarioFactions.get(currentVictoryFactionIndex);
-        InputStates.VictoryOutcome outcome;
-        
-        switch (outcomeNumber) {
-            case 1: outcome = InputStates.VictoryOutcome.VICTORY; break;
-            case 2: outcome = InputStates.VictoryOutcome.DEFEAT; break;
-            case 3: outcome = InputStates.VictoryOutcome.PARTICIPANT; break;
-            default: return; // Should never happen
-        }
-        
-        factionOutcomes.put(currentFactionId, outcome);
-        
-        String outcomeName = getOutcomeName(outcome);
-        System.out.println("*** " + getFactionName(currentFactionId + 1) + " outcome set to: " + outcomeName + " ***");
-        
-        // Move to next faction
-        currentVictoryFactionIndex++;
-        stateTracker.setWaitingForVictoryOutcome(false);
-        
-        // Continue with next faction or execute victory
-        promptForNextFactionOutcome();
+        victoryOutcomeController.handleVictoryOutcomeInput(outcomeNumber);
     }
     
-    /**
-     * Execute the manual victory and update all faction and character data
-     */
-    private void executeManualVictory() {
-        System.out.println("***********************");
-        System.out.println("*** EXECUTING MANUAL VICTORY ***");
-        System.out.println("Processing outcomes for " + scenarioFactions.size() + " factions...");
-        
-        try {
-            data.CharacterPersistenceManager persistenceManager = data.CharacterPersistenceManager.getInstance();
-            data.FactionRegistry factionRegistry = data.FactionRegistry.getInstance();
-            
-            // Update faction statistics and character outcomes
-            for (Integer factionId : scenarioFactions) {
-                InputStates.VictoryOutcome outcome = factionOutcomes.get(factionId);
-                String outcomeName = getOutcomeName(outcome);
-                
-                System.out.println("Processing " + getFactionName(factionId + 1) + " (" + outcomeName + ")...");
-                
-                // Update faction statistics
-                try {
-                    data.Faction faction = factionRegistry.getFaction(factionId);
-                    if (faction != null) {
-                        switch (outcome) {
-                            case VICTORY:
-                                faction.incrementVictories();
-                                break;
-                            case DEFEAT:
-                                faction.incrementDefeats();
-                                break;
-                            case PARTICIPANT:
-                                faction.incrementParticipations();
-                                break;
-                        }
-                        factionRegistry.saveFactionFile(faction);
-                    }
-                } catch (Exception e) {
-                    System.err.println("  Failed to update faction statistics: " + e.getMessage());
-                }
-                
-                // Update character statistics for all characters in this faction in the scenario
-                java.util.List<Unit> factionUnits = new java.util.ArrayList<>();
-                for (Unit unit : units) {
-                    if (unit.character.getFaction() == factionId) {
-                        factionUnits.add(unit);
-                    }
-                }
-                
-                for (Unit unit : factionUnits) {
-                    try {
-                        combat.Character character = unit.character;
-                        
-                        // Update battle participation
-                        character.battlesParticipated++;
-                        
-                        // Update victory/defeat counts based on faction outcome
-                        switch (outcome) {
-                            case VICTORY:
-                                character.victories++;
-                                break;
-                            case DEFEAT:
-                                character.defeats++;
-                                break;
-                            case PARTICIPANT:
-                                // No additional stat changes for participants
-                                break;
-                        }
-                        
-                        // Save character data back to faction file
-                        persistenceManager.saveCharacter(character);
-                        
-                        System.out.println("  Updated: " + character.getDisplayName() + 
-                                         " (Battles: " + character.battlesParticipated + 
-                                         ", Victories: " + character.victories + 
-                                         ", Defeats: " + character.defeats + ")");
-                        
-                    } catch (Exception e) {
-                        System.err.println("  Failed to update character " + unit.character.getDisplayName() + ": " + e.getMessage());
-                    }
-                }
-            }
-            
-            System.out.println("*** VICTORY PROCESSING COMPLETE ***");
-            
-            // Display summary
-            displayVictorySummary();
-            
-            // End scenario
-            endScenario();
-            
-        } catch (Exception e) {
-            System.err.println("*** Error during victory processing: " + e.getMessage() + " ***");
-            cancelManualVictory();
-        }
-    }
     
-    /**
-     * Display victory summary
-     */
-    private void displayVictorySummary() {
-        System.out.println("***********************");
-        System.out.println("*** BATTLE SUMMARY ***");
-        
-        for (Integer factionId : scenarioFactions) {
-            InputStates.VictoryOutcome outcome = factionOutcomes.get(factionId);
-            String outcomeName = getOutcomeName(outcome);
-            
-            int characterCount = 0;
-            int incapacitatedCount = 0;
-            for (Unit unit : units) {
-                if (unit.character.getFaction() == factionId) {
-                    characterCount++;
-                    if (unit.character.isIncapacitated()) {
-                        incapacitatedCount++;
-                    }
-                }
-            }
-            
-            System.out.println(getFactionName(factionId + 1) + ": " + outcomeName);
-            System.out.println("  Characters: " + characterCount + " total, " + 
-                             incapacitatedCount + " incapacitated, " + 
-                             (characterCount - incapacitatedCount) + " active");
-        }
-        
-        System.out.println("***********************");
-    }
     
-    /**
-     * End the current scenario after victory processing
-     */
-    private void endScenario() {
-        System.out.println("***********************");
-        System.out.println("*** SCENARIO ENDED ***");
-        System.out.println("All units cleared from battlefield.");
-        System.out.println("Character and faction data saved to files.");
-        System.out.println("Ready for new scenario or character operations.");
-        System.out.println("***********************");
-        
-        // Clear all units from the scenario
-        units.clear();
-        
-        // Clear any selections
-        selectionManager.clearSelection();
-        
-        // Clear event queue
-        eventQueue.clear();
-        
-        // Reset victory state
-        cancelManualVictory();
-    }
     
     /**
      * Cancel manual victory and reset state
      */
     private void cancelManualVictory() {
-        stateTracker.setWaitingForVictoryOutcome(false);
-        scenarioFactions.clear();
-        factionOutcomes.clear();
-        currentVictoryFactionIndex = 0;
+        // DevCycle 15h: Delegate to VictoryOutcomeController
+        victoryOutcomeController.cancelManualVictory();
     }
     
-    /**
-     * Get display name for victory outcome
-     * 
-     * @param outcome The victory outcome
-     * @return The display name
-     */
-    private String getOutcomeName(InputStates.VictoryOutcome outcome) {
-        switch (outcome) {
-            case VICTORY: return "VICTORY";
-            case DEFEAT: return "DEFEAT";
-            case PARTICIPANT: return "PARTICIPANT";
-            default: return "UNKNOWN";
-        }
-    }
     
     /**
      * Start the new scenario workflow
