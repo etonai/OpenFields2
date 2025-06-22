@@ -202,6 +202,12 @@ public class InputManager {
     /** Handles victory outcome processing workflows including faction outcomes and scenario completion */
     private final VictoryOutcomeController victoryOutcomeController;
     
+    /** Handles mouse input events including selection, movement, and combat targeting */
+    private final MouseInputHandler mouseInputHandler;
+    
+    /** Handles keyboard input events including controls, shortcuts, and workflow navigation */
+    private final KeyboardInputHandler keyboardInputHandler;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -363,6 +369,14 @@ public class InputManager {
         
         // DevCycle 15h: Initialize victory outcome controller
         this.victoryOutcomeController = new VictoryOutcomeController(callbacks, units, selectionManager, eventQueue);
+        
+        // DevCycle 15h: Initialize input handlers
+        this.mouseInputHandler = new MouseInputHandler(units, selectionManager, gameRenderer, 
+                                     displayCoordinator, eventRouter, editModeManager, combatCommandProcessor, 
+                                     gameClock, eventQueue, callbacks);
+        this.keyboardInputHandler = new KeyboardInputHandler(units, selectionManager, gameRenderer,
+                                        displayCoordinator, editModeManager, combatCommandProcessor, gameClock,
+                                        gameStateManager, characterCreationController, stateTracker, callbacks);
         
         // DevCycle 15e Phase 4: Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
@@ -585,9 +599,9 @@ public class InputManager {
      * - onMouseReleased: Completes selection operations and finalizes commands
      */
     private void setupMouseHandlers() {
-        canvas.setOnMousePressed(this::handleMousePressed);
-        canvas.setOnMouseDragged(this::handleMouseDragged);
-        canvas.setOnMouseReleased(this::handleMouseReleased);
+        canvas.setOnMousePressed(mouseInputHandler::handleMousePressed);
+        canvas.setOnMouseDragged(mouseInputHandler::handleMouseDragged);
+        canvas.setOnMouseReleased(mouseInputHandler::handleMouseReleased);
     }
     
     /**
@@ -600,7 +614,7 @@ public class InputManager {
      * @param scene JavaFX Scene to attach keyboard handlers to
      */
     private void setupKeyboardHandlers(Scene scene) {
-        scene.setOnKeyPressed(this::handleKeyPressed);
+        scene.setOnKeyPressed(keyboardInputHandler::handleKeyPressed);
     }
     
     // ═══════════════════════════════════════════════════════════════════════════════════
