@@ -30,7 +30,7 @@
 ```bash
 # Move all DevCycle files to completed folder (replace 13 with actual cycle number)
 cd plans
-./move_cycle_to_completed.sh 13
+./move_cycle_to_completed.sh.old 13
 ```
 
 ### 3. Commit Closure Changes
@@ -43,7 +43,7 @@ git commit -m "DC-13: Close DevCycle 13 - [brief summary of cycle]"
 ### 4. Merge Branch and Push
 ```bash
 # Merge development branch into main and push (replace DC_13 with actual branch name)
-./merge_and_push.sh DC_13
+./merge_and_push.sh.old DC_13
 ```
 
 ### 5. Final Verification
@@ -113,10 +113,10 @@ mvn javafx:run
 ```bash
 # Streamlined DevCycle Closure Workflow
 cd plans                                      # Navigate to plans directory
-./move_cycle_to_completed.sh 13              # Move all cycle files to completed
+./move_cycle_to_completed.sh.old 13              # Move all cycle files to completed
 git add -A                                    # Stage all changes
 git commit -m "DC-13: Close DevCycle 13 - [summary]"  # Commit closure
-./merge_and_push.sh DC_13                     # Merge branch and push to main
+./merge_and_push.sh.old DC_13                     # Merge branch and push to main
 mvn compile                                   # Verify build
 mvn javafx:run                                # Verify application starts
 ```

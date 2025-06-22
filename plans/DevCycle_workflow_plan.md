@@ -88,8 +88,27 @@ Each development cycle follows a structured approach from initial brainstorming 
 
 **Process:**
 1. **Final Satisfaction Check**: Confirm all systems working and bugs addressed
-2. **Document Archival**: Move all cycle documents to `completed/` directory
+2. **Document Archival**: Use the `archive_cycle.sh` script to move all cycle documents to `completed/` directory
+   ```bash
+   # Preview what will be archived (recommended first step)
+   bash archive_cycle.sh <cycle_number> --dry-run
+   
+   # Archive the documents
+   bash archive_cycle.sh <cycle_number>
+   
+   # Example for DevCycle 15:
+   bash archive_cycle.sh 15
+   ```
+   - Script automatically finds all documents matching `DevCycle_2025_####*.md` pattern
+   - Handles main cycle documents, subcycles (15a, 15b, etc.), and brainstorm documents
+   - Creates `completed/` directory if it doesn't exist
+   - Provides confirmation prompt and detailed output
+   - Skips files already in `completed/` directory
 3. **Final Commit**: Commit document moves and any final changes
+   ```bash
+   git add completed/ plans/
+   git commit -m "Archive DevCycle ## documents"
+   ```
 4. **Branch Merge**: Merge development branch to main branch
 5. **Branch Cleanup**: Delete development branch
 6. **Next Cycle Prep**: Ready for next development cycle
@@ -198,6 +217,39 @@ Delete DC_## branch
 - **Scope Control**: Prevents feature creep during implementation
 - **Quality Control**: Review process catches issues before they're locked in
 - **Bug Management**: Systematic approach to bug resolution
+
+## **Workflow Automation Tools**
+
+### **Document Archival Script**
+
+The project includes `archive_cycle.sh` to automate the document archival process in Phase 6.
+
+**Script Features:**
+- **Smart Pattern Matching**: Automatically finds all documents for a given cycle (main, subcycles, brainstorms)
+- **Flexible Numbering**: Handles cycle numbers 1-9999 with proper 4-digit formatting
+- **Safety Features**: Dry-run mode, user confirmation, prevents overwrites
+- **Error Handling**: Validates inputs, provides helpful feedback
+- **Next Steps Guidance**: Shows git commands needed after archival
+
+**Usage Examples:**
+```bash
+# Preview what would be archived
+bash archive_cycle.sh 15 --dry-run
+
+# Archive DevCycle 15 documents
+bash archive_cycle.sh 15
+
+# View help and options
+bash archive_cycle.sh --help
+```
+
+**File Pattern Recognition:**
+- `DevCycle_2025_####.md` - Main planning documents
+- `DevCycle_2025_####[a-z].md` - Subcycle documents (15a, 15b, etc.)
+- `DevCycle_2025_####*_brainstorm.md` - Brainstorm documents
+- `DevCycle_2025_####*_bugs_*.md` - Bug fix documents
+
+The script ensures consistent and reliable archival while reducing manual effort and potential errors.
 
 ## **Adaptation Notes**
 

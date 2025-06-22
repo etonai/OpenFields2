@@ -3,9 +3,9 @@
 DevCycle File Mover Script
 
 Moves all files matching the DevCycle_2025_NNNN* pattern to the completed folder.
-Usage: python move_cycle_to_completed.py <cycle_number>
+Usage: python move_cycle_to_completed.py.old <cycle_number>
 
-Example: python move_cycle_to_completed.py 13
+Example: python move_cycle_to_completed.py.old 13
 This will move:
 - DevCycle_2025_0013.md
 - DevCycle_2025_0013_brainstorm.md  
@@ -75,8 +75,8 @@ def move_cycle_files(cycle_number):
 def main():
     """Main function to handle command line arguments and execute the move."""
     if len(sys.argv) != 2:
-        print("Usage: python move_cycle_to_completed.py <cycle_number>")
-        print("Example: python move_cycle_to_completed.py 13")
+        print("Usage: python move_cycle_to_completed.py.old <cycle_number>")
+        print("Example: python move_cycle_to_completed.py.old 13")
         sys.exit(1)
     
     try:
