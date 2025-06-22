@@ -208,6 +208,12 @@ public class InputManager {
     /** Handles keyboard input events including controls, shortcuts, and workflow navigation */
     private final KeyboardInputHandler keyboardInputHandler;
     
+    /** Handles camera controls including navigation, zoom, and coordinate conversion */
+    private final CameraController cameraController;
+    
+    /** Handles unit movement controls including speed adjustment and movement commands */
+    private final MovementController movementController;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -370,13 +376,19 @@ public class InputManager {
         // DevCycle 15h: Initialize victory outcome controller
         this.victoryOutcomeController = new VictoryOutcomeController(callbacks, units, selectionManager, eventQueue);
         
+        // DevCycle 15h Phase 4: Initialize navigation and movement controllers
+        this.cameraController = new CameraController(gameRenderer, displayCoordinator, canvas);
+        this.movementController = new MovementController(units, selectionManager, displayCoordinator, callbacks);
+        
         // DevCycle 15h: Initialize input handlers
         this.mouseInputHandler = new MouseInputHandler(units, selectionManager, gameRenderer, 
                                      displayCoordinator, eventRouter, editModeManager, combatCommandProcessor, 
-                                     gameClock, eventQueue, callbacks);
+                                     gameClock, eventQueue, callbacks, movementController);
+        
         this.keyboardInputHandler = new KeyboardInputHandler(units, selectionManager, gameRenderer,
                                         displayCoordinator, editModeManager, combatCommandProcessor, gameClock,
-                                        gameStateManager, characterCreationController, stateTracker, callbacks);
+                                        gameStateManager, characterCreationController, stateTracker, 
+                                        cameraController, movementController, callbacks);
         
         // DevCycle 15e Phase 4: Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {

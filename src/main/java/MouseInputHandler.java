@@ -61,6 +61,9 @@ public class MouseInputHandler {
     /** Callback interface for main game operations */
     private final InputManagerCallbacks callbacks;
     
+    /** Movement controller for unit movement operations */
+    private final MovementController movementController;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // Constructor
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -78,13 +81,14 @@ public class MouseInputHandler {
      * @param gameClock Game clock for timing
      * @param eventQueue Event queue for scheduling
      * @param callbacks Callback interface for main game operations
+     * @param movementController Movement controller for unit movement operations
      */
     public MouseInputHandler(List<Unit> units, SelectionManager selectionManager,
                            GameRenderer gameRenderer, DisplayCoordinator displayCoordinator,
                            InputEventRouter eventRouter, EditModeManager editModeManager,
                            CombatCommandProcessor combatCommandProcessor, GameClock gameClock,
                            java.util.PriorityQueue<game.ScheduledEvent> eventQueue,
-                           InputManagerCallbacks callbacks) {
+                           InputManagerCallbacks callbacks, MovementController movementController) {
         this.units = units;
         this.selectionManager = selectionManager;
         this.gameRenderer = gameRenderer;
@@ -95,6 +99,7 @@ public class MouseInputHandler {
         this.gameClock = gameClock;
         this.eventQueue = eventQueue;
         this.callbacks = callbacks;
+        this.movementController = movementController;
     }
     
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -375,72 +380,14 @@ public class MouseInputHandler {
     
     /**
      * Handle right-click on empty space (movement commands).
+     * Delegates to MovementController for all movement operations.
      * 
      * @param x World x coordinate of click
      * @param y World y coordinate of click
      */
     private void handleRightClickOnEmptySpace(double x, double y) {
-        if (!selectionManager.hasSelection()) return;
-        
-        if (callbacks.isEditMode()) {
-            handleEditModeMovement(x, y);
-        } else {
-            handleNormalMovement(x, y);
-        }
-    }
-    
-    /**
-     * Handle movement in edit mode (instant teleport).
-     * 
-     * @param x World x coordinate of destination
-     * @param y World y coordinate of destination
-     */
-    private void handleEditModeMovement(double x, double y) {
-        // Instant teleport in edit mode
-        // Recalculate selection center to account for unit movement
-        selectionManager.calculateSelectionCenter();
-        for (Unit unit : selectionManager.getSelectedUnits()) {
-            double deltaX = x - selectionManager.getSelectionCenterX();
-            double deltaY = y - selectionManager.getSelectionCenterY();
-            unit.x = unit.x + deltaX;
-            unit.y = unit.y + deltaY;
-            unit.targetX = unit.x;
-            unit.targetY = unit.y;
-            unit.hasTarget = false;
-            unit.isStopped = false;
-        }
-        // Delegate unit movement display to DisplayCoordinator
-        displayCoordinator.displayUnitMovement(selectionManager.getSelectionCount(), x, y, true);
-    }
-    
-    /**
-     * Handle movement in normal mode (with movement rules).
-     * 
-     * @param x World x coordinate of destination
-     * @param y World y coordinate of destination
-     */
-    private void handleNormalMovement(double x, double y) {
-        // Normal movement with movement rules - relative to selection center
-        // Recalculate selection center to account for unit movement
-        selectionManager.calculateSelectionCenter();
-        double deltaX = x - selectionManager.getSelectionCenterX();
-        double deltaY = y - selectionManager.getSelectionCenterY();
-        
-        for (Unit unit : selectionManager.getSelectedUnits()) {
-            if (!unit.character.isIncapacitated()) {
-                // Cancel any ongoing melee movement when new movement command is given
-                if (unit.character.isMovingToMelee) {
-                    unit.character.isMovingToMelee = false;
-                    unit.character.meleeTarget = null;
-                }
-                
-                double newTargetX = unit.x + deltaX;
-                double newTargetY = unit.y + deltaY;
-                unit.setTarget(newTargetX, newTargetY);
-            }
-        }
-        // Delegate unit movement display to DisplayCoordinator
-        displayCoordinator.displayUnitMovement(selectionManager.getSelectionCount(), x, y, false);
+        // Delegate all movement commands to MovementController
+        movementController.handleMovementCommand(x, y);
     }
     
     // ─────────────────────────────────────────────────────────────────────────────────

@@ -68,6 +68,12 @@ public class KeyboardInputHandler {
     /** State tracker for workflow state management */
     private final InputStateTracker stateTracker;
     
+    /** Camera controller for camera operations */
+    private final CameraController cameraController;
+    
+    /** Movement controller for unit movement operations */
+    private final MovementController movementController;
+    
     /** Callback interface for main game operations */
     private final InputManagerCallbacks callbacks;
     
@@ -91,6 +97,8 @@ public class KeyboardInputHandler {
      * @param gameStateManager Game state manager for save/load operations
      * @param characterCreationController Character creation controller
      * @param stateTracker State tracker for workflow management
+     * @param cameraController Camera controller for camera operations
+     * @param movementController Movement controller for unit movement operations
      * @param callbacks Callback interface for main game operations
      */
     public KeyboardInputHandler(List<Unit> units, SelectionManager selectionManager,
@@ -98,7 +106,8 @@ public class KeyboardInputHandler {
                               EditModeManager editModeManager, CombatCommandProcessor combatCommandProcessor,
                               GameClock gameClock, GameStateManager gameStateManager,
                               CharacterCreationController characterCreationController,
-                              InputStateTracker stateTracker, InputManagerCallbacks callbacks) {
+                              InputStateTracker stateTracker, CameraController cameraController,
+                              MovementController movementController, InputManagerCallbacks callbacks) {
         this.units = units;
         this.selectionManager = selectionManager;
         this.gameRenderer = gameRenderer;
@@ -109,6 +118,8 @@ public class KeyboardInputHandler {
         this.gameStateManager = gameStateManager;
         this.characterCreationController = characterCreationController;
         this.stateTracker = stateTracker;
+        this.cameraController = cameraController;
+        this.movementController = movementController;
         this.callbacks = callbacks;
     }
     
@@ -183,34 +194,13 @@ public class KeyboardInputHandler {
     
     /**
      * Handle camera control keys (arrow keys, zoom).
+     * Delegates to CameraController for all camera operations.
      * 
      * @param e KeyEvent
      */
     private void handleCameraControls(KeyEvent e) {
-        if (e.getCode() == KeyCode.UP) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan up");
-            gameRenderer.adjustOffset(0, 20);
-        }
-        if (e.getCode() == KeyCode.DOWN) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan down");
-            gameRenderer.adjustOffset(0, -20);
-        }
-        if (e.getCode() == KeyCode.LEFT) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan left");
-            gameRenderer.adjustOffset(20, 0);
-        }
-        if (e.getCode() == KeyCode.RIGHT) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan right");
-            gameRenderer.adjustOffset(-20, 0);
-        }
-        if (e.getCode() == KeyCode.EQUALS || e.getCode() == KeyCode.PLUS) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Zoom in");
-            gameRenderer.adjustZoom(1.1);
-        }
-        if (e.getCode() == KeyCode.MINUS) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Zoom out");
-            gameRenderer.adjustZoom(1.0 / 1.1);
-        }
+        // Delegate all camera controls to CameraController
+        cameraController.handleCameraControls(e);
     }
     
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -373,58 +363,13 @@ public class KeyboardInputHandler {
     
     /**
      * Handle movement controls (W/S keys).
+     * Delegates to MovementController for all movement speed operations.
      * 
      * @param e KeyEvent
      */
     private void handleMovementControls(KeyEvent e) {
-        // Movement type controls - W to increase, S to decrease
-        if (e.getCode() == KeyCode.W && selectionManager.hasSelection()) {
-            for (Unit unit : selectionManager.getSelectedUnits()) {
-                if (!unit.character.isIncapacitated()) {
-                    combat.MovementType previousType = unit.character.getCurrentMovementType();
-                    unit.character.increaseMovementType();
-                    combat.MovementType newType = unit.character.getCurrentMovementType();
-                    
-                    // Resume movement if stopped and speed was increased
-                    if (unit.isStopped) {
-                        unit.resumeMovement();
-                    }
-                }
-            }
-            
-            if (selectionManager.getSelectionCount() == 1) {
-                Unit unit = selectionManager.getSelected();
-                combat.MovementType newType = unit.character.getCurrentMovementType();
-                // Delegate movement status display to DisplayCoordinator
-                displayCoordinator.displayMovementTypeChange(unit, newType);
-            } else {
-                System.out.println("*** " + selectionManager.getSelectionCount() + " units movement speed increased");
-            }
-        }
-        if (e.getCode() == KeyCode.S && selectionManager.hasSelection()) {
-            for (Unit unit : selectionManager.getSelectedUnits()) {
-                if (!unit.character.isIncapacitated()) {
-                    combat.MovementType previousType = unit.character.getCurrentMovementType();
-                    
-                    // If already at crawling speed and currently moving, stop movement
-                    if (previousType == combat.MovementType.CRAWL && unit.isMoving()) {
-                        unit.stopMovement();
-                    } else {
-                        // Otherwise, decrease movement type normally
-                        unit.character.decreaseMovementType();
-                    }
-                }
-            }
-            
-            if (selectionManager.getSelectionCount() == 1) {
-                Unit unit = selectionManager.getSelected();
-                combat.MovementType newType = unit.character.getCurrentMovementType();
-                // Delegate movement status display to DisplayCoordinator
-                displayCoordinator.displayMovementTypeChange(unit, newType);
-            } else {
-                System.out.println("*** " + selectionManager.getSelectionCount() + " units movement speed decreased");
-            }
-        }
+        // Delegate all movement controls to MovementController
+        movementController.handleMovementControls(e);
     }
     
     /**
