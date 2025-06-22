@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import combat.*;
 import game.*;
+import input.interfaces.InputManagerCallbacks;
 
 /**
  * DisplayCoordinator handles all input-related display management, feedback coordination, and UI state.
@@ -42,7 +43,7 @@ public class DisplayCoordinator {
     
     private final SelectionManager selectionManager;
     private final GameClock gameClock;
-    private final InputManager.InputManagerCallbacks callbacks;
+    private final InputManagerCallbacks callbacks;
     
     // ====================
     // DEBUG CONFIGURATION
@@ -89,7 +90,7 @@ public class DisplayCoordinator {
      * Creates a new DisplayCoordinator with required dependencies.
      */
     public DisplayCoordinator(SelectionManager selectionManager, GameClock gameClock,
-                            InputManager.InputManagerCallbacks callbacks) {
+                            InputManagerCallbacks callbacks) {
         this.selectionManager = selectionManager;
         this.gameClock = gameClock;
         this.callbacks = callbacks;

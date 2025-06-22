@@ -24,6 +24,8 @@ import game.*;
 import data.SkillsManager;
 import data.SaveGameManager;
 import data.UniversalCharacterRegistry;
+import input.interfaces.InputManagerCallbacks;
+import input.states.InputStates;
 
 // DevCycle 15e Phase 4: Utility imports removed - functionality delegated to components
 
@@ -225,7 +227,7 @@ public class InputManager {
     private java.util.List<Integer> scenarioFactions = new java.util.ArrayList<>();
     
     /** Map of faction ID to victory outcome for manual victory processing */
-    private java.util.Map<Integer, VictoryOutcome> factionOutcomes = new java.util.HashMap<>();
+    private java.util.Map<Integer, InputStates.VictoryOutcome> factionOutcomes = new java.util.HashMap<>();
     
     /** Current faction index being processed in manual victory workflow */
     private int currentVictoryFactionIndex = 0;
@@ -248,7 +250,7 @@ public class InputManager {
     private int batchFaction = 0;
     
     /** Current step in batch creation workflow */
-    private BatchCreationStep batchCreationStep = BatchCreationStep.QUANTITY;
+    private InputStates.BatchCreationStep batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
     
     // Individual Character Creation Workflow State
     /** Selected archetype name for individual character creation */
@@ -279,7 +281,7 @@ public class InputManager {
     private int deploymentSpacing = 35;
     
     /** Current step in deployment workflow */
-    private DeploymentStep deploymentStep = DeploymentStep.FACTION;
+    private InputStates.DeploymentStep deploymentStep = InputStates.DeploymentStep.FACTION;
     
     /** List of characters prepared for deployment */
     private java.util.List<combat.Character> deploymentCharacters = new java.util.ArrayList<>();
@@ -295,171 +297,16 @@ public class InputManager {
     private double directAdditionSpacing = 5.0;
     
     /** Current step in direct addition workflow */
-    private DirectAdditionStep directAdditionStep = DirectAdditionStep.FACTION;
+    private InputStates.DirectAdditionStep directAdditionStep = InputStates.DirectAdditionStep.FACTION;
     
     // ═══════════════════════════════════════════════════════════════════════════════════
     // SECTION 2: INNER CLASSES AND ENUMS
     // ═══════════════════════════════════════════════════════════════════════════════════
     
     // ─────────────────────────────────────────────────────────────────────────────────
-    // 2.1 Workflow State Enums
+    // 2.1 Workflow State Management (DevCycle 15h: Moved to InputStates)
     // ─────────────────────────────────────────────────────────────────────────────────
-    // State machine enums for managing complex multi-step workflows
-    
-    /**
-     * Steps in the batch character creation workflow.
-     * This workflow allows creating multiple characters of the same archetype at once.
-     */
-    private enum BatchCreationStep {
-        /** Prompting user to enter number of characters to create (1-20) */
-        QUANTITY,
-        
-        /** Prompting user to select character archetype from available options */
-        ARCHETYPE,
-        
-        /** Prompting user to select faction assignment for created characters */
-        FACTION
-    }
-    
-    /**
-     * Steps in the character deployment workflow.
-     * This workflow deploys pre-created characters from faction files to the battlefield.
-     */
-    private enum DeploymentStep {
-        /** Prompting user to select faction for character deployment */
-        FACTION,
-        
-        /** Prompting user to specify number of characters to deploy */
-        QUANTITY,
-        
-        /** Prompting user to select weapon configuration for deployed characters */
-        WEAPON,
-        
-        /** Prompting user to select formation type (line, column, etc.) */
-        FORMATION,
-        
-        /** Prompting user to specify spacing between characters */
-        SPACING,
-        
-        /** Waiting for mouse click to place characters on battlefield */
-        PLACEMENT
-    }
-    
-    /**
-     * Steps in the direct character addition workflow (CTRL-A functionality).
-     * This workflow adds existing characters directly from faction files.
-     */
-    private enum DirectAdditionStep {
-        /** Prompting user to select faction for character addition */
-        FACTION,
-        
-        /** Prompting user to specify number of characters to add (1-20) */
-        QUANTITY,
-        
-        /** Prompting user to specify spacing between characters (1-9 feet) */
-        SPACING,
-        
-        /** Waiting for mouse click to place characters in line formation */
-        PLACEMENT
-    }
-    
-    /**
-     * Victory outcome options for factions in manual victory determination.
-     * Used when manually ending scenarios to record faction performance.
-     */
-    private enum VictoryOutcome {
-        /** Faction achieved complete victory in the scenario */
-        VICTORY,
-        
-        /** Faction was defeated or destroyed */
-        DEFEAT,
-        
-        /** Faction participated but neither won nor lost definitively */
-        PARTICIPANT
-    }
-    
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // 2.2 Data Transfer Objects
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // Helper classes for organizing and transferring complex data
-    
-    /**
-     * Data transfer object holding faction character information for deployment operations.
-     * Provides organized access to faction character data including availability counts.
-     */
-    private static class FactionCharacterInfo {
-        /** Display name of the faction */
-        String factionName;
-        
-        /** Total number of characters defined for this faction */
-        int totalCharacters;
-        
-        /** Number of characters available for deployment (not already deployed/incapacitated) */
-        int availableCount;
-        
-        /** List of available characters ready for deployment */
-        List<combat.Character> availableCharacters;
-        
-        /**
-         * Constructor for faction character information.
-         * 
-         * @param factionName Display name of the faction
-         * @param totalCharacters Total characters defined for faction
-         * @param availableCount Characters available for deployment
-         * @param availableCharacters List of deployable characters
-         */
-        FactionCharacterInfo(String factionName, int totalCharacters, int availableCount, List<combat.Character> availableCharacters) {
-            this.factionName = factionName;
-            this.totalCharacters = totalCharacters;
-            this.availableCount = availableCount;
-            this.availableCharacters = availableCharacters;
-        }
-    }
-    
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // 2.3 JSON Deserialization Support
-    // ─────────────────────────────────────────────────────────────────────────────────
-    // Static configuration for handling faction character file loading
-    
-    /** Jackson ObjectMapper configured for safe faction character deserialization */
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    
-    static {
-        // Configure ObjectMapper to handle deserialization issues gracefully
-        // These settings prevent crashes when loading faction files with missing or extra fields
-        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false);
-        
-        // Add mixin to ignore problematic runtime fields during deserialization
-        objectMapper.addMixIn(combat.Character.class, CharacterMixin.class);
-    }
-    
-    /**
-     * Jackson mixin class to control Character deserialization from faction JSON files.
-     * This prevents deserialization failures on runtime-only fields that shouldn't be persisted.
-     */
-    public static abstract class CharacterMixin {
-        /** Ignore target zone (runtime-only AWT Rectangle) */
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public java.awt.Rectangle targetZone;
-        
-        /** Ignore current target reference (runtime-only Unit reference) */
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public Unit currentTarget;
-        
-        /** Ignore melee target reference (runtime-only Unit reference) */
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public Unit meleeTarget;
-        
-        /** Ignore weapon state (runtime-only state machine reference) */
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public WeaponState currentWeaponState;
-        
-        /** Ignore paused events (runtime-only event queue) */
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        public List<ScheduledEvent> pausedEvents;
-    }
+    // State machine enums and data objects moved to input.states.InputStates
     
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.5 Additional State Variables
@@ -490,101 +337,6 @@ public class InputManager {
     
     // DevCycle 15e Phase 4: Debug functionality moved to DisplayCoordinator
     
-    /**
-     * Callback interface for operations that require access to main game functionality.
-     * 
-     * InputManager uses this interface to delegate operations that require access to
-     * methods or state not directly available within the InputManager scope. This design
-     * maintains separation of concerns while enabling InputManager to coordinate complex
-     * operations that span multiple game subsystems.
-     * 
-     * The interface is organized into functional groups for different types of operations.
-     */
-    public interface InputManagerCallbacks {
-        
-        // ─────────────────────────────────────────────────────────────────────────────────
-        // Save/Load Operations
-        // ─────────────────────────────────────────────────────────────────────────────────
-        
-        /** Initiate save operation to specified slot number (1-9) */
-        void saveGameToSlot(int slot);
-        
-        /** Initiate load operation from specified slot number (1-9) */
-        void loadGameFromSlot(int slot);
-        
-        /** Display save slot selection prompt to user */
-        void promptForSaveSlot();
-        
-        /** Display load slot selection prompt to user */
-        void promptForLoadSlot();
-        
-        // ─────────────────────────────────────────────────────────────────────────────────
-        // Character/Weapon/Faction Management
-        // ─────────────────────────────────────────────────────────────────────────────────
-        
-        /** Display character creation archetype selection prompt */
-        void promptForCharacterCreation();
-        
-        /** Display weapon assignment selection prompt */
-        void promptForWeaponSelection();
-        
-        /** Display faction assignment selection prompt */
-        void promptForFactionSelection();
-        
-        /** Create new character from selected archetype index */
-        void createCharacterFromArchetype(int archetypeIndex);
-        
-        /** Assign weapon by index to currently selected units */
-        void assignWeaponToSelectedUnits(int weaponIndex);
-        
-        /** Assign faction number to currently selected units */
-        void assignFactionToSelectedUnits(int factionNumber);
-        
-        // ─────────────────────────────────────────────────────────────────────────────────
-        // Game State Access and Mutation
-        // ─────────────────────────────────────────────────────────────────────────────────
-        
-        /** Get current game pause state */
-        boolean isPaused();
-        
-        /** Set game pause state */
-        void setPaused(boolean paused);
-        
-        /** Get current edit mode state */
-        boolean isEditMode();
-        
-        /** Set edit mode state */
-        void setEditMode(boolean editMode);
-        
-        /** Get next available unit ID for unit creation */
-        int getNextUnitId();
-        
-        /** Set next unit ID (used during save/load operations) */
-        void setNextUnitId(int nextUnitId);
-        
-        // ─────────────────────────────────────────────────────────────────────────────────
-        // Utility and Conversion Methods
-        // ─────────────────────────────────────────────────────────────────────────────────
-        
-        /** Convert pixel coordinates to feet using game's conversion factor */
-        double convertPixelsToFeet(double pixels);
-        
-        /** Convert character stat value (1-100) to game modifier (-20 to +20) */
-        int convertStatToModifier(int stat);
-        
-        // ─────────────────────────────────────────────────────────────────────────────────
-        // UI and Scenario Management
-        // ─────────────────────────────────────────────────────────────────────────────────
-        
-        /** Set main window title to reflect current scenario or game state */
-        void setWindowTitle(String title);
-        
-        /** Get array of available theme IDs for scenario creation */
-        String[] getAvailableThemes();
-        
-        /** Set current active theme for new scenarios */
-        void setCurrentTheme(String themeId);
-    }
     
     // ═══════════════════════════════════════════════════════════════════════════════════
     // SECTION 3: CONSTRUCTOR AND INITIALIZATION
@@ -1617,7 +1369,7 @@ public class InputManager {
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
-                    batchCreationStep = BatchCreationStep.QUANTITY;
+                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
                 } else if (stateTracker.isWaitingForCharacterDeployment()) {
                     System.out.println("*** Character deployment cancelled ***");
                     cancelCharacterDeployment();
@@ -1780,7 +1532,7 @@ public class InputManager {
      */
     private void promptForBatchCharacterCreation() {
         stateTracker.setWaitingForBatchCharacterCreation(true);
-        batchCreationStep = BatchCreationStep.QUANTITY;
+        batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
         batchQuantity = 0;
         batchArchetype = 0;
         batchFaction = 0;
@@ -1805,10 +1557,10 @@ public class InputManager {
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
-                    batchCreationStep = BatchCreationStep.QUANTITY;
+                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
                 } else if (inputNumber >= 1 && inputNumber <= 20) {
                     batchQuantity = inputNumber;
-                    batchCreationStep = BatchCreationStep.ARCHETYPE;
+                    batchCreationStep = InputStates.BatchCreationStep.ARCHETYPE;
                     showArchetypeSelection();
                 } else {
                     System.out.println("*** Invalid quantity. Use 1-20 or 0 to cancel ***");
@@ -1822,10 +1574,10 @@ public class InputManager {
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
-                    batchCreationStep = BatchCreationStep.QUANTITY;
+                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
                 } else if (inputNumber >= 1 && inputNumber <= 9) {
                     batchArchetype = inputNumber;
-                    batchCreationStep = BatchCreationStep.FACTION;
+                    batchCreationStep = InputStates.BatchCreationStep.FACTION;
                     showFactionSelection();
                 } else {
                     System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
@@ -1839,7 +1591,7 @@ public class InputManager {
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
-                    batchCreationStep = BatchCreationStep.QUANTITY;
+                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
                 } else if (inputNumber >= 1 && inputNumber <= 9) {
                     batchFaction = inputNumber;
                     createBatchCharacters();
@@ -1848,7 +1600,7 @@ public class InputManager {
                     batchQuantity = 0;
                     batchArchetype = 0;
                     batchFaction = 0;
-                    batchCreationStep = BatchCreationStep.QUANTITY;
+                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
                 } else {
                     System.out.println("*** Invalid faction selection. Use 1-9 or 0 to cancel ***");
                 }
@@ -2084,7 +1836,7 @@ public class InputManager {
      */
     private void promptForCharacterDeployment() {
         stateTracker.setWaitingForCharacterDeployment(true);
-        deploymentStep = DeploymentStep.FACTION;
+        deploymentStep = InputStates.DeploymentStep.FACTION;
         deploymentFaction = 0;
         deploymentQuantity = 0;
         deploymentWeapon = "";
@@ -2130,7 +1882,7 @@ public class InputManager {
                 } else if (inputNumber >= 1 && inputNumber <= 20) {
                     if (inputNumber <= deploymentCharacters.size()) {
                         deploymentQuantity = inputNumber;
-                        deploymentStep = DeploymentStep.WEAPON;
+                        deploymentStep = InputStates.DeploymentStep.WEAPON;
                         showWeaponSelectionForDeployment();
                     } else {
                         System.out.println("*** Not enough characters available. Maximum: " + deploymentCharacters.size() + " ***");
@@ -2146,7 +1898,7 @@ public class InputManager {
                     cancelCharacterDeployment();
                 } else if (inputNumber >= 1 && inputNumber <= getWeaponOptionsCount()) {
                     deploymentWeapon = getWeaponIdByIndex(inputNumber);
-                    deploymentStep = DeploymentStep.FORMATION;
+                    deploymentStep = InputStates.DeploymentStep.FORMATION;
                     showFormationSelection();
                 } else {
                     System.out.println("*** Invalid weapon selection. Use 1-" + getWeaponOptionsCount() + " or 0 to cancel ***");
@@ -2159,7 +1911,7 @@ public class InputManager {
                     cancelCharacterDeployment();
                 } else if (inputNumber >= 1 && inputNumber <= 2) {
                     deploymentFormation = (inputNumber == 1) ? "line_right" : "line_down";
-                    deploymentStep = DeploymentStep.SPACING;
+                    deploymentStep = InputStates.DeploymentStep.SPACING;
                     showSpacingSelection();
                 } else {
                     System.out.println("*** Invalid formation selection. Use 1-2 or 0 to cancel ***");
@@ -2172,7 +1924,7 @@ public class InputManager {
                     cancelCharacterDeployment();
                 } else if (inputNumber >= 1 && inputNumber <= 9) {
                     deploymentSpacing = inputNumber * 7; // Convert feet to pixels (7 pixels = 1 foot)
-                    deploymentStep = DeploymentStep.PLACEMENT;
+                    deploymentStep = InputStates.DeploymentStep.PLACEMENT;
                     showPlacementInstructions();
                 } else {
                     System.out.println("*** Invalid spacing. Use 1-9 feet or 0 to cancel ***");
@@ -2203,7 +1955,7 @@ public class InputManager {
                 System.out.println("*** Character deployment cancelled ***");
                 cancelCharacterDeployment();
             } else {
-                deploymentStep = DeploymentStep.QUANTITY;
+                deploymentStep = InputStates.DeploymentStep.QUANTITY;
                 showCharacterQuantitySelection();
             }
         } catch (Exception e) {
@@ -2318,7 +2070,7 @@ public class InputManager {
      */
     private void cancelCharacterDeployment() {
         stateTracker.setWaitingForCharacterDeployment(false);
-        deploymentStep = DeploymentStep.FACTION;
+        deploymentStep = InputStates.DeploymentStep.FACTION;
         deploymentFaction = 0;
         deploymentQuantity = 0;
         deploymentWeapon = "";
@@ -2364,7 +2116,7 @@ public class InputManager {
      * Check if we're in deployment placement mode
      */
     public boolean isInDeploymentPlacementMode() {
-        return stateTracker.isWaitingForCharacterDeployment() && deploymentStep == DeploymentStep.PLACEMENT;
+        return stateTracker.isWaitingForCharacterDeployment() && deploymentStep == InputStates.DeploymentStep.PLACEMENT;
     }
     
     /**
@@ -2669,12 +2421,12 @@ public class InputManager {
         
         // Store the outcome for the current faction
         int currentFactionId = scenarioFactions.get(currentVictoryFactionIndex);
-        VictoryOutcome outcome;
+        InputStates.VictoryOutcome outcome;
         
         switch (outcomeNumber) {
-            case 1: outcome = VictoryOutcome.VICTORY; break;
-            case 2: outcome = VictoryOutcome.DEFEAT; break;
-            case 3: outcome = VictoryOutcome.PARTICIPANT; break;
+            case 1: outcome = InputStates.VictoryOutcome.VICTORY; break;
+            case 2: outcome = InputStates.VictoryOutcome.DEFEAT; break;
+            case 3: outcome = InputStates.VictoryOutcome.PARTICIPANT; break;
             default: return; // Should never happen
         }
         
@@ -2705,7 +2457,7 @@ public class InputManager {
             
             // Update faction statistics and character outcomes
             for (Integer factionId : scenarioFactions) {
-                VictoryOutcome outcome = factionOutcomes.get(factionId);
+                InputStates.VictoryOutcome outcome = factionOutcomes.get(factionId);
                 String outcomeName = getOutcomeName(outcome);
                 
                 System.out.println("Processing " + getFactionName(factionId + 1) + " (" + outcomeName + ")...");
@@ -2795,7 +2547,7 @@ public class InputManager {
         System.out.println("*** BATTLE SUMMARY ***");
         
         for (Integer factionId : scenarioFactions) {
-            VictoryOutcome outcome = factionOutcomes.get(factionId);
+            InputStates.VictoryOutcome outcome = factionOutcomes.get(factionId);
             String outcomeName = getOutcomeName(outcome);
             
             int characterCount = 0;
@@ -2858,7 +2610,7 @@ public class InputManager {
      * @param outcome The victory outcome
      * @return The display name
      */
-    private String getOutcomeName(VictoryOutcome outcome) {
+    private String getOutcomeName(InputStates.VictoryOutcome outcome) {
         switch (outcome) {
             case VICTORY: return "VICTORY";
             case DEFEAT: return "DEFEAT";
@@ -3390,7 +3142,7 @@ public class InputManager {
      */
     private void promptForDirectCharacterAddition() {
         stateTracker.setWaitingForDirectCharacterAddition(true);
-        directAdditionStep = DirectAdditionStep.FACTION;
+        directAdditionStep = InputStates.DirectAdditionStep.FACTION;
         directAdditionFaction = 0;
         directAdditionQuantity = 0;
         directAdditionSpacing = 5.0; // Default 5 feet
@@ -3401,7 +3153,7 @@ public class InputManager {
         
         // Display factions with available character counts
         for (int i = 1; i <= 3; i++) {
-            FactionCharacterInfo info = getFactionCharacterInfo(i);
+            InputStates.FactionCharacterInfo info = getFactionCharacterInfo(i);
             System.out.println(i + ". " + info.factionName + " (" + info.availableCount + " available characters)");
         }
         
@@ -3420,13 +3172,13 @@ public class InputManager {
                     System.out.println("*** Character addition cancelled ***");
                     cancelDirectCharacterAddition();
                 } else if (inputNumber >= 1 && inputNumber <= 3) {
-                    FactionCharacterInfo info = getFactionCharacterInfo(inputNumber);
+                    InputStates.FactionCharacterInfo info = getFactionCharacterInfo(inputNumber);
                     if (info.availableCount == 0) {
                         System.out.println("*** No available characters in " + info.factionName + " ***");
                         System.out.println("*** Please select a different faction or press 0 to cancel ***");
                     } else {
                         directAdditionFaction = inputNumber;
-                        directAdditionStep = DirectAdditionStep.QUANTITY;
+                        directAdditionStep = InputStates.DirectAdditionStep.QUANTITY;
                         System.out.println("***********************");
                         System.out.println("*** CHARACTER QUANTITY ***");
                         System.out.println("Selected faction: " + info.factionName);
@@ -3444,12 +3196,12 @@ public class InputManager {
                     System.out.println("*** Character addition cancelled ***");
                     cancelDirectCharacterAddition();
                 } else {
-                    FactionCharacterInfo info = getFactionCharacterInfo(directAdditionFaction);
+                    InputStates.FactionCharacterInfo info = getFactionCharacterInfo(directAdditionFaction);
                     int maxAllowed = Math.min(20, info.availableCount);
                     
                     if (inputNumber >= 1 && inputNumber <= maxAllowed) {
                         directAdditionQuantity = inputNumber;
-                        directAdditionStep = DirectAdditionStep.SPACING;
+                        directAdditionStep = InputStates.DirectAdditionStep.SPACING;
                         System.out.println("***********************");
                         System.out.println("*** CHARACTER SPACING ***");
                         System.out.println("Set spacing between characters:");
@@ -3478,7 +3230,7 @@ public class InputManager {
                     cancelDirectCharacterAddition();
                 } else if (inputNumber >= 1 && inputNumber <= 9) {
                     directAdditionSpacing = inputNumber; // feet
-                    directAdditionStep = DirectAdditionStep.PLACEMENT;
+                    directAdditionStep = InputStates.DirectAdditionStep.PLACEMENT;
                     System.out.println("***********************");
                     System.out.println("*** CHARACTER PLACEMENT ***");
                     System.out.println("Click on the map to place " + directAdditionQuantity + " characters");
@@ -3501,7 +3253,7 @@ public class InputManager {
      */
     private void cancelDirectCharacterAddition() {
         stateTracker.setWaitingForDirectCharacterAddition(false);
-        directAdditionStep = DirectAdditionStep.FACTION;
+        directAdditionStep = InputStates.DirectAdditionStep.FACTION;
         directAdditionFaction = 0;
         directAdditionQuantity = 0;
         directAdditionSpacing = 5.0;
@@ -3516,7 +3268,7 @@ public class InputManager {
         System.out.println("Deploying " + directAdditionQuantity + " characters from faction " + directAdditionFaction);
         
         // Get available characters from faction
-        FactionCharacterInfo info = getFactionCharacterInfo(directAdditionFaction);
+        InputStates.FactionCharacterInfo info = getFactionCharacterInfo(directAdditionFaction);
         if (info.availableCharacters.size() < directAdditionQuantity) {
             System.out.println("*** Error: Not enough available characters ***");
             System.out.println("*** Available: " + info.availableCharacters.size() + ", Requested: " + directAdditionQuantity + " ***");
@@ -3605,15 +3357,15 @@ public class InputManager {
     /**
      * Get faction character information including available character count
      */
-    private FactionCharacterInfo getFactionCharacterInfo(int factionId) {
+    private InputStates.FactionCharacterInfo getFactionCharacterInfo(int factionId) {
         try {
             // Load faction file
             File factionFile = new File("factions/" + factionId + ".json");
             if (!factionFile.exists()) {
-                return new FactionCharacterInfo("Unknown Faction", 0, 0, new ArrayList<>());
+                return new InputStates.FactionCharacterInfo("Unknown Faction", 0, 0, new ArrayList<>());
             }
             
-            JsonNode rootNode = objectMapper.readTree(factionFile);
+            JsonNode rootNode = InputStates.objectMapper.readTree(factionFile);
             JsonNode factionNode = rootNode.get("faction");
             String factionName = factionNode.get("name").asText();
             
@@ -3630,7 +3382,7 @@ public class InputManager {
                         debugPrint("[DEBUG] charNode content: " + charNode.toString());
                         
                         // Use CharacterData for proper JSON deserialization (same approach as CTRL-C)
-                        data.CharacterData characterData = objectMapper.treeToValue(charNode, data.CharacterData.class);
+                        data.CharacterData characterData = InputStates.objectMapper.treeToValue(charNode, data.CharacterData.class);
                         debugPrint("[DEBUG] Successfully deserialized to CharacterData: " + characterData.nickname);
                         
                         // Convert CharacterData to Character using CharacterPersistenceManager approach
@@ -3656,11 +3408,11 @@ public class InputManager {
                 }
             }
             
-            return new FactionCharacterInfo(factionName, allCharacters.size(), availableCharacters.size(), availableCharacters);
+            return new InputStates.FactionCharacterInfo(factionName, allCharacters.size(), availableCharacters.size(), availableCharacters);
             
         } catch (IOException e) {
             System.err.println("Error loading faction file " + factionId + ".json: " + e.getMessage());
-            return new FactionCharacterInfo("Error Loading Faction", 0, 0, new ArrayList<>());
+            return new InputStates.FactionCharacterInfo("Error Loading Faction", 0, 0, new ArrayList<>());
         }
     }
     

@@ -9,6 +9,7 @@ import java.util.List;
 import combat.*;
 import game.*;
 import data.UniversalCharacterRegistry;
+import input.interfaces.InputManagerCallbacks;
 
 /**
  * EditModeManager handles all character creation, deployment, and edit mode workflows.
@@ -43,7 +44,7 @@ public class EditModeManager {
     private final InputStateTracker stateTracker;
     private final SelectionManager selectionManager;
     private final List<Unit> units;
-    private final InputManager.InputManagerCallbacks callbacks;
+    private final InputManagerCallbacks callbacks;
     private final UniversalCharacterRegistry characterRegistry;
     
     // ====================
@@ -109,7 +110,7 @@ public class EditModeManager {
      * Creates a new EditModeManager with required dependencies.
      */
     public EditModeManager(InputStateTracker stateTracker, SelectionManager selectionManager,
-                          List<Unit> units, InputManager.InputManagerCallbacks callbacks) {
+                          List<Unit> units, InputManagerCallbacks callbacks) {
         this.stateTracker = stateTracker;
         this.selectionManager = selectionManager;
         this.units = units;

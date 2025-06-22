@@ -39,8 +39,9 @@ import data.ThemeManager;
 import data.UniversalCharacterRegistry;
 import data.CharacterFactory;
 import data.FactionRegistry;
+import input.interfaces.InputManagerCallbacks;
 
-public class OpenFields2 extends Application implements GameCallbacks, InputManager.InputManagerCallbacks {
+public class OpenFields2 extends Application implements GameCallbacks, InputManagerCallbacks {
 
     public static double pixelsToFeet(double pixels) {
         return pixels / 7.0;

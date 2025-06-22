@@ -14,6 +14,7 @@ import java.util.HashSet;
 import combat.*;
 import game.*;
 import data.SaveGameManager;
+import input.interfaces.InputManagerCallbacks;
 
 /**
  * GameStateManager handles all save/load operations, scenario management, and victory processing.
@@ -46,7 +47,7 @@ public class GameStateManager {
     
     private final InputStateTracker stateTracker;
     private final List<Unit> units;
-    private final InputManager.InputManagerCallbacks callbacks;
+    private final InputManagerCallbacks callbacks;
     private final SaveGameManager saveGameManager;
     
     // ====================
@@ -97,7 +98,7 @@ public class GameStateManager {
      * Creates a new GameStateManager with required dependencies.
      */
     public GameStateManager(InputStateTracker stateTracker, List<Unit> units, 
-                           InputManager.InputManagerCallbacks callbacks) {
+                           InputManagerCallbacks callbacks) {
         this.stateTracker = stateTracker;
         this.units = units;
         this.callbacks = callbacks;
