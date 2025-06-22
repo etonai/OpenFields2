@@ -193,6 +193,9 @@ public class InputManager {
     /** Handles input-related display management, feedback coordination, and UI state */
     private final DisplayCoordinator displayCoordinator;
     
+    /** Handles character creation workflows including batch creation and archetype selection */
+    private final CharacterCreationController characterCreationController;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -239,28 +242,8 @@ public class InputManager {
     /** Theme ID for new scenario being created */
     private String newScenarioTheme = "";
     
-    // Batch Character Creation Workflow State
-    /** Number of characters to create in batch operation */
-    private int batchQuantity = 0;
-    
-    /** Selected archetype index for batch creation */
-    private int batchArchetype = 0;
-    
-    /** Selected faction number for batch creation */
-    private int batchFaction = 0;
-    
-    /** Current step in batch creation workflow */
-    private InputStates.BatchCreationStep batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
-    
-    // Individual Character Creation Workflow State
-    /** Selected archetype name for individual character creation */
-    private String selectedArchetype = "";
-    
-    /** Selected ranged weapon for individual character creation */
-    private String selectedRangedWeapon = "";
-    
-    /** Selected melee weapon for individual character creation */
-    private String selectedMeleeWeapon = "";
+    // Character Creation Workflow State (DevCycle 15h: Moved to CharacterCreationController)
+    // Batch and individual character creation state is now managed by the CharacterCreationController component
     
     // Character weapon selection state moved to InputStateTracker
     
@@ -392,6 +375,9 @@ public class InputManager {
         
         // DevCycle 15e: Initialize display coordination components
         this.displayCoordinator = new DisplayCoordinator(selectionManager, gameClock, callbacks);
+        
+        // DevCycle 15h: Initialize character creation controller
+        this.characterCreationController = new CharacterCreationController(units, canvas, gameRenderer, callbacks);
         
         // DevCycle 15e Phase 4: Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
@@ -1366,10 +1352,7 @@ public class InputManager {
                 } else if (stateTracker.isWaitingForBatchCharacterCreation()) {
                     System.out.println("*** Batch character creation cancelled ***");
                     stateTracker.setWaitingForBatchCharacterCreation(false);
-                    batchQuantity = 0;
-                    batchArchetype = 0;
-                    batchFaction = 0;
-                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
+                    // DevCycle 15h: State reset now handled by CharacterCreationController
                 } else if (stateTracker.isWaitingForCharacterDeployment()) {
                     System.out.println("*** Character deployment cancelled ***");
                     cancelCharacterDeployment();
@@ -1457,8 +1440,11 @@ public class InputManager {
                         callbacks.assignFactionToSelectedUnits(slotNumber);
                     }
                 } else if (stateTracker.isWaitingForBatchCharacterCreation()) {
-                    // DevCycle 15d: Delegate to EditModeManager
-                    editModeManager.handleBatchCharacterCreationInput(slotNumber);
+                    // DevCycle 15h: Delegate to CharacterCreationController
+                    boolean continueWorkflow = characterCreationController.handleBatchCharacterCreationInput(slotNumber);
+                    if (!continueWorkflow) {
+                        stateTracker.setWaitingForBatchCharacterCreation(false);
+                    }
                 } else if (stateTracker.isWaitingForCharacterDeployment()) {
                     // DevCycle 15d: Delegate to EditModeManager
                     editModeManager.handleCharacterDeploymentInput(slotNumber);
@@ -1528,216 +1514,19 @@ public class InputManager {
     }
     
     /**
-     * Start the batch character creation workflow
+     * Start the batch character creation workflow (DevCycle 15h: Delegated to CharacterCreationController)
      */
-    private void promptForBatchCharacterCreation() {
+    public void promptForBatchCharacterCreation() {
         stateTracker.setWaitingForBatchCharacterCreation(true);
-        batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
-        batchQuantity = 0;
-        batchArchetype = 0;
-        batchFaction = 0;
-        
-        System.out.println("***********************");
-        System.out.println("*** BATCH CHARACTER CREATION ***");
-        System.out.println("How many characters do you want to create?");
-        System.out.println("Enter quantity (1-20, 0 to cancel): ");
+        characterCreationController.promptForBatchCharacterCreation();
     }
     
-    /**
-     * Handle input during batch character creation workflow
-     * 
-     * @param inputNumber The number entered by the user
-     */
-    private void handleBatchCharacterCreationInput(int inputNumber) {
-        switch (batchCreationStep) {
-            case QUANTITY:
-                if (inputNumber == 0) {
-                    System.out.println("*** Batch character creation cancelled ***");
-                    stateTracker.setWaitingForBatchCharacterCreation(false);
-                    batchQuantity = 0;
-                    batchArchetype = 0;
-                    batchFaction = 0;
-                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
-                } else if (inputNumber >= 1 && inputNumber <= 20) {
-                    batchQuantity = inputNumber;
-                    batchCreationStep = InputStates.BatchCreationStep.ARCHETYPE;
-                    showArchetypeSelection();
-                } else {
-                    System.out.println("*** Invalid quantity. Use 1-20 or 0 to cancel ***");
-                }
-                break;
-                
-            case ARCHETYPE:
-                if (inputNumber == 0) {
-                    System.out.println("*** Batch character creation cancelled ***");
-                    stateTracker.setWaitingForBatchCharacterCreation(false);
-                    batchQuantity = 0;
-                    batchArchetype = 0;
-                    batchFaction = 0;
-                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
-                } else if (inputNumber >= 1 && inputNumber <= 9) {
-                    batchArchetype = inputNumber;
-                    batchCreationStep = InputStates.BatchCreationStep.FACTION;
-                    showFactionSelection();
-                } else {
-                    System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
-                }
-                break;
-                
-            case FACTION:
-                if (inputNumber == 0) {
-                    System.out.println("*** Batch character creation cancelled ***");
-                    stateTracker.setWaitingForBatchCharacterCreation(false);
-                    batchQuantity = 0;
-                    batchArchetype = 0;
-                    batchFaction = 0;
-                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
-                } else if (inputNumber >= 1 && inputNumber <= 9) {
-                    batchFaction = inputNumber;
-                    createBatchCharacters();
-                    // Reset state after creation
-                    stateTracker.setWaitingForBatchCharacterCreation(false);
-                    batchQuantity = 0;
-                    batchArchetype = 0;
-                    batchFaction = 0;
-                    batchCreationStep = InputStates.BatchCreationStep.QUANTITY;
-                } else {
-                    System.out.println("*** Invalid faction selection. Use 1-9 or 0 to cancel ***");
-                }
-                break;
-        }
-    }
+    // DevCycle 15h: Character creation methods moved to CharacterCreationController
+    // All batch character creation functionality is now handled by the dedicated controller
     
     /**
-     * Show archetype selection menu for batch creation
-     */
-    private void showArchetypeSelection() {
-        System.out.println("***********************");
-        System.out.println("*** ARCHETYPE SELECTION ***");
-        System.out.println("Creating " + batchQuantity + " characters");
-        System.out.println("Select archetype:");
-        System.out.println("1. Gunslinger - High dexterity, quick reflexes, pistol specialist");
-        System.out.println("2. Soldier - Balanced combat stats, rifle proficiency");
-        System.out.println("3. Weighted Random - Randomly generated stats (averaged), no skills");
-        System.out.println("4. Scout - High reflexes, stealth and observation skills");
-        System.out.println("5. Marksman - Excellent dexterity, rifle specialist, long-range expert");
-        System.out.println("6. Brawler - High strength, close combat specialist");
-        System.out.println("7. Confederate Soldier - Civil War Confederate with Brown Bess musket");
-        System.out.println("8. Union Soldier - Civil War Union with Brown Bess musket");
-        System.out.println("9. Balanced - Well-rounded stats for versatile gameplay");
-        System.out.println("0. Cancel batch creation");
-        System.out.println();
-        System.out.println("Enter selection (1-9, 0 to cancel): ");
-    }
-    
-    /**
-     * Show faction selection menu for batch creation
-     */
-    private void showFactionSelection() {
-        System.out.println("***********************");
-        System.out.println("*** FACTION SELECTION ***");
-        System.out.println("Creating " + batchQuantity + " characters");
-        System.out.println("Archetype: " + getArchetypeName(batchArchetype));
-        System.out.println("Select faction:");
-        System.out.println("1. NONE - No faction");
-        System.out.println("2. Union - Federal forces");
-        System.out.println("3. Confederacy - Confederate forces");
-        System.out.println("4. Southern Unionists - Pro-Union Southerners");
-        System.out.println("0. Cancel batch creation");
-        System.out.println();
-        System.out.println("Enter selection (1-4, 0 to cancel): ");
-    }
-    
-    /**
-     * Get display name for archetype number
-     * 
-     * @param archetypeNumber The archetype number (1-9)
-     * @return The display name
-     */
-    private String getArchetypeName(int archetypeNumber) {
-        String[] names = {"Gunslinger", "Soldier", "Weighted Random", "Scout", "Marksman", 
-                         "Brawler", "Confederate Soldier", "Union Soldier", "Balanced"};
-        if (archetypeNumber >= 1 && archetypeNumber <= names.length) {
-            return names[archetypeNumber - 1];
-        }
-        return "Unknown";
-    }
-    
-    /**
-     * Create the batch of characters with the selected settings
-     */
-    private void createBatchCharacters() {
-        System.out.println("***********************");
-        System.out.println("*** CREATING CHARACTERS ***");
-        System.out.println("Quantity: " + batchQuantity);
-        System.out.println("Archetype: " + getArchetypeName(batchArchetype));
-        System.out.println("Faction: " + getFactionName(batchFaction));
-        System.out.println();
-        
-        // Convert faction number to faction ID (1-based to 0-based for NONE, Union, Confederacy, Southern Unionists)
-        int factionId = batchFaction - 1;
-        
-        int successCount = 0;
-        for (int i = 0; i < batchQuantity; i++) {
-            try {
-                // Create character using the same method but with faction assignment
-                createSingleBatchCharacter(batchArchetype, factionId);
-                successCount++;
-            } catch (Exception e) {
-                System.err.println("Failed to create character " + (i + 1) + ": " + e.getMessage());
-            }
-        }
-        
-        System.out.println("*** BATCH CREATION COMPLETE ***");
-        System.out.println("Successfully created " + successCount + " out of " + batchQuantity + " characters");
-        if (successCount < batchQuantity) {
-            System.out.println("Failed to create " + (batchQuantity - successCount) + " characters");
-        }
-        System.out.println("***********************");
-    }
-    
-    /**
-     * Create a single character as part of batch creation
-     * 
-     * @param archetypeIndex The archetype index (1-9)
-     * @param factionId The faction ID (0-3)
-     */
-    private void createSingleBatchCharacter(int archetypeIndex, int factionId) {
-        String[] archetypes = {"gunslinger", "soldier", "weighted_random", "scout", "marksman", 
-                              "brawler", "confederate_soldier", "union_soldier", "balanced"};
-        
-        if (archetypeIndex < 1 || archetypeIndex > archetypes.length) {
-            throw new IllegalArgumentException("Invalid archetype index: " + archetypeIndex);
-        }
-        
-        String selectedArchetype = archetypes[archetypeIndex - 1];
-        
-        // Create character using CharacterFactory
-        int characterId = data.CharacterFactory.createCharacter(selectedArchetype);
-        combat.Character character = characterRegistry.getCharacter(characterId);
-        
-        if (character != null) {
-            // Assign appropriate weapon based on archetype
-            String weaponId = getWeaponForArchetype(selectedArchetype);
-            character.weapon = data.WeaponFactory.createWeapon(weaponId);
-            character.currentWeaponState = character.weapon.getInitialState();
-            character.setFaction(factionId);
-            
-            // Save character to faction file
-            data.CharacterPersistenceManager.getInstance().saveCharacter(character);
-            
-            // Spawn character at camera center with offset
-            spawnBatchCharacterUnit(character, selectedArchetype);
-            
-            System.out.println("Created: " + character.getDisplayName() + " (ID: " + character.id + 
-                             ", Faction: " + getFactionName(factionId + 1) + ")");
-        } else {
-            throw new RuntimeException("Failed to create character from archetype: " + selectedArchetype);
-        }
-    }
-    
-    /**
-     * Get faction display name by number (1-4)
+     * Get faction display name by number (1-4).
+     * This method is still used by deployment and other workflows.
      */
     private String getFactionName(int factionNumber) {
         switch (factionNumber) {
@@ -1746,88 +1535,6 @@ public class InputManager {
             case 3: return "Confederacy"; 
             case 4: return "Southern Unionists";
             default: return "Unknown";
-        }
-    }
-    
-    /**
-     * Get weapon ID for archetype (reused from EditModeController pattern)
-     */
-    private String getWeaponForArchetype(String archetype) {
-        switch (archetype.toLowerCase()) {
-            case "gunslinger":
-            case "brawler":
-            case "balanced":
-            case "weighted_random":
-                return "wpn_colt_peacemaker"; // Pistol
-            case "soldier":
-            case "scout": 
-            case "marksman":
-                return "wpn_hunting_rifle"; // Rifle
-            case "confederate_soldier":
-            case "union_soldier":
-                return "wpn_brown_bess"; // Brown Bess musket
-            case "medic":
-                return "wpn_derringer"; // Backup weapon
-            default:
-                return "wpn_colt_peacemaker"; // Default fallback
-        }
-    }
-    
-    /**
-     * Spawn a batch character unit in the game world with offset to avoid collisions
-     */
-    private void spawnBatchCharacterUnit(combat.Character character, String archetype) {
-        // Calculate spawn location at camera center using canvas dimensions
-        double baseX = gameRenderer.screenToWorldX(canvas.getWidth() / 2.0);
-        double baseY = gameRenderer.screenToWorldY(canvas.getHeight() / 2.0);
-        
-        // Add offset based on character ID to spread characters out
-        double offsetX = (character.id % 5) * 35; // 5 feet spacing horizontally 
-        double offsetY = (character.id / 5) * 35; // 5 feet spacing vertically after 5 characters
-        
-        double spawnX = baseX + offsetX;
-        double spawnY = baseY + offsetY;
-        
-        // Check for collision with existing units and offset if necessary
-        boolean collision = true;
-        int attempts = 0;
-        double finalX = spawnX;
-        double finalY = spawnY;
-        
-        while (collision && attempts < 10) {
-            collision = false;
-            for (Unit existingUnit : units) {
-                double distance = Math.hypot(finalX - existingUnit.x, finalY - existingUnit.y);
-                if (distance < 28) { // 4 feet = 28 pixels minimum distance
-                    collision = true;
-                    finalX += 28; // Offset by 4 feet (28 pixels) in X direction only
-                    break;
-                }
-            }
-            attempts++;
-        }
-        
-        // Get color based on archetype
-        javafx.scene.paint.Color characterColor = getColorForArchetype(archetype);
-        
-        // Create and add unit
-        int unitId = callbacks.getNextUnitId();
-        Unit newUnit = new Unit(character, finalX, finalY, characterColor, unitId);
-        callbacks.setNextUnitId(unitId + 1);
-        units.add(newUnit);
-    }
-    
-    /**
-     * Get color for character archetype (reused from EditModeController pattern)
-     */
-    private javafx.scene.paint.Color getColorForArchetype(String archetype) {
-        switch (archetype.toLowerCase()) {
-            case "confederate_soldier":
-                return javafx.scene.paint.Color.DARKGRAY; // Confederate dark gray
-            case "union_soldier":
-                return javafx.scene.paint.Color.BLUE; // Union blue
-            default:
-                return javafx.scene.paint.Color.CYAN; // Default color for other archetypes
         }
     }
     
@@ -2914,12 +2621,12 @@ public class InputManager {
     // DevCycle 15e: initiateMovementToMeleeTarget moved to CombatCommandProcessor
     
     /**
-     * Reset character creation state variables
+     * Reset character creation state variables (DevCycle 15h: Delegated to CharacterCreationController)
      */
     private void resetCharacterCreationState() {
-        selectedArchetype = "";
-        selectedRangedWeapon = "";
-        selectedMeleeWeapon = "";
+        characterCreationController.setSelectedArchetype("");
+        characterCreationController.setSelectedRangedWeapon("");
+        characterCreationController.setSelectedMeleeWeapon("");
         stateTracker.setWaitingForCharacterCreation(false);
         stateTracker.setWaitingForCharacterRangedWeapon(false);
         stateTracker.setWaitingForCharacterMeleeWeapon(false);
@@ -2932,7 +2639,7 @@ public class InputManager {
         String[] archetypes = {"gunslinger", "soldier", "weighted_random", "scout", "marksman", "brawler", "confederate_soldier", "union_soldier", "balanced"};
         
         if (archetypeIndex >= 1 && archetypeIndex <= archetypes.length) {
-            selectedArchetype = archetypes[archetypeIndex - 1];
+            characterCreationController.setSelectedArchetype(archetypes[archetypeIndex - 1]);
             
             // Move to ranged weapon selection
             stateTracker.setWaitingForCharacterCreation(false);
@@ -2955,7 +2662,7 @@ public class InputManager {
         
         System.out.println("***********************");
         System.out.println("*** RANGED WEAPON SELECTION ***");
-        System.out.println("Select ranged weapon for " + selectedArchetype + ":");
+        System.out.println("Select ranged weapon for " + characterCreationController.getSelectedArchetype() + ":");
         
         for (int i = 0; i < weaponIds.length; i++) {
             data.WeaponData weaponData = data.WeaponFactory.getWeaponData(weaponIds[i]);
@@ -2977,7 +2684,7 @@ public class InputManager {
         String[] weaponIds = data.WeaponFactory.getAllWeaponIds();
         
         if (weaponIndex >= 1 && weaponIndex <= weaponIds.length) {
-            selectedRangedWeapon = weaponIds[weaponIndex - 1];
+            characterCreationController.setSelectedRangedWeapon(weaponIds[weaponIndex - 1]);
             
             // Move to melee weapon selection
             stateTracker.setWaitingForCharacterRangedWeapon(false);
@@ -2998,7 +2705,7 @@ public class InputManager {
         
         System.out.println("***********************");
         System.out.println("*** MELEE WEAPON SELECTION ***");
-        System.out.println("Select melee weapon for " + selectedArchetype + ":");
+        System.out.println("Select melee weapon for " + characterCreationController.getSelectedArchetype() + ":");
         
         // Add "Unarmed" option first
         System.out.println("1. Unarmed (No melee weapon)");
@@ -3026,11 +2733,11 @@ public class InputManager {
         
         if (weaponIndex == 1) {
             // User selected "Unarmed"
-            selectedMeleeWeapon = "unarmed";
+            characterCreationController.setSelectedMeleeWeapon("unarmed");
             completeCharacterCreation();
         } else if (weaponIndex >= 2 && weaponIndex <= (meleeWeaponIds.length + 1)) {
             // User selected a melee weapon
-            selectedMeleeWeapon = meleeWeaponIds[weaponIndex - 2];
+            characterCreationController.setSelectedMeleeWeapon(meleeWeaponIds[weaponIndex - 2]);
             completeCharacterCreation();
         } else {
             System.out.println("*** Invalid weapon selection ***");
@@ -3043,28 +2750,28 @@ public class InputManager {
     private void completeCharacterCreation() {
         try {
             // Create character using CharacterFactory
-            int characterId = data.CharacterFactory.createCharacter(selectedArchetype);
+            int characterId = data.CharacterFactory.createCharacter(characterCreationController.getSelectedArchetype());
             combat.Character character = data.UniversalCharacterRegistry.getInstance().getCharacter(characterId);
             
             if (character != null) {
                 // Assign selected ranged weapon
-                character.weapon = data.WeaponFactory.createWeapon(selectedRangedWeapon);
+                character.weapon = data.WeaponFactory.createWeapon(characterCreationController.getSelectedRangedWeapon());
                 character.currentWeaponState = character.weapon.getInitialState();
                 
                 // Assign selected melee weapon
-                if (!"unarmed".equals(selectedMeleeWeapon)) {
-                    character.meleeWeapon = combat.MeleeWeaponFactory.createWeapon(selectedMeleeWeapon);
+                if (!"unarmed".equals(characterCreationController.getSelectedMeleeWeapon())) {
+                    character.meleeWeapon = combat.MeleeWeaponFactory.createWeapon(characterCreationController.getSelectedMeleeWeapon());
                 }
                 
                 character.setFaction(1); // Default faction
                 
                 // Spawn character at camera center
-                spawnCharacterUnit(character, selectedArchetype);
+                spawnCharacterUnit(character, characterCreationController.getSelectedArchetype());
                 
                 // Display character creation confirmation
                 System.out.println("*** Character created successfully! ***");
                 System.out.println("Name: " + character.getDisplayName());
-                System.out.println("Archetype: " + selectedArchetype);
+                System.out.println("Archetype: " + characterCreationController.getSelectedArchetype());
                 System.out.println("Ranged Weapon: " + character.weapon.name);
                 System.out.println("Melee Weapon: " + (character.meleeWeapon != null ? character.meleeWeapon.getName() : "Unarmed"));
                 System.out.println("Stats: DEX=" + character.dexterity + " HEALTH=" + character.health + 
