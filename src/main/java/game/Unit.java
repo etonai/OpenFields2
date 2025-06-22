@@ -12,6 +12,9 @@ public class Unit {
     public double targetX, targetY;
     public boolean hasTarget = false;
     public boolean isStopped = false;
+    
+    // Combat target separation (DevCycle 15f)
+    public Unit combatTarget = null;
     public Color color;
     public final Color baseColor;
     public boolean isHitHighlighted = false;
@@ -61,6 +64,18 @@ public class Unit {
         this.targetY = y;
         this.hasTarget = true;
         this.isStopped = false;
+    }
+    
+    public void setCombatTarget(Unit target) {
+        this.combatTarget = target;
+    }
+    
+    public Unit getCombatTarget() {
+        return combatTarget;
+    }
+    
+    public void clearCombatTarget() {
+        this.combatTarget = null;
     }
 
     public void stopMovement() {

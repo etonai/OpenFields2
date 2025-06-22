@@ -796,7 +796,11 @@ public class Character {
         // If targeting a different unit, cancel all pending attacks and reset
         if (currentTarget != null && currentTarget != target) {
             // Clear all pending events for this character
-            gameCallbacks.removeAllEventsForOwner(ownerId);
+            if (gameCallbacks != null) {
+                gameCallbacks.removeAllEventsForOwner(ownerId);
+            } else {
+                System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " attack sequence - cannot cancel pending events");
+            }
             currentWeaponState = weapon.getStateByName("ready");
             System.out.println(getDisplayName() + " cancels attack on " + currentTarget.character.getDisplayName() + " and retargets " + target.character.getDisplayName() + " at tick " + currentTick);
         } else if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
@@ -1060,9 +1064,13 @@ public class Character {
                 ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
                 System.out.println("*** " + getDisplayName() + " fires a " + weapon.getProjectileName() + " from " + weapon.name + " (ammo remaining: " + ((RangedWeapon)weapon).getAmmunition() + ")");
                 
-                gameCallbacks.playWeaponSound(weapon);
-                gameCallbacks.applyFiringHighlight(shooter, fireTick);
-                gameCallbacks.addMuzzleFlash(shooter, fireTick);
+                if (gameCallbacks != null) {
+                    gameCallbacks.playWeaponSound(weapon);
+                    gameCallbacks.applyFiringHighlight(shooter, fireTick);
+                    gameCallbacks.addMuzzleFlash(shooter, fireTick);
+                } else {
+                    System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " firing sequence - audio and visual effects disabled");
+                }
                 
                 double dx = target.x - shooter.x;
                 double dy = target.y - shooter.y;
@@ -1070,7 +1078,11 @@ public class Character {
                 double distanceFeet = distancePixels / 7.0; // pixelsToFeet conversion
                 System.out.println("*** " + getDisplayName() + " shoots a " + weapon.getProjectileName() + " at " + target.character.getDisplayName() + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
                 
-                gameCallbacks.scheduleProjectileImpact(shooter, target, weapon, fireTick, distanceFeet);
+                if (gameCallbacks != null) {
+                    gameCallbacks.scheduleProjectileImpact(shooter, target, weapon, fireTick, distanceFeet);
+                } else {
+                    System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " projectile impact scheduling - hit detection disabled");
+                }
                 
                 // Handle burst firing - schedule additional shots immediately after first shot
                 if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getCurrentFiringMode() == FiringMode.BURST && !isAutomaticFiring) {

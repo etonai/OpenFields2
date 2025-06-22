@@ -636,7 +636,7 @@ public class InputManager {
         this.gameStateManager = new GameStateManager(stateTracker, units, callbacks);
         
         // DevCycle 15e: Initialize combat command components
-        this.combatCommandProcessor = new CombatCommandProcessor(selectionManager, gameClock, eventQueue);
+        this.combatCommandProcessor = new CombatCommandProcessor(selectionManager, gameClock, eventQueue, (game.GameCallbacks) callbacks);
         
         // DevCycle 15e: Initialize display coordination components
         this.displayCoordinator = new DisplayCoordinator(selectionManager, gameClock, callbacks);
