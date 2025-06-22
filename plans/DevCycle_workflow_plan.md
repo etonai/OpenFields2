@@ -109,9 +109,25 @@ Each development cycle follows a structured approach from initial brainstorming 
    git add completed/ plans/
    git commit -m "Archive DevCycle ## documents"
    ```
-4. **Branch Merge**: Merge development branch to main branch
-5. **Branch Cleanup**: Delete development branch
-6. **Next Cycle Prep**: Ready for next development cycle
+4. **Branch Merge and Cleanup**: Use the `close_cycle.sh` script to merge and clean up the development branch
+   ```bash
+   # Preview the closure process (recommended first step)
+   bash close_cycle.sh <branch_name> --dry-run
+   
+   # Execute the full closure process
+   bash close_cycle.sh <branch_name>
+   
+   # Example for DevCycle 15:
+   bash close_cycle.sh DC_15
+   ```
+   - Script automatically switches to main branch and pulls latest changes
+   - Merges development branch into main with conflict detection
+   - Deletes local and remote development branches
+   - Pushes merged changes to origin/main
+   - Verifies compilation and provides summary
+   - Creates backup branches for safety
+   - Includes comprehensive error handling and rollback options
+5. **Next Cycle Prep**: Ready for next development cycle
 
 ## **File Naming Conventions**
 
@@ -250,6 +266,39 @@ bash archive_cycle.sh --help
 - `DevCycle_2025_####*_bugs_*.md` - Bug fix documents
 
 The script ensures consistent and reliable archival while reducing manual effort and potential errors.
+
+### **Cycle Closure Script**
+
+The project includes `close_cycle.sh` to automate the branch merge and cleanup process in Phase 6.
+
+**Script Features:**
+- **Automated Branch Merge**: Switches to main, pulls latest, merges development branch
+- **Branch Cleanup**: Deletes local and remote development branches safely
+- **Safety Features**: Clean working directory checks, backup branch creation, user confirmation
+- **Error Handling**: Conflict detection, rollback options, clear error messages
+- **Verification**: Compilation testing after merge completion
+- **Comprehensive Reporting**: Step-by-step progress and final summary
+
+**Usage Examples:**
+```bash
+# Preview what would be done
+bash close_cycle.sh DC_15 --dry-run
+
+# Execute full cycle closure
+bash close_cycle.sh DC_15
+
+# View help and options
+bash close_cycle.sh --help
+```
+
+**Safety Measures:**
+- Creates backup branches before destructive operations
+- Requires clean working directory before proceeding
+- User confirmation for branch deletion
+- Comprehensive error handling with rollback guidance
+- Compilation verification to ensure merge integrity
+
+The script automates the error-prone manual merge process while maintaining safety and providing clear feedback throughout the closure workflow.
 
 ## **Adaptation Notes**
 
