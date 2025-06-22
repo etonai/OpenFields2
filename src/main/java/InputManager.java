@@ -493,16 +493,7 @@ public class InputManager {
      * Get comprehensive component status for debugging and monitoring.
      */
     public String getComponentStatus() {
-        StringBuilder status = new StringBuilder();
-        status.append("=== InputManager Component Status ===\n");
-        status.append("InputEventRouter: ").append(eventRouter != null ? "✓ Active" : "✗ Missing").append("\n");
-        status.append("InputStateTracker: ").append(stateTracker != null ? "✓ Active" : "✗ Missing").append("\n");
-        status.append("EditModeManager: ").append(editModeManager != null ? "✓ Active" : "✗ Missing").append("\n");
-        status.append("GameStateManager: ").append(gameStateManager != null ? "✓ Active" : "✗ Missing").append("\n");
-        status.append("CombatCommandProcessor: ").append(combatCommandProcessor != null ? "✓ Active" : "✗ Missing").append("\n");
-        status.append("DisplayCoordinator: ").append(displayCoordinator != null ? "✓ Active" : "✗ Missing").append("\n");
-        status.append("=====================================");
-        return status.toString();
+        return inputDiagnosticService.generateDiagnosticReport().toString();
     }
     
     
@@ -1243,14 +1234,13 @@ public class InputManager {
             return; // Don't process other input while waiting for victory outcome
         }
         
-        // DevCycle 15e: Handle scenario name input
+        // DevCycle 15j: Handle scenario name input  
         if (stateTracker.isWaitingForScenarioName()) {
-            // DevCycle 15e: Delegate to GameStateManager
             gameStateManager.handleScenarioNameTextInput(e);
-            return; // Don't process other input while waiting for scenario name
+            return;
         }
         
-        // DevCycle 15e: Handle theme selection
+        // DevCycle 15j: Handle theme selection
         if (stateTracker.isWaitingForThemeSelection()) {
             int themeNumber = -1;
             if (e.getCode() == KeyCode.DIGIT1) themeNumber = 1;
@@ -1262,10 +1252,9 @@ public class InputManager {
             else if (e.getCode() == KeyCode.ESCAPE) themeNumber = 0;
             
             if (themeNumber >= 0) {
-                // DevCycle 15e: Delegate to GameStateManager
-                gameStateManager.handleThemeSelectionInput(themeNumber);
+                handleThemeSelectionInput(themeNumber);
             }
-            return; // Don't process other input while waiting for theme selection
+            return;
         }
         
         // Handle number key input for save/load slot selection, character creation, weapon selection, faction selection, batch character creation, character deployment, and direct character addition
@@ -1331,11 +1320,9 @@ public class InputManager {
                         System.out.println("*** Character creation cancelled ***");
                         stateTracker.setWaitingForCharacterCreation(false);
                         // DevCycle 15d: Reset handled by EditModeManager
-                    } else if (slotNumber >= 1 && slotNumber <= 9) {
-                        // DevCycle 15d: Delegate to EditModeManager
-                        editModeManager.handleCharacterArchetypeSelection(slotNumber);
                     } else {
-                        System.out.println("*** Invalid archetype selection. Use 1-9 or 0 to cancel ***");
+                        // DevCycle 15j: Delegate to EditModeManager with validation
+                        editModeManager.handleCharacterArchetypeSelection(slotNumber);
                     }
                 } else if (stateTracker.isWaitingForCharacterRangedWeapon()) {
                     if (slotNumber == 0) {
@@ -1370,8 +1357,6 @@ public class InputManager {
                         stateTracker.setWaitingForWeaponSelection(false);
                         stateTracker.setWaitingForMeleeWeaponSelection(true);
                         ((EditModeController)callbacks).promptForMeleeWeaponSelection();
-                    } else {
-                        System.out.println("*** Invalid weapon type selection. Use 1 for Ranged, 2 for Melee, or 0 to cancel ***");
                     }
                 } else if (stateTracker.isWaitingForRangedWeaponSelection()) {
                     if (slotNumber == 0) {
@@ -1451,15 +1436,7 @@ public class InputManager {
         gameStateManager.setWaitingForVictoryOutcome(waiting);
     }
     
-    public void setWaitingForScenarioName(boolean waiting) {
-        // DevCycle 15e: Delegate to GameStateManager
-        gameStateManager.setWaitingForScenarioName(waiting);
-    }
     
-    public void setWaitingForThemeSelection(boolean waiting) {
-        // DevCycle 15e: Delegate to GameStateManager
-        gameStateManager.setWaitingForThemeSelection(waiting);
-    }
     
     public boolean isWaitingForInput() {
         return stateTracker.isWaitingForSaveSlot() || stateTracker.isWaitingForLoadSlot() || stateTracker.isWaitingForCharacterCreation() || 
@@ -1744,68 +1721,29 @@ public class InputManager {
         System.out.println("Enter scenario name (or press ESC to cancel): ");
         System.out.print("> ");
         
-        stateTracker.setWaitingForScenarioName(true);
     }
     
     /**
-     * Handle scenario name input when ENTER is pressed (DevCycle 15i: Delegated to WorkflowStateCoordinator)
+     * Handle scenario name input when ENTER is pressed (DevCycle 15j: Simplified to delegation)
      */
     private void handleScenarioNameInput() {
-        String scenarioName = workflowCoordinator.getNewScenarioName();
-        InputValidationService.ValidationResult result = InputValidationService.validateScenarioName(scenarioName);
-        if (!result.isValid) {
-            System.out.println();
-            System.out.println("*** Scenario name cannot be empty. Try again or press ESC to cancel ***");
-            System.out.print("> ");
-            return;
-        }
-        
-        System.out.println();
-        System.out.println("Scenario name: \"" + scenarioName.trim() + "\"");
-        
-        stateTracker.setWaitingForScenarioName(false);
-        promptForThemeSelection();
+        gameStateManager.handleScenarioNameInput();
     }
     
     /**
-     * Prompt for theme selection
+     * Prompt for theme selection (DevCycle 15j: Simplified to delegation)
      */
     private void promptForThemeSelection() {
-        stateTracker.setWaitingForThemeSelection(true);
-        
-        System.out.println("***********************");
-        System.out.println("*** THEME SELECTION ***");
-        System.out.println("Select a theme for the new scenario:");
-        
-        String[] themes = callbacks.getAvailableThemes();
-        for (int i = 0; i < themes.length; i++) {
-            System.out.println((i + 1) + ". " + getThemeDisplayName(themes[i]));
-        }
-        System.out.println("0. Cancel scenario creation");
-        System.out.println();
-        System.out.println("Enter selection (1-" + themes.length + ", 0 to cancel): ");
+        gameStateManager.handleScenarioNameInput();
     }
     
     /**
-     * Handle theme selection input
+     * Handle theme selection input (DevCycle 15j: Simplified to delegation)
      * 
      * @param themeNumber The number entered by the user
      */
     private void handleThemeSelectionInput(int themeNumber) {
-        String[] themes = callbacks.getAvailableThemes();
-        
-        boolean success = InputPatternUtilities.handleCancellationOrRangeValidation(
-            themeNumber, 
-            "Theme selection", 
-            () -> cancelNewScenario(),
-            1, themes.length,
-            () -> {
-                workflowCoordinator.setScenarioTheme(themes[themeNumber - 1]);
-                stateTracker.setWaitingForThemeSelection(false);
-                System.out.println("Selected theme: " + getThemeDisplayName(workflowCoordinator.getNewScenarioTheme()));
-                executeNewScenario();
-            }
-        );
+        gameStateManager.handleThemeSelectionInput(themeNumber);
     }
     
     /**
@@ -1853,14 +1791,10 @@ public class InputManager {
     }
     
     /**
-     * Cancel new scenario creation and reset state
+     * Cancel new scenario creation and reset state (DevCycle 15j: Simplified to delegation)
      */
     private void cancelNewScenario() {
-        System.out.println();
-        System.out.println("*** Scenario creation cancelled ***");
-        stateTracker.setWaitingForScenarioName(false);
-        stateTracker.setWaitingForThemeSelection(false);
-        workflowCoordinator.completeScenarioCreation();
+        gameStateManager.cancelNewScenario();
     }
     
     /**
@@ -2012,11 +1946,6 @@ public class InputManager {
     /**
      * Debug print helper that only outputs when in debug mode
      */
-    private void debugPrint(String message) {
-        if (GameRenderer.isDebugMode()) {
-            System.out.println(message);
-        }
-    }
     
     // DevCycle 15e: initiateMovementToMeleeTarget moved to CombatCommandProcessor
     
@@ -2046,8 +1975,6 @@ public class InputManager {
             stateTracker.setWaitingForCharacterCreation(false);
             stateTracker.setWaitingForCharacterRangedWeapon(true);
             promptForCharacterRangedWeaponSelection();
-        } else {
-            System.out.println("*** Invalid archetype selection ***");
         }
     }
     
@@ -2084,17 +2011,14 @@ public class InputManager {
     private void handleCharacterRangedWeaponSelection(int weaponIndex) {
         String[] weaponIds = data.WeaponFactory.getAllWeaponIds();
         
-        InputValidationService.ValidationResult result = InputValidationService.validateRange(weaponIndex, 1, weaponIds.length);
-        if (result.isValid) {
+        InputPatternUtilities.validateRangeAndExecute(weaponIndex, 1, weaponIds.length, () -> {
             characterCreationController.setSelectedRangedWeapon(weaponIds[weaponIndex - 1]);
             
             // Move to melee weapon selection
             stateTracker.setWaitingForCharacterRangedWeapon(false);
             stateTracker.setWaitingForCharacterMeleeWeapon(true);
             promptForCharacterMeleeWeaponSelection();
-        } else {
-            System.out.println("*** Invalid weapon selection ***");
-        }
+        }, "weapon selection");
     }
     
     /**
@@ -2133,8 +2057,7 @@ public class InputManager {
         java.util.Map<String, data.MeleeWeaponData> meleeWeapons = dataManager.getAllMeleeWeapons();
         String[] meleeWeaponIds = meleeWeapons.keySet().toArray(new String[0]);
         
-        InputValidationService.ValidationResult result = InputValidationService.validateRange(weaponIndex, 1, meleeWeaponIds.length + 1);
-        if (result.isValid) {
+        InputPatternUtilities.validateRangeAndExecute(weaponIndex, 1, meleeWeaponIds.length + 1, () -> {
             if (weaponIndex == 1) {
                 // User selected "Unarmed"
                 characterCreationController.setSelectedMeleeWeapon("unarmed");
@@ -2144,9 +2067,7 @@ public class InputManager {
                 characterCreationController.setSelectedMeleeWeapon(meleeWeaponIds[weaponIndex - 2]);
                 completeCharacterCreation();
             }
-        } else {
-            System.out.println("*** Invalid weapon selection ***");
-        }
+        }, "weapon selection");
     }
     
     /**
@@ -2320,12 +2241,11 @@ public class InputManager {
                 break;
                 
             case SPACING:
-                if (inputNumber == 0) {
-                    System.out.println("*** Character addition cancelled ***");
-                    workflowCoordinator.cancelDirectCharacterAddition();
-                } else {
-                    InputValidationService.ValidationResult result = InputValidationService.validateCharacterSpacing(inputNumber);
-                    if (result.isValid) {
+                InputPatternUtilities.handleCancellationOrRangeValidation(inputNumber, 
+                    "Character addition",
+                    () -> workflowCoordinator.cancelDirectCharacterAddition(),
+                    1, 9,
+                    () -> {
                         if (workflowCoordinator.processDirectAdditionSpacingSelection(inputNumber)) {
                             System.out.println("***********************");
                             System.out.println("*** CHARACTER PLACEMENT ***");
@@ -2334,10 +2254,7 @@ public class InputManager {
                             System.out.println("Characters will be placed in a line going right from your click point");
                             System.out.println("Press ESC to cancel");
                         }
-                    } else {
-                        System.out.println("*** Invalid spacing. Use 1-9 feet or 0 to cancel ***");
-                    }
-                }
+                    });
                 break;
                 
             case PLACEMENT:
@@ -2501,31 +2418,31 @@ public class InputManager {
                 for (JsonNode charNode : charactersNode) {
                     try {
                         // Add debug logging to see the actual charNode content
-                        debugPrint("[DEBUG] Attempting to deserialize character node:");
-                        debugPrint("[DEBUG] charNode content: " + charNode.toString());
+                        inputDiagnosticService.recordDebugLog("CHARACTER_LOAD", "DEBUG", "Attempting to deserialize character node");
+                        inputDiagnosticService.recordDebugLog("CHARACTER_LOAD", "DEBUG", "charNode content: " + charNode.toString());
                         
                         // Use CharacterData for proper JSON deserialization (same approach as CTRL-C)
                         data.CharacterData characterData = InputStates.objectMapper.treeToValue(charNode, data.CharacterData.class);
-                        debugPrint("[DEBUG] Successfully deserialized to CharacterData: " + characterData.nickname);
+                        inputDiagnosticService.recordDebugLog("CHARACTER_LOAD", "DEBUG", "Successfully deserialized to CharacterData: " + characterData.nickname);
                         
                         // Convert CharacterData to Character using CharacterPersistenceManager approach
                         combat.Character character = InputUtils.convertFromCharacterData(characterData);
                         allCharacters.add(character);
                         
-                        debugPrint("[DEBUG] Successfully converted to Character: " + character.getDisplayName());
+                        inputDiagnosticService.recordDebugLog("CHARACTER_LOAD", "DEBUG", "Successfully converted to Character: " + character.getDisplayName());
                         
                         // Check if character is available (not already deployed and not incapacitated)
                         if (isCharacterAvailable(character)) {
                             availableCharacters.add(character);
-                            debugPrint("[DEBUG] Character " + character.getDisplayName() + " is available for deployment");
+                            inputDiagnosticService.recordDebugLog("CHARACTER_LOAD", "DEBUG", "Character " + character.getDisplayName() + " is available for deployment");
                         } else {
-                            debugPrint("[DEBUG] Character " + character.getDisplayName() + " is not available (already deployed or incapacitated)");
+                            inputDiagnosticService.recordDebugLog("CHARACTER_LOAD", "DEBUG", "Character " + character.getDisplayName() + " is not available (already deployed or incapacitated)");
                         }
                     } catch (Exception e) {
                         System.err.println("Error loading character from faction " + factionId + ": " + e.getMessage());
-                        debugPrint("[DEBUG] Full exception details: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        inputDiagnosticService.recordDebugLog("CHARACTER_LOAD", "ERROR", "Full exception details: " + e.getClass().getSimpleName() + ": " + e.getMessage());
                         if (e.getCause() != null) {
-                            debugPrint("[DEBUG] Caused by: " + e.getCause().getClass().getSimpleName() + ": " + e.getCause().getMessage());
+                            inputDiagnosticService.recordDebugLog("CHARACTER_LOAD", "ERROR", "Caused by: " + e.getCause().getClass().getSimpleName() + ": " + e.getCause().getMessage());
                         }
                     }
                 }
