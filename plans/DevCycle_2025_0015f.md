@@ -4,12 +4,15 @@
 
 ## Overview
 
-Fix critical bugs in the ranged combat system identified during testing. Two major issues prevent proper ranged combat functionality: characters incorrectly moving towards targets during ranged attacks (should remain stationary) and null pointer exceptions during weapon firing that break audio feedback.
+Fix critical bugs in the ranged combat system identified during testing. Two major issues prevent proper ranged combat functionality: characters incorrectly moving towards targets during manual ranged attacks (should remain stationary) and null pointer exceptions during weapon firing that break audio feedback.
+
+**EDNOTE**: Combat movement is not always broken. Auto targeting ranged attacks work correctly - characters don't move and sound outputs correctly. The specific problem occurs when a character manually targets a ranged attack.
 
 **Development Cycle Goals:**
-- Fix ranged attack movement bug - characters should stay stationary during ranged attacks
-- Resolve null pointer exception in weapon sound callback system
+- **Priority 1**: Fix ranged attack movement bug for manual targeting - characters should stay stationary during ranged attacks
+- **Priority 2**: Resolve null pointer exception in weapon sound callback system  
 - Maintain all existing melee combat functionality (characters should still move for melee)
+- Maintain working auto targeting functionality
 - Ensure zero regressions in combat system functionality
 
 **Prerequisites:**
@@ -21,11 +24,13 @@ Fix critical bugs in the ranged combat system identified during testing. Two maj
 
 ## Bug Analysis Summary
 
-### Critical Bug #1: Ranged Attack Movement Issue
-**Problem**: Characters move towards targets during ranged attacks instead of staying stationary
-**Expected**: Character remains in position during ranged weapon sequence
+### Critical Bug #1: Manual Ranged Attack Movement Issue  
+**Problem**: Characters move towards targets during manual ranged attacks instead of staying stationary
+**Expected**: Character remains in position during ranged weapon sequence (like auto targeting)
 **Actual**: Character moves towards target as if initiating melee combat
-**Impact**: Breaks fundamental ranged vs melee combat distinction
+**Impact**: Breaks fundamental ranged vs melee combat distinction for manual targeting
+**Working Case**: Auto targeting ranged attacks work correctly - no movement, sound works properly
+**Broken Case**: Manual targeting ranged attacks cause unwanted movement
 
 ### Critical Bug #2: Null Pointer Exception in Audio
 **Problem**: Game throws exception when weapon firing attempts to play sound
@@ -49,92 +54,97 @@ Selected: 1:Alice
 
 ## Implementation Plan
 
-### Phase 1: Null Pointer Exception Investigation and Fix (4 hours)
+**Implementation Priority**: Movement bug fix first (Priority 1), then audio callback fix (Priority 2)
+**Scope**: Single DevCycle, minimal fixes focused on specific issues
+**Key Insight**: Manual vs auto targeting behaves differently - investigate manual targeting code path
 
-#### Step 1.1: Root Cause Analysis (1 hour)
-**Objective**: Identify why `gameCallbacks` is null in Character instances
+### Phase 1: Manual Ranged Attack Movement Bug Investigation and Fix (6 hours)
+
+#### Step 1.1: Manual vs Auto Targeting Analysis (2 hours)
+**Objective**: Understand why manual targeting causes movement but auto targeting doesn't
+
+**Investigation Tasks:**
+- Compare code paths: manual targeting vs auto targeting ranged attacks
+- Examine CombatCommandProcessor changes related to manual targeting
+- Trace manual target assignment from user input to character movement
+- Review differences in `combatTarget` vs `movementTarget` assignment
+
+**Expected Findings:**
+- Manual targeting incorrectly sets movement target in addition to combat target
+- Auto targeting bypasses movement target assignment
+- Recent CombatCommandProcessor changes affected manual targeting logic
+
+#### Step 1.2: Combat Target Separation Fix (2 hours)
+**Objective**: Separate combat targeting from movement targeting in manual ranged attacks
+
+**Implementation Tasks:**
+- Implement `combatTarget` and `movementTarget` separation in Unit class
+- Fix manual targeting to only set combat target, not movement target
+- Ensure ranged attacks don't trigger movement commands
+- Maintain melee combat movement functionality
+
+**Success Criteria:**
+- Manual ranged attacks: character stays stationary (like auto targeting)
+- Melee attacks: movement works as expected
+- Combat target assignment doesn't affect movement target
+
+#### Step 1.3: Manual Targeting Code Path Fix (2 hours)
+**Objective**: Fix the specific manual targeting logic that causes unwanted movement
+
+**Implementation Tasks:**
+- Locate and fix the manual targeting code in CombatCommandProcessor
+- Ensure proper combat mode setting for manual ranged attacks
+- Add validation to prevent movement during ranged weapon states
+- Test manual targeting behavior matches auto targeting behavior
+
+**Success Criteria:**
+- Manual targeting works identically to auto targeting (no movement)
+- `isMeleeCombatMode` correctly set for manual ranged attacks
+- No regressions in auto targeting functionality
+
+### Phase 2: Null Pointer Exception Investigation and Fix (4 hours)
+
+#### Step 2.1: Audio Callback Root Cause Analysis (1 hour)
+**Objective**: Identify why `gameCallbacks` is null in Character instances during manual targeting
 
 **Investigation Tasks:**
 - Examine `Character.java:1063` and surrounding `scheduleFiring` lambda
 - Trace `gameCallbacks` assignment in Character creation/initialization
-- Check Character factory methods for callback assignment
+- Check if manual targeting creates characters differently than auto targeting
 - Review DevCycle 15e changes that might have affected callback chains
 
 **Expected Findings:**
 - Missing callback assignment during character creation
 - Broken callback chain in refactored components
-- Lambda capturing null reference at execution time
+- Manual targeting code path missing callback setup
 
-#### Step 1.2: Callback Assignment Fix (2 hours)
+#### Step 2.2: Callback Assignment Fix (2 hours)
 **Objective**: Ensure all Character instances receive proper gameCallbacks reference
 
 **Implementation Tasks:**
 - Add/fix gameCallbacks assignment in Character creation
 - Verify callback assignment in CharacterFactory
-- Add validation to prevent null callbacks
-- Test callback chain from OpenFields2 through all components
+- Add defensive null checks before `gameCallbacks.playWeaponSound()` calls
+- Test callback chain for both manual and auto targeting
 
 **Success Criteria:**
 - All Character instances have non-null gameCallbacks
 - Weapon firing plays sounds without exceptions
-- Callback chain validated through testing
+- Both manual and auto targeting have working audio
 
-#### Step 1.3: Defensive Programming (1 hour)
-**Objective**: Add protection against future null callback issues
-
-**Implementation Tasks:**
-- Add null check before `gameCallbacks.playWeaponSound()` calls
-- Add logging/warning for missing callbacks
-- Implement graceful degradation when callbacks are missing
-
-**Success Criteria:**
-- No crashes even if callbacks become null
-- Clear logging when callback issues occur
-- Audio system remains stable
-
-### Phase 2: Ranged Attack Movement Bug Investigation and Fix (6 hours)
-
-#### Step 2.1: Combat Type Detection Analysis (2 hours)
-**Objective**: Understand how ranged vs melee combat is determined and where it fails
-
-**Investigation Tasks:**
-- Trace combat initiation from CombatCommandProcessor to character movement
-- Examine `isMeleeCombatMode` flag setting during ranged attacks
-- Check combat type determination logic in combat command processing
-- Review target assignment logic for ranged vs melee differentiation
-
-**Expected Findings:**
-- Combat mode not set correctly for ranged attacks
-- Target assignment triggering unwanted movement
-- Missing distinction between combat target and movement target
-
-#### Step 2.2: Combat Mode Fix (2 hours)
-**Objective**: Ensure ranged attacks properly set combat mode and prevent movement
+#### Step 2.3: Critical Error Handling (1 hour)
+**Objective**: Treat missing callbacks as critical errors with proper logging
 
 **Implementation Tasks:**
-- Fix `isMeleeCombatMode` setting for ranged attacks (should be false)
-- Add explicit ranged combat validation in combat initiation
-- Separate combat target assignment from movement target assignment
-- Add movement restrictions during ranged weapon state transitions
+- Add validation to detect null callbacks at runtime
+- Log critical errors when callbacks are missing
+- Fail fast if callbacks are not properly initialized
+- Focus only on weapon sound callback (not expanding to other callbacks)
 
 **Success Criteria:**
-- Characters remain stationary during ranged attacks
-- `isMeleeCombatMode` correctly reflects attack type
-- Combat targets don't trigger movement for ranged attacks
-
-#### Step 2.3: Movement System Integration (2 hours)
-**Objective**: Ensure movement system respects combat type distinctions
-
-**Implementation Tasks:**
-- Review `Unit.setTarget()` method for combat type awareness
-- Add combat state checks in movement processing
-- Prevent movement commands during ranged weapon state sequences
-- Maintain melee combat movement functionality
-
-**Success Criteria:**
-- Ranged attacks: no movement, character stays in position
-- Melee attacks: movement works as expected
-- Combat state properly coordinated with movement system
+- Clear error messages when callback issues occur
+- No silent failures in audio system
+- Missing callbacks treated as critical errors
 
 ### Phase 3: Integration Testing and Validation (4 hours)
 
@@ -142,30 +152,32 @@ Selected: 1:Alice
 **Objective**: Verify both bugs are fixed and no regressions introduced
 
 **Test Cases:**
-- **Ranged Attack Test**: Character initiates ranged attack, remains stationary throughout sequence
+- **Manual Ranged Attack Test**: Character manually targets ranged attack, remains stationary (like auto targeting)
+- **Auto Ranged Attack Test**: Verify auto targeting still works correctly (regression test)
 - **Melee Attack Test**: Character initiates melee attack, moves to target as expected
-- **Audio Test**: Weapon sounds play correctly without exceptions during firing
-- **Combat Transition Test**: Switching between ranged and melee modes works correctly
+- **Audio Test**: Weapon sounds play correctly for both manual and auto targeting
+- **Pistol and Rifle Test**: Test both weapon types as specified
 
 **Success Criteria:**
-- All test cases pass without errors or exceptions
-- Audio feedback works correctly for all weapon types
-- Combat behavior matches expected ranged vs melee patterns
+- Manual targeting behaves identically to auto targeting (no movement)
+- Audio feedback works correctly for both targeting modes
+- No regressions in existing auto targeting functionality
 
 #### Step 3.2: Regression Testing (2 hours)
 **Objective**: Ensure no existing functionality is broken by the fixes
 
 **Test Procedures:**
 - Run DevCycle 15b validation procedures
-- Test multi-unit combat scenarios
-- Test all weapon types (pistol, rifle, melee weapons)
+- Test pistol and rifle weapons (as specified)
+- Focus on single unit testing (no multi-unit scenarios needed)
 - Test combat during different game states (paused, edit mode, etc.)
+- No performance benchmarking required
 
 **Success Criteria:**
 - DevCycle 15b tests pass completely
 - All combat functionality preserved
-- No performance degradation
-- 60 FPS requirements maintained
+- Auto targeting continues to work correctly
+- Manual targeting now works like auto targeting
 
 ## Technical Implementation Details
 
@@ -181,37 +193,39 @@ Selected: 1:Alice
 - Call `character.setGameCallbacks(this)` during character creation
 - Add null checks in firing lambda: `if (gameCallbacks != null) gameCallbacks.playWeaponSound(weapon)`
 
-### Combat Mode Fix
+### Manual Targeting Movement Fix
 
 **Target Files:**
-- `CombatCommandProcessor.java` - Fix combat type determination
-- `Character.java` - Ensure proper combat mode setting
-- `Unit.java` - Prevent unwanted movement during ranged attacks
+- `CombatCommandProcessor.java` - Fix manual targeting code path  
+- `Unit.java` - Implement combatTarget/movementTarget separation
+- Related input processing files for manual targeting
 
 **Key Changes:**
-- Set `character.isMeleeCombatMode = false` for ranged attacks
-- Add distance-based combat type detection (>melee range = ranged)
-- Separate `combatTarget` from `movementTarget` in Unit class
-- Add movement restrictions during weapon state transitions
+- Implement `combatTarget` and `movementTarget` separation in Unit class
+- Fix manual targeting to only set combat target, not movement target  
+- Ensure manual targeting behaves like auto targeting (no movement)
+- Set `character.isMeleeCombatMode = false` correctly for manual ranged attacks
+- Maintain melee combat movement functionality
 
 ### Integration Points
 
 **Component Coordination:**
-- CombatCommandProcessor correctly identifies ranged vs melee
-- Character combat mode reflects actual attack type
-- Unit movement respects combat state
-- Audio system receives proper callbacks
+- CombatCommandProcessor manual targeting matches auto targeting behavior
+- Character combat mode reflects actual attack type for both targeting modes
+- Unit movement system respects combatTarget vs movementTarget separation
+- Audio system receives proper callbacks for both targeting modes
 
 **State Management:**
 - Combat state properly tracked through InputStateTracker
-- Movement state coordinated with combat state
-- Weapon state transitions don't trigger unwanted movement
+- Movement state separated from combat state via target separation
+- Manual targeting doesn't trigger unwanted movement (like auto targeting)
 
 ## Success Metrics
 
 ### Functional Requirements
-- **Ranged attacks work correctly**: Character stays stationary during entire ranged attack sequence
-- **No exceptions**: Weapon firing completes without null pointer exceptions
+- **Manual ranged attacks work correctly**: Character stays stationary during manual ranged attacks (like auto targeting)
+- **Auto targeting preserved**: Auto targeting continues to work correctly (no regressions)
+- **No exceptions**: Weapon firing completes without null pointer exceptions for both targeting modes
 - **Audio works**: Weapon sounds play correctly during all firing events
 - **Melee unchanged**: Melee attacks continue to work as expected (character moves to target)
 
@@ -296,3 +310,28 @@ The successful completion of this cycle will restore full combat functionality a
 ---
 
 *DevCycle 15f represents essential bug fixes to maintain core gameplay functionality following the major InputManager refactoring completed in DevCycle 15e.*
+
+## Implementation Decisions (Based on User Input)
+
+### Priority and Scope
+- **Priority 1**: Movement bug fix (manual targeting causing unwanted movement)
+- **Priority 2**: Audio callback null pointer exception
+- **Scope**: Single DevCycle with minimal fixes focused on specific issues
+- **Testing**: Pistol and rifle weapons, single unit testing, no performance benchmarking
+
+### Technical Approach
+- **Target Separation**: Implement `combatTarget` and `movementTarget` separation in Unit class
+- **Movement Restrictions**: Do NOT restrict movement during combat states
+- **Callback Handling**: Treat missing callbacks as critical errors, use defensive programming (null checks)
+- **Focus**: Only weapon sound callback, not expanding to other callbacks
+
+### Investigation Focus
+- **Root Cause**: Manual vs auto targeting code path differences
+- **Suspected Location**: Recent CombatCommandProcessor changes
+- **Key Insight**: Auto targeting works correctly, manual targeting is broken
+- **No Investigation Needed**: Character creation methods, edge cases, multi-unit scenarios
+
+### Architecture Decisions
+- **Minimal Fixes**: Focus on specific bugs, not broader architecture improvements
+- **No Debug Logging**: Not adding debug logging at this time
+- **No Combat/Movement Separation**: Not establishing broader separation of combat and movement logic
