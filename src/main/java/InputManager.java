@@ -214,6 +214,9 @@ public class InputManager {
     /** Handles unit movement controls including speed adjustment and movement commands */
     private final MovementController movementController;
     
+    /** Handles component lifecycle and system integration coordination */
+    private final InputSystemIntegrator systemIntegrator;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -390,6 +393,13 @@ public class InputManager {
                                         gameStateManager, characterCreationController, stateTracker, 
                                         cameraController, movementController, callbacks);
         
+        // DevCycle 15h Phase 5: Initialize system integrator
+        this.systemIntegrator = new InputSystemIntegrator(eventRouter, stateTracker, editModeManager,
+                                   gameStateManager, combatCommandProcessor, displayCoordinator,
+                                   characterCreationController, deploymentController, victoryOutcomeController,
+                                   mouseInputHandler, keyboardInputHandler, cameraController, movementController,
+                                   callbacks, units);
+        
         // DevCycle 15e Phase 4: Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
             displayCoordinator.debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
@@ -406,17 +416,8 @@ public class InputManager {
      * Called automatically by constructor but can be called for reinitialization.
      */
     public void initializeComponents() {
-        displayCoordinator.debugLog("LIFECYCLE", "Initializing InputManager components");
-        
-        // DevCycle 15e Phase 4: Component cross-references established via dependency injection
-        
-        // Set up component lifecycle callbacks
-        stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
-            displayCoordinator.debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
-                                newValue ? stateName : "NONE");
-        });
-        
-        displayCoordinator.debugLog("LIFECYCLE", "Component initialization complete");
+        // DevCycle 15h Phase 5: Delegate to system integrator
+        systemIntegrator.initializeComponents();
     }
     
     /**
@@ -424,6 +425,40 @@ public class InputManager {
      * Should be called periodically to ensure all components are functioning correctly.
      */
     public boolean validateComponentIntegrity() {
+        // DevCycle 15h Phase 5: Delegate to system integrator
+        return systemIntegrator.validateComponentIntegrity();
+    }
+    
+    /**
+     * Get system status information.
+     */
+    public InputSystemIntegrator.SystemStatusSummary getSystemStatus() {
+        return systemIntegrator.getSystemStatus();
+    }
+    
+    /**
+     * Perform comprehensive system validation.
+     */
+    public InputSystemIntegrator.SystemValidationResult performSystemValidation() {
+        return systemIntegrator.performSystemValidation();
+    }
+    
+    /**
+     * Check if input system is healthy.
+     */
+    public boolean isSystemHealthy() {
+        return systemIntegrator.isSystemHealthy();
+    }
+    
+    /**
+     * Shutdown all components gracefully.
+     */
+    public void shutdownComponents() {
+        systemIntegrator.shutdownComponents();
+    }
+    
+    // Legacy validation method (for backward compatibility)
+    private boolean legacyValidateComponentIntegrity() {
         displayCoordinator.debugLog("LIFECYCLE", "Validating component integrity");
         
         boolean allHealthy = true;
@@ -439,25 +474,7 @@ public class InputManager {
             allHealthy = false;
         }
         
-        if (editModeManager == null) {
-            displayCoordinator.debugLog("ERROR", "EditModeManager not initialized");
-            allHealthy = false;
-        }
-        
-        if (gameStateManager == null) {
-            displayCoordinator.debugLog("ERROR", "GameStateManager not initialized");
-            allHealthy = false;
-        }
-        
-        if (combatCommandProcessor == null) {
-            displayCoordinator.debugLog("ERROR", "CombatCommandProcessor not initialized");
-            allHealthy = false;
-        }
-        
-        if (displayCoordinator == null) {
-            System.err.println("ERROR: DisplayCoordinator not initialized");
-            allHealthy = false;
-        }
+        // Additional legacy validation can be added here if needed
         
         if (allHealthy) {
             displayCoordinator.debugLog("LIFECYCLE", "All components healthy");
@@ -494,94 +511,7 @@ public class InputManager {
         return status.toString();
     }
     
-    /**
-     * Cleanup and shutdown all components gracefully.
-     * Should be called when the application is closing.
-     */
-    public void shutdownComponents() {
-        displayCoordinator.debugLog("LIFECYCLE", "Shutting down InputManager components");
-        
-        // Clear any debug data
-        if (displayCoordinator != null) {
-            displayCoordinator.clearPerformanceStatistics();
-            displayCoordinator.clearInputEventTrace();
-        }
-        
-        // DevCycle 15e Phase 4: Component cleanup - state reset handled by application lifecycle
-        
-        displayCoordinator.debugLog("LIFECYCLE", "Component shutdown complete");
-    }
     
-    /**
-     * Comprehensive system validation and performance testing.
-     * This method implements DevCycle 15b testing principles for all components.
-     */
-    public boolean performSystemValidation() {
-        displayCoordinator.debugLog("VALIDATION", "Starting comprehensive system validation");
-        
-        boolean validationPassed = true;
-        
-        // Test component integrity
-        if (!validateComponentIntegrity()) {
-            displayCoordinator.debugLog("ERROR", "Component integrity validation failed");
-            validationPassed = false;
-        }
-        
-        // Test state management
-        try {
-            displayCoordinator.debugLog("VALIDATION", "Testing state management");
-            boolean originalEditMode = callbacks.isEditMode();
-            
-            // Test state transitions
-            stateTracker.setWaitingForSaveSlot(true);
-            if (!stateTracker.isWaitingForSaveSlot()) {
-                displayCoordinator.debugLog("ERROR", "State tracker save slot test failed");
-                validationPassed = false;
-            }
-            stateTracker.setWaitingForSaveSlot(false);
-            
-            displayCoordinator.debugLog("VALIDATION", "State management test completed");
-        } catch (Exception e) {
-            displayCoordinator.debugLog("ERROR", "State management test failed: " + e.getMessage());
-            validationPassed = false;
-        }
-        
-        // Test display coordination
-        try {
-            displayCoordinator.debugLog("VALIDATION", "Testing display coordination");
-            displayCoordinator.logMemoryUsage("Validation test");
-            displayCoordinator.debugLog("VALIDATION", "Display coordination test completed");
-        } catch (Exception e) {
-            displayCoordinator.debugLog("ERROR", "Display coordination test failed: " + e.getMessage());
-            validationPassed = false;
-        }
-        
-        // Performance validation
-        try {
-            displayCoordinator.debugLog("VALIDATION", "Testing performance systems");
-            displayCoordinator.startPerformanceTimer("ValidationTest");
-            Thread.sleep(1); // Minimal operation
-            displayCoordinator.endPerformanceTimer("ValidationTest");
-            
-            var stats = displayCoordinator.getPerformanceStatistics();
-            if (!stats.containsKey("ValidationTest")) {
-                displayCoordinator.debugLog("ERROR", "Performance timing test failed");
-                validationPassed = false;
-            }
-            displayCoordinator.debugLog("VALIDATION", "Performance systems test completed");
-        } catch (Exception e) {
-            displayCoordinator.debugLog("ERROR", "Performance systems test failed: " + e.getMessage());
-            validationPassed = false;
-        }
-        
-        if (validationPassed) {
-            displayCoordinator.debugLog("VALIDATION", "✓ All system validation tests passed");
-        } else {
-            displayCoordinator.debugLog("ERROR", "✗ System validation failed");
-        }
-        
-        return validationPassed;
-    }
     
     // ─────────────────────────────────────────────────────────────────────────────────
     // 3.2 Input Handler Setup
@@ -1545,19 +1475,6 @@ public class InputManager {
     // DevCycle 15h: Character creation methods moved to CharacterCreationController
     // All batch character creation functionality is now handled by the dedicated controller
     
-    /**
-     * Get faction display name by number (1-4).
-     * This method is still used by deployment and other workflows.
-     */
-    private String getFactionName(int factionNumber) {
-        switch (factionNumber) {
-            case 1: return "NONE";
-            case 2: return "Union";
-            case 3: return "Confederacy"; 
-            case 4: return "Southern Unionists";
-            default: return "Unknown";
-        }
-    }
     
     /**
      * Start the character deployment workflow (DevCycle 15h: Delegated to DeploymentController)
@@ -1654,7 +1571,7 @@ public class InputManager {
         
         for (Unit unit : unitsToDelete) {
             System.out.println("  " + unit.character.getDisplayName() + " (ID: " + unit.character.id + 
-                             ", Faction: " + getFactionName(unit.character.getFaction() + 1) + ")");
+                             ", Faction: " + InputUtils.getFactionName(unit.character.getFaction() + 1) + ")");
         }
         
         System.out.println();
@@ -1766,7 +1683,7 @@ public class InputManager {
                     characterCount++;
                 }
             }
-            System.out.println("  " + getFactionName(factionId + 1) + ": " + characterCount + " characters");
+            System.out.println("  " + InputUtils.getFactionName(factionId + 1) + ": " + characterCount + " characters");
         }
         
         System.out.println();
@@ -2297,7 +2214,7 @@ public class InputManager {
         }
         
         // Get color based on archetype (reuse EditModeController logic)
-        javafx.scene.paint.Color characterColor = getArchetypeColor(archetype);
+        javafx.scene.paint.Color characterColor = InputUtils.getArchetypeColor(archetype);
         
         // Create and add unit
         int unitId = callbacks.getNextUnitId();
@@ -2314,16 +2231,6 @@ public class InputManager {
     /**
      * Get the appropriate color for a character archetype
      */
-    private javafx.scene.paint.Color getArchetypeColor(String archetype) {
-        switch (archetype.toLowerCase()) {
-            case "confederate_soldier":
-                return javafx.scene.paint.Color.DARKGRAY; // Confederate dark gray
-            case "union_soldier":
-                return javafx.scene.paint.Color.BLUE; // Union blue
-            default:
-                return javafx.scene.paint.Color.CYAN; // Default color for other archetypes
-        }
-    }
     
     /**
      * Start the direct character addition workflow
@@ -2574,7 +2481,7 @@ public class InputManager {
                         debugPrint("[DEBUG] Successfully deserialized to CharacterData: " + characterData.nickname);
                         
                         // Convert CharacterData to Character using CharacterPersistenceManager approach
-                        combat.Character character = convertFromCharacterData(characterData);
+                        combat.Character character = InputUtils.convertFromCharacterData(characterData);
                         allCharacters.add(character);
                         
                         debugPrint("[DEBUG] Successfully converted to Character: " + character.getDisplayName());
@@ -2619,68 +2526,6 @@ public class InputManager {
         return !character.isIncapacitated();
     }
     
-    /**
-     * Convert CharacterData to Character object (same approach as CharacterPersistenceManager)
-     */
-    private combat.Character convertFromCharacterData(data.CharacterData data) {
-        // Create character with basic info - use the full constructor
-        combat.Character character = new combat.Character(data.id, data.nickname, data.firstName, data.lastName, 
-                                          data.birthdate, data.themeId, data.dexterity, data.health, 
-                                          data.coolness, data.strength, data.reflexes, data.handedness);
-        
-        // Set remaining stats not covered by constructor
-        character.currentDexterity = data.currentDexterity;
-        character.currentHealth = data.currentHealth;
-        character.baseMovementSpeed = data.baseMovementSpeed;
-        
-        // Set current state
-        character.currentMovementType = data.currentMovementType;
-        character.currentAimingSpeed = data.currentAimingSpeed;
-        character.usesAutomaticTargeting = data.usesAutomaticTargeting;
-        character.preferredFiringMode = data.preferredFiringMode;
-        
-        // Set faction
-        character.setFaction(data.faction);
-        
-        // Set battle statistics
-        character.combatEngagements = data.combatEngagements;
-        character.woundsReceived = data.woundsReceived;
-        character.woundsInflictedScratch = data.woundsInflictedScratch;
-        character.woundsInflictedLight = data.woundsInflictedLight;
-        character.woundsInflictedSerious = data.woundsInflictedSerious;
-        character.woundsInflictedCritical = data.woundsInflictedCritical;
-        character.attacksAttempted = data.attacksAttempted;
-        character.attacksSuccessful = data.attacksSuccessful;
-        character.targetsIncapacitated = data.targetsIncapacitated;
-        character.headshotsAttempted = data.headshotsAttempted;
-        character.headshotsSuccessful = data.headshotsSuccessful;
-        character.headshotsKills = data.headshotsKills;
-        character.battlesParticipated = data.battlesParticipated;
-        character.victories = data.victories;
-        character.defeats = data.defeats;
-        
-        // Set skills
-        if (data.skills != null) {
-            for (data.CharacterData.SkillData skillData : data.skills) {
-                character.setSkillLevel(skillData.skillName, skillData.level);
-            }
-        }
-        
-        // Set wounds
-        if (data.wounds != null) {
-            for (data.CharacterData.WoundData woundData : data.wounds) {
-                try {
-                    combat.BodyPart bodyPart = combat.BodyPart.valueOf(woundData.bodyPart);
-                    combat.WoundSeverity severity = combat.WoundSeverity.valueOf(woundData.severity);
-                    character.addWound(new combat.Wound(bodyPart, severity, "Persistent wound", "", woundData.damage));
-                } catch (IllegalArgumentException e) {
-                    System.err.println("Warning: Invalid wound data - " + e.getMessage());
-                }
-            }
-        }
-        
-        return character;
-    }
     
     // ═══════════════════════════════════════════════════════════════════════════════════
     // DevCycle 15e Phase 4: Debug and diagnostic methods moved to DisplayCoordinator
