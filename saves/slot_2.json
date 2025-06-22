@@ -1,12 +1,12 @@
 {
   "metadata" : {
-    "timestamp" : "2025-06-21T20:13:49.2186218",
+    "timestamp" : "2025-06-21T20:13:41.4431304",
     "gameVersion" : "1.0",
     "themeId" : "test_theme",
-    "saveSlot" : 1
+    "saveSlot" : 2
   },
   "gameState" : {
-    "currentTick" : 5706,
+    "currentTick" : 5238,
     "paused" : true,
     "offsetX" : 0.0,
     "offsetY" : 0.0,

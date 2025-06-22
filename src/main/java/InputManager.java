@@ -217,6 +217,15 @@ public class InputManager {
     /** Handles component lifecycle and system integration coordination */
     private final InputSystemIntegrator systemIntegrator;
     
+    /** Handles workflow state coordination and management */
+    private final WorkflowStateCoordinator workflowCoordinator;
+    
+    /** Handles input validation for all input types with consistent error reporting */
+    private final InputValidationService inputValidationService;
+    
+    /** Handles diagnostic and debugging utilities for input system monitoring */
+    private final InputDiagnosticService inputDiagnosticService;
+    
     // ─────────────────────────────────────────────────────────────────────────────────
     // 1.2 Game State References
     // ─────────────────────────────────────────────────────────────────────────────────
@@ -248,33 +257,9 @@ public class InputManager {
     
     // Manual Victory Workflow State
     
-    // New Scenario Creation State
-    /** Name for new scenario being created */
-    private String newScenarioName = "";
-    
-    /** Theme ID for new scenario being created */
-    private String newScenarioTheme = "";
-    
-    // Character Creation Workflow State (DevCycle 15h: Moved to CharacterCreationController)
-    // Batch and individual character creation state is now managed by the CharacterCreationController component
-    
-    // Character weapon selection state moved to InputStateTracker
-    
-    // Character Deployment Workflow State (DevCycle 15h: Moved to DeploymentController)
-    // Deployment state and methods are now managed by the DeploymentController component
-    
-    // Direct Character Addition Workflow State (CTRL-A functionality)
-    /** Selected faction for direct character addition */
-    private int directAdditionFaction = 0;
-    
-    /** Number of characters to add directly */
-    private int directAdditionQuantity = 0;
-    
-    /** Spacing between characters in feet for direct addition */
-    private double directAdditionSpacing = 5.0;
-    
-    /** Current step in direct addition workflow */
-    private InputStates.DirectAdditionStep directAdditionStep = InputStates.DirectAdditionStep.FACTION;
+    // Workflow State Management (DevCycle 15i: Moved to WorkflowStateCoordinator)
+    // All workflow state variables and management are now handled by the WorkflowStateCoordinator component
+    // This includes direct character addition, scenario creation, and other multi-step workflows
     
     // ═══════════════════════════════════════════════════════════════════════════════════
     // SECTION 2: INNER CLASSES AND ENUMS
@@ -400,6 +385,15 @@ public class InputManager {
                                    mouseInputHandler, keyboardInputHandler, cameraController, movementController,
                                    callbacks, units);
         
+        // DevCycle 15i Phase 1: Initialize workflow state coordinator
+        this.workflowCoordinator = new WorkflowStateCoordinator(stateTracker, displayCoordinator, callbacks);
+        
+        // DevCycle 15i Phase 2: Initialize input validation service
+        this.inputValidationService = new InputValidationService();
+        
+        // DevCycle 15i Phase 3: Initialize input diagnostic service
+        this.inputDiagnosticService = new InputDiagnosticService();
+        
         // DevCycle 15e Phase 4: Set up debug callback for state tracking integration
         this.stateTracker.setDebugCallback((stateName, oldValue, newValue) -> {
             displayCoordinator.debugStateTransition("INPUT_STATE", oldValue ? stateName : "NONE", 
@@ -459,27 +453,27 @@ public class InputManager {
     
     // Legacy validation method (for backward compatibility)
     private boolean legacyValidateComponentIntegrity() {
-        displayCoordinator.debugLog("LIFECYCLE", "Validating component integrity");
+        inputDiagnosticService.recordDebugLog("LIFECYCLE", "INFO", "Validating component integrity");
         
         boolean allHealthy = true;
         
         // Validate each component
         if (eventRouter == null) {
-            displayCoordinator.debugLog("ERROR", "InputEventRouter not initialized");
+            inputDiagnosticService.recordDebugLog("LIFECYCLE", "ERROR", "InputEventRouter not initialized");
             allHealthy = false;
         }
         
         if (stateTracker == null) {
-            displayCoordinator.debugLog("ERROR", "InputStateTracker not initialized");
+            inputDiagnosticService.recordDebugLog("LIFECYCLE", "ERROR", "InputStateTracker not initialized");
             allHealthy = false;
         }
         
         // Additional legacy validation can be added here if needed
         
         if (allHealthy) {
-            displayCoordinator.debugLog("LIFECYCLE", "All components healthy");
+            inputDiagnosticService.recordDebugLog("LIFECYCLE", "INFO", "All components healthy");
         } else {
-            displayCoordinator.debugLog("ERROR", "Component integrity validation failed");
+            inputDiagnosticService.recordDebugLog("LIFECYCLE", "ERROR", "Component integrity validation failed");
         }
         
         return allHealthy;
@@ -579,13 +573,13 @@ public class InputManager {
      * @param e MouseEvent containing button type and screen coordinates
      */
     private void handleMousePressed(MouseEvent e) {
-        displayCoordinator.startPerformanceTimer("MousePressed");
+        inputDiagnosticService.startPerformanceTimer("MousePressed");
         double x = gameRenderer.screenToWorldX(e.getX());
         double y = gameRenderer.screenToWorldY(e.getY());
         
-        displayCoordinator.debugInputEvent("MOUSE_PRESS", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + 
+        inputDiagnosticService.recordInputEvent("MOUSE_PRESS", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + 
                        ") world(" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
-        displayCoordinator.addInputTraceEvent("Mouse pressed: " + e.getButton() + " at (" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
+        inputDiagnosticService.recordInputEvent("MOUSE_TRACE", "Mouse pressed: " + e.getButton() + " at (" + String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
         
         if (e.getButton() == MouseButton.PRIMARY) {
             // DevCycle 15c: Use InputEventRouter to determine handling
@@ -604,7 +598,7 @@ public class InputManager {
                                      String.format("%.1f", x) + "," + String.format("%.1f", y) + ")");
                     // DevCycle 15d: Delegate to EditModeManager
                     editModeManager.handleCharacterPlacement(x, y);
-                    displayCoordinator.endPerformanceTimer("MousePressed");
+                    inputDiagnosticService.endPerformanceTimer("MousePressed");
                     return;
                 case UNIT_SELECTION:
                     // Continue with normal selection logic below
@@ -651,8 +645,8 @@ public class InputManager {
             }
         }
         
-        displayCoordinator.endPerformanceTimer("MousePressed");
-        displayCoordinator.logMemoryUsage("After MousePressed");
+        inputDiagnosticService.endPerformanceTimer("MousePressed");
+        inputDiagnosticService.logMemoryUsage("After MousePressed");
     }
     
     /**
@@ -690,8 +684,8 @@ public class InputManager {
      * @param e MouseEvent containing button type and final release position
      */
     private void handleMouseReleased(MouseEvent e) {
-        displayCoordinator.debugInputEvent("MOUSE_RELEASE", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + ")");
-        displayCoordinator.addInputTraceEvent("Mouse released: " + e.getButton());
+        inputDiagnosticService.recordInputEvent("MOUSE_RELEASE", e.getButton() + " at screen(" + e.getX() + "," + e.getY() + ")");
+        inputDiagnosticService.recordInputEvent("MOUSE_TRACE", "Mouse released: " + e.getButton());
         
         if (selectionManager.isSelecting() && e.getButton() == MouseButton.PRIMARY) {
             // Complete rectangle selection
@@ -860,34 +854,34 @@ public class InputManager {
      */
     private void handleKeyPressed(KeyEvent e) {
         // DevCycle 15e Phase 4: Delegate debug operations to DisplayCoordinator
-        displayCoordinator.startPerformanceTimer("KeyPressed");
+        inputDiagnosticService.startPerformanceTimer("KeyPressed");
         String modifiers = (e.isShiftDown() ? "Shift+" : "") + (e.isControlDown() ? "Ctrl+" : "") + (e.isAltDown() ? "Alt+" : "");
-        displayCoordinator.debugInputEvent("KEY_PRESS", modifiers + e.getCode());
-        displayCoordinator.addInputTraceEvent("Key pressed: " + modifiers + e.getCode());
+        inputDiagnosticService.recordInputEvent("KEY_PRESS", modifiers + e.getCode());
+        inputDiagnosticService.recordInputEvent("KEY_TRACE", "Key pressed: " + modifiers + e.getCode());
         
         // Camera controls
         if (e.getCode() == KeyCode.UP) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan up");
+            inputDiagnosticService.recordInputEvent("CAMERA_CONTROL", "Pan up");
             gameRenderer.adjustOffset(0, 20);
         }
         if (e.getCode() == KeyCode.DOWN) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan down");
+            inputDiagnosticService.recordInputEvent("CAMERA_CONTROL", "Pan down");
             gameRenderer.adjustOffset(0, -20);
         }
         if (e.getCode() == KeyCode.LEFT) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan left");
+            inputDiagnosticService.recordInputEvent("CAMERA_CONTROL", "Pan left");
             gameRenderer.adjustOffset(20, 0);
         }
         if (e.getCode() == KeyCode.RIGHT) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Pan right");
+            inputDiagnosticService.recordInputEvent("CAMERA_CONTROL", "Pan right");
             gameRenderer.adjustOffset(-20, 0);
         }
         if (e.getCode() == KeyCode.EQUALS || e.getCode() == KeyCode.PLUS) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Zoom in");
+            inputDiagnosticService.recordInputEvent("CAMERA_CONTROL", "Zoom in");
             gameRenderer.adjustZoom(1.1);
         }
         if (e.getCode() == KeyCode.MINUS) {
-            displayCoordinator.debugInputEvent("CAMERA_CONTROL", "Zoom out");
+            inputDiagnosticService.recordInputEvent("CAMERA_CONTROL", "Zoom out");
             gameRenderer.adjustZoom(1.0 / 1.1);
         }
         
@@ -991,8 +985,8 @@ public class InputManager {
         // Handle prompt responses
         handlePromptInputs(e);
         
-        displayCoordinator.endPerformanceTimer("KeyPressed");
-        displayCoordinator.logMemoryUsage("After KeyPressed");
+        inputDiagnosticService.endPerformanceTimer("KeyPressed");
+        inputDiagnosticService.logMemoryUsage("After KeyPressed");
     }
     
     /**
@@ -1036,8 +1030,9 @@ public class InputManager {
     private void handleMovementControls(KeyEvent e) {
         // Movement type controls - W to increase, S to decrease
         if (e.getCode() == KeyCode.W && selectionManager.hasSelection()) {
-            for (Unit unit : selectionManager.getSelectedUnits()) {
-                if (!unit.character.isIncapacitated()) {
+            InputPatternUtilities.processSelectedCharacters(
+                selectionManager,
+                unit -> {
                     combat.MovementType previousType = unit.character.getCurrentMovementType();
                     unit.character.increaseMovementType();
                     combat.MovementType newType = unit.character.getCurrentMovementType();
@@ -1046,9 +1041,12 @@ public class InputManager {
                     if (unit.isStopped) {
                         unit.resumeMovement();
                     }
-                }
-            }
+                },
+                "", // Will handle display separately for special DisplayCoordinator integration
+                ""
+            );
             
+            // Custom display handling to integrate with DisplayCoordinator
             if (selectionManager.getSelectionCount() == 1) {
                 Unit unit = selectionManager.getSelected();
                 combat.MovementType newType = unit.character.getCurrentMovementType();
@@ -1059,8 +1057,9 @@ public class InputManager {
             }
         }
         if (e.getCode() == KeyCode.S && selectionManager.hasSelection()) {
-            for (Unit unit : selectionManager.getSelectedUnits()) {
-                if (!unit.character.isIncapacitated()) {
+            InputPatternUtilities.processSelectedCharacters(
+                selectionManager,
+                unit -> {
                     combat.MovementType previousType = unit.character.getCurrentMovementType();
                     
                     // If already at crawling speed and currently moving, stop movement
@@ -1070,9 +1069,12 @@ public class InputManager {
                         // Otherwise, decrease movement type normally
                         unit.character.decreaseMovementType();
                     }
-                }
-            }
+                },
+                "", // Will handle display separately for special DisplayCoordinator integration
+                ""
+            );
             
+            // Custom display handling to integrate with DisplayCoordinator
             if (selectionManager.getSelectionCount() == 1) {
                 Unit unit = selectionManager.getSelected();
                 combat.MovementType newType = unit.character.getCurrentMovementType();
@@ -1092,12 +1094,14 @@ public class InputManager {
     private void handleAimingControls(KeyEvent e) {
         // Aiming speed controls - Q to increase, E to decrease
         if (e.getCode() == KeyCode.Q && selectionManager.hasSelection()) {
-            for (Unit unit : selectionManager.getSelectedUnits()) {
-                if (!unit.character.isIncapacitated()) {
-                    unit.character.increaseAimingSpeed();
-                }
-            }
+            InputPatternUtilities.processSelectedCharacters(
+                selectionManager,
+                unit -> unit.character.increaseAimingSpeed(),
+                "", // Will handle display separately for special DisplayCoordinator integration
+                ""
+            );
             
+            // Custom display handling to integrate with DisplayCoordinator
             if (selectionManager.getSelectionCount() == 1) {
                 Unit unit = selectionManager.getSelected();
                 combat.AimingSpeed newSpeed = unit.character.getCurrentAimingSpeed();
@@ -1177,12 +1181,14 @@ public class InputManager {
         
         // Combat mode toggle: M (melee/ranged toggle)
         if (e.getCode() == KeyCode.M && selectionManager.hasSelection()) {
-            for (Unit unit : selectionManager.getSelectedUnits()) {
-                if (!unit.character.isIncapacitated()) {
-                    unit.character.toggleCombatMode();
-                }
-            }
+            InputPatternUtilities.processSelectedCharacters(
+                selectionManager,
+                unit -> unit.character.toggleCombatMode(),
+                "", // Will handle display separately to determine mode after toggle
+                ""
+            );
             
+            // Custom display handling to show correct combat mode after toggle
             if (selectionManager.getSelectionCount() == 1) {
                 Unit unit = selectionManager.getSelected();
                 String modeText = unit.character.isMeleeCombatMode() ? "Melee Combat" : "Ranged Combat";
@@ -1725,11 +1731,10 @@ public class InputManager {
     
     
     /**
-     * Start the new scenario workflow
+     * Start the new scenario workflow (DevCycle 15i: Delegated to WorkflowStateCoordinator)
      */
     private void promptForNewScenario() {
-        newScenarioName = "";
-        newScenarioTheme = "";
+        workflowCoordinator.startScenarioCreation();
         
         System.out.println("***********************");
         System.out.println("*** CREATE NEW SCENARIO ***");
@@ -1743,10 +1748,12 @@ public class InputManager {
     }
     
     /**
-     * Handle scenario name input when ENTER is pressed
+     * Handle scenario name input when ENTER is pressed (DevCycle 15i: Delegated to WorkflowStateCoordinator)
      */
     private void handleScenarioNameInput() {
-        if (newScenarioName.trim().isEmpty()) {
+        String scenarioName = workflowCoordinator.getNewScenarioName();
+        InputValidationService.ValidationResult result = InputValidationService.validateScenarioName(scenarioName);
+        if (!result.isValid) {
             System.out.println();
             System.out.println("*** Scenario name cannot be empty. Try again or press ESC to cancel ***");
             System.out.print("> ");
@@ -1754,7 +1761,7 @@ public class InputManager {
         }
         
         System.out.println();
-        System.out.println("Scenario name: \"" + newScenarioName.trim() + "\"");
+        System.out.println("Scenario name: \"" + scenarioName.trim() + "\"");
         
         stateTracker.setWaitingForScenarioName(false);
         promptForThemeSelection();
@@ -1787,22 +1794,18 @@ public class InputManager {
     private void handleThemeSelectionInput(int themeNumber) {
         String[] themes = callbacks.getAvailableThemes();
         
-        if (themeNumber == 0) {
-            cancelNewScenario();
-            return;
-        }
-        
-        if (themeNumber < 1 || themeNumber > themes.length) {
-            System.out.println("*** Invalid theme selection. Use 1-" + themes.length + " or 0 to cancel ***");
-            return;
-        }
-        
-        newScenarioTheme = themes[themeNumber - 1];
-        stateTracker.setWaitingForThemeSelection(false);
-        
-        System.out.println("Selected theme: " + getThemeDisplayName(newScenarioTheme));
-        
-        executeNewScenario();
+        boolean success = InputPatternUtilities.handleCancellationOrRangeValidation(
+            themeNumber, 
+            "Theme selection", 
+            () -> cancelNewScenario(),
+            1, themes.length,
+            () -> {
+                workflowCoordinator.setScenarioTheme(themes[themeNumber - 1]);
+                stateTracker.setWaitingForThemeSelection(false);
+                System.out.println("Selected theme: " + getThemeDisplayName(workflowCoordinator.getNewScenarioTheme()));
+                executeNewScenario();
+            }
+        );
     }
     
     /**
@@ -1811,8 +1814,8 @@ public class InputManager {
     private void executeNewScenario() {
         System.out.println("***********************");
         System.out.println("*** CREATING NEW SCENARIO ***");
-        System.out.println("Scenario: \"" + newScenarioName.trim() + "\"");
-        System.out.println("Theme: " + getThemeDisplayName(newScenarioTheme));
+        System.out.println("Scenario: \"" + workflowCoordinator.getNewScenarioName().trim() + "\"");
+        System.out.println("Theme: " + getThemeDisplayName(workflowCoordinator.getNewScenarioTheme()));
         System.out.println();
         
         try {
@@ -1827,14 +1830,14 @@ public class InputManager {
             eventQueue.clear();
             
             // Set the new theme
-            callbacks.setCurrentTheme(newScenarioTheme);
+            callbacks.setCurrentTheme(workflowCoordinator.getNewScenarioTheme());
             
             // Update window title with scenario name
-            callbacks.setWindowTitle("OpenFields2 - " + newScenarioName.trim());
+            callbacks.setWindowTitle("OpenFields2 - " + workflowCoordinator.getNewScenarioName().trim());
             
             System.out.println("*** NEW SCENARIO CREATED ***");
             System.out.println("Cleared " + clearedUnits + " units from battlefield");
-            System.out.println("Applied theme: " + getThemeDisplayName(newScenarioTheme));
+            System.out.println("Applied theme: " + getThemeDisplayName(workflowCoordinator.getNewScenarioTheme()));
             System.out.println("Updated window title");
             System.out.println("Event queue cleared");
             System.out.println();
@@ -1857,8 +1860,7 @@ public class InputManager {
         System.out.println("*** Scenario creation cancelled ***");
         stateTracker.setWaitingForScenarioName(false);
         stateTracker.setWaitingForThemeSelection(false);
-        newScenarioName = "";
-        newScenarioTheme = "";
+        workflowCoordinator.completeScenarioCreation();
     }
     
     /**
@@ -2036,7 +2038,8 @@ public class InputManager {
     private void handleCharacterArchetypeSelection(int archetypeIndex) {
         String[] archetypes = {"gunslinger", "soldier", "weighted_random", "scout", "marksman", "brawler", "confederate_soldier", "union_soldier", "balanced"};
         
-        if (archetypeIndex >= 1 && archetypeIndex <= archetypes.length) {
+        InputValidationService.ValidationResult result = InputValidationService.validateArchetypeSelection(archetypeIndex, archetypes.length);
+        if (result.isValid) {
             characterCreationController.setSelectedArchetype(archetypes[archetypeIndex - 1]);
             
             // Move to ranged weapon selection
@@ -2081,7 +2084,8 @@ public class InputManager {
     private void handleCharacterRangedWeaponSelection(int weaponIndex) {
         String[] weaponIds = data.WeaponFactory.getAllWeaponIds();
         
-        if (weaponIndex >= 1 && weaponIndex <= weaponIds.length) {
+        InputValidationService.ValidationResult result = InputValidationService.validateRange(weaponIndex, 1, weaponIds.length);
+        if (result.isValid) {
             characterCreationController.setSelectedRangedWeapon(weaponIds[weaponIndex - 1]);
             
             // Move to melee weapon selection
@@ -2129,14 +2133,17 @@ public class InputManager {
         java.util.Map<String, data.MeleeWeaponData> meleeWeapons = dataManager.getAllMeleeWeapons();
         String[] meleeWeaponIds = meleeWeapons.keySet().toArray(new String[0]);
         
-        if (weaponIndex == 1) {
-            // User selected "Unarmed"
-            characterCreationController.setSelectedMeleeWeapon("unarmed");
-            completeCharacterCreation();
-        } else if (weaponIndex >= 2 && weaponIndex <= (meleeWeaponIds.length + 1)) {
-            // User selected a melee weapon
-            characterCreationController.setSelectedMeleeWeapon(meleeWeaponIds[weaponIndex - 2]);
-            completeCharacterCreation();
+        InputValidationService.ValidationResult result = InputValidationService.validateRange(weaponIndex, 1, meleeWeaponIds.length + 1);
+        if (result.isValid) {
+            if (weaponIndex == 1) {
+                // User selected "Unarmed"
+                characterCreationController.setSelectedMeleeWeapon("unarmed");
+                completeCharacterCreation();
+            } else {
+                // User selected a melee weapon
+                characterCreationController.setSelectedMeleeWeapon(meleeWeaponIds[weaponIndex - 2]);
+                completeCharacterCreation();
+            }
         } else {
             System.out.println("*** Invalid weapon selection ***");
         }
@@ -2236,11 +2243,7 @@ public class InputManager {
      * Start the direct character addition workflow
      */
     private void promptForDirectCharacterAddition() {
-        stateTracker.setWaitingForDirectCharacterAddition(true);
-        directAdditionStep = InputStates.DirectAdditionStep.FACTION;
-        directAdditionFaction = 0;
-        directAdditionQuantity = 0;
-        directAdditionSpacing = 5.0; // Default 5 feet
+        workflowCoordinator.startDirectCharacterAddition();
         
         System.out.println("***********************");
         System.out.println("*** DIRECT CHARACTER ADDITION ***");
@@ -2258,82 +2261,82 @@ public class InputManager {
     }
     
     /**
-     * Handle user input for direct character addition workflow
+     * Handle user input for direct character addition workflow (DevCycle 15i: Delegated to WorkflowStateCoordinator)
      */
     private void handleDirectCharacterAdditionInput(int inputNumber) {
-        switch (directAdditionStep) {
+        switch (workflowCoordinator.getDirectAdditionStep()) {
             case FACTION:
-                if (inputNumber == 0) {
-                    System.out.println("*** Character addition cancelled ***");
-                    cancelDirectCharacterAddition();
-                } else if (inputNumber >= 1 && inputNumber <= 3) {
-                    InputStates.FactionCharacterInfo info = getFactionCharacterInfo(inputNumber);
-                    if (info.availableCount == 0) {
-                        System.out.println("*** No available characters in " + info.factionName + " ***");
-                        System.out.println("*** Please select a different faction or press 0 to cancel ***");
-                    } else {
-                        directAdditionFaction = inputNumber;
-                        directAdditionStep = InputStates.DirectAdditionStep.QUANTITY;
-                        System.out.println("***********************");
-                        System.out.println("*** CHARACTER QUANTITY ***");
-                        System.out.println("Selected faction: " + info.factionName);
-                        System.out.println("Available characters: " + info.availableCount);
-                        System.out.println("How many characters to add?");
-                        System.out.println("Enter quantity (1-" + Math.min(20, info.availableCount) + ", 0 to cancel): ");
+                InputPatternUtilities.handleCancellationOrRangeValidation(
+                    inputNumber,
+                    "Character addition",
+                    () -> workflowCoordinator.cancelDirectCharacterAddition(),
+                    1, 3,
+                    () -> {
+                        InputStates.FactionCharacterInfo info = getFactionCharacterInfo(inputNumber);
+                        if (info.availableCount == 0) {
+                            System.out.println("*** No available characters in " + info.factionName + " ***");
+                            System.out.println("*** Please select a different faction or press 0 to cancel ***");
+                        } else if (workflowCoordinator.processDirectAdditionFactionSelection(inputNumber)) {
+                            System.out.println("***********************");
+                            System.out.println("*** CHARACTER QUANTITY ***");
+                            System.out.println("Selected faction: " + info.factionName);
+                            System.out.println("Available characters: " + info.availableCount);
+                            System.out.println("How many characters to add?");
+                            System.out.println("Enter quantity (1-" + Math.min(20, info.availableCount) + ", 0 to cancel): ");
+                        }
                     }
-                } else {
-                    System.out.println("*** Invalid faction. Use 1-3 or 0 to cancel ***");
-                }
+                );
                 break;
                 
             case QUANTITY:
-                if (inputNumber == 0) {
-                    System.out.println("*** Character addition cancelled ***");
-                    cancelDirectCharacterAddition();
-                } else {
-                    InputStates.FactionCharacterInfo info = getFactionCharacterInfo(directAdditionFaction);
-                    int maxAllowed = Math.min(20, info.availableCount);
-                    
-                    if (inputNumber >= 1 && inputNumber <= maxAllowed) {
-                        directAdditionQuantity = inputNumber;
-                        directAdditionStep = InputStates.DirectAdditionStep.SPACING;
-                        System.out.println("***********************");
-                        System.out.println("*** CHARACTER SPACING ***");
-                        System.out.println("Set spacing between characters:");
-                        System.out.println("1. 1 foot");
-                        System.out.println("2. 2 feet");
-                        System.out.println("3. 3 feet");
-                        System.out.println("4. 4 feet");
-                        System.out.println("5. 5 feet (default)");
-                        System.out.println("6. 6 feet");
-                        System.out.println("7. 7 feet");
-                        System.out.println("8. 8 feet");
-                        System.out.println("9. 9 feet");
-                        System.out.println("0. Cancel addition");
-                        System.out.println();
-                        System.out.println("Enter spacing (1-9, 0 to cancel): ");
-                    } else {
-                        System.out.println("*** Invalid quantity. Use 1-" + maxAllowed + " or 0 to cancel ***");
-                        System.out.println("*** Available characters: " + info.availableCount + " ***");
+                InputPatternUtilities.handleCancellationOrValidateAndExecute(
+                    inputNumber,
+                    "Character addition",
+                    () -> workflowCoordinator.cancelDirectCharacterAddition(),
+                    () -> {
+                        InputStates.FactionCharacterInfo info = getFactionCharacterInfo(workflowCoordinator.getDirectAdditionFaction() + 1);
+                        return InputValidationService.validateCharacterQuantity(inputNumber, info.availableCount);
+                    },
+                    () -> {
+                        if (workflowCoordinator.processDirectAdditionQuantitySelection(inputNumber)) {
+                            System.out.println("***********************");
+                            System.out.println("*** CHARACTER SPACING ***");
+                            System.out.println("Set spacing between characters:");
+                            System.out.println("1. 1 foot");
+                            System.out.println("2. 2 feet");
+                            System.out.println("3. 3 feet");
+                            System.out.println("4. 4 feet");
+                            System.out.println("5. 5 feet (default)");
+                            System.out.println("6. 6 feet");
+                            System.out.println("7. 7 feet");
+                            System.out.println("8. 8 feet");
+                            System.out.println("9. 9 feet");
+                            System.out.println("0. Cancel addition");
+                            System.out.println();
+                            System.out.println("Enter spacing (1-9, 0 to cancel): ");
+                        }
                     }
-                }
+                );
                 break;
                 
             case SPACING:
                 if (inputNumber == 0) {
                     System.out.println("*** Character addition cancelled ***");
-                    cancelDirectCharacterAddition();
-                } else if (inputNumber >= 1 && inputNumber <= 9) {
-                    directAdditionSpacing = inputNumber; // feet
-                    directAdditionStep = InputStates.DirectAdditionStep.PLACEMENT;
-                    System.out.println("***********************");
-                    System.out.println("*** CHARACTER PLACEMENT ***");
-                    System.out.println("Click on the map to place " + directAdditionQuantity + " characters");
-                    System.out.println("Faction: " + directAdditionFaction + " | Spacing: " + directAdditionSpacing + " feet");
-                    System.out.println("Characters will be placed in a line going right from your click point");
-                    System.out.println("Press ESC to cancel");
+                    workflowCoordinator.cancelDirectCharacterAddition();
                 } else {
-                    System.out.println("*** Invalid spacing. Use 1-9 feet or 0 to cancel ***");
+                    InputValidationService.ValidationResult result = InputValidationService.validateCharacterSpacing(inputNumber);
+                    if (result.isValid) {
+                        if (workflowCoordinator.processDirectAdditionSpacingSelection(inputNumber)) {
+                            System.out.println("***********************");
+                            System.out.println("*** CHARACTER PLACEMENT ***");
+                            System.out.println("Click on the map to place " + workflowCoordinator.getDirectAdditionQuantity() + " characters");
+                            System.out.println("Faction: " + (workflowCoordinator.getDirectAdditionFaction() + 1) + " | Spacing: " + workflowCoordinator.getDirectAdditionSpacing() + " feet");
+                            System.out.println("Characters will be placed in a line going right from your click point");
+                            System.out.println("Press ESC to cancel");
+                        }
+                    } else {
+                        System.out.println("*** Invalid spacing. Use 1-9 feet or 0 to cancel ***");
+                    }
                 }
                 break;
                 
@@ -2344,14 +2347,39 @@ public class InputManager {
     }
     
     /**
-     * Cancel the direct character addition workflow and reset state
+     * Cancel the direct character addition workflow and reset state (DevCycle 15i: Delegated to WorkflowStateCoordinator)
      */
     private void cancelDirectCharacterAddition() {
-        stateTracker.setWaitingForDirectCharacterAddition(false);
-        directAdditionStep = InputStates.DirectAdditionStep.FACTION;
-        directAdditionFaction = 0;
-        directAdditionQuantity = 0;
-        directAdditionSpacing = 5.0;
+        workflowCoordinator.cancelDirectCharacterAddition();
+    }
+    
+    /**
+     * Add workflow delegation methods for text input (DevCycle 15i: Workflow State Coordination)
+     */
+    
+    /**
+     * Append character to scenario name during text input.
+     * 
+     * @param character Character to append
+     */
+    public void appendToScenarioName(char character) {
+        workflowCoordinator.appendToScenarioName(character);
+    }
+    
+    /**
+     * Remove last character from scenario name (backspace).
+     */
+    public void removeLastCharacterFromScenarioName() {
+        workflowCoordinator.removeLastCharacterFromScenarioName();
+    }
+    
+    /**
+     * Get current workflow state coordinator.
+     * 
+     * @return WorkflowStateCoordinator instance
+     */
+    public WorkflowStateCoordinator getWorkflowCoordinator() {
+        return workflowCoordinator;
     }
     
     /**
@@ -2360,22 +2388,22 @@ public class InputManager {
     private void handleCharacterPlacement(double x, double y) {
         System.out.println("***********************");
         System.out.println("*** PLACING CHARACTERS ***");
-        System.out.println("Deploying " + directAdditionQuantity + " characters from faction " + directAdditionFaction);
+        System.out.println("Deploying " + workflowCoordinator.getDirectAdditionQuantity() + " characters from faction " + (workflowCoordinator.getDirectAdditionFaction() + 1));
         
         // Get available characters from faction
-        InputStates.FactionCharacterInfo info = getFactionCharacterInfo(directAdditionFaction);
-        if (info.availableCharacters.size() < directAdditionQuantity) {
+        InputStates.FactionCharacterInfo info = getFactionCharacterInfo(workflowCoordinator.getDirectAdditionFaction() + 1);
+        if (info.availableCharacters.size() < workflowCoordinator.getDirectAdditionQuantity()) {
             System.out.println("*** Error: Not enough available characters ***");
-            System.out.println("*** Available: " + info.availableCharacters.size() + ", Requested: " + directAdditionQuantity + " ***");
+            System.out.println("*** Available: " + info.availableCharacters.size() + ", Requested: " + workflowCoordinator.getDirectAdditionQuantity() + " ***");
             cancelDirectCharacterAddition();
             return;
         }
         
         // Convert spacing from feet to pixels (7 pixels = 1 foot)
-        double spacingPixels = directAdditionSpacing * 7.0;
+        double spacingPixels = workflowCoordinator.getDirectAdditionSpacing() * 7.0;
         
         // Deploy characters in a horizontal line going right
-        for (int i = 0; i < directAdditionQuantity; i++) {
+        for (int i = 0; i < workflowCoordinator.getDirectAdditionQuantity(); i++) {
             // Calculate position for this character
             double charX = x + (i * (spacingPixels + 21)); // spacing + character diameter (21 pixels)
             double charY = y;
@@ -2393,7 +2421,7 @@ public class InputManager {
             }
             
             // Get faction color
-            javafx.scene.paint.Color factionColor = getFactionColor(directAdditionFaction);
+            javafx.scene.paint.Color factionColor = getFactionColor(workflowCoordinator.getDirectAdditionFaction());
             
             // Create and place the unit with all required parameters
             Unit newUnit = new Unit(character, charX, charY, factionColor, nextUnitId++);
