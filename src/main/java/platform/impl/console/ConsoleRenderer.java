@@ -46,6 +46,11 @@ public class ConsoleRenderer implements Renderer {
     
     private final boolean ansiSupported;
     
+    // Console-specific frame limiting (much slower than 60fps)
+    private static final long CONSOLE_REFRESH_INTERVAL_MS = 200; // 5 FPS max
+    private long lastPresentTime = 0;
+    private boolean needsRedraw = true;
+    
     public ConsoleRenderer() {
         this(System.out, DEFAULT_WIDTH, DEFAULT_HEIGHT);
     }
@@ -72,6 +77,8 @@ public class ConsoleRenderer implements Renderer {
             Arrays.fill(buffer[y], ' ');
             Arrays.fill(colorBuffer[y], null);
         }
+        // Don't set needsRedraw here - clear() is called every frame
+        // needsRedraw will be set by actual drawing operations
     }
     
     @Override
@@ -183,6 +190,7 @@ public class ConsoleRenderer implements Renderer {
         int sw = (int) (width / (7.0 * zoom)); // Convert pixels to characters
         int sh = (int) (height / (7.0 * zoom));
         
+        boolean changed = false;
         for (int dy = 0; dy < sh; dy++) {
             for (int dx = 0; dx < sw; dx++) {
                 int px = sx + dx;
@@ -190,8 +198,12 @@ public class ConsoleRenderer implements Renderer {
                 if (px >= 0 && px < this.width && py >= 0 && py < GAME_AREA_HEIGHT) {
                     buffer[py][px] = '#';
                     colorBuffer[py][px] = color;
+                    changed = true;
                 }
             }
+        }
+        if (changed) {
+            needsRedraw = true;
         }
     }
     
@@ -271,6 +283,16 @@ public class ConsoleRenderer implements Renderer {
     
     @Override
     public void present() {
+        long currentTime = System.currentTimeMillis();
+        
+        // Only refresh console at a reasonable rate
+        if (!needsRedraw && (currentTime - lastPresentTime) < CONSOLE_REFRESH_INTERVAL_MS) {
+            return;
+        }
+        
+        lastPresentTime = currentTime;
+        needsRedraw = false;
+        
         // Clear screen (ANSI escape code)
         if (ansiSupported) {
             out.print("\033[H\033[2J");
@@ -340,6 +362,7 @@ public class ConsoleRenderer implements Renderer {
         if (x >= 0 && x < width && y >= 0 && y < GAME_AREA_HEIGHT) {
             buffer[y][x] = c;
             colorBuffer[y][x] = color;
+            needsRedraw = true;
         }
     }
     

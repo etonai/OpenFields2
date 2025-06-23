@@ -188,8 +188,10 @@ public class MeleeWeapon extends Weapon {
             if (isDebugMode) {
                 System.out.println(message);
             }
+        } catch (ClassNotFoundException | NoClassDefFoundError e) {
+            // GameRenderer not available (likely in console mode) - skip debug output
         } catch (Exception e) {
-            // Silent fail for safety
+            // Other reflection errors - silent fail for safety
         }
     }
     

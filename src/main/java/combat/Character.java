@@ -281,6 +281,11 @@ public class Character {
      * Initialize default weapons (ranged weapon from legacy weapon field, unarmed for melee)
      */
     public void initializeDefaultWeapons() {
+        // Check if we should skip weapon initialization (for platform independence)
+        if (isWeaponInitializationDisabled()) {
+            return;
+        }
+        
         // Initialize melee weapon to unarmed if not set
         if (meleeWeapon == null) {
             meleeWeapon = MeleeWeaponFactory.createUnarmed();
@@ -293,6 +298,15 @@ public class Character {
             }
             // Note: weapon will remain for backward compatibility
         }
+    }
+    
+    /**
+     * Check if weapon initialization should be disabled (for platform independence)
+     */
+    private boolean isWeaponInitializationDisabled() {
+        // Check system property for disabling weapon initialization
+        String skipWeapons = System.getProperty("openfields2.skipDefaultWeapons");
+        return "true".equals(skipWeapons);
     }
     
     /**
