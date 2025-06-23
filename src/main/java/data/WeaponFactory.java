@@ -45,10 +45,18 @@ public class WeaponFactory {
         weapon.setBurstSize(weaponData.burstSize);
         weapon.availableFiringModes = new ArrayList<>(weaponData.availableFiringModes);
         
-        // Set up the weapon states from the weapon type definition
+        // Set up the weapon states from the individual weapon definition (if available)
         weapon.states = new ArrayList<>();
-        for (WeaponStateData stateData : weaponTypeData.states) {
-            weapon.states.add(new WeaponState(stateData.state, stateData.action, stateData.ticks));
+        if (weaponData.states != null && !weaponData.states.isEmpty()) {
+            // Use individual weapon states
+            for (WeaponStateData stateData : weaponData.states) {
+                weapon.states.add(new WeaponState(stateData.state, stateData.action, stateData.ticks));
+            }
+        } else {
+            // Fallback to weapon type states for backwards compatibility
+            for (WeaponStateData stateData : weaponTypeData.states) {
+                weapon.states.add(new WeaponState(stateData.state, stateData.action, stateData.ticks));
+            }
         }
         
         weapon.initialStateName = weaponTypeData.initialState;

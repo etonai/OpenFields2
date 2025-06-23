@@ -15,7 +15,16 @@
       "maximumRange": 150.0,
       "weaponAccuracy": 0,
       "firingDelay": 30,
-      "weaponLength": 1.0
+      "weaponLength": 1.0,
+      "states": [
+        {"state": "holstered", "action": "drawing", "ticks": 0},
+        {"state": "drawing", "action": "ready", "ticks": 60},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 30},
+        {"state": "reloading", "action": "ready", "ticks": 60}
+      ]
     },
     "wpn_derringer": {
       "id": "wpn_derringer",
@@ -32,7 +41,16 @@
       "maximumRange": 50.0,
       "weaponAccuracy": -10,
       "firingDelay": 30,
-      "weaponLength": 1.0
+      "weaponLength": 1.0,
+      "states": [
+        {"state": "holstered", "action": "drawing", "ticks": 0},
+        {"state": "drawing", "action": "ready", "ticks": 60},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 30},
+        {"state": "reloading", "action": "ready", "ticks": 90}
+      ]
     },
     "wpn_plasma_pistol": {
       "id": "wpn_plasma_pistol",
@@ -49,7 +67,16 @@
       "maximumRange": 500.0,
       "weaponAccuracy": 10,
       "firingDelay": 10,
-      "weaponLength": 1.0
+      "weaponLength": 1.0,
+      "states": [
+        {"state": "holstered", "action": "drawing", "ticks": 0},
+        {"state": "drawing", "action": "ready", "ticks": 60},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 30},
+        {"state": "reloading", "action": "ready", "ticks": 60}
+      ]
     },
     "wpn_hunting_rifle": {
       "id": "wpn_hunting_rifle",
@@ -66,7 +93,16 @@
       "maximumRange": 300.0,
       "weaponAccuracy": 15,
       "firingDelay": 10,
-      "weaponLength": 4.0
+      "weaponLength": 4.0,
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 180}
+      ]
     },
     "wpn_brown_bess": {
       "id": "wpn_brown_bess",
@@ -83,7 +119,16 @@
       "maximumRange": 300.0,
       "weaponAccuracy": -10,
       "firingDelay": 60,
-      "weaponLength": 5.0
+      "weaponLength": 5.0,
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 1200}
+      ]
     },
     "wpn_lee_enfield": {
       "id": "wpn_lee_enfield",
@@ -100,7 +145,16 @@
       "maximumRange": 800.0,
       "weaponAccuracy": 20,
       "firingDelay": 30,
-      "weaponLength": 4.0
+      "weaponLength": 4.0,
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 180}
+      ]
     },
     "wpn_m1_garand": {
       "id": "wpn_m1_garand",
@@ -117,7 +171,16 @@
       "maximumRange": 700.0,
       "weaponAccuracy": 18,
       "firingDelay": 20,
-      "weaponLength": 4.0
+      "weaponLength": 4.0,
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 120}
+      ]
     },
     "wpn_longbow": {
       "id": "wpn_longbow",
@@ -134,7 +197,16 @@
       "maximumRange": 350.0,
       "weaponAccuracy": 5,
       "firingDelay": 180,
-      "weaponLength": 6.0
+      "weaponLength": 6.0,
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 300}
+      ]
     },
     "wpn_crossbow": {
       "id": "wpn_crossbow",
@@ -151,7 +223,16 @@
       "maximumRange": 300.0,
       "weaponAccuracy": 10,
       "firingDelay": 300,
-      "weaponLength": 3.0
+      "weaponLength": 3.0,
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 600}
+      ]
     },
     "wpn_uzi": {
       "id": "wpn_uzi",
@@ -175,7 +256,16 @@
         "BURST",
         "FULL_AUTO"
       ],
-      "weaponLength": 2.5
+      "weaponLength": 2.5,
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 120}
+      ]
     }
   }
 }

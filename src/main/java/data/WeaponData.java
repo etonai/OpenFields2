@@ -64,6 +64,9 @@ public class WeaponData {
     @JsonProperty("availableFiringModes")
     public List<FiringMode> availableFiringModes = new ArrayList<>(Arrays.asList(FiringMode.SINGLE_SHOT));
     
+    @JsonProperty("states")
+    public List<WeaponStateData> states = new ArrayList<>();
+    
     public WeaponData() {
         // Default constructor for Jackson
     }
