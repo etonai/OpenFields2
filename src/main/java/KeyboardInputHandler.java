@@ -224,12 +224,6 @@ public class KeyboardInputHandler {
             displayCoordinator.displayPauseStatus(newPauseState, gameClock.getCurrentTick());
         }
         
-        // Debug mode toggle
-        if (e.getCode() == KeyCode.D && e.isControlDown()) {
-            GameRenderer.setDebugMode(!GameRenderer.isDebugMode());
-            // Delegate debug mode status display to DisplayCoordinator
-            displayCoordinator.displayDebugModeStatus(GameRenderer.isDebugMode());
-        }
         
         // Edit mode toggle
         if (e.getCode() == KeyCode.E && e.isControlDown()) {
