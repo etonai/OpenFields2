@@ -258,7 +258,7 @@ public class DisplayCoordinator {
         
         for (Unit unit : selectionManager.getSelectedUnits()) {
             System.out.println("- " + unit.character.getDisplayName() + 
-                             " (ID: " + unit.id + ", Faction: " + unit.character.faction + 
+                             " (ID: " + unit.character.id + ", Faction: " + unit.character.faction + 
                              ", Health: " + unit.character.health + 
                              (unit.character.isIncapacitated() ? " [INCAPACITATED]" : "") + ")");
         }

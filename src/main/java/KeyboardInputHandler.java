@@ -579,14 +579,31 @@ public class KeyboardInputHandler {
             else if (e.getCode() == KeyCode.DIGIT8) slotNumber = 8;
             else if (e.getCode() == KeyCode.DIGIT9) slotNumber = 9;
             else if (e.getCode() == KeyCode.DIGIT0) slotNumber = 0;
+            // Handle 'A' key for weapon selection workflows (option 10)
+            else if (e.getCode() == KeyCode.A && isWeaponSelectionActive()) {
+                slotNumber = 10;
+            }
             else if (e.getCode() == KeyCode.ESCAPE) {
                 handleWorkflowCancellation();
             }
             
-            if (slotNumber >= 0 && slotNumber <= 9) {
+            if (slotNumber >= 0 && slotNumber <= 10) {
                 handleWorkflowNumericInput(slotNumber);
             }
         }
+    }
+    
+    /**
+     * Check if weapon selection workflow is currently active.
+     * 
+     * @return true if weapon selection is active
+     */
+    private boolean isWeaponSelectionActive() {
+        return stateTracker.isWaitingForRangedWeaponSelection() || 
+               stateTracker.isWaitingForMeleeWeaponSelection() ||
+               (stateTracker.isWaitingForDirectCharacterAddition() && 
+                (editModeManager.getDirectAdditionStep() == EditModeManager.DirectAdditionStep.RANGED_WEAPON_SELECTION ||
+                 editModeManager.getDirectAdditionStep() == EditModeManager.DirectAdditionStep.MELEE_WEAPON_SELECTION));
     }
     
     /**

@@ -207,22 +207,29 @@ public class NumberInputProcessor {
     }
     
     /**
-     * Handle numeric input workflows (digits 0-9).
+     * Handle numeric input workflows (digits 0-9 and letters for weapon selection).
      * 
      * @param e KeyEvent containing the key pressed
      */
     private void handleNumericInputWorkflows(KeyEvent e) {
-        int slotNumber = extractDigitFromKeyEvent(e);
-        
         // Handle escape key for cancellation
         if (e.getCode() == KeyCode.ESCAPE) {
             handleWorkflowCancellation();
             return;
         }
         
-        // Process valid numeric input (0-9)
-        if (slotNumber >= 0 && slotNumber <= 9) {
-            processNumericInput(slotNumber);
+        // For weapon selection workflows, support alphanumeric input (1-9, A)
+        if (isWeaponSelectionWorkflow()) {
+            int selectionNumber = extractAlphanumericSelection(e);
+            if (selectionNumber >= 1 && selectionNumber <= 10) {
+                processNumericInput(selectionNumber);
+            }
+        } else {
+            // For non-weapon workflows, use standard digit input
+            int slotNumber = extractDigitFromKeyEvent(e);
+            if (slotNumber >= 0 && slotNumber <= 9) {
+                processNumericInput(slotNumber);
+            }
         }
     }
     
@@ -243,6 +250,42 @@ public class NumberInputProcessor {
         else if (e.getCode() == KeyCode.DIGIT8) return 8;
         else if (e.getCode() == KeyCode.DIGIT9) return 9;
         else if (e.getCode() == KeyCode.DIGIT0) return 0;
+        else return -1;
+    }
+    
+    /**
+     * Check if current workflow is weapon selection (ranged, melee, or direct addition weapon steps).
+     * 
+     * @return true if weapon selection workflow is active
+     */
+    private boolean isWeaponSelectionWorkflow() {
+        return stateTracker.isWaitingForRangedWeaponSelection() || 
+               stateTracker.isWaitingForMeleeWeaponSelection() ||
+               (stateTracker.isWaitingForDirectCharacterAddition() && 
+                (editModeManager.getDirectAdditionStep() == EditModeManager.DirectAdditionStep.RANGED_WEAPON_SELECTION ||
+                 editModeManager.getDirectAdditionStep() == EditModeManager.DirectAdditionStep.MELEE_WEAPON_SELECTION));
+    }
+    
+    /**
+     * Extract alphanumeric selection value from KeyEvent for weapon selection.
+     * Supports 1-9 (digits) and A (for option 10).
+     * 
+     * @param e KeyEvent to extract selection from
+     * @return selection value (1-10) or -1 if not a valid selection key
+     */
+    private int extractAlphanumericSelection(KeyEvent e) {
+        // Handle digits 1-9
+        if (e.getCode() == KeyCode.DIGIT1) return 1;
+        else if (e.getCode() == KeyCode.DIGIT2) return 2;
+        else if (e.getCode() == KeyCode.DIGIT3) return 3;
+        else if (e.getCode() == KeyCode.DIGIT4) return 4;
+        else if (e.getCode() == KeyCode.DIGIT5) return 5;
+        else if (e.getCode() == KeyCode.DIGIT6) return 6;
+        else if (e.getCode() == KeyCode.DIGIT7) return 7;
+        else if (e.getCode() == KeyCode.DIGIT8) return 8;
+        else if (e.getCode() == KeyCode.DIGIT9) return 9;
+        // Handle letter A for option 10
+        else if (e.getCode() == KeyCode.A) return 10;
         else return -1;
     }
     

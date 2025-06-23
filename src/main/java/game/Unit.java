@@ -28,6 +28,7 @@ public class Unit {
     public boolean isRotating = false; // Whether unit is currently rotating
     private static final double ROTATION_SPEED = 6.0; // 6 degrees per tick (360 degrees per second at 60fps)
     private static final double ROTATION_THRESHOLD = 15.0; // Rotations less than 15 degrees are instant
+    private static final Color INCAPACITATED_COLOR = Color.web("#A9A9A9"); // Light gray for incapacitated characters
 
     public Unit(Character character, double x, double y, Color color, int id) {
         this.id = id;
@@ -94,14 +95,14 @@ public class Unit {
 
         // Update color based on incapacitation status
         if (character.isIncapacitated()) {
-            // Save current color before changing to gray (only if not already gray)
-            if (color != Color.GRAY) {
+            // Save current color before changing to light gray (only if not already light gray)
+            if (!color.equals(INCAPACITATED_COLOR)) {
                 preIncapacitationColor = color;
             }
-            color = Color.GRAY;
+            color = INCAPACITATED_COLOR;
         } else {
             // Character is not incapacitated
-            if (color == Color.GRAY) {
+            if (color.equals(INCAPACITATED_COLOR)) {
                 // Was incapacitated, now restore appropriate color
                 if (preIncapacitationColor != null) {
                     color = preIncapacitationColor;

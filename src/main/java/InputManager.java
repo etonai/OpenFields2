@@ -1242,7 +1242,7 @@ public class InputManager {
         combat.Character character = unit.character;
         
         // Single character selection format: "Selected: ID:Nickname"
-        System.out.println("Selected: " + unit.id + ":" + character.nickname);
+        System.out.println("Selected: " + character.id + ":" + character.nickname);
         
         // Status Line 1: Health, Faction, Weapon Name, Position State
         String weaponName = (character.weapon != null) ? character.weapon.getName() : "None";
@@ -1282,7 +1282,7 @@ public class InputManager {
             if (!first) {
                 System.out.print(", ");
             }
-            System.out.print(unit.id + ":" + unit.character.nickname);
+            System.out.print(unit.character.id + ":" + unit.character.nickname);
             first = false;
         }
         System.out.println();

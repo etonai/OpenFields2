@@ -9,6 +9,13 @@ import java.util.List;
 import combat.*;
 import game.*;
 import data.UniversalCharacterRegistry;
+import data.FactionRegistry;
+import data.Faction;
+import data.CharacterPersistenceManager;
+import data.WeaponFactory;
+import data.DataManager;
+import data.WeaponData;
+import data.MeleeWeaponData;
 import input.interfaces.InputManagerCallbacks;
 
 /**
@@ -73,6 +80,11 @@ public class EditModeManager {
     private int directAdditionFaction = 0;
     private int directAdditionQuantity = 0;
     private double directAdditionSpacing = 0.0;
+    private String directAdditionDirection = "RIGHT"; // "RIGHT" or "DOWN"
+    private String directAdditionRangedWeapon = ""; // Selected ranged weapon ID
+    private String directAdditionMeleeWeapon = ""; // Selected melee weapon ID
+    private Integer[] availableFactionIds = null; // Cache faction IDs for selection mapping
+    private List<combat.Character> directAdditionCharacters = new java.util.ArrayList<>();
     
     // Workflow step enums (maintaining existing from InputManager)
     public enum CreationStep {
@@ -95,6 +107,9 @@ public class EditModeManager {
         FACTION_SELECTION,
         QUANTITY_INPUT,
         SPACING_INPUT,
+        RANGED_WEAPON_SELECTION,
+        MELEE_WEAPON_SELECTION,
+        DIRECTION_SELECTION,
         PLACEMENT
     }
     
@@ -436,7 +451,24 @@ public class EditModeManager {
     public void promptForDirectCharacterAddition() {
         System.out.println("=== Direct Character Addition ===");
         System.out.println("Select faction:");
-        System.out.println("1. Cowboys    2. Outlaws    3. Lawmen    4. Natives");
+        
+        // Get actual factions from registry
+        FactionRegistry factionRegistry = FactionRegistry.getInstance();
+        Integer[] allFactionIds = factionRegistry.getAllFactionIds();
+        
+        // Filter out faction 0 (NONE) and cache for later use
+        availableFactionIds = java.util.Arrays.stream(allFactionIds)
+                .filter(id -> id != 0)
+                .toArray(Integer[]::new);
+        
+        // Display factions with character counts
+        for (int i = 0; i < availableFactionIds.length; i++) {
+            Faction faction = factionRegistry.getFaction(availableFactionIds[i]);
+            int characterCount = getFactionCharacterCount(factionRegistry, availableFactionIds[i]);
+            System.out.print((i + 1) + ". " + faction.getName() + " (" + characterCount + " chars)    ");
+            if ((i + 1) % 2 == 0) System.out.println(); // New line every 2 factions (since names are longer now)
+        }
+        if (availableFactionIds.length % 2 != 0) System.out.println(); // Ensure we end with a newline
         
         directAdditionStep = DirectAdditionStep.FACTION_SELECTION;
         stateTracker.setWaitingForDirectCharacterAddition(true);
@@ -448,15 +480,27 @@ public class EditModeManager {
     public void handleDirectCharacterAdditionInput(int inputNumber) {
         switch (directAdditionStep) {
             case FACTION_SELECTION:
-                if (inputNumber >= 1 && inputNumber <= 4) {
-                    directAdditionFaction = inputNumber;
-                    String[] factionNames = {"Cowboys", "Outlaws", "Lawmen", "Natives"};
-                    System.out.println("Selected faction: " + factionNames[inputNumber - 1]);
+                // Get actual number of non-NONE factions
+                if (availableFactionIds == null) {
+                    FactionRegistry factionRegistry = FactionRegistry.getInstance();
+                    Integer[] allFactionIds = factionRegistry.getAllFactionIds();
+                    // Filter out faction 0 (NONE)
+                    availableFactionIds = java.util.Arrays.stream(allFactionIds)
+                            .filter(id -> id != 0)
+                            .toArray(Integer[]::new);
+                }
+                
+                if (inputNumber >= 1 && inputNumber <= availableFactionIds.length) {
+                    // Map selection index to actual faction ID
+                    directAdditionFaction = availableFactionIds[inputNumber - 1];
+                    FactionRegistry factionRegistry = FactionRegistry.getInstance();
+                    Faction selectedFaction = factionRegistry.getFaction(directAdditionFaction);
+                    System.out.println("Selected faction: " + selectedFaction.getName());
                     
                     System.out.println("Enter quantity (1-20):");
                     directAdditionStep = DirectAdditionStep.QUANTITY_INPUT;
                 } else {
-                    System.out.println("*** Invalid faction - please choose 1-4 ***");
+                    System.out.println("*** Invalid faction - please choose 1-" + availableFactionIds.length + " ***");
                 }
                 break;
                 
@@ -476,10 +520,52 @@ public class EditModeManager {
                 if (inputNumber >= 1 && inputNumber <= 9) {
                     directAdditionSpacing = inputNumber;
                     System.out.println("Spacing: " + directAdditionSpacing + " feet");
+                    
+                    // Display ranged weapon selection menu
+                    displayRangedWeaponSelectionMenu();
+                    directAdditionStep = DirectAdditionStep.RANGED_WEAPON_SELECTION;
+                } else {
+                    System.out.println("*** Invalid spacing - please enter 1-9 feet ***");
+                }
+                break;
+                
+            case RANGED_WEAPON_SELECTION:
+                String[] rangedWeaponIds = getRangedWeaponIds();
+                if (inputNumber >= 1 && inputNumber <= rangedWeaponIds.length) {
+                    directAdditionRangedWeapon = rangedWeaponIds[inputNumber - 1];
+                    System.out.println("Selected ranged weapon: " + getRangedWeaponDisplayName(directAdditionRangedWeapon));
+                    
+                    // Display melee weapon selection menu
+                    displayMeleeWeaponSelectionMenu();
+                    directAdditionStep = DirectAdditionStep.MELEE_WEAPON_SELECTION;
+                } else {
+                    System.out.println("*** Invalid ranged weapon - please choose 1-" + rangedWeaponIds.length + " (or A for option 10) ***");
+                }
+                break;
+                
+            case MELEE_WEAPON_SELECTION:
+                String[] meleeWeaponIds = getMeleeWeaponIds();
+                if (inputNumber >= 1 && inputNumber <= meleeWeaponIds.length) {
+                    directAdditionMeleeWeapon = meleeWeaponIds[inputNumber - 1];
+                    System.out.println("Selected melee weapon: " + getMeleeWeaponDisplayName(directAdditionMeleeWeapon));
+                    
+                    System.out.println("Select line direction:");
+                    System.out.println("1. Right (horizontal line)");
+                    System.out.println("2. Down (vertical line)");
+                    directAdditionStep = DirectAdditionStep.DIRECTION_SELECTION;
+                } else {
+                    System.out.println("*** Invalid melee weapon - please choose 1-" + meleeWeaponIds.length + " (or A for option 10) ***");
+                }
+                break;
+                
+            case DIRECTION_SELECTION:
+                if (inputNumber >= 1 && inputNumber <= 2) {
+                    directAdditionDirection = (inputNumber == 1) ? "RIGHT" : "DOWN";
+                    System.out.println("Direction: " + (directAdditionDirection.equals("RIGHT") ? "Right (horizontal)" : "Down (vertical)"));
                     System.out.println("Click on map to place characters...");
                     directAdditionStep = DirectAdditionStep.PLACEMENT;
                 } else {
-                    System.out.println("*** Invalid spacing - please enter 1-9 feet ***");
+                    System.out.println("*** Invalid direction - please choose 1 or 2 ***");
                 }
                 break;
         }
@@ -489,13 +575,241 @@ public class EditModeManager {
      * Handles character placement for direct addition workflow.
      */
     public void handleCharacterPlacement(double x, double y) {
+        System.out.println("***********************");
+        System.out.println("*** PLACING CHARACTERS ***");
         System.out.println("Placing " + directAdditionQuantity + " characters at (" + 
                           String.format("%.1f", x) + ", " + String.format("%.1f", y) + ")");
         
-        // Implementation would place characters
+        try {
+            // Load characters from the selected faction
+            CharacterPersistenceManager persistenceManager = CharacterPersistenceManager.getInstance();
+            List<combat.Character> allCharacters = persistenceManager.loadCharactersFromFaction(directAdditionFaction);
+            
+            // Filter for non-incapacitated characters that aren't already deployed
+            directAdditionCharacters.clear();
+            for (combat.Character character : allCharacters) {
+                if (!character.isIncapacitated() && !isCharacterAlreadyDeployed(character)) {
+                    directAdditionCharacters.add(character);
+                }
+            }
+            
+            if (directAdditionCharacters.isEmpty()) {
+                System.out.println("*** No available characters in selected faction ***");
+                System.out.println("*** Character placement cancelled ***");
+                resetDirectAdditionState();
+                return;
+            }
+            
+            // Place characters up to the requested quantity
+            int charactersToPlace = Math.min(directAdditionQuantity, directAdditionCharacters.size());
+            double spacing = directAdditionSpacing * 7.0; // Convert feet to pixels (7 pixels = 1 foot)
+            
+            for (int i = 0; i < charactersToPlace; i++) {
+                combat.Character character = directAdditionCharacters.get(i);
+                
+                // Calculate position based on direction
+                double charX = x;
+                double charY = y;
+                
+                if (directAdditionDirection.equals("RIGHT")) {
+                    // Add character diameter (21 pixels = 3 feet) to spacing for edge-to-edge spacing
+                    charX += i * (spacing + 21);
+                } else { // DOWN
+                    // Add character diameter (21 pixels = 3 feet) to spacing for edge-to-edge spacing
+                    charY += i * (spacing + 21);
+                }
+                
+                // Assign the selected ranged weapon to the character
+                if (!directAdditionRangedWeapon.isEmpty()) {
+                    character.rangedWeapon = (RangedWeapon) WeaponFactory.createWeapon(directAdditionRangedWeapon);
+                    character.weapon = character.rangedWeapon; // Set as primary weapon
+                    character.currentWeaponState = character.weapon.getInitialState();
+                }
+                
+                // Assign the selected melee weapon to the character
+                if (!directAdditionMeleeWeapon.isEmpty()) {
+                    character.meleeWeapon = createMeleeWeapon(directAdditionMeleeWeapon);
+                }
+                
+                // Get color based on faction
+                javafx.scene.paint.Color characterColor = getFactionColor(directAdditionFaction);
+                
+                // Create and add unit
+                int unitId = callbacks.getNextUnitId();
+                Unit newUnit = new Unit(character, charX, charY, characterColor, unitId);
+                callbacks.setNextUnitId(unitId + 1);
+                
+                // Add to units list (need to get access to this)
+                addUnitToGame(newUnit);
+                
+                System.out.println("Placed: " + character.getDisplayName() + " at (" + 
+                                 String.format("%.0f", charX) + ", " + String.format("%.0f", charY) + ")");
+            }
+            
+            System.out.println("*** PLACEMENT COMPLETE ***");
+            System.out.println("Successfully placed " + charactersToPlace + " characters");
+            System.out.println("Direction: " + (directAdditionDirection.equals("RIGHT") ? "Right (horizontal)" : "Down (vertical)"));
+            
+        } catch (Exception e) {
+            System.err.println("*** Error placing characters: " + e.getMessage() + " ***");
+            System.out.println("*** Character placement cancelled ***");
+        }
+        
         // Reset direct addition state
+        resetDirectAdditionState();
+    }
+    
+    /**
+     * Get the character count for a specific faction.
+     */
+    private int getFactionCharacterCount(FactionRegistry factionRegistry, int factionId) {
+        try {
+            FactionRegistry.FactionFileData factionData = factionRegistry.loadFactionFileData(factionId);
+            return factionData.characters.size();
+        } catch (java.io.IOException e) {
+            // If faction file doesn't exist or can't be loaded, assume 0 characters
+            return 0;
+        }
+    }
+    
+    /**
+     * Check if a character is already deployed in the game.
+     */
+    private boolean isCharacterAlreadyDeployed(combat.Character character) {
+        // For now, assume characters aren't deployed (this could be enhanced to check the units list)
+        // This would require access to the units list from the main game
+        return false;
+    }
+    
+    /**
+     * Get faction color for display.
+     */
+    private javafx.scene.paint.Color getFactionColor(int factionId) {
+        FactionRegistry factionRegistry = FactionRegistry.getInstance();
+        Faction faction = factionRegistry.getFaction(factionId);
+        if (faction != null) {
+            return faction.getColor();
+        }
+        // Default colors by faction ID
+        switch (factionId) {
+            case 1: return javafx.scene.paint.Color.BLUE;   // Union
+            case 2: return javafx.scene.paint.Color.GRAY;   // Confederacy  
+            case 3: return javafx.scene.paint.Color.GREEN;  // Southern Unionists
+            default: return javafx.scene.paint.Color.RED;
+        }
+    }
+    
+    /**
+     * Add a unit to the game.
+     */
+    private void addUnitToGame(Unit unit) {
+        units.add(unit);
+    }
+    
+    /**
+     * Reset the direct addition workflow state.
+     */
+    private void resetDirectAdditionState() {
         stateTracker.setWaitingForDirectCharacterAddition(false);
         directAdditionStep = DirectAdditionStep.FACTION_SELECTION;
+        directAdditionCharacters.clear();
+    }
+    
+    /**
+     * Display ranged weapon selection menu.
+     */
+    private void displayRangedWeaponSelectionMenu() {
+        System.out.println("Select ranged weapon for all characters:");
+        String[] weaponIds = getRangedWeaponIds();
+        for (int i = 0; i < weaponIds.length; i++) {
+            String displayName = getRangedWeaponDisplayName(weaponIds[i]);
+            if (i == 9) {
+                // Option 10 is selected with 'A' key
+                System.out.println("A. " + displayName + " (press A for option 10)");
+            } else {
+                System.out.println((i + 1) + ". " + displayName);
+            }
+        }
+    }
+    
+    /**
+     * Display melee weapon selection menu.
+     */
+    private void displayMeleeWeaponSelectionMenu() {
+        System.out.println("Select melee weapon for all characters:");
+        String[] weaponIds = getMeleeWeaponIds();
+        for (int i = 0; i < weaponIds.length; i++) {
+            String displayName = getMeleeWeaponDisplayName(weaponIds[i]);
+            if (i == 9) {
+                // Option 10 is selected with 'A' key
+                System.out.println("A. " + displayName + " (press A for option 10)");
+            } else {
+                System.out.println((i + 1) + ". " + displayName);
+            }
+        }
+    }
+    
+    /**
+     * Get available ranged weapon IDs.
+     */
+    private String[] getRangedWeaponIds() {
+        return WeaponFactory.getAllWeaponIds();
+    }
+    
+    /**
+     * Get available melee weapon IDs.
+     */
+    private String[] getMeleeWeaponIds() {
+        DataManager dataManager = DataManager.getInstance();
+        return dataManager.getAllMeleeWeapons().keySet().toArray(new String[0]);
+    }
+    
+    /**
+     * Get display name for ranged weapon.
+     */
+    private String getRangedWeaponDisplayName(String weaponId) {
+        WeaponData weaponData = WeaponFactory.getWeaponData(weaponId);
+        if (weaponData != null) {
+            return weaponData.name + " (" + weaponData.damage + " damage, " + weaponData.maximumRange + "ft range)";
+        }
+        return weaponId;
+    }
+    
+    /**
+     * Get display name for melee weapon.
+     */
+    private String getMeleeWeaponDisplayName(String weaponId) {
+        DataManager dataManager = DataManager.getInstance();
+        MeleeWeaponData weaponData = dataManager.getMeleeWeapon(weaponId);
+        if (weaponData != null) {
+            return weaponData.name + " (" + weaponData.damage + " damage, " + String.format("%.1f", weaponData.weaponLength) + "ft reach)";
+        }
+        return weaponId;
+    }
+    
+    /**
+     * Create melee weapon from ID.
+     */
+    private MeleeWeapon createMeleeWeapon(String weaponId) {
+        DataManager dataManager = DataManager.getInstance();
+        MeleeWeaponData weaponData = dataManager.getMeleeWeapon(weaponId);
+        if (weaponData != null) {
+            return new MeleeWeapon(
+                weaponData.name,
+                weaponData.damage,
+                weaponData.soundFile,
+                weaponData.meleeType,
+                weaponData.defendScore,
+                weaponData.attackSpeed,
+                weaponData.attackCooldown,
+                weaponData.weaponLength,
+                weaponData.readyingTime,
+                weaponData.isOneHanded,
+                weaponData.isMeleeVersionOfRanged,
+                weaponData.weaponAccuracy
+            );
+        }
+        return MeleeWeaponFactory.createUnarmed(); // Fallback
     }
     
     // ====================

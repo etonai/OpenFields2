@@ -270,15 +270,23 @@ public class EditModeController {
         for (int i = 0; i < weaponIds.length; i++) {
             WeaponData weaponData = WeaponFactory.getWeaponData(weaponIds[i]);
             if (weaponData != null) {
-                System.out.println((i + 1) + ". " + weaponData.name + 
-                                 " (" + weaponData.type.getDisplayName() + 
-                                 ") - Damage: " + weaponData.damage + 
-                                 ", Range: " + String.format("%.0f", weaponData.maximumRange) + " feet");
+                if (i == 9) {
+                    // Option 10 is selected with 'A' key
+                    System.out.println("A. " + weaponData.name + 
+                                     " (" + weaponData.type.getDisplayName() + 
+                                     ") - Damage: " + weaponData.damage + 
+                                     ", Range: " + String.format("%.0f", weaponData.maximumRange) + " feet");
+                } else {
+                    System.out.println((i + 1) + ". " + weaponData.name + 
+                                     " (" + weaponData.type.getDisplayName() + 
+                                     ") - Damage: " + weaponData.damage + 
+                                     ", Range: " + String.format("%.0f", weaponData.maximumRange) + " feet");
+                }
             }
         }
         System.out.println("0. Cancel ranged weapon selection");
         System.out.println();
-        System.out.println("Enter selection (1-" + weaponIds.length + ", 0 to cancel): ");
+        System.out.println("Enter selection (1-" + weaponIds.length + " or A for option 10, 0 to cancel): ");
     }
     
     /**
@@ -302,15 +310,23 @@ public class EditModeController {
         for (int i = 0; i < meleeWeaponIds.length; i++) {
             data.MeleeWeaponData meleeWeaponData = meleeWeapons.get(meleeWeaponIds[i]);
             if (meleeWeaponData != null) {
-                System.out.println((i + 1) + ". " + meleeWeaponData.name + 
-                                 " (" + meleeWeaponData.meleeType + 
-                                 ") - Damage: " + meleeWeaponData.damage + 
-                                 ", Length: " + String.format("%.1f", meleeWeaponData.weaponLength) + " feet");
+                if (i == 9) {
+                    // Option 10 is selected with 'A' key
+                    System.out.println("A. " + meleeWeaponData.name + 
+                                     " (" + meleeWeaponData.meleeType + 
+                                     ") - Damage: " + meleeWeaponData.damage + 
+                                     ", Length: " + String.format("%.1f", meleeWeaponData.weaponLength) + " feet");
+                } else {
+                    System.out.println((i + 1) + ". " + meleeWeaponData.name + 
+                                     " (" + meleeWeaponData.meleeType + 
+                                     ") - Damage: " + meleeWeaponData.damage + 
+                                     ", Length: " + String.format("%.1f", meleeWeaponData.weaponLength) + " feet");
+                }
             }
         }
         System.out.println("0. Cancel melee weapon selection");
         System.out.println();
-        System.out.println("Enter selection (1-" + meleeWeaponIds.length + ", 0 to cancel): ");
+        System.out.println("Enter selection (1-" + meleeWeaponIds.length + " or A for option 10, 0 to cancel): ");
     }
     
     /**

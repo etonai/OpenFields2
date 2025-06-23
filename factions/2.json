@@ -4,7 +4,7 @@
     "name" : "Confederacy",
     "allies" : [ ],
     "enemies" : [ 1, 3 ],
-    "color" : "#A9A9A9",
+    "color" : "#808080",
     "description" : "Confederate States",
     "victories" : 0,
     "defeats" : 0,

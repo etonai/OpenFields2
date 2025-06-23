@@ -417,8 +417,27 @@ public class MouseInputHandler {
      * @param unit The unit to display stats for
      */
     private void displayEnhancedCharacterStats(Unit unit) {
-        // For now, use a simple implementation until DisplayCoordinator has this method
-        System.out.println("Selected: " + unit.id + ":" + unit.character.nickname);
+        combat.Character character = unit.character;
+        
+        // Get current weapon and weapon state information
+        String weaponName = "None";
+        String weaponState = "None";
+        if (character.weapon != null) {
+            weaponName = character.weapon.getName();
+        }
+        if (character.currentWeaponState != null) {
+            weaponState = character.currentWeaponState.getState();
+        }
+        
+        // Get current position
+        String position = String.format("(%.1f, %.1f)", unit.x, unit.y);
+        
+        // Display enhanced format: Character ID, Health, Weapon, Weapon State, Position
+        System.out.println("Selected: " + character.id + ":" + character.nickname + 
+                         " | Health: " + character.health + 
+                         " | Weapon: " + weaponName + 
+                         " | State: " + weaponState + 
+                         " | Pos: " + position);
     }
     
     /**
