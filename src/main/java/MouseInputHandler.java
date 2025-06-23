@@ -211,14 +211,14 @@ public class MouseInputHandler {
     private void handleLeftClick(MouseEvent e, double x, double y) {
         // Use InputEventRouter to determine handling
         InputEventRouter.MouseEventRoute route = eventRouter.routeMouseEvent(e, 
-            editModeManager.isInDeploymentPlacementMode(), 
+            false, // Deployment placement mode no longer exists
             editModeManager.isInDirectAdditionPlacementMode(),
             callbacks.isEditMode());
         
         switch (route) {
             case DEPLOYMENT_PLACEMENT:
-                // Delegate to EditModeManager
-                editModeManager.completeCharacterDeployment(x, y);
+                // Deployment feature removed - should not reach here
+                System.out.println("*** Error: Deployment placement is no longer supported ***");
                 return;
             case CHARACTER_PLACEMENT:
                 displayCoordinator.debugWorkflowState("DIRECT_ADDITION", "PLACEMENT", "Placing character at (" + 

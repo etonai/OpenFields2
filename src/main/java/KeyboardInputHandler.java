@@ -224,12 +224,6 @@ public class KeyboardInputHandler {
             displayCoordinator.displayPauseStatus(newPauseState, gameClock.getCurrentTick());
         }
         
-        // Debug mode toggle
-        if (e.getCode() == KeyCode.D && e.isControlDown()) {
-            GameRenderer.setDebugMode(!GameRenderer.isDebugMode());
-            // Delegate debug mode status display to DisplayCoordinator
-            displayCoordinator.displayDebugModeStatus(GameRenderer.isDebugMode());
-        }
         
         // Edit mode toggle
         if (e.getCode() == KeyCode.E && e.isControlDown()) {
@@ -250,7 +244,13 @@ public class KeyboardInputHandler {
      * @param e KeyEvent
      */
     private void handleDebugControls(KeyEvent e) {
-        // All debug operations delegated to DisplayCoordinator
+        // Debug mode toggle (traditional CTRL-D)
+        if (e.getCode() == KeyCode.D && e.isControlDown()) {
+            GameRenderer.setDebugMode(!GameRenderer.isDebugMode());
+            System.out.println("*** Debug mode " + (GameRenderer.isDebugMode() ? "ENABLED" : "DISABLED") + " ***");
+        }
+        
+        // All other debug operations delegated to DisplayCoordinator  
         if (e.getCode() == KeyCode.F1 && e.isControlDown()) {
             // Ctrl+F1: Toggle debug logging
             displayCoordinator.setDebugEnabled(!displayCoordinator.isDebugEnabled());
@@ -672,8 +672,8 @@ public class KeyboardInputHandler {
         } else if (stateTracker.isWaitingForBatchCharacterCreation()) {
             handleBatchCharacterCreationInput(slotNumber);
         } else if (stateTracker.isWaitingForCharacterDeployment()) {
-            // Delegate to EditModeManager
-            editModeManager.handleCharacterDeploymentInput(slotNumber);
+            // Character deployment feature removed
+            System.out.println("*** Error: Character deployment is no longer supported ***");
         } else if (stateTracker.isWaitingForDirectCharacterAddition()) {
             // Delegate to EditModeManager
             editModeManager.handleDirectCharacterAdditionInput(slotNumber);

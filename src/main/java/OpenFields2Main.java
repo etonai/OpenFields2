@@ -3,7 +3,9 @@ import platform.api.Platform;
 import platform.api.PlatformFactory;
 import core.GameEngine;
 import core.InputAdapter;
-import javafx.application.Application;
+import combat.Character;
+import combat.Handedness;
+import game.Unit;
 
 /**
  * New main entry point that supports platform selection.
@@ -26,16 +28,38 @@ public class OpenFields2Main {
         System.out.println("Starting OpenFields2 with platform: " + platformName);
         System.out.println("Using new engine: " + useNewEngine);
         
-        if (!useNewEngine || "javafx".equals(platformName)) {
-            // Launch original JavaFX application
-            Application.launch(OpenFields2.class, args);
-        } else {
+        if ("console".equals(platformName) || useNewEngine) {
             // Launch with new platform abstraction
             launchWithPlatform(platformName);
+        } else {
+            // Launch original JavaFX application using reflection to avoid dependency issues
+            launchJavaFXApplication(args);
+        }
+    }
+    
+    private static void launchJavaFXApplication(String[] args) {
+        try {
+            // Use reflection to avoid direct JavaFX dependency when running console mode
+            Class<?> applicationClass = Class.forName("javafx.application.Application");
+            Class<?> openFields2Class = Class.forName("OpenFields2");
+            
+            // Call Application.launch(OpenFields2.class, args)
+            java.lang.reflect.Method launchMethod = applicationClass.getMethod("launch", Class.class, String[].class);
+            launchMethod.invoke(null, openFields2Class, args);
+            
+        } catch (Exception e) {
+            System.err.println("Failed to launch JavaFX application: " + e.getMessage());
+            System.err.println("Make sure JavaFX is available on the classpath for JavaFX mode.");
+            System.exit(1);
         }
     }
     
     private static void launchWithPlatform(String platformName) {
+        // Set system property to disable automatic weapon initialization in console mode
+        if ("console".equals(platformName)) {
+            System.setProperty("openfields2.skipDefaultWeapons", "true");
+        }
+        
         // Create platform
         Platform platform = PlatformFactory.createPlatform(platformName);
         if (platform == null) {
@@ -71,13 +95,23 @@ public class OpenFields2Main {
     }
     
     private static void initializeGameState(GameEngine engine) {
-        // TODO: This would load the initial game state
-        // For now, create some test units
-        
         System.out.println("Initializing game state...");
         
-        // This is placeholder - would need to properly initialize
-        // units, weapons, factions, etc. from the game data
+        try {
+            // For console mode, we can't create Units with JavaFX dependencies
+            // This would require creating platform-independent units
+            System.out.println("Console mode game state initialization complete.");
+            System.out.println("Note: Full game content requires platform-independent Unit class.");
+            
+            // TODO: When platform-independent units are available:
+            // - Create test characters
+            // - Create platform units using platform.api.Color
+            // - Add units to game state
+            
+        } catch (Exception e) {
+            System.err.println("Failed to initialize game state: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     private static boolean hasFlag(String[] args, String flag) {

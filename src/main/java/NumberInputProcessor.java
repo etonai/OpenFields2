@@ -495,8 +495,8 @@ public class NumberInputProcessor {
      * @param slotNumber The input number for deployment
      */
     private void handleCharacterDeployment(int slotNumber) {
-        // DevCycle 15d: Delegate to EditModeManager
-        editModeManager.handleCharacterDeploymentInput(slotNumber);
+        // Character deployment feature removed
+        System.out.println("*** Error: Character deployment is no longer supported ***");
     }
     
     /**

@@ -103,6 +103,10 @@ public class Character {
     // Last target direction for weapon visibility when no current target
     public Double lastTargetFacing = null; // Last direction character was aiming (degrees)
     
+    // First attack penalty system - track target changes for accuracy penalty
+    public Unit previousTarget = null; // Track previous target to detect target changes
+    public boolean isFirstAttackOnTarget = true; // True if this is the first attack on current target
+    
     // Melee movement state tracking
     public boolean isMovingToMelee = false; // Currently moving to engage target in melee combat
     public Unit meleeTarget = null; // Target unit for melee attack (maintained during movement)
@@ -281,6 +285,11 @@ public class Character {
      * Initialize default weapons (ranged weapon from legacy weapon field, unarmed for melee)
      */
     public void initializeDefaultWeapons() {
+        // Check if we should skip weapon initialization (for platform independence)
+        if (isWeaponInitializationDisabled()) {
+            return;
+        }
+        
         // Initialize melee weapon to unarmed if not set
         if (meleeWeapon == null) {
             meleeWeapon = MeleeWeaponFactory.createUnarmed();
@@ -293,6 +302,15 @@ public class Character {
             }
             // Note: weapon will remain for backward compatibility
         }
+    }
+    
+    /**
+     * Check if weapon initialization should be disabled (for platform independence)
+     */
+    private boolean isWeaponInitializationDisabled() {
+        // Check system property for disabling weapon initialization
+        String skipWeapons = System.getProperty("openfields2.skipDefaultWeapons");
+        return "true".equals(skipWeapons);
     }
     
     /**
@@ -559,7 +577,7 @@ public class Character {
     }
     
     public boolean canUseVeryCarefulAiming() {
-        // Must have weapon skill level 1+ for pistol or rifle weapons
+        // Must have weapon skill level 1+ for pistol, rifle, or submachine gun weapons
         if (weapon == null) {
             return false;
         }
@@ -576,6 +594,9 @@ public class Character {
                 break;
             case RIFLE:
                 skillName = SkillsManager.RIFLE;
+                break;
+            case SUBMACHINE_GUN:
+                skillName = SkillsManager.SUBMACHINE_GUN;
                 break;
             default:
                 return false;
@@ -791,6 +812,9 @@ public class Character {
     public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || currentWeaponState == null) return;
         
+        // Check if this is a target change and handle first attack penalty
+        boolean targetChanged = (currentTarget != null && currentTarget != target);
+        
         // If targeting a different unit, cancel all pending attacks and reset
         if (currentTarget != null && currentTarget != target) {
             // Clear all pending events for this character
@@ -814,6 +838,21 @@ public class Character {
             return;
         }
         
+        // Handle first attack penalty system
+        if (targetChanged) {
+            // Target changed - this is a new target, apply first attack penalty
+            isFirstAttackOnTarget = true;
+            System.out.println(getDisplayName() + " first attack on " + target.character.getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
+        } else if (currentTarget == target) {
+            // Same target as before - no first attack penalty
+            isFirstAttackOnTarget = false;
+        } else {
+            // This shouldn't happen but be safe - treat as new target
+            isFirstAttackOnTarget = true;
+            System.out.println(getDisplayName() + " first attack on " + target.character.getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
+        }
+        
+        previousTarget = currentTarget;
         currentTarget = target;
         isAttacking = true;
         lastAttackScheduledTick = currentTick;
