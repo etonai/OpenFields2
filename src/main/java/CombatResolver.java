@@ -436,8 +436,8 @@ public class CombatResolver {
         // Movement penalty for attacker
         int movementPenalty = getMovementPenalty(attacker.character);
         
-        // Apply first attack penalty if applicable
-        int firstAttackPenalty = attacker.character.isFirstAttackOnTarget ? GameConstants.FIRST_ATTACK_PENALTY : 0;
+        // Apply first attack penalty if applicable (not when using very careful aiming)
+        int firstAttackPenalty = (attacker.character.isFirstAttackOnTarget && !attacker.character.getCurrentAimingSpeed().isVeryCareful()) ? GameConstants.FIRST_ATTACK_PENALTY : 0;
         
         // Calculate total attack modifier
         int attackModifier = attackerDexterity + weaponAccuracy + skillBonus - movementPenalty + firstAttackPenalty;
@@ -453,7 +453,7 @@ public class CombatResolver {
             System.out.println("Weapon Accuracy: " + weaponAccuracy);
             System.out.println("Skill Bonus: " + skillBonus + " " + getMeleeSkillDebugInfo(attacker, weapon));
             System.out.println("Movement Penalty: " + movementPenalty);
-            System.out.println("First Attack Penalty: " + firstAttackPenalty + " (first attack: " + attacker.character.isFirstAttackOnTarget + ")");
+            System.out.println("First Attack Penalty: " + firstAttackPenalty + " (first attack: " + attacker.character.isFirstAttackOnTarget + ", very careful: " + attacker.character.getCurrentAimingSpeed().isVeryCareful() + ")");
             System.out.println("Attack Modifier: " + attackModifier);
             System.out.println("Target Defense (Dex): " + target.character.dexterity + " (modifier: " + targetDefense + ")");
             System.out.println("Base Hit Chance: 60% + " + attackModifier + " - " + targetDefense + " = " + hitChance + "%");

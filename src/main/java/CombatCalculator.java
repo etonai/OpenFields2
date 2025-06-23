@@ -22,7 +22,7 @@ public final class CombatCalculator {
         double skillModifier = calculateSkillModifier(shooter);
         double positionModifier = calculatePositionModifier(target);
         double braveryModifier = calculateBraveryModifier(shooter, currentTick);
-        double firstAttackPenalty = shooter.character.isFirstAttackOnTarget ? GameConstants.FIRST_ATTACK_PENALTY : 0;
+        double firstAttackPenalty = (shooter.character.isFirstAttackOnTarget && !shooter.character.getCurrentAimingSpeed().isVeryCareful()) ? GameConstants.FIRST_ATTACK_PENALTY : 0;
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
         double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + firstAttackPenalty + sizeModifier + coverModifier;
@@ -59,7 +59,7 @@ public final class CombatCalculator {
             System.out.println("Skill modifier: " + String.format("%.1f", skillModifier) + " " + getSkillDebugInfo(shooter));
             System.out.println("Position modifier: " + String.format("%.1f", positionModifier) + " (target: " + target.character.getCurrentPosition().getDisplayName() + ")");
             System.out.println("Bravery modifier: " + String.format("%.1f", braveryModifier) + " " + getBraveryModifierDebugInfo(shooter, currentTick));
-            System.out.println("First attack penalty: " + firstAttackPenalty + " (first attack: " + shooter.character.isFirstAttackOnTarget + ")");
+            System.out.println("First attack penalty: " + firstAttackPenalty + " (first attack: " + shooter.character.isFirstAttackOnTarget + ", very careful: " + shooter.character.getCurrentAimingSpeed().isVeryCareful() + ")");
             System.out.println("Size modifier: " + sizeModifier);
             System.out.println("Cover modifier: " + coverModifier);
             System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");

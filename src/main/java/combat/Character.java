@@ -577,7 +577,7 @@ public class Character {
     }
     
     public boolean canUseVeryCarefulAiming() {
-        // Must have weapon skill level 1+ for pistol or rifle weapons
+        // Must have weapon skill level 1+ for pistol, rifle, or submachine gun weapons
         if (weapon == null) {
             return false;
         }
@@ -594,6 +594,9 @@ public class Character {
                 break;
             case RIFLE:
                 skillName = SkillsManager.RIFLE;
+                break;
+            case SUBMACHINE_GUN:
+                skillName = SkillsManager.SUBMACHINE_GUN;
                 break;
             default:
                 return false;
