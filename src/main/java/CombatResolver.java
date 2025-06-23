@@ -78,7 +78,7 @@ public class CombatResolver {
             }
             
             // Add wound to character's wound list with hesitation mechanics
-            String weaponId = findWeaponId(weapon);
+            String weaponId = weapon.getWeaponId(); // Direct access to weapon ID (DevCycle 17)
             target.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId, actualDamage), impactTick, eventQueue, target.getId());
             System.out.println(">>> " + target.character.getDisplayName() + " current health: " + target.character.currentHealth + "/" + target.character.health);
             
@@ -284,7 +284,7 @@ public class CombatResolver {
             }
             
             // Add wound to target with hesitation mechanics
-            String weaponId = findWeaponId(weapon);
+            String weaponId = weapon.getWeaponId(); // Direct access to weapon ID (DevCycle 17)
             strayTarget.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId, strayDamage), impactTick, eventQueue, strayTarget.getId());
             System.out.println(">>> " + strayTarget.character.getDisplayName() + " current health: " + strayTarget.character.currentHealth + "/" + strayTarget.character.health);
             
@@ -352,36 +352,7 @@ public class CombatResolver {
         }
     }
     
-    private String findWeaponId(Weapon weapon) {
-        // This is a simple approach - in a more complex system, 
-        // we might want to store the weapon ID in the weapon object
-        if (weapon.name.equals("Colt Peacemaker")) return "wpn_colt_peacemaker";
-        if (weapon.name.equals("Hunting Rifle")) return "wpn_hunting_rifle";
-        if (weapon.name.equals("Derringer")) return "wpn_derringer";
-        if (weapon.name.equals("Plasma Pistol")) return "wpn_plasma_pistol";
-        if (weapon.name.equals("Magic Wand")) return "wpn_magic_wand";
-        if (weapon.name.equals("Sheathed Sword")) return "wpn_sheathed_sword";
-        if (weapon.name.equals("Brown Bess")) return "wpn_brown_bess";
-        if (weapon.name.equals("Lee Enfield")) return "wpn_lee_enfield";
-        if (weapon.name.equals("M1 Garand")) return "wpn_m1_garand";
-        if (weapon.name.equals("English Longbow")) return "wpn_english_longbow";
-        if (weapon.name.equals("Heavy Crossbow")) return "wpn_heavy_crossbow";
-        if (weapon.name.equals("Steel Dagger")) return "wpn_steel_dagger";
-        if (weapon.name.equals("Longsword")) return "wpn_longsword";
-        if (weapon.name.equals("Battle Axe")) return "wpn_battle_axe";
-        if (weapon.name.equals("Uzi")) return "wpn_uzi";
-        
-        // Melee weapon mappings
-        if (weapon.name.equals("Unarmed")) return "wpn_unarmed";
-        if (weapon.name.equals("Knife")) return "wpn_knife";
-        if (weapon.name.equals("Tomahawk")) return "wpn_tomahawk";
-        if (weapon.name.equals("Rifle (Bayonet)")) return "wpn_rifle_bayonet";
-        if (weapon.name.equals("Sabre")) return "wpn_sabre";
-        if (weapon.name.equals("Pistol (Melee)")) return "wpn_pistol_whip";
-        if (weapon.name.equals("Knife & Tomahawk")) return "wpn_dual_weapons";
-        
-        return "wpn_colt_peacemaker"; // default fallback
-    }
+    // findWeaponId() method removed in DevCycle 17 - replaced with direct weapon.getWeaponId() access
     
     /**
      * Resolve melee combat attack between attacker and target

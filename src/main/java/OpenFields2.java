@@ -723,7 +723,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             }
             
             // Add wound to character's wound list with hesitation mechanics
-            String weaponId = SaveGameController.findWeaponId(weapon);
+            String weaponId = weapon.getWeaponId(); // Direct access to weapon ID (DevCycle 17)
             target.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId, actualDamage), impactTick, eventQueue, target.getId());
             
             // Check for incapacitation
@@ -866,7 +866,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             }
             
             // Add wound to target with hesitation mechanics
-            String weaponId = SaveGameController.findWeaponId(weapon);
+            String weaponId = weapon.getWeaponId(); // Direct access to weapon ID (DevCycle 17)
             strayTarget.character.addWound(new combat.Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId, strayDamage), impactTick, eventQueue, strayTarget.getId());
             
             // Check for incapacitation from stray shot

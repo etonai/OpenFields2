@@ -245,8 +245,8 @@ public class SaveGameController {
         
         // Serialize weapon
         if (character.weapon != null) {
-            // Find weapon ID from weapon name
-            data.weaponId = findWeaponId(character.weapon);
+            // Get weapon ID directly from weapon object (DevCycle 17)
+            data.weaponId = character.weapon.getWeaponId();
         }
         
         // Serialize weapon state
@@ -273,32 +273,7 @@ public class SaveGameController {
         return data;
     }
     
-    /**
-     * Find weapon ID from weapon object
-     * 
-     * @param weapon Weapon object
-     * @return Weapon ID string
-     */
-    public static String findWeaponId(Weapon weapon) {
-        // This is a simple approach - in a more complex system, 
-        // we might want to store the weapon ID in the weapon object
-        if (weapon.name.equals("Colt Peacemaker")) return "wpn_colt_peacemaker";
-        if (weapon.name.equals("Hunting Rifle")) return "wpn_hunting_rifle";
-        if (weapon.name.equals("Derringer")) return "wpn_derringer";
-        if (weapon.name.equals("Plasma Pistol")) return "wpn_plasma_pistol";
-        if (weapon.name.equals("Wand of Magic Bolts")) return "wpn_wand_of_magic_bolts";
-        if (weapon.name.equals("Enchanted Sword")) return "wpn_magic_sword";
-        if (weapon.name.equals("Brown Bess Musket")) return "wpn_brown_bess";
-        if (weapon.name.equals("Lee-Enfield SMLE")) return "wpn_lee_enfield";
-        if (weapon.name.equals("M1 Garand")) return "wpn_m1_garand";
-        if (weapon.name.equals("English Longbow")) return "wpn_longbow";
-        if (weapon.name.equals("Heavy Crossbow")) return "wpn_crossbow";
-        if (weapon.name.equals("Steel Dagger")) return "wpn_dagger";
-        if (weapon.name.equals("Longsword")) return "wpn_sword";
-        if (weapon.name.equals("Battle Axe")) return "wpn_battleaxe";
-        if (weapon.name.equals("Uzi Submachine Gun")) return "wpn_uzi";
-        return "wpn_colt_peacemaker"; // default fallback
-    }
+    // findWeaponId() method removed in DevCycle 17 - replaced with direct weapon.getWeaponId() access
     
     /**
      * Serialize unit with character reference for new save format
@@ -313,7 +288,7 @@ public class SaveGameController {
         String currentWeaponState = null;
         FiringMode currentFiringMode = null;
         if (unit.character.weapon != null) {
-            weaponId = findWeaponId(unit.character.weapon);
+            weaponId = unit.character.weapon.getWeaponId(); // Direct access to weapon ID (DevCycle 17)
             if (unit.character.currentWeaponState != null) {
                 currentWeaponState = unit.character.currentWeaponState.getState();
             }
