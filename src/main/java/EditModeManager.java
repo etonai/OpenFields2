@@ -795,6 +795,7 @@ public class EditModeManager {
         MeleeWeaponData weaponData = dataManager.getMeleeWeapon(weaponId);
         if (weaponData != null) {
             return new MeleeWeapon(
+                weaponId, // Pass weaponId as first parameter (DevCycle 17)
                 weaponData.name,
                 weaponData.damage,
                 weaponData.soundFile,

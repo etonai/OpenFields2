@@ -166,6 +166,10 @@ public class DisplayCoordinator {
         
         System.out.println("--- WEAPONS ---");
         
+        // Enhanced Combat Mode Display (DevCycle 17)
+        System.out.println("Combat Mode: " + (unit.character.isMeleeCombatMode ? "MELEE" : "RANGED"));
+        System.out.println();
+        
         // Display ranged weapon - check both rangedWeapon and legacy weapon fields
         RangedWeapon ranged = unit.character.rangedWeapon;
         if (ranged == null && unit.character.weapon instanceof RangedWeapon) {
@@ -174,22 +178,22 @@ public class DisplayCoordinator {
         
         if (ranged != null) {
             String activeMarker = !unit.character.isMeleeCombatMode ? " [ACTIVE]" : "";
-            System.out.println("Ranged: " + ranged.getName() + " (" + ranged.getDamage() + " damage, " + 
-                             ranged.getWeaponAccuracy() + " accuracy)" + activeMarker);
+            System.out.println("Ranged Weapon: " + ranged.getName() + activeMarker + " (" + ranged.getDamage() + " damage, " + 
+                             ranged.getWeaponAccuracy() + " accuracy)");
         } else {
             String activeMarker = !unit.character.isMeleeCombatMode ? " [ACTIVE]" : "";
-            System.out.println("Ranged: No ranged weapon" + activeMarker);
+            System.out.println("Ranged Weapon: No ranged weapon" + activeMarker);
         }
         
         // Display melee weapon
         if (unit.character.meleeWeapon != null) {
             MeleeWeapon melee = unit.character.meleeWeapon;
             String activeMarker = unit.character.isMeleeCombatMode ? " [ACTIVE]" : "";
-            System.out.println("Melee: " + melee.getName() + " (" + melee.getDamage() + " damage, " + 
-                             melee.getWeaponAccuracy() + " accuracy, " + String.format("%.1f", melee.getTotalReach()) + "ft reach)" + activeMarker);
+            System.out.println("Melee Weapon: " + melee.getName() + activeMarker + " (" + melee.getDamage() + " damage, " + 
+                             melee.getWeaponAccuracy() + " accuracy, " + String.format("%.1f", melee.getTotalReach()) + "ft reach)");
         } else {
             String activeMarker = unit.character.isMeleeCombatMode ? " [ACTIVE]" : "";
-            System.out.println("Melee: No melee weapon" + activeMarker);
+            System.out.println("Melee Weapon: No melee weapon" + activeMarker);
         }
         
         // Show current weapon state and additional details for active weapon

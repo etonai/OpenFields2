@@ -16,6 +16,7 @@ public class MeleeWeaponFactory {
      */
     public static MeleeWeapon createUnarmed() {
         return new MeleeWeapon(
+            "wpn_unarmed", // weaponId (DevCycle 17)
             "Unarmed",
             8, // Lower damage than weapons
             "punch.wav", // Default sound
@@ -29,6 +30,7 @@ public class MeleeWeaponFactory {
      */
     public static MeleeWeapon createKnife() {
         return new MeleeWeapon(
+            "wpn_knife", // weaponId (DevCycle 17)
             "Knife",
             15,
             "blade_swing.wav",
@@ -42,6 +44,7 @@ public class MeleeWeaponFactory {
      */
     public static MeleeWeapon createTomahawk() {
         return new MeleeWeapon(
+            "wpn_tomahawk", // weaponId (DevCycle 17)
             "Tomahawk",
             22,
             "axe_swing.wav",
@@ -55,6 +58,7 @@ public class MeleeWeaponFactory {
      */
     public static MeleeWeapon createRifleBayonet() {
         MeleeWeapon bayonet = new MeleeWeapon(
+            "wpn_rifle_bayonet", // weaponId (DevCycle 17)
             "Rifle (Bayonet)",
             20,
             "bayonet_thrust.wav",
@@ -70,6 +74,7 @@ public class MeleeWeaponFactory {
      */
     public static MeleeWeapon createSabre() {
         return new MeleeWeapon(
+            "wpn_sabre", // weaponId (DevCycle 17)
             "Sabre",
             25,
             "sword_swing.wav",
@@ -83,6 +88,7 @@ public class MeleeWeaponFactory {
      */
     public static MeleeWeapon createPistolWhip() {
         MeleeWeapon pistolWhip = new MeleeWeapon(
+            "wpn_pistol_whip", // weaponId (DevCycle 17)
             "Pistol (Melee)",
             12, // Low damage - not designed for melee
             "pistol_whip.wav",
@@ -98,6 +104,7 @@ public class MeleeWeaponFactory {
      */
     public static MeleeWeapon createDualWeapons() {
         MeleeWeapon dualWeapons = new MeleeWeapon(
+            "wpn_dual_weapons", // weaponId (DevCycle 17)
             "Knife & Tomahawk",
             28, // Higher damage due to two weapons
             "dual_weapon_swing.wav",
@@ -124,6 +131,7 @@ public class MeleeWeaponFactory {
         
         // Create the melee weapon with basic properties
         MeleeWeapon weapon = new MeleeWeapon(
+            meleeWeaponId, // Pass weaponId as first parameter (DevCycle 17)
             data.name,
             data.damage,
             data.soundFile,

@@ -25,8 +25,8 @@ public class RangedWeapon extends Weapon {
     public int cyclicRate; // Ticks between shots in full auto mode
     public int burstSize; // Number of rounds per burst (typically 3)
 
-    public RangedWeapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName) {
-        super(name, damage, soundFile, 1.0, weaponAccuracy, WeaponType.OTHER); // Default weapon length 1 foot
+    public RangedWeapon(String weaponId, String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName) {
+        super(weaponId, name, damage, soundFile, 1.0, weaponAccuracy, WeaponType.OTHER); // Default weapon length 1 foot
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.ammunition = ammunition;
         this.maxAmmunition = ammunition; // Default max to current
@@ -43,8 +43,8 @@ public class RangedWeapon extends Weapon {
         this.burstSize = 3; // Default 3-round bursts
     }
     
-    public RangedWeapon(String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName, WeaponType weaponType) {
-        super(name, damage, soundFile, 1.0, weaponAccuracy, weaponType);
+    public RangedWeapon(String weaponId, String name, double velocityFeetPerSecond, int damage, int ammunition, String soundFile, double maximumRange, int weaponAccuracy, String projectileName, WeaponType weaponType) {
+        super(weaponId, name, damage, soundFile, 1.0, weaponAccuracy, weaponType);
         this.velocityFeetPerSecond = velocityFeetPerSecond;
         this.ammunition = ammunition;
         this.maxAmmunition = ammunition; // Default max to current

@@ -22,6 +22,7 @@ public class WeaponFactory {
         
         // Create the ranged weapon with basic properties (start with full ammunition)
         RangedWeapon weapon = new RangedWeapon(
+            weaponId, // Pass weaponId as first parameter (DevCycle 17)
             weaponData.name,
             weaponData.velocity,
             weaponData.damage,

@@ -15,10 +15,10 @@ public class MeleeWeapon extends Weapon {
     private boolean isOneHanded; // true for one-handed weapons
     private boolean isMeleeVersionOfRanged; // true if melee version of ranged weapon
 
-    public MeleeWeapon(String name, int damage, String soundFile, MeleeWeaponType meleeType, 
+    public MeleeWeapon(String weaponId, String name, int damage, String soundFile, MeleeWeaponType meleeType, 
                        int defendScore, int attackSpeed, int attackCooldown, double weaponLength, 
                        int readyingTime, boolean isOneHanded, boolean isMeleeVersionOfRanged, int weaponAccuracy) {
-        super(name, damage, soundFile, weaponLength, weaponAccuracy, getWeaponTypeForMeleeType(meleeType));
+        super(weaponId, name, damage, soundFile, weaponLength, weaponAccuracy, getWeaponTypeForMeleeType(meleeType));
         this.meleeType = meleeType;
         this.defendScore = defendScore;
         this.attackSpeed = attackSpeed;
@@ -35,8 +35,8 @@ public class MeleeWeapon extends Weapon {
     /**
      * Constructor using default values based on melee weapon type
      */
-    public MeleeWeapon(String name, int damage, String soundFile, MeleeWeaponType meleeType, int weaponAccuracy) {
-        super(name, damage, soundFile, meleeType.getDefaultReach(), weaponAccuracy, getWeaponTypeForMeleeType(meleeType));
+    public MeleeWeapon(String weaponId, String name, int damage, String soundFile, MeleeWeaponType meleeType, int weaponAccuracy) {
+        super(weaponId, name, damage, soundFile, meleeType.getDefaultReach(), weaponAccuracy, getWeaponTypeForMeleeType(meleeType));
         this.meleeType = meleeType;
         this.weaponRange = meleeType.getDefaultReach();
         this.isOneHanded = meleeType.isTypicallyOneHanded();

@@ -77,7 +77,7 @@ public class IntegrationTest {
     }
     
     private RangedWeapon createTestPistol() {
-        RangedWeapon weapon = new RangedWeapon("Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet");
+        RangedWeapon weapon = new RangedWeapon("test_pistol", "Test Pistol", 600.0, 8, 10, "/test.wav", 200.0, 10, "bullet");
         weapon.states = new ArrayList<>();
         weapon.states.add(new WeaponState("holstered", "drawing", 0));
         weapon.states.add(new WeaponState("drawing", "ready", 30));

@@ -17,13 +17,15 @@ public abstract class Weapon {
     public List<WeaponState> states;
     public String initialStateName;
     protected String projectileName; // Projectile name for combat messages
+    protected String weaponId; // Unique weapon identifier from JSON data (DevCycle 17)
     
     // Note: Ranged-weapon-specific fields have been moved to RangedWeapon class to eliminate duplication
 
     /**
      * Base constructor for all weapons
      */
-    public Weapon(String name, int damage, String soundFile, double weaponLength, int weaponAccuracy, WeaponType weaponType) {
+    public Weapon(String weaponId, String name, int damage, String soundFile, double weaponLength, int weaponAccuracy, WeaponType weaponType) {
+        this.weaponId = weaponId;
         this.name = name;
         this.damage = damage;
         this.soundFile = soundFile;
@@ -106,5 +108,15 @@ public abstract class Weapon {
         this.projectileName = projectileName;
     }
     
+    /**
+     * Get the unique weapon identifier (DevCycle 17)
+     */
+    public String getWeaponId() {
+        return weaponId;
+    }
+    
+    public void setWeaponId(String weaponId) {
+        this.weaponId = weaponId;
+    }
     
 }
