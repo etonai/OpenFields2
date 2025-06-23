@@ -18,6 +18,7 @@ public final class GameConstants {
     
     // Combat constants
     public static final int STRESS_MODIFIER = -20;
+    public static final int FIRST_ATTACK_PENALTY = -15; // Accuracy penalty for first attack on new target
     
     // Conversion utilities
     public static double pixelsToFeet(double pixels) {

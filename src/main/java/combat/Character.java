@@ -103,6 +103,10 @@ public class Character {
     // Last target direction for weapon visibility when no current target
     public Double lastTargetFacing = null; // Last direction character was aiming (degrees)
     
+    // First attack penalty system - track target changes for accuracy penalty
+    public Unit previousTarget = null; // Track previous target to detect target changes
+    public boolean isFirstAttackOnTarget = true; // True if this is the first attack on current target
+    
     // Melee movement state tracking
     public boolean isMovingToMelee = false; // Currently moving to engage target in melee combat
     public Unit meleeTarget = null; // Target unit for melee attack (maintained during movement)
@@ -805,6 +809,9 @@ public class Character {
     public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || currentWeaponState == null) return;
         
+        // Check if this is a target change and handle first attack penalty
+        boolean targetChanged = (currentTarget != null && currentTarget != target);
+        
         // If targeting a different unit, cancel all pending attacks and reset
         if (currentTarget != null && currentTarget != target) {
             // Clear all pending events for this character
@@ -828,6 +835,21 @@ public class Character {
             return;
         }
         
+        // Handle first attack penalty system
+        if (targetChanged) {
+            // Target changed - this is a new target, apply first attack penalty
+            isFirstAttackOnTarget = true;
+            System.out.println(getDisplayName() + " first attack on " + target.character.getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
+        } else if (currentTarget == target) {
+            // Same target as before - no first attack penalty
+            isFirstAttackOnTarget = false;
+        } else {
+            // This shouldn't happen but be safe - treat as new target
+            isFirstAttackOnTarget = true;
+            System.out.println(getDisplayName() + " first attack on " + target.character.getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
+        }
+        
+        previousTarget = currentTarget;
         currentTarget = target;
         isAttacking = true;
         lastAttackScheduledTick = currentTick;

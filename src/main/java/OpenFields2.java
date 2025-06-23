@@ -417,70 +417,6 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         return debug.toString();
     }
 
-    private static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage) {
-        double weaponModifier = weaponAccuracy;
-        double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
-        double movementModifier = calculateMovementModifier(shooter);
-        double aimingSpeedModifier = shooter.character.getCurrentAimingSpeed().getAccuracyModifier();
-        double targetMovementModifier = calculateTargetMovementModifier(shooter, target);
-        double woundModifier = calculateWoundModifier(shooter);
-        double stressModifier = Math.min(0, OpenFields2.stressModifier + GameConstants.statToModifier(shooter.character.coolness));
-        double skillModifier = calculateSkillModifier(shooter);
-        double sizeModifier = 0.0;
-        double coverModifier = 0.0;
-        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressModifier + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + targetMovementModifier + woundModifier + skillModifier + sizeModifier + coverModifier;
-        
-        if (distanceFeet <= maximumRange) {
-            chanceToHit = Math.max(chanceToHit, 0.01);
-        }
-        
-        double randomRoll = Math.random() * 100;
-        
-        if (GameRenderer.isDebugMode()) {
-            System.out.println("=== HIT CALCULATION DEBUG ===");
-            System.out.println("Shooter: " + shooter.character.getDisplayName() + " -> Target: " + target.character.getDisplayName());
-            System.out.println("Base chance: 50.0");
-            System.out.println("Dexterity modifier: " + GameConstants.statToModifier(shooter.character.dexterity) + " (dex: " + shooter.character.dexterity + ")");
-            System.out.println("Stress modifier: " + stressModifier + " (coolness: " + shooter.character.coolness + ":" + GameConstants.statToModifier(shooter.character.coolness) + ")");
-            System.out.println("Range modifier: " + String.format("%.2f", rangeModifier) + " (distance: " + String.format("%.2f", distanceFeet) + " feet, max: " + String.format("%.2f", maximumRange) + " feet)");
-            System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
-            System.out.println("Movement modifier: " + movementModifier);
-            System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (" + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
-            
-            // Enhanced target movement debug info
-            if (target.isMoving()) {
-                double perpendicularVelocity = target.getPerpendicularVelocity(shooter);
-                double perpendicularVelocityFeetPerSecond = (perpendicularVelocity * 60.0) / 7.0;
-                System.out.println("Target movement modifier: " + String.format("%.2f", targetMovementModifier) + 
-                                 " (perpendicular velocity: " + String.format("%.2f", perpendicularVelocityFeetPerSecond) + " ft/s, " +
-                                 String.format("%.2f", perpendicularVelocity) + " px/tick)");
-            } else {
-                System.out.println("Target movement modifier: " + targetMovementModifier + " (target stationary)");
-            }
-            
-            System.out.println("Wound modifier: " + String.format("%.1f", woundModifier) + " " + getWoundModifierDebugInfo(shooter));
-            System.out.println("Skill modifier: " + String.format("%.1f", skillModifier) + " " + getSkillDebugInfo(shooter));
-            System.out.println("Size modifier: " + sizeModifier);
-            System.out.println("Cover modifier: " + coverModifier);
-            System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");
-            System.out.println("Random roll: " + String.format("%.2f", randomRoll));
-            System.out.println("Result: " + (randomRoll < chanceToHit ? "HIT" : "MISS"));
-            System.out.println("=============================");
-        }
-        
-        boolean hit = randomRoll < chanceToHit;
-        combat.BodyPart hitLocation = null;
-        combat.WoundSeverity woundSeverity = null;
-        int actualDamage = 0;
-        
-        if (hit) {
-            hitLocation = determineHitLocation(randomRoll, chanceToHit);
-            woundSeverity = determineWoundSeverity(randomRoll, chanceToHit, hitLocation);
-            actualDamage = calculateActualDamage(weaponDamage, woundSeverity, hitLocation);
-        }
-        
-        return new HitResult(hit, hitLocation, woundSeverity, actualDamage);
-    }
     
     private static combat.BodyPart determineHitLocation(double randomRoll, double chanceToHit) {
         double excellentThreshold = chanceToHit * 0.2;
@@ -639,7 +575,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     
     public void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
         long impactTick = fireTick + Math.round(distanceFeet / ((RangedWeapon)weapon).getVelocityFeetPerSecond() * 60);
-        HitResult hitResult = determineHit(shooter, target, distanceFeet, ((RangedWeapon)weapon).getMaximumRange(), weapon.weaponAccuracy, weapon.damage);
+        HitResult hitResult = CombatCalculator.determineHit(shooter, target, distanceFeet, ((RangedWeapon)weapon).getMaximumRange(), weapon.weaponAccuracy, weapon.damage, GameRenderer.isDebugMode(), OpenFields2.stressModifier, fireTick);
         if (GameRenderer.isDebugMode()) {
             System.out.println("--- Ranged attack impact scheduled at tick " + impactTick + (hitResult.isHit() ? " (will hit)" : " (will miss)"));
         }
@@ -834,7 +770,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             combat.WoundSeverity woundSeverity = determineStrayWoundSeverity();
             
             // Calculate reduced damage
-            int baseDamage = calculateActualDamage(weapon.damage, woundSeverity, hitLocation);
+            int baseDamage = CombatCalculator.calculateActualDamage(weapon.damage, woundSeverity, hitLocation);
             int strayDamage = Math.max(1, Math.round(baseDamage * 0.7f)); // 30% damage reduction for stray shots
             
             // Create hit result for stray shot
