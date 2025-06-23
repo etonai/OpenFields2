@@ -434,7 +434,7 @@ public class MouseInputHandler {
         
         // Display enhanced format: Character ID, Health, Weapon, Weapon State, Position
         System.out.println("Selected: " + character.id + ":" + character.nickname + 
-                         " | Health: " + character.health + 
+                         " | Health: " + character.currentHealth + "/" + character.health + 
                          " | Weapon: " + weaponName + 
                          " | State: " + weaponState + 
                          " | Pos: " + position);

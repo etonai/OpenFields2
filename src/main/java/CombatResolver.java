@@ -37,7 +37,7 @@ public class CombatResolver {
                 combatMessage = ">>> " + weapon.getName() + " strikes " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick;
             } else {
                 // Ranged weapons use projectile language: "projectile hit"
-                combatMessage = ">>> " + weapon.getProjectileName() + " hit " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick;
+                combatMessage = ">>> " + weapon.getWoundDescription() + " hit " + target.character.getDisplayName() + " in the " + hitLocation.name().toLowerCase() + " causing a " + woundSeverity.name().toLowerCase() + " wound at tick " + impactTick;
             }
             System.out.println(combatMessage);
             System.out.println(">>> " + target.character.getDisplayName() + " takes " + actualDamage + " damage");
@@ -79,7 +79,7 @@ public class CombatResolver {
             
             // Add wound to character's wound list with hesitation mechanics
             String weaponId = weapon.getWeaponId(); // Direct access to weapon ID (DevCycle 17)
-            target.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName(), weaponId, actualDamage), impactTick, eventQueue, target.getId());
+            target.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getWoundDescription(), weaponId, actualDamage), impactTick, eventQueue, target.getId());
             System.out.println(">>> " + target.character.getDisplayName() + " current health: " + target.character.currentHealth + "/" + target.character.health);
             
             // Trigger bravery check for the target when wounded (weapon-type aware)
@@ -87,7 +87,7 @@ public class CombatResolver {
             if (weapon instanceof MeleeWeapon) {
                 braveryReason = "wounded by " + weapon.getName();
             } else {
-                braveryReason = "wounded by " + weapon.getProjectileName();
+                braveryReason = "wounded by " + weapon.getWoundDescription();
             }
             target.character.performBraveryCheck(impactTick, eventQueue, target.getId(), braveryReason);
             
@@ -96,7 +96,7 @@ public class CombatResolver {
             if (weapon instanceof MeleeWeapon) {
                 allyBraveryContext = weapon.getName();
             } else {
-                allyBraveryContext = weapon.getProjectileName();
+                allyBraveryContext = weapon.getWoundDescription();
             }
             triggerAllyBraveryChecks(target, impactTick, allyBraveryContext);
             
@@ -126,7 +126,7 @@ public class CombatResolver {
             
             applyHitHighlight(target, impactTick);
         } else {
-            System.out.println(">>> " + weapon.getProjectileName() + " missed " + target.character.getDisplayName() + " at tick " + impactTick);
+            System.out.println(">>> " + weapon.getWoundDescription() + " missed " + target.character.getDisplayName() + " at tick " + impactTick);
             
             // Handle stray shot mechanics
             handleStrayShot(shooter, target, weapon, impactTick);
@@ -241,7 +241,7 @@ public class CombatResolver {
     }
     
     public void performStrayHit(Unit shooter, Unit strayTarget, Weapon weapon, long impactTick) {
-        System.out.println(">>> STRAY SHOT! " + weapon.getProjectileName() + " hits " + strayTarget.character.getDisplayName() + " (position: " + strayTarget.character.getCurrentPosition().getDisplayName() + ")");
+        System.out.println(">>> STRAY SHOT! " + weapon.getWoundDescription() + " hits " + strayTarget.character.getDisplayName() + " (position: " + strayTarget.character.getCurrentPosition().getDisplayName() + ")");
         
         // Calculate stray shot accuracy - reduced chance to hit
         double baseChance = 15.0; // Base 15% chance for stray hits
@@ -285,14 +285,14 @@ public class CombatResolver {
             
             // Add wound to target with hesitation mechanics
             String weaponId = weapon.getWeaponId(); // Direct access to weapon ID (DevCycle 17)
-            strayTarget.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getProjectileName() + " (stray)", weaponId, strayDamage), impactTick, eventQueue, strayTarget.getId());
+            strayTarget.character.addWound(new Wound(hitLocation, woundSeverity, weapon.getWoundDescription() + " (stray)", weaponId, strayDamage), impactTick, eventQueue, strayTarget.getId());
             System.out.println(">>> " + strayTarget.character.getDisplayName() + " current health: " + strayTarget.character.currentHealth + "/" + strayTarget.character.health);
             
             // Trigger bravery check for stray shot victim
-            strayTarget.character.performBraveryCheck(impactTick, eventQueue, strayTarget.getId(), "hit by stray " + weapon.getProjectileName());
+            strayTarget.character.performBraveryCheck(impactTick, eventQueue, strayTarget.getId(), "hit by stray " + weapon.getWoundDescription());
             
             // Trigger bravery checks for allies within 30 feet
-            triggerAllyBraveryChecks(strayTarget, impactTick, weapon.getProjectileName() + " (stray)");
+            triggerAllyBraveryChecks(strayTarget, impactTick, weapon.getWoundDescription() + " (stray)");
             
             // Check for incapacitation from stray shot
             if (strayTarget.character.isIncapacitated()) {
@@ -430,8 +430,8 @@ public class CombatResolver {
         int attackerDexterity = GameConstants.statToModifier(attacker.character.dexterity);
         int weaponAccuracy = weapon.getWeaponAccuracy();
         
-        // Get weapon skill bonus (pistol/rifle skills don't apply to melee)
-        int skillBonus = 0; // Basic implementation - no melee skills yet
+        // Get weapon skill bonus for melee weapons (DevCycle 17)
+        int skillBonus = calculateMeleeSkillBonus(attacker, weapon);
         
         // Movement penalty for attacker
         int movementPenalty = getMovementPenalty(attacker.character);
@@ -448,7 +448,7 @@ public class CombatResolver {
         if (debugMode) {
             System.out.println("Attacker Dexterity: " + attacker.character.dexterity + " (modifier: " + attackerDexterity + ")");
             System.out.println("Weapon Accuracy: " + weaponAccuracy);
-            System.out.println("Skill Bonus: " + skillBonus);
+            System.out.println("Skill Bonus: " + skillBonus + " " + getMeleeSkillDebugInfo(attacker, weapon));
             System.out.println("Movement Penalty: " + movementPenalty);
             System.out.println("Attack Modifier: " + attackModifier);
             System.out.println("Target Defense (Dex): " + target.character.dexterity + " (modifier: " + targetDefense + ")");
@@ -472,6 +472,56 @@ public class CombatResolver {
         return hits;
     }
     
+    
+    /**
+     * Calculate skill bonus for melee weapons (DevCycle 17)
+     */
+    private int calculateMeleeSkillBonus(Unit attacker, MeleeWeapon weapon) {
+        if (weapon.getWeaponId() == null) {
+            return 0; // No skill bonus if weapon has no ID
+        }
+        
+        // Get combat skill from weapon data
+        data.DataManager dataManager = data.DataManager.getInstance();
+        data.MeleeWeaponData weaponData = dataManager.getMeleeWeapon(weapon.getWeaponId());
+        
+        if (weaponData == null || weaponData.combatSkill == null || weaponData.combatSkill.isEmpty()) {
+            return 0; // No skill specified for this weapon
+        }
+        
+        // Get character's skill level for this weapon's skill
+        int skillLevel = attacker.character.getSkillLevel(weaponData.combatSkill);
+        
+        if (skillLevel <= 0) {
+            return 0; // Character doesn't have this skill
+        }
+        
+        // Calculate skill bonus - same pattern as ranged weapons (5 points per skill level)
+        return skillLevel * 5;
+    }
+    
+    /**
+     * Get debug information for melee skill bonuses (DevCycle 17)
+     */
+    private String getMeleeSkillDebugInfo(Unit attacker, MeleeWeapon weapon) {
+        if (weapon.getWeaponId() == null) {
+            return "(no weapon ID)";
+        }
+        
+        data.DataManager dataManager = data.DataManager.getInstance();
+        data.MeleeWeaponData weaponData = dataManager.getMeleeWeapon(weapon.getWeaponId());
+        
+        if (weaponData == null) {
+            return "(weapon data not found)";
+        }
+        
+        if (weaponData.combatSkill == null || weaponData.combatSkill.isEmpty()) {
+            return "(no combat skill specified)";
+        }
+        
+        int skillLevel = attacker.character.getSkillLevel(weaponData.combatSkill);
+        return "(" + weaponData.combatSkill + ": " + skillLevel + ")";
+    }
     
     /**
      * Get movement penalty based on character's current movement

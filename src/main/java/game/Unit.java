@@ -179,7 +179,7 @@ public class Unit {
             
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(12));
-            gc.fillText(character.getDisplayName(), x - 15, y - 15);
+            gc.fillText(character.getDisplayName() + " (" + character.currentHealth + "/" + character.health + ")", x - 15, y - 15);
             
             // Display movement type and aiming speed only in debug mode
             if (debugMode) {

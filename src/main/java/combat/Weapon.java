@@ -16,7 +16,7 @@ public abstract class Weapon {
     public WeaponType weaponType;
     public List<WeaponState> states;
     public String initialStateName;
-    protected String projectileName; // Projectile name for combat messages
+    protected String woundDescription; // Wound description for combat messages (renamed from projectileName - DevCycle 17)
     protected String weaponId; // Unique weapon identifier from JSON data (DevCycle 17)
     
     // Note: Ranged-weapon-specific fields have been moved to RangedWeapon class to eliminate duplication
@@ -32,7 +32,7 @@ public abstract class Weapon {
         this.weaponLength = weaponLength;
         this.weaponAccuracy = weaponAccuracy;
         this.weaponType = weaponType;
-        this.projectileName = "projectile"; // Default value
+        this.woundDescription = "projectile"; // Default value
     }
 
     // Common getter methods
@@ -100,12 +100,23 @@ public abstract class Weapon {
     }
     
     
-    public String getProjectileName() {
-        return projectileName != null ? projectileName : "projectile";
+    public String getWoundDescription() {
+        return woundDescription != null ? woundDescription : "projectile";
     }
     
+    public void setWoundDescription(String woundDescription) {
+        this.woundDescription = woundDescription;
+    }
+    
+    // Legacy methods for backward compatibility (DevCycle 17)
+    @Deprecated
+    public String getProjectileName() {
+        return getWoundDescription();
+    }
+    
+    @Deprecated
     public void setProjectileName(String projectileName) {
-        this.projectileName = projectileName;
+        setWoundDescription(projectileName);
     }
     
     /**

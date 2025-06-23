@@ -15,7 +15,7 @@ public class MeleeWeaponFactory {
      * Create an unarmed combat "weapon" - represents fighting without weapons
      */
     public static MeleeWeapon createUnarmed() {
-        return new MeleeWeapon(
+        MeleeWeapon weapon = new MeleeWeapon(
             "wpn_unarmed", // weaponId (DevCycle 17)
             "Unarmed",
             8, // Lower damage than weapons
@@ -23,13 +23,15 @@ public class MeleeWeaponFactory {
             MeleeWeaponType.UNARMED,
             25 // Lower accuracy than weapons
         );
+        weapon.setWoundDescription("fist");
+        return weapon;
     }
     
     /**
      * Create a basic knife - short, fast, one-handed
      */
     public static MeleeWeapon createKnife() {
-        return new MeleeWeapon(
+        MeleeWeapon weapon = new MeleeWeapon(
             "wpn_knife", // weaponId (DevCycle 17)
             "Knife",
             15,
@@ -37,13 +39,15 @@ public class MeleeWeaponFactory {
             MeleeWeaponType.SHORT,
             35
         );
+        weapon.setWoundDescription("blade");
+        return weapon;
     }
     
     /**
      * Create a tomahawk - medium reach, balanced weapon
      */
     public static MeleeWeapon createTomahawk() {
-        return new MeleeWeapon(
+        MeleeWeapon weapon = new MeleeWeapon(
             "wpn_tomahawk", // weaponId (DevCycle 17)
             "Tomahawk",
             22,
@@ -51,6 +55,8 @@ public class MeleeWeaponFactory {
             MeleeWeaponType.MEDIUM,
             40
         );
+        weapon.setWoundDescription("tomahawk");
+        return weapon;
     }
     
     /**
@@ -66,6 +72,7 @@ public class MeleeWeaponFactory {
             45
         );
         bayonet.setMeleeVersionOfRanged(true); // This is the melee version of a ranged weapon
+        bayonet.setWoundDescription("bayonet");
         return bayonet;
     }
     
@@ -73,7 +80,7 @@ public class MeleeWeaponFactory {
      * Create a sabre - medium weapon, good balance of speed and damage
      */
     public static MeleeWeapon createSabre() {
-        return new MeleeWeapon(
+        MeleeWeapon weapon = new MeleeWeapon(
             "wpn_sabre", // weaponId (DevCycle 17)
             "Sabre",
             25,
@@ -81,6 +88,8 @@ public class MeleeWeaponFactory {
             MeleeWeaponType.MEDIUM,
             50
         );
+        weapon.setWoundDescription("sabre");
+        return weapon;
     }
     
     /**
@@ -96,6 +105,7 @@ public class MeleeWeaponFactory {
             25 // Low accuracy - poor melee weapon
         );
         pistolWhip.setMeleeVersionOfRanged(true);
+        pistolWhip.setWoundDescription("pistol butt");
         return pistolWhip;
     }
     
@@ -114,6 +124,7 @@ public class MeleeWeaponFactory {
         // Dual weapons have moderate speed but good damage
         dualWeapons.setAttackSpeed(105); // 1.75 seconds
         dualWeapons.setAttackCooldown(105);
+        dualWeapons.setWoundDescription("blade/tomahawk");
         return dualWeapons;
     }
     
@@ -146,9 +157,9 @@ public class MeleeWeaponFactory {
             data.weaponAccuracy
         );
         
-        // Set projectile name if provided in JSON
-        if (data.projectileName != null && !data.projectileName.isEmpty()) {
-            weapon.setProjectileName(data.projectileName);
+        // Set wound description if provided in JSON (DevCycle 17)
+        if (data.woundDescription != null && !data.woundDescription.isEmpty()) {
+            weapon.setWoundDescription(data.woundDescription);
         }
         
         // Load weapon states from the weapon type definition (critical for melee combat state management)

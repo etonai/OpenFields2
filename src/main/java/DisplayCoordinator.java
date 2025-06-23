@@ -132,7 +132,7 @@ public class DisplayCoordinator {
         System.out.println("Dexterity: " + unit.character.dexterity + " (modifier: " + callbacks.convertStatToModifier(unit.character.dexterity) + ")");
         System.out.println("Strength: " + unit.character.strength + " (modifier: " + callbacks.convertStatToModifier(unit.character.strength) + ")");
         System.out.println("Reflexes: " + unit.character.reflexes + " (modifier: " + callbacks.convertStatToModifier(unit.character.reflexes) + ")");
-        System.out.println("Health: " + unit.character.health);
+        System.out.println("Health: " + unit.character.currentHealth + "/" + unit.character.health);
         System.out.println("Coolness: " + unit.character.coolness + " (modifier: " + callbacks.convertStatToModifier(unit.character.coolness) + ")");
         System.out.println("Handedness: " + unit.character.handedness.getDisplayName());
         System.out.println("Base Movement Speed: " + unit.character.baseMovementSpeed + " pixels/second");

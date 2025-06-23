@@ -34,6 +34,7 @@ public class RangedWeapon extends Weapon {
         this.reloadType = ReloadType.FULL_MAGAZINE; // Default reload type
         this.maximumRange = maximumRange;
         this.projectileName = projectileName;
+        this.woundDescription = projectileName; // Set the wound description from JSON data
         this.firingDelay = 0; // Default no firing delay
         
         // Initialize automatic firing properties (default to single shot only)
@@ -52,6 +53,7 @@ public class RangedWeapon extends Weapon {
         this.reloadType = ReloadType.FULL_MAGAZINE; // Default reload type
         this.maximumRange = maximumRange;
         this.projectileName = projectileName;
+        this.woundDescription = projectileName; // Set the wound description from JSON data
         this.firingDelay = 0; // Default no firing delay
         
         // Initialize automatic firing properties (default to single shot only)

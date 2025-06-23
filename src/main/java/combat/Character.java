@@ -734,9 +734,6 @@ public class Character {
         
         // Apply damage to current health
         currentHealth -= wound.getDamage();
-        if (currentHealth < 0) {
-            currentHealth = 0; // Don't allow negative health
-        }
         
         // Enforce movement restrictions immediately after adding wound
         enforceMovementRestrictions();
@@ -754,9 +751,6 @@ public class Character {
         
         // Apply damage to current health
         currentHealth -= wound.getDamage();
-        if (currentHealth < 0) {
-            currentHealth = 0; // Don't allow negative health
-        }
         
         // Enforce movement restrictions immediately after adding wound
         enforceMovementRestrictions();

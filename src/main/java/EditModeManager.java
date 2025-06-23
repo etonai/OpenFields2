@@ -794,7 +794,7 @@ public class EditModeManager {
         DataManager dataManager = DataManager.getInstance();
         MeleeWeaponData weaponData = dataManager.getMeleeWeapon(weaponId);
         if (weaponData != null) {
-            return new MeleeWeapon(
+            MeleeWeapon weapon = new MeleeWeapon(
                 weaponId, // Pass weaponId as first parameter (DevCycle 17)
                 weaponData.name,
                 weaponData.damage,
@@ -809,6 +809,11 @@ public class EditModeManager {
                 weaponData.isMeleeVersionOfRanged,
                 weaponData.weaponAccuracy
             );
+            // Set wound description from JSON data
+            if (weaponData.woundDescription != null && !weaponData.woundDescription.isEmpty()) {
+                weapon.setWoundDescription(weaponData.woundDescription);
+            }
+            return weapon;
         }
         return MeleeWeaponFactory.createUnarmed(); // Fallback
     }

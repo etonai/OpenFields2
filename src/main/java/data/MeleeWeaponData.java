@@ -47,8 +47,11 @@ public class MeleeWeaponData {
     @JsonProperty("isMeleeVersionOfRanged")
     public boolean isMeleeVersionOfRanged;
     
-    @JsonProperty("projectileName")
-    public String projectileName;
+    @JsonProperty("woundDescription")
+    public String woundDescription; // Renamed from projectileName (DevCycle 17)
+    
+    @JsonProperty("combatSkill")
+    public String combatSkill; // Combat skill associated with this weapon (DevCycle 17)
     
     public MeleeWeaponData() {
         // Default constructor for Jackson
@@ -57,7 +60,7 @@ public class MeleeWeaponData {
     public MeleeWeaponData(String id, String name, WeaponType type, int damage, String soundFile, 
                           double weaponLength, int weaponAccuracy, MeleeWeaponType meleeType, 
                           int defendScore, int attackSpeed, int attackCooldown, int readyingTime, 
-                          boolean isOneHanded, boolean isMeleeVersionOfRanged, String projectileName) {
+                          boolean isOneHanded, boolean isMeleeVersionOfRanged, String woundDescription, String combatSkill) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -72,6 +75,7 @@ public class MeleeWeaponData {
         this.readyingTime = readyingTime;
         this.isOneHanded = isOneHanded;
         this.isMeleeVersionOfRanged = isMeleeVersionOfRanged;
-        this.projectileName = projectileName;
+        this.woundDescription = woundDescription;
+        this.combatSkill = combatSkill;
     }
 }

@@ -45,8 +45,11 @@ public class WeaponData {
     @JsonProperty("reloadType")
     public ReloadType reloadType;
     
-    @JsonProperty("projectileName")
-    public String projectileName;
+    @JsonProperty("woundDescription")
+    public String woundDescription; // Renamed from projectileName (DevCycle 17)
+    
+    @JsonProperty("combatSkill")
+    public String combatSkill; // Combat skill associated with this weapon (DevCycle 17)
     
     @JsonProperty("firingDelay")
     public int firingDelay;
@@ -73,7 +76,7 @@ public class WeaponData {
     
     public WeaponData(String id, String name, WeaponType type, double velocity, int damage, int ammunition, 
                      String soundFile, double maximumRange, int weaponAccuracy, int maxAmmunition, 
-                     int reloadTicks, ReloadType reloadType, String projectileName, int firingDelay) {
+                     int reloadTicks, ReloadType reloadType, String woundDescription, String combatSkill, int firingDelay) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -86,7 +89,8 @@ public class WeaponData {
         this.maxAmmunition = maxAmmunition;
         this.reloadTicks = reloadTicks;
         this.reloadType = reloadType;
-        this.projectileName = projectileName;
+        this.woundDescription = woundDescription;
+        this.combatSkill = combatSkill;
         this.firingDelay = firingDelay;
     }
 }
