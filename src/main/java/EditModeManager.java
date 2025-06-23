@@ -19,18 +19,17 @@ import data.MeleeWeaponData;
 import input.interfaces.InputManagerCallbacks;
 
 /**
- * EditModeManager handles all character creation, deployment, and edit mode workflows.
+ * EditModeManager handles all character creation and edit mode workflows.
  * 
  * This component was extracted from InputManager as part of DevCycle 15d incremental refactoring.
  * It manages complex multi-step workflows for character creation, weapon assignment, faction
- * management, batch operations, and character deployment processes.
+ * management, and batch operations.
  * 
  * RESPONSIBILITIES:
  * - Character creation workflows (single and batch)
- * - Character deployment and placement operations
+ * - Direct character addition operations (CTRL-A)
  * - Weapon assignment and selection processes
  * - Faction assignment and management
- * - Direct character addition (CTRL-A) workflows
  * - Edit mode state coordination
  * 
  * DESIGN PRINCIPLES:
@@ -70,12 +69,6 @@ public class EditModeManager {
     private int batchFaction = 0;
     private double batchSpacing = 0.0;
     
-    // Character Deployment Workflow State
-    private int deploymentFaction = 0;
-    private int deploymentQuantity = 0;
-    private String deploymentWeapon = "";
-    private int deploymentSpacing = 0;
-    
     // Direct Character Addition Workflow State  
     private int directAdditionFaction = 0;
     private int directAdditionQuantity = 0;
@@ -95,13 +88,6 @@ public class EditModeManager {
         COMPLETE
     }
     
-    public enum DeploymentStep {
-        FACTION_SELECTION,
-        QUANTITY_INPUT,
-        WEAPON_SELECTION,
-        SPACING_INPUT,
-        PLACEMENT
-    }
     
     public enum DirectAdditionStep {
         FACTION_SELECTION,
@@ -114,7 +100,6 @@ public class EditModeManager {
     }
     
     private CreationStep creationStep = CreationStep.ARCHETYPE_SELECTION;
-    private DeploymentStep deploymentStep = DeploymentStep.FACTION_SELECTION;
     private DirectAdditionStep directAdditionStep = DirectAdditionStep.FACTION_SELECTION;
     
     // ====================
@@ -182,16 +167,6 @@ public class EditModeManager {
             }
         }
         
-        // Character deployment (Ctrl+D)
-        if (e.getCode() == KeyCode.D && e.isControlDown()) {
-            if (callbacks.isEditMode() && !stateTracker.isWaitingForAnyPrompt()) {
-                promptForCharacterDeployment();
-            } else if (!callbacks.isEditMode()) {
-                System.out.println("*** Character deployment only available in edit mode (Ctrl+E) ***");
-            } else if (stateTracker.isWaitingForAnyPrompt()) {
-                System.out.println("*** Please complete current operation before deploying characters ***");
-            }
-        }
         
         // Direct character addition (Ctrl+A)  
         if (e.getCode() == KeyCode.A && e.isControlDown()) {
@@ -351,94 +326,6 @@ public class EditModeManager {
         } else {
             System.out.println("*** Invalid quantity - please enter 1-20 ***");
         }
-    }
-    
-    // ====================
-    // CHARACTER DEPLOYMENT
-    // ====================
-    
-    /**
-     * Prompts for character deployment workflow.
-     */
-    public void promptForCharacterDeployment() {
-        System.out.println("=== Character Deployment ===");
-        System.out.println("Select faction:");
-        System.out.println("1. Cowboys    2. Outlaws    3. Lawmen");
-        System.out.println("4. Natives    5. Army       6. Settlers");
-        
-        deploymentStep = DeploymentStep.FACTION_SELECTION;
-        stateTracker.setWaitingForCharacterDeployment(true);
-    }
-    
-    /**
-     * Handles character deployment input for various workflow steps.
-     */
-    public void handleCharacterDeploymentInput(int inputNumber) {
-        switch (deploymentStep) {
-            case FACTION_SELECTION:
-                if (inputNumber >= 1 && inputNumber <= 6) {
-                    deploymentFaction = inputNumber;
-                    String[] factionNames = {"Cowboys", "Outlaws", "Lawmen", "Natives", "Army", "Settlers"};
-                    System.out.println("Selected faction: " + factionNames[inputNumber - 1]);
-                    
-                    System.out.println("Enter quantity (1-20):");
-                    deploymentStep = DeploymentStep.QUANTITY_INPUT;
-                } else {
-                    System.out.println("*** Invalid faction - please choose 1-6 ***");
-                }
-                break;
-                
-            case QUANTITY_INPUT:
-                if (inputNumber >= 1 && inputNumber <= 20) {
-                    deploymentQuantity = inputNumber;
-                    System.out.println("Deployment quantity: " + deploymentQuantity);
-                    
-                    System.out.println("Select weapon:");
-                    System.out.println("1. Revolver   2. Rifle      3. Shotgun");
-                    System.out.println("4. Uzi        5. Sniper     6. Bow");
-                    deploymentStep = DeploymentStep.WEAPON_SELECTION;
-                } else {
-                    System.out.println("*** Invalid quantity - please enter 1-20 ***");
-                }
-                break;
-                
-            case WEAPON_SELECTION:
-                if (inputNumber >= 1 && inputNumber <= 6) {
-                    String[] weapons = {"wpn_revolver", "wpn_rifle", "wpn_shotgun", "wpn_uzi", "wpn_sniper", "wpn_bow"};
-                    deploymentWeapon = weapons[inputNumber - 1];
-                    System.out.println("Selected weapon: " + deploymentWeapon);
-                    
-                    System.out.println("Enter spacing in feet (1-9):");
-                    deploymentStep = DeploymentStep.SPACING_INPUT;
-                } else {
-                    System.out.println("*** Invalid weapon - please choose 1-6 ***");
-                }
-                break;
-                
-            case SPACING_INPUT:
-                if (inputNumber >= 1 && inputNumber <= 9) {
-                    deploymentSpacing = inputNumber;
-                    System.out.println("Spacing set to: " + deploymentSpacing + " feet");
-                    System.out.println("Click on map to place characters...");
-                    deploymentStep = DeploymentStep.PLACEMENT;
-                } else {
-                    System.out.println("*** Invalid spacing - please enter 1-9 feet ***");
-                }
-                break;
-        }
-    }
-    
-    /**
-     * Completes character deployment at specified location.
-     */
-    public void completeCharacterDeployment(double x, double y) {
-        System.out.println("Deploying " + deploymentQuantity + " characters at (" + 
-                          String.format("%.1f", x) + ", " + String.format("%.1f", y) + ")");
-        
-        // Implementation would deploy characters
-        // Reset deployment state
-        stateTracker.setWaitingForCharacterDeployment(false);
-        deploymentStep = DeploymentStep.FACTION_SELECTION;
     }
     
     // ====================
@@ -822,12 +709,6 @@ public class EditModeManager {
     // STATE QUERY METHODS
     // ====================
     
-    /**
-     * Returns true if currently in deployment placement mode.
-     */
-    public boolean isInDeploymentPlacementMode() {
-        return stateTracker.isWaitingForCharacterDeployment() && deploymentStep == DeploymentStep.PLACEMENT;
-    }
     
     /**
      * Returns true if currently in direct addition placement mode.
@@ -843,12 +724,6 @@ public class EditModeManager {
         return creationStep;
     }
     
-    /**
-     * Returns the current deployment step.
-     */
-    public DeploymentStep getDeploymentStep() {
-        return deploymentStep;
-    }
     
     /**
      * Returns the current direct addition step.
