@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import game.Unit;
+import game.rendering.IUnitRenderer;
+import game.rendering.JavaFXUnitRenderer;
 import combat.WeaponType;
 import combat.Handedness;
 import combat.Weapon;
@@ -68,16 +70,17 @@ public class GameRenderer {
         gc.translate(offsetX, offsetY);
         gc.scale(zoom, zoom);
         
+        // Create unit renderer for this frame
+        IUnitRenderer unitRenderer = new JavaFXUnitRenderer(gc);
+        
         // First pass: Draw all unit circles and basic elements
         for (Unit u : units) {
             boolean isSelected = selectionManager.isUnitSelected(u);
-            u.render(gc, isSelected, debugMode);
+            unitRenderer.renderUnit(u, isSelected, debugMode);
             
             // Draw cyan border for multi-selected units (when more than one unit selected)
             if (isSelected && selectionManager.getSelectionCount() > 1) {
-                gc.setStroke(Color.CYAN);
-                gc.setLineWidth(2);
-                gc.strokeOval(u.x - 12, u.y - 12, 24, 24);
+                unitRenderer.renderSelectionIndicator(u, true);
             }
             
             // Draw weapon if character has a target and weapon
@@ -100,7 +103,7 @@ public class GameRenderer {
             }
             
             if (selected.character.currentTarget != null) {
-                Unit target = selected.character.currentTarget;
+                Unit target = (Unit)selected.character.currentTarget;
                 
                 if (selected.character.isPersistentAttack()) {
                     // Persistent attack: yellow X inside target

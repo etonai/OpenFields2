@@ -519,7 +519,8 @@ public class EditModeManager {
                 }
                 
                 // Get color based on faction
-                javafx.scene.paint.Color characterColor = getFactionColor(directAdditionFaction);
+                javafx.scene.paint.Color javafxColor = getFactionColor(directAdditionFaction);
+                platform.api.Color characterColor = platform.api.Color.fromJavaFX(javafxColor);
                 
                 // Create and add unit
                 int unitId = callbacks.getNextUnitId();

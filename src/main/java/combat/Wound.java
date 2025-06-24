@@ -70,4 +70,20 @@ public class Wound {
     public void setDamage(int damage) {
         this.damage = damage;
     }
+    
+    public int getModifier() {
+        // Return modifier based on wound severity
+        switch (severity) {
+            case SCRATCH:
+                return -1;
+            case LIGHT:
+                return -2;
+            case SERIOUS:
+                return -5;
+            case CRITICAL:
+                return -10;
+            default:
+                return 0;
+        }
+    }
 }

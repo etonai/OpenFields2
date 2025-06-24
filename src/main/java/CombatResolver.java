@@ -312,7 +312,7 @@ public class CombatResolver {
     public void applyHitHighlight(Unit target, long impactTick) {
         if (!target.isHitHighlighted) {
             target.isHitHighlighted = true;
-            target.color = Color.YELLOW;
+            target.color = platform.api.Color.fromJavaFX(Color.YELLOW);
             eventQueue.add(new ScheduledEvent(impactTick + 15, () -> {
                 target.color = target.baseColor;
                 target.isHitHighlighted = false;

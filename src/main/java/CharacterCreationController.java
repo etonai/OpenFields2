@@ -333,7 +333,8 @@ public class CharacterCreationController {
         }
         
         // Get color based on archetype
-        Color characterColor = getColorForArchetype(archetype);
+        Color javafxColor = getColorForArchetype(archetype);
+        platform.api.Color characterColor = platform.api.Color.fromJavaFX(javafxColor);
         
         // Create and add unit
         int unitId = callbacks.getNextUnitId();

@@ -1,7 +1,9 @@
 package combat;
 
+import combat.interfaces.ICharacter;
 import game.ScheduledEvent;
 import game.Unit;
+import game.interfaces.IUnit;
 import game.GameCallbacks;
 import data.SkillsManager;
 import utils.GameConstants;
@@ -10,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
 
-public class Character {
+public class Character implements ICharacter {
     public int id;
     public String nickname;
     public String firstName;
@@ -34,7 +36,7 @@ public class Character {
     public MeleeWeapon meleeWeapon; // Primary melee weapon
     public boolean isMeleeCombatMode = false; // True when in melee combat mode
     public WeaponState currentWeaponState;
-    public Unit currentTarget;
+    public IUnit currentTarget;
     public boolean persistentAttack;
     public boolean isAttacking;
     public int faction;
@@ -109,12 +111,12 @@ public class Character {
     public Double lastTargetFacing = null; // Last direction character was aiming (degrees)
     
     // First attack penalty system - track target changes for accuracy penalty
-    public Unit previousTarget = null; // Track previous target to detect target changes
+    public IUnit previousTarget = null; // Track previous target to detect target changes
     public boolean isFirstAttackOnTarget = true; // True if this is the first attack on current target
     
     // Melee movement state tracking
     public boolean isMovingToMelee = false; // Currently moving to engage target in melee combat
-    public Unit meleeTarget = null; // Target unit for melee attack (maintained during movement)
+    public IUnit meleeTarget = null; // Target unit for melee attack (maintained during movement)
     private long lastMeleeMovementUpdate = 0; // Last tick when melee movement was updated (for throttling)
 
     // Legacy constructors for backwards compatibility with tests
@@ -276,12 +278,242 @@ public class Character {
         initializeDefaultWeapons();
     }
 
+    // ICharacter interface implementation - Basic Attributes
+    
+    @Override
     public int getId() {
         return id;
     }
     
+    @Override
+    public void setId(int id) {
+        this.id = id;
+    }
+    
+    @Override
     public String getNickname() {
         return nickname;
+    }
+    
+    @Override
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+    
+    @Override
+    public String getFirstName() {
+        return firstName;
+    }
+    
+    @Override
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+    
+    @Override
+    public String getLastName() {
+        return lastName;
+    }
+    
+    @Override
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+    
+    @Override
+    public Date getBirthdate() {
+        return birthdate;
+    }
+    
+    @Override
+    public void setBirthdate(Date birthdate) {
+        this.birthdate = birthdate;
+    }
+    
+    @Override
+    public String getThemeId() {
+        return themeId;
+    }
+    
+    @Override
+    public void setThemeId(String themeId) {
+        this.themeId = themeId;
+    }
+    
+    // ICharacter interface implementation - Physical Attributes
+    
+    @Override
+    public int getDexterity() {
+        return dexterity;
+    }
+    
+    @Override
+    public void setDexterity(int dexterity) {
+        this.dexterity = dexterity;
+    }
+    
+    @Override
+    public int getCurrentDexterity() {
+        return currentDexterity;
+    }
+    
+    @Override
+    public void setCurrentDexterity(int currentDexterity) {
+        this.currentDexterity = currentDexterity;
+    }
+    
+    @Override
+    public int getHealth() {
+        return health;
+    }
+    
+    @Override
+    public void setHealth(int health) {
+        this.health = health;
+    }
+    
+    @Override
+    public int getCurrentHealth() {
+        return currentHealth;
+    }
+    
+    @Override
+    public void setCurrentHealth(int currentHealth) {
+        this.currentHealth = currentHealth;
+    }
+    
+    @Override
+    public int getCoolness() {
+        return coolness;
+    }
+    
+    @Override
+    public void setCoolness(int coolness) {
+        this.coolness = coolness;
+    }
+    
+    @Override
+    public int getStrength() {
+        return strength;
+    }
+    
+    @Override
+    public void setStrength(int strength) {
+        this.strength = strength;
+    }
+    
+    @Override
+    public int getReflexes() {
+        return reflexes;
+    }
+    
+    @Override
+    public void setReflexes(int reflexes) {
+        this.reflexes = reflexes;
+    }
+    
+    @Override
+    public Handedness getHandedness() {
+        return handedness;
+    }
+    
+    @Override
+    public void setHandedness(Handedness handedness) {
+        this.handedness = handedness;
+    }
+    
+    // ICharacter interface implementation - Movement and Positioning
+    
+    @Override
+    public double getBaseMovementSpeed() {
+        return baseMovementSpeed;
+    }
+    
+    @Override
+    public void setBaseMovementSpeed(double speed) {
+        this.baseMovementSpeed = speed;
+    }
+    
+    @Override
+    public MovementType getCurrentMovementType() {
+        return currentMovementType;
+    }
+    
+    @Override
+    public void setCurrentMovementType(MovementType type) {
+        this.currentMovementType = type;
+    }
+    
+    @Override
+    public AimingSpeed getCurrentAimingSpeed() {
+        return currentAimingSpeed;
+    }
+    
+    @Override
+    public void setCurrentAimingSpeed(AimingSpeed speed) {
+        this.currentAimingSpeed = speed;
+    }
+    
+    @Override
+    public PositionState getCurrentPosition() {
+        return currentPosition;
+    }
+    
+    @Override
+    public void setCurrentPosition(PositionState position) {
+        this.currentPosition = position;
+    }
+    
+    // ICharacter interface implementation - Weapons
+    
+    @Override
+    public Weapon getWeapon() {
+        return weapon;
+    }
+    
+    @Override
+    public void setWeapon(Weapon weapon) {
+        this.weapon = weapon;
+    }
+    
+    @Override
+    public RangedWeapon getRangedWeapon() {
+        return rangedWeapon;
+    }
+    
+    @Override
+    public void setRangedWeapon(RangedWeapon weapon) {
+        this.rangedWeapon = weapon;
+    }
+    
+    @Override
+    public MeleeWeapon getMeleeWeapon() {
+        return meleeWeapon;
+    }
+    
+    @Override
+    public void setMeleeWeapon(MeleeWeapon weapon) {
+        this.meleeWeapon = weapon;
+    }
+    
+    @Override
+    public boolean isMeleeCombatMode() {
+        return isMeleeCombatMode;
+    }
+    
+    @Override
+    public void setMeleeCombatMode(boolean melee) {
+        this.isMeleeCombatMode = melee;
+    }
+    
+    @Override
+    public WeaponState getCurrentWeaponState() {
+        return currentWeaponState;
+    }
+    
+    @Override
+    public void setCurrentWeaponState(WeaponState state) {
+        this.currentWeaponState = state;
     }
     
     // Dual weapon system methods
@@ -398,46 +630,6 @@ public class Character {
         isMeleeCombatMode = meleeMode;
     }
     
-    /**
-     * Check if character is in melee combat mode
-     */
-    public boolean isMeleeCombatMode() {
-        return isMeleeCombatMode;
-    }
-    
-    /**
-     * Set the ranged weapon
-     */
-    public void setRangedWeapon(RangedWeapon rangedWeapon) {
-        this.rangedWeapon = rangedWeapon;
-        this.weapon = rangedWeapon; // Maintain backward compatibility
-    }
-    
-    /**
-     * Set the melee weapon
-     */
-    public void setMeleeWeapon(MeleeWeapon meleeWeapon) {
-        this.meleeWeapon = meleeWeapon;
-    }
-    
-    /**
-     * Get the ranged weapon
-     */
-    public RangedWeapon getRangedWeapon() {
-        return rangedWeapon;
-    }
-    
-    /**
-     * Get the melee weapon
-     */
-    public MeleeWeapon getMeleeWeapon() {
-        return meleeWeapon;
-    }
-
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
-    }
-    
     // Legacy methods for backwards compatibility with tests
     public String getName() {
         return nickname;
@@ -447,30 +639,7 @@ public class Character {
         this.nickname = name;
     }
     
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-    
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-    
-    public Date getBirthdate() {
-        return birthdate;
-    }
-
-    public void setBirthdate(Date birthdate) {
-        this.birthdate = birthdate;
-    }
-    
+    @Override
     public String getDisplayName() {
         return id + ":" + nickname;
     }
@@ -479,44 +648,88 @@ public class Character {
         return firstName + " " + lastName;
     }
     
-    public String getThemeId() {
-        return themeId;
+    // ICharacter interface implementation - Combat State
+    
+    @Override
+    public IUnit getCurrentTarget() {
+        return currentTarget;
     }
-
-    public void setThemeId(String themeId) {
-        this.themeId = themeId;
+    
+    @Override
+    public void setCurrentTarget(IUnit target) {
+        this.currentTarget = target;
     }
-
-    public int getDexterity() {
-        return dexterity;
+    
+    @Override
+    public boolean isPersistentAttack() {
+        return persistentAttack;
     }
-
-    public void setDexterity(int dexterity) {
-        this.dexterity = dexterity;
+    
+    @Override
+    public void setPersistentAttack(boolean persistent) {
+        this.persistentAttack = persistent;
     }
-
-    public int getHealth() {
-        return health;
+    
+    @Override
+    public boolean isAttacking() {
+        return isAttacking;
     }
-
-    public void setHealth(int health) {
-        this.health = health;
+    
+    @Override
+    public void setAttacking(boolean attacking) {
+        this.isAttacking = attacking;
     }
-
-    public double getBaseMovementSpeed() {
-        return baseMovementSpeed;
+    
+    @Override
+    public int getFaction() {
+        return faction;
     }
-
-    public void setBaseMovementSpeed(double baseMovementSpeed) {
-        this.baseMovementSpeed = baseMovementSpeed;
+    
+    @Override
+    public void setFaction(int faction) {
+        this.faction = faction;
     }
-
-    public MovementType getCurrentMovementType() {
-        return currentMovementType;
+    
+    @Override
+    public boolean isUsesAutomaticTargeting() {
+        return usesAutomaticTargeting;
     }
-
-    public void setCurrentMovementType(MovementType movementType) {
-        this.currentMovementType = movementType;
+    
+    @Override
+    public void setUsesAutomaticTargeting(boolean autoTarget) {
+        this.usesAutomaticTargeting = autoTarget;
+    }
+    
+    @Override
+    public FiringMode getPreferredFiringMode() {
+        return preferredFiringMode;
+    }
+    
+    @Override
+    public void setPreferredFiringMode(FiringMode mode) {
+        this.preferredFiringMode = mode;
+    }
+    
+    // ICharacter interface implementation - Skills and Wounds
+    
+    @Override
+    public List<Skill> getSkills() {
+        return skills;
+    }
+    
+    @Override
+    public void setSkills(List<Skill> skills) {
+        this.skills = skills;
+    }
+    
+    @Override
+    public List<Wound> getWounds() {
+        return wounds;
+    }
+    
+    @Override
+    public void setWounds(List<Wound> wounds) {
+        this.wounds = wounds;
     }
     
     public double getEffectiveMovementSpeed() {
@@ -549,14 +762,6 @@ public class Character {
         if (!isIncapacitated()) {
             this.currentMovementType = currentMovementType.decrease();
         }
-    }
-
-    public AimingSpeed getCurrentAimingSpeed() {
-        return currentAimingSpeed;
-    }
-
-    public void setCurrentAimingSpeed(AimingSpeed aimingSpeed) {
-        this.currentAimingSpeed = aimingSpeed;
     }
     
     public void increaseAimingSpeed() {
@@ -610,13 +815,149 @@ public class Character {
         // Check if character has the required skill level (1+)
         return getSkillLevel(skillName) >= 1;
     }
-
-    public PositionState getCurrentPosition() {
-        return currentPosition;
+    
+    // ICharacter interface implementation - Combat Statistics
+    
+    @Override
+    public int getCombatEngagements() {
+        return combatEngagements;
     }
-
-    public void setCurrentPosition(PositionState position) {
-        this.currentPosition = position;
+    
+    @Override
+    public void setCombatEngagements(int engagements) {
+        this.combatEngagements = engagements;
+    }
+    
+    @Override
+    public int getWoundsReceived() {
+        return woundsReceived;
+    }
+    
+    @Override
+    public void setWoundsReceived(int wounds) {
+        this.woundsReceived = wounds;
+    }
+    
+    @Override
+    public int getAttacksAttempted() {
+        return attacksAttempted;
+    }
+    
+    @Override
+    public void setAttacksAttempted(int attacks) {
+        this.attacksAttempted = attacks;
+    }
+    
+    @Override
+    public int getAttacksSuccessful() {
+        return attacksSuccessful;
+    }
+    
+    @Override
+    public void setAttacksSuccessful(int attacks) {
+        this.attacksSuccessful = attacks;
+    }
+    
+    @Override
+    public int getTargetsIncapacitated() {
+        return targetsIncapacitated;
+    }
+    
+    @Override
+    public void setTargetsIncapacitated(int targets) {
+        this.targetsIncapacitated = targets;
+    }
+    
+    @Override
+    public int getRangedAttacksAttempted() {
+        return rangedAttacksAttempted;
+    }
+    
+    @Override
+    public void setRangedAttacksAttempted(int attacks) {
+        this.rangedAttacksAttempted = attacks;
+    }
+    
+    @Override
+    public int getRangedAttacksSuccessful() {
+        return rangedAttacksSuccessful;
+    }
+    
+    @Override
+    public void setRangedAttacksSuccessful(int attacks) {
+        this.rangedAttacksSuccessful = attacks;
+    }
+    
+    @Override
+    public int getRangedWoundsInflicted() {
+        return rangedWoundsInflicted;
+    }
+    
+    @Override
+    public void setRangedWoundsInflicted(int wounds) {
+        this.rangedWoundsInflicted = wounds;
+    }
+    
+    @Override
+    public int getMeleeAttacksAttempted() {
+        return meleeAttacksAttempted;
+    }
+    
+    @Override
+    public void setMeleeAttacksAttempted(int attacks) {
+        this.meleeAttacksAttempted = attacks;
+    }
+    
+    @Override
+    public int getMeleeAttacksSuccessful() {
+        return meleeAttacksSuccessful;
+    }
+    
+    @Override
+    public void setMeleeAttacksSuccessful(int attacks) {
+        this.meleeAttacksSuccessful = attacks;
+    }
+    
+    @Override
+    public int getMeleeWoundsInflicted() {
+        return meleeWoundsInflicted;
+    }
+    
+    @Override
+    public void setMeleeWoundsInflicted(int wounds) {
+        this.meleeWoundsInflicted = wounds;
+    }
+    
+    // ICharacter interface implementation - State Checks and Burst/Auto
+    
+    @Override
+    public int getBurstShotsFired() {
+        return burstShotsFired;
+    }
+    
+    @Override
+    public void setBurstShotsFired(int shots) {
+        this.burstShotsFired = shots;
+    }
+    
+    @Override
+    public long getLastAutomaticShot() {
+        return lastAutomaticShot;
+    }
+    
+    @Override
+    public void setLastAutomaticShot(long tick) {
+        this.lastAutomaticShot = tick;
+    }
+    
+    @Override
+    public boolean isReloading() {
+        return isReloading;
+    }
+    
+    @Override
+    public void setReloading(boolean reloading) {
+        this.isReloading = reloading;
     }
     
     public void increasePosition() {
@@ -640,62 +981,6 @@ public class Character {
                 this.currentMovementType = MovementType.CRAWL;
             }
         }
-    }
-
-    public int getCoolness() {
-        return coolness;
-    }
-
-    public void setCoolness(int coolness) {
-        this.coolness = coolness;
-    }
-    
-    public int getStrength() {
-        return strength;
-    }
-
-    public void setStrength(int strength) {
-        this.strength = strength;
-    }
-    
-    public int getReflexes() {
-        return reflexes;
-    }
-
-    public void setReflexes(int reflexes) {
-        this.reflexes = reflexes;
-    }
-    
-    public Handedness getHandedness() {
-        return handedness;
-    }
-
-    public void setHandedness(Handedness handedness) {
-        this.handedness = handedness;
-    }
-
-    public Weapon getWeapon() {
-        return weapon;
-    }
-
-    public void setWeapon(Weapon weapon) {
-        this.weapon = weapon;
-    }
-
-    public WeaponState getCurrentWeaponState() {
-        return currentWeaponState;
-    }
-
-    public void setCurrentWeaponState(WeaponState state) {
-        this.currentWeaponState = state;
-    }
-    
-    public List<Skill> getSkills() {
-        return skills;
-    }
-    
-    public void setSkills(List<Skill> skills) {
-        this.skills = skills != null ? skills : new ArrayList<>();
     }
     
     public Skill getSkill(String skillName) {
@@ -746,14 +1031,6 @@ public class Character {
         }
     }
     
-    public List<Wound> getWounds() {
-        return wounds;
-    }
-    
-    public void setWounds(List<Wound> wounds) {
-        this.wounds = wounds != null ? wounds : new ArrayList<>();
-    }
-    
     public void addWound(Wound wound, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         wounds.add(wound);
         woundsReceived++;
@@ -784,6 +1061,7 @@ public class Character {
         // Note: Hesitation will not be triggered without event queue context
     }
     
+    @Override
     public boolean isIncapacitated() {
         boolean incapacitated = false;
         
@@ -814,7 +1092,32 @@ public class Character {
         return currentWeaponState != null && "aiming".equals(currentWeaponState.getState());
     }
     
-    public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    @Override
+    public boolean isHesitating() {
+        return isHesitating;
+    }
+    
+    @Override
+    public boolean isAutomaticFiring() {
+        return isAutomaticFiring;
+    }
+    
+    @Override
+    public int getWoundModifier() {
+        int modifier = 0;
+        for (Wound wound : wounds) {
+            modifier += wound.getModifier();
+        }
+        return modifier;
+    }
+    
+    @Override
+    public void update(long currentTick) {
+        // Character update logic if needed
+        // Currently most updates are handled through Unit.update()
+    }
+    
+    public void startAttackSequence(IUnit shooter, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || currentWeaponState == null) return;
         
         // Always interrupt burst/auto when starting a new attack
@@ -843,13 +1146,13 @@ public class Character {
                 burstShotsFired = 0;
                 System.out.println(getDisplayName() + " burst/auto firing interrupted by new attack command");
             }
-            System.out.println(getDisplayName() + " cancels attack on " + currentTarget.character.getDisplayName() + " and retargets " + target.character.getDisplayName() + " at tick " + currentTick);
+            System.out.println(getDisplayName() + " cancels attack on " + currentTarget.getCharacter().getDisplayName() + " and retargets " + target.getCharacter().getDisplayName() + " at tick " + currentTick);
         } else if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
             currentWeaponState = weapon.getStateByName("ready");
             System.out.println(getDisplayName() + " weapon state: ready (target changed) at tick " + currentTick);
         } else if (currentTarget == target && isAttacking) {
             // Already attacking the same target, don't start duplicate attack
-            System.out.println(getDisplayName() + " is already attacking " + target.character.getDisplayName() + " - ignoring duplicate attack command");
+            System.out.println(getDisplayName() + " is already attacking " + target.getCharacter().getDisplayName() + " - ignoring duplicate attack command");
             return;
         } else if (lastAttackScheduledTick == currentTick) {
             // Prevent multiple attack sequences from being scheduled in the same tick
@@ -861,14 +1164,14 @@ public class Character {
         if (targetChanged || newTarget) {
             // Target changed or new target - apply first attack penalty
             isFirstAttackOnTarget = true;
-            System.out.println(getDisplayName() + " first attack on " + target.character.getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
+            System.out.println(getDisplayName() + " first attack on " + target.getCharacter().getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
         } else if (currentTarget == target) {
             // Same target as before - no first attack penalty
             isFirstAttackOnTarget = false;
         } else {
             // This shouldn't happen but be safe - treat as new target
             isFirstAttackOnTarget = true;
-            System.out.println(getDisplayName() + " first attack on " + target.character.getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
+            System.out.println(getDisplayName() + " first attack on " + target.getCharacter().getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
         }
         
         previousTarget = currentTarget;
@@ -877,11 +1180,11 @@ public class Character {
         lastAttackScheduledTick = currentTick;
         
         // Make unit face the target and save the direction for later use
-        shooter.setTargetFacing(target.x, target.y);
+        shooter.faceToward(target.getX(), target.getY());
         
         // Calculate and save the target facing direction for weapon visibility
-        double dx = target.x - shooter.x;
-        double dy = target.y - shooter.y;
+        double dx = target.getX() - shooter.getX();
+        double dy = target.getY() - shooter.getY();
         double angleRadians = Math.atan2(dx, -dy);
         double angleDegrees = Math.toDegrees(angleRadians);
         if (angleDegrees < 0) angleDegrees += 360;
@@ -889,7 +1192,7 @@ public class Character {
         scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
-    public void startReadyWeaponSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    public void startReadyWeaponSequence(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         // Handle both ranged and melee weapons in unified system
         if (isMeleeCombatMode) {
             // Melee mode - ready the melee weapon
@@ -925,9 +1228,9 @@ public class Character {
     /**
      * Start melee attack sequence from current weapon state
      */
-    public void startMeleeAttackSequence(Unit attacker, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void startMeleeAttackSequence(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         System.out.println("[MELEE-ATTACK] " + getDisplayName() + " startMeleeAttackSequence called");
-        System.out.println("[MELEE-ATTACK] Current tick: " + currentTick + ", Target: " + target.character.getDisplayName());
+        System.out.println("[MELEE-ATTACK] Current tick: " + currentTick + ", Target: " + target.getCharacter().getDisplayName());
         
         if (meleeWeapon == null) {
             System.out.println("[MELEE-ATTACK] FAILED - no melee weapon equipped");
@@ -940,7 +1243,7 @@ public class Character {
         System.out.println("[MELEE-ATTACK] Is incapacitated: " + isIncapacitated());
         
         // Check if target is within melee range using edge-to-edge calculation
-        double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+        double distance = Math.hypot(target.getX() - attacker.getX(), target.getY() - attacker.getY());
         double distanceFeet = distance / 7.0;
         
         System.out.println("[MELEE-ATTACK] Distance check: " + String.format("%.2f", distanceFeet) + " feet");
@@ -949,8 +1252,8 @@ public class Character {
             // Target is out of range - move towards target
             System.out.println("[MELEE-ATTACK] FAILED - target out of range: " + String.format("%.2f", distanceFeet) + " feet (need " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet)");
             System.out.println("[MELEE-ATTACK] Initiating movement toward target");
-            System.out.println(getDisplayName() + " moving towards " + target.character.getDisplayName() + " for melee attack");
-            attacker.setTarget(target.x, target.y);
+            System.out.println(getDisplayName() + " moving towards " + target.getCharacter().getDisplayName() + " for melee attack");
+            attacker.setTarget(target.getX(), target.getY());
             
             // Schedule a follow-up check to attempt attack once in range
             scheduleRangeCheckForMeleeAttack(attacker, target, currentTick + 10, eventQueue, ownerId, gameCallbacks);
@@ -960,8 +1263,8 @@ public class Character {
         System.out.println("[MELEE-ATTACK] Target in range: " + String.format("%.2f", distanceFeet) + " feet - proceeding with attack");
         
         // Calculate facing direction to target
-        double dx = target.x - attacker.x;
-        double dy = target.y - attacker.y;
+        double dx = target.getX() - attacker.getX();
+        double dy = target.getY() - attacker.getY();
         double angleRadians = Math.atan2(dx, -dy);
         double angleDegrees = Math.toDegrees(angleRadians);
         if (angleDegrees < 0) angleDegrees += 360;
@@ -976,7 +1279,7 @@ public class Character {
         System.out.println("[MELEE-ATTACK] scheduleMeleeAttackFromCurrentState call completed");
     }
     
-    private void scheduleAttackFromCurrentState(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void scheduleAttackFromCurrentState(IUnit shooter, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || currentWeaponState == null) return;
         
         String currentState = currentWeaponState.getState();
@@ -1027,7 +1330,7 @@ public class Character {
     /**
      * Schedule melee attack from current weapon state
      */
-    private void scheduleMeleeAttackFromCurrentState(Unit attacker, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void scheduleMeleeAttackFromCurrentState(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         System.out.println("[MELEE-STATE] " + getDisplayName() + " scheduleMeleeAttackFromCurrentState called");
         
         if (meleeWeapon == null) {
@@ -1106,7 +1409,7 @@ public class Character {
         }
     }
     
-    private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit shooter, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit shooter, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Apply speed multiplier only to weapon preparation states
         if (isWeaponPreparationState(newStateName)) {
             double speedMultiplier = calculateWeaponReadySpeedMultiplier();
@@ -1121,7 +1424,7 @@ public class Character {
         }, ownerId));
     }
     
-    private void scheduleFiring(Unit shooter, Unit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void scheduleFiring(IUnit shooter, IUnit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Prevent duplicate firing events for the same tick
         if (lastFiringScheduledTick == fireTick) {
             System.out.println(getDisplayName() + " already scheduled firing for tick " + fireTick + " - ignoring duplicate firing command");
@@ -1140,20 +1443,20 @@ public class Character {
                 
                 if (gameCallbacks != null) {
                     gameCallbacks.playWeaponSound(weapon);
-                    gameCallbacks.applyFiringHighlight(shooter, fireTick);
-                    gameCallbacks.addMuzzleFlash(shooter, fireTick);
+                    gameCallbacks.applyFiringHighlight((Unit)shooter, fireTick);
+                    gameCallbacks.addMuzzleFlash((Unit)shooter, fireTick);
                 } else {
                     System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " firing sequence - audio and visual effects disabled");
                 }
                 
-                double dx = target.x - shooter.x;
-                double dy = target.y - shooter.y;
+                double dx = target.getX() - shooter.getX();
+                double dy = target.getY() - shooter.getY();
                 double distancePixels = Math.hypot(dx, dy);
                 double distanceFeet = distancePixels / 7.0; // pixelsToFeet conversion
-                System.out.println("*** " + getDisplayName() + " shoots a " + weapon.getProjectileName() + " at " + target.character.getDisplayName() + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
+                System.out.println("*** " + getDisplayName() + " shoots a " + weapon.getProjectileName() + " at " + target.getCharacter().getDisplayName() + " at distance " + String.format("%.2f", distanceFeet) + " feet using " + weapon.name + " at tick " + fireTick);
                 
                 if (gameCallbacks != null) {
-                    gameCallbacks.scheduleProjectileImpact(shooter, target, weapon, fireTick, distanceFeet);
+                    gameCallbacks.scheduleProjectileImpact((Unit)shooter, (Unit)target, weapon, fireTick, distanceFeet);
                 } else {
                     System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " projectile impact scheduling - hit detection disabled");
                 }
@@ -1174,22 +1477,22 @@ public class Character {
                             if (currentTarget != null && !this.isIncapacitated() && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
                                 ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
                                 burstShotsFired++;
-                                String targetStatus = currentTarget.character.isIncapacitated() ? " at incapacitated target" : "";
+                                String targetStatus = currentTarget.getCharacter().isIncapacitated() ? " at incapacitated target" : "";
                                 System.out.println(getDisplayName() + " burst fires shot " + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + 
                                                    " at tick " + nextShotTick + " (" + weapon.getProjectileName() + 
                                                    ", ammo remaining: " + ((RangedWeapon)weapon).getAmmunition() + ")" + targetStatus);
                                 
                                 gameCallbacks.playWeaponSound(weapon);
-                                gameCallbacks.applyFiringHighlight(shooter, nextShotTick);
-                                gameCallbacks.addMuzzleFlash(shooter, nextShotTick);
+                                gameCallbacks.applyFiringHighlight((Unit)shooter, nextShotTick);
+                                gameCallbacks.addMuzzleFlash((Unit)shooter, nextShotTick);
                                 
-                                double dx2 = currentTarget.x - shooter.x;
-                                double dy2 = currentTarget.y - shooter.y;
+                                double dx2 = currentTarget.getX() - shooter.getX();
+                                double dy2 = currentTarget.getY() - shooter.getY();
                                 double distancePixels2 = Math.hypot(dx2, dy2);
                                 double distanceFeet2 = distancePixels2 / 7.0;
-                                System.out.println("*** " + getDisplayName() + " shoots a " + weapon.getProjectileName() + " at " + currentTarget.character.getDisplayName() + " at distance " + String.format("%.2f", distanceFeet2) + " feet using " + weapon.name + " at tick " + nextShotTick);
+                                System.out.println("*** " + getDisplayName() + " shoots a " + weapon.getProjectileName() + " at " + currentTarget.getCharacter().getDisplayName() + " at distance " + String.format("%.2f", distanceFeet2) + " feet using " + weapon.name + " at tick " + nextShotTick);
                                 
-                                gameCallbacks.scheduleProjectileImpact(shooter, currentTarget, weapon, nextShotTick, distanceFeet2);
+                                gameCallbacks.scheduleProjectileImpact((Unit)shooter, (Unit)currentTarget, weapon, nextShotTick, distanceFeet2);
                                 
                                 // Reset burst state after final shot
                                 if (burstShotsFired >= ((RangedWeapon)weapon).getBurstSize()) {
@@ -1254,7 +1557,7 @@ public class Character {
     }
     
     
-    private void scheduleReadyFromCurrentState(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    private void scheduleReadyFromCurrentState(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         // Check weapon and state availability for both ranged and melee
         if (currentWeaponState == null) return;
         if (!isMeleeCombatMode && weapon == null) return;
@@ -1303,7 +1606,7 @@ public class Character {
         }
     }
     
-    private double calculateWeaponReadySpeedMultiplier() {
+    public double calculateWeaponReadySpeedMultiplier() {
         int reflexesModifier = GameConstants.statToModifier(this.reflexes);
         double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.015);
         
@@ -1322,7 +1625,7 @@ public class Character {
     }
     
     
-    private void scheduleReadyStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    private void scheduleReadyStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         // Apply speed multiplier only to weapon preparation states
         if (isWeaponPreparationState(newStateName)) {
             double speedMultiplier = calculateWeaponReadySpeedMultiplier();
@@ -1343,7 +1646,7 @@ public class Character {
         }, ownerId));
     }
     
-    private boolean isWeaponPreparationState(String stateName) {
+    public boolean isWeaponPreparationState(String stateName) {
         return "drawing".equals(stateName) || "unsheathing".equals(stateName) || "unsling".equals(stateName) || 
                "ready".equals(stateName) || "melee_ready".equals(stateName);
     }
@@ -1381,7 +1684,7 @@ public class Character {
     /**
      * Schedule melee state transition
      */
-    private void scheduleMeleeStateTransition(String newStateName, long currentTick, long transitionTickLength, Unit attacker, Unit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void scheduleMeleeStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit attacker, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         System.out.println("[MELEE-STATE] " + getDisplayName() + " scheduleMeleeStateTransition: " + newStateName + " in " + transitionTickLength + " ticks");
         
         // Apply speed multiplier to weapon preparation states
@@ -1431,13 +1734,13 @@ public class Character {
     /**
      * Schedule range check for melee attack - continues tracking target until in range
      */
-    private void scheduleRangeCheckForMeleeAttack(Unit attacker, Unit target, long checkTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void scheduleRangeCheckForMeleeAttack(IUnit attacker, IUnit target, long checkTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         eventQueue.add(new ScheduledEvent(checkTick, () -> {
             // Update movement target to track target's current position
-            attacker.setTarget(target.x, target.y);
+            attacker.setTarget(target.getX(), target.getY());
             
             // Calculate current distance for debug
-            double distance = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+            double distance = Math.hypot(target.getX() - attacker.getX(), target.getY() - attacker.getY());
             double distanceFeet = distance / 7.0;
             double weaponReach = meleeWeapon.getTotalReach();
             
@@ -1450,8 +1753,8 @@ public class Character {
                 System.out.println(getDisplayName() + " is now in range, proceeding with melee attack");
                 
                 // Calculate facing direction to target
-                double dx = target.x - attacker.x;
-                double dy = target.y - attacker.y;
+                double dx = target.getX() - attacker.getX();
+                double dy = target.getY() - attacker.getY();
                 double angleRadians = Math.atan2(dx, -dy);
                 double angleDegrees = Math.toDegrees(angleRadians);
                 if (angleDegrees < 0) angleDegrees += 360;
@@ -1470,17 +1773,17 @@ public class Character {
     /**
      * Schedule actual melee attack execution
      */
-    private void scheduleMeleeAttack(Unit attacker, Unit target, long attackTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void scheduleMeleeAttack(IUnit attacker, IUnit target, long attackTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         debugPrint("[MELEE-EVENT] " + getDisplayName() + " scheduling melee attack execution at tick " + attackTick);
         debugPrint("[MELEE-EVENT] Attack delay: " + (attackTick - ownerId) + " ticks from current time");
-        debugPrint("[MELEE-EVENT] Target: " + target.character.getDisplayName() + " with " + meleeWeapon.getName());
+        debugPrint("[MELEE-EVENT] Target: " + target.getCharacter().getDisplayName() + " with " + meleeWeapon.getName());
         
         eventQueue.add(new ScheduledEvent(attackTick, () -> {
             debugPrint("[MELEE-EVENT] Melee attack event executing at tick " + attackTick);
             
             // Validate target is still valid
-            if (target.character.isIncapacitated()) {
-                debugPrint("[MELEE-ATTACK] Attack CANCELLED - target " + target.character.getDisplayName() + " is incapacitated");
+            if (target.getCharacter().isIncapacitated()) {
+                debugPrint("[MELEE-ATTACK] Attack CANCELLED - target " + target.getCharacter().getDisplayName() + " is incapacitated");
                 return;
             }
             
@@ -1506,7 +1809,7 @@ public class Character {
             
             // Schedule immediate impact (no travel time for melee)
             debugPrint("[MELEE-EVENT] Calling scheduleMeleeImpact for immediate resolution");
-            gameCallbacks.scheduleMeleeImpact(attacker, target, meleeWeapon, attackTick);
+            gameCallbacks.scheduleMeleeImpact((Unit)attacker, (Unit)target, meleeWeapon, attackTick);
             
             // Schedule recovery back to ready state
             long recoveryTime = Math.round(meleeWeapon.getAttackCooldown() * calculateAttackSpeedMultiplier());
@@ -1549,7 +1852,7 @@ public class Character {
         return "ready".equals(state) || "aiming".equals(state) || "recovering".equals(state);
     }
     
-    public void startReloadSequence(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void startReloadSequence(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (!canReload() || isReloading) return;
         
         isReloading = true; // Set reload flag to prevent duplicates
@@ -1586,7 +1889,7 @@ public class Character {
         }, ownerId));
     }
     
-    private void continueReloading(Unit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void continueReloading(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || !(weapon instanceof RangedWeapon) || ((RangedWeapon)weapon).getAmmunition() >= ((RangedWeapon)weapon).getMaxAmmunition()) {
             isReloading = false; // Clear reload flag when stopping
             currentWeaponState = weapon.getStateByName("ready");
@@ -1639,45 +1942,29 @@ public class Character {
         }
     }
     
-    public boolean isPersistentAttack() {
-        return persistentAttack;
-    }
-    
-    public void setPersistentAttack(boolean persistentAttack) {
-        this.persistentAttack = persistentAttack;
-    }
-    
-    public int getFaction() {
-        return faction;
-    }
-    
-    public void setFaction(int faction) {
-        this.faction = faction;
-    }
-    
     public boolean isHostileTo(Character other) {
         return this.faction != other.faction;
     }
     
-    private Unit findNearestHostileTarget(Unit selfUnit, GameCallbacks gameCallbacks) {
+    private IUnit findNearestHostileTarget(IUnit selfUnit, GameCallbacks gameCallbacks) {
         List<Unit> allUnits = gameCallbacks.getUnits();
-        Unit nearestTarget = null;
+        IUnit nearestTarget = null;
         double nearestDistance = Double.MAX_VALUE;
         java.util.Random random = new java.util.Random();
         
-        for (Unit unit : allUnits) {
+        for (IUnit unit : allUnits) {
             // Skip self
             if (unit == selfUnit) continue;
             
             // Skip if not hostile (same faction)
-            if (!this.isHostileTo(unit.character)) continue;
+            if (!this.isHostileTo(unit.getCharacter())) continue;
             
             // Skip if incapacitated
-            if (unit.character.isIncapacitated()) continue;
+            if (unit.getCharacter().isIncapacitated()) continue;
             
             // Calculate distance
-            double dx = unit.x - selfUnit.x;
-            double dy = unit.y - selfUnit.y;
+            double dx = unit.getX() - selfUnit.getX();
+            double dy = unit.getY() - selfUnit.getY();
             double distance = Math.hypot(dx, dy);
             
             // Check weapon range limitations
@@ -1700,34 +1987,34 @@ public class Character {
         return nearestTarget;
     }
     
-    private Unit findNearestHostileTargetWithZonePriority(Unit selfUnit, GameCallbacks gameCallbacks) {
+    private IUnit findNearestHostileTargetWithZonePriority(IUnit selfUnit, GameCallbacks gameCallbacks) {
         List<Unit> allUnits = gameCallbacks.getUnits();
         debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " searching " + allUnits.size() + " units for targets...");
-        Unit nearestZoneTarget = null;
-        Unit nearestGlobalTarget = null;
+        IUnit nearestZoneTarget = null;
+        IUnit nearestGlobalTarget = null;
         double nearestZoneDistance = Double.MAX_VALUE;
         double nearestGlobalDistance = Double.MAX_VALUE;
         int hostilesFound = 0;
         java.util.Random random = new java.util.Random();
         
-        for (Unit unit : allUnits) {
+        for (IUnit unit : allUnits) {
             // Skip self
             if (unit == selfUnit) continue;
             
             // Skip if not hostile (same faction)
-            if (!this.isHostileTo(unit.character)) {
-                debugPrint("[AUTO-TARGET-DEBUG]   " + unit.character.getDisplayName() + " - not hostile (faction " + unit.character.faction + " vs " + this.faction + ")");
+            if (!this.isHostileTo(unit.getCharacter())) {
+                debugPrint("[AUTO-TARGET-DEBUG]   " + unit.getCharacter().getDisplayName() + " - not hostile (faction " + unit.getCharacter().faction + " vs " + this.faction + ")");
                 continue;
             }
             
             hostilesFound++;
             
             // Skip if incapacitated
-            if (unit.character.isIncapacitated()) continue;
+            if (unit.getCharacter().isIncapacitated()) continue;
             
             // Calculate distance
-            double dx = unit.x - selfUnit.x;
-            double dy = unit.y - selfUnit.y;
+            double dx = unit.getX() - selfUnit.getX();
+            double dy = unit.getY() - selfUnit.getY();
             double distance = Math.hypot(dx, dy);
             
             // Check weapon range limitations
@@ -1738,7 +2025,7 @@ public class Character {
             // Check if target is within target zone (if zone exists)
             boolean inTargetZone = false;
             if (targetZone != null) {
-                inTargetZone = targetZone.contains((int)unit.x, (int)unit.y);
+                inTargetZone = targetZone.contains((int)unit.getX(), (int)unit.getY());
             }
             
             if (inTargetZone) {
@@ -1767,13 +2054,13 @@ public class Character {
         }
         
         // Return zone target if available, otherwise global target
-        Unit result = nearestZoneTarget != null ? nearestZoneTarget : nearestGlobalTarget;
+        IUnit result = nearestZoneTarget != null ? nearestZoneTarget : nearestGlobalTarget;
         debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " found " + hostilesFound + " hostile units, selected: " + 
-                             (result != null ? result.character.getDisplayName() : "none"));
+                             (result != null ? result.getCharacter().getDisplayName() : "none"));
         return result;
     }
     
-    private void performAutomaticTargetChange(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void performAutomaticTargetChange(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Only proceed if still in persistent attack mode and not incapacitated
         if (!persistentAttack || this.isIncapacitated() || weapon == null) {
             System.out.println(getDisplayName() + " automatic retargeting cancelled - conditions no longer met");
@@ -1783,26 +2070,26 @@ public class Character {
             
             // Preserve the current facing direction so weapon continues to aim at last target location
             if (lastTargetFacing != null && shooter != null) {
-                shooter.targetFacing = lastTargetFacing;
+                shooter.setTargetFacing(lastTargetFacing);
             }
             return;
         }
         
         // Find new target with target zone priority
-        Unit newTarget = findNearestHostileTargetWithZonePriority(shooter, gameCallbacks);
+        IUnit newTarget = findNearestHostileTargetWithZonePriority(shooter, gameCallbacks);
         
         if (newTarget != null) {
             // New target found - start attacking
             currentTarget = newTarget;
             
             // Calculate distance for logging
-            double dx = newTarget.x - shooter.x;
-            double dy = newTarget.y - shooter.y;
+            double dx = newTarget.getX() - shooter.getX();
+            double dy = newTarget.getY() - shooter.getY();
             double distanceFeet = Math.hypot(dx, dy) / 7.0;
             
-            String zoneStatus = (targetZone != null && targetZone.contains((int)newTarget.x, (int)newTarget.y)) ? " (in target zone)" : "";
+            String zoneStatus = (targetZone != null && targetZone.contains((int)newTarget.getX(), (int)newTarget.getY())) ? " (in target zone)" : "";
             System.out.println("[AUTO-RETARGET] " + getDisplayName() + " acquired new target " + 
-                             newTarget.character.getDisplayName() + " at distance " + 
+                             newTarget.getCharacter().getDisplayName() + " at distance " + 
                              String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
             
             // Start attack sequence from current state
@@ -1815,14 +2102,14 @@ public class Character {
             
             // Preserve the current facing direction so weapon continues to aim at last target location
             if (lastTargetFacing != null) {
-                shooter.targetFacing = lastTargetFacing;
+                shooter.setTargetFacing(lastTargetFacing);
             }
             
             System.out.println("[AUTO-RETARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting but maintaining weapon direction");
         }
     }
     
-    public void updateAutomaticTargeting(Unit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
+    public void updateAutomaticTargeting(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
         // Debug: Always log when this method is called for characters with auto-targeting enabled
         if (usesAutomaticTargeting) {
             autoTargetDebugPrint("[AUTO-TARGET-ENTRY] " + getDisplayName() + " updateAutomaticTargeting called at tick " + currentTick, currentTick);
@@ -1867,40 +2154,40 @@ public class Character {
         autoTargetDebugPrint("[AUTO-TARGET-STATE] " + getDisplayName() + " state check: isAttacking=" + isAttacking + 
                   ", weapon state=" + (currentWeaponState != null ? currentWeaponState.getState() : "null") + 
                   ", persistentAttack=" + persistentAttack + 
-                  ", currentTarget=" + (currentTarget != null ? currentTarget.character.getDisplayName() : "null"), currentTick);
+                  ", currentTarget=" + (currentTarget != null ? currentTarget.getCharacter().getDisplayName() : "null"), currentTick);
         
         autoTargetDebugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " executing automatic targeting (current target: " + 
-                             (currentTarget != null ? currentTarget.character.getDisplayName() : "none") + ")", currentTick);
+                             (currentTarget != null ? currentTarget.getCharacter().getDisplayName() : "none") + ")", currentTick);
         
         // Check if current target is still valid
         boolean currentTargetValid = currentTarget != null 
-            && !currentTarget.character.isIncapacitated() 
-            && this.isHostileTo(currentTarget.character);
+            && !currentTarget.getCharacter().isIncapacitated() 
+            && this.isHostileTo(currentTarget.getCharacter());
         
         if (!currentTargetValid) {
             debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " current target invalid, searching for new target...");
             // Find a new target with target zone priority
-            Unit newTarget = findNearestHostileTargetWithZonePriority(selfUnit, gameCallbacks);
+            IUnit newTarget = findNearestHostileTargetWithZonePriority(selfUnit, gameCallbacks);
             
             if (newTarget != null) {
                 // Target found - start attacking
                 persistentAttack = true;
                 
                 // Calculate distance for logging
-                double dx = newTarget.x - selfUnit.x;
-                double dy = newTarget.y - selfUnit.y;
+                double dx = newTarget.getX() - selfUnit.getX();
+                double dy = newTarget.getY() - selfUnit.getY();
                 double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
                 
-                String zoneStatus = (targetZone != null && targetZone.contains((int)newTarget.x, (int)newTarget.y)) ? " (in target zone)" : "";
+                String zoneStatus = (targetZone != null && targetZone.contains((int)newTarget.getX(), (int)newTarget.getY())) ? " (in target zone)" : "";
                 autoTargetInfoPrint("[AUTO-TARGET] " + getDisplayName() + " acquired target " + 
-                                 newTarget.character.getDisplayName() + " at distance " + 
+                                 newTarget.getCharacter().getDisplayName() + " at distance " + 
                                  String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
                 
                 // Start attack sequence - check combat mode to determine attack type
                 if (isMeleeCombatMode() && meleeWeapon != null) {
                     autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
                     // Check if already in melee range
-                    double distance = Math.hypot(newTarget.x - selfUnit.x, newTarget.y - selfUnit.y);
+                    double distance = Math.hypot(newTarget.getX() - selfUnit.getX(), newTarget.getY() - selfUnit.getY());
                     double meleeRangePixels = meleeWeapon.getTotalReach() * 7.0; // Convert feet to pixels
                     
                     if (distance <= meleeRangePixels) {
@@ -1926,7 +2213,7 @@ public class Character {
                     
                     // Preserve the current facing direction so weapon continues to aim at last target location
                     if (lastTargetFacing != null && selfUnit != null) {
-                        selfUnit.targetFacing = lastTargetFacing;
+                        selfUnit.setTargetFacing(lastTargetFacing);
                     }
                     
                     autoTargetInfoPrint("[AUTO-TARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting but maintaining weapon direction");
@@ -1934,7 +2221,7 @@ public class Character {
             }
         } else {
             // Handle case where we have a valid target but need to initiate/continue attack
-            debugPrint("[AUTO-TARGET-VALID] " + getDisplayName() + " has valid target " + currentTarget.character.getDisplayName() + ", persistentAttack=" + persistentAttack);
+            debugPrint("[AUTO-TARGET-VALID] " + getDisplayName() + " has valid target " + currentTarget.getCharacter().getDisplayName() + ", persistentAttack=" + persistentAttack);
             
             // Set persistent attack for auto-targeting continuation if not already set
             if (!persistentAttack) {
@@ -1949,20 +2236,20 @@ public class Character {
             }
             
             // Calculate distance for logging
-            double dx = currentTarget.x - selfUnit.x;
-            double dy = currentTarget.y - selfUnit.y;
+            double dx = currentTarget.getX() - selfUnit.getX();
+            double dy = currentTarget.getY() - selfUnit.getY();
             double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
             
-            String zoneStatus = (targetZone != null && targetZone.contains((int)currentTarget.x, (int)currentTarget.y)) ? " (in target zone)" : "";
+            String zoneStatus = (targetZone != null && targetZone.contains((int)currentTarget.getX(), (int)currentTarget.getY())) ? " (in target zone)" : "";
             autoTargetInfoPrint("[AUTO-TARGET] " + getDisplayName() + " continuing attack on target " + 
-                             currentTarget.character.getDisplayName() + " at distance " + 
+                             currentTarget.getCharacter().getDisplayName() + " at distance " + 
                              String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
             
             // Start attack sequence - check combat mode to determine attack type
             if (isMeleeCombatMode() && meleeWeapon != null) {
                 autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
                 // Check if already in melee range
-                double distance = Math.hypot(currentTarget.x - selfUnit.x, currentTarget.y - selfUnit.y);
+                double distance = Math.hypot(currentTarget.getX() - selfUnit.getX(), currentTarget.getY() - selfUnit.getY());
                 double meleeRangePixels = meleeWeapon.getTotalReach() * 7.0; // Convert feet to pixels
                 
                 if (distance <= meleeRangePixels) {
@@ -1986,7 +2273,7 @@ public class Character {
     /**
      * Update melee movement progress and trigger attack when target is reached
      */
-    public void updateMeleeMovement(Unit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
+    public void updateMeleeMovement(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
         // Only execute if currently moving to melee target
         if (!isMovingToMelee || meleeTarget == null) return;
         
@@ -1995,8 +2282,8 @@ public class Character {
         lastMeleeMovementUpdate = currentTick;
         
         // Check if target is still valid
-        if (meleeTarget.character.isIncapacitated()) {
-            debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.character.getDisplayName() + " incapacitated during approach - cancelling movement");
+        if (meleeTarget.getCharacter().isIncapacitated()) {
+            debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.getCharacter().getDisplayName() + " incapacitated during approach - cancelling movement");
             cancelMeleeMovement(selfUnit);
             return;
         }
@@ -2009,17 +2296,17 @@ public class Character {
         }
         
         // Check current distance to target
-        double currentDistance = Math.hypot(meleeTarget.x - selfUnit.x, meleeTarget.y - selfUnit.y);
+        double currentDistance = Math.hypot(meleeTarget.getX() - selfUnit.getX(), meleeTarget.getY() - selfUnit.getY());
         double distanceFeet = currentDistance / 7.0;
         double weaponReach = meleeWeapon.getTotalReach();
         
         // If we're already in range, start attack immediately
         if (distanceFeet <= weaponReach) {
-            debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " reached melee range of " + meleeTarget.character.getDisplayName() + " (" + String.format("%.2f", distanceFeet) + " feet)");
+            debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " reached melee range of " + meleeTarget.getCharacter().getDisplayName() + " (" + String.format("%.2f", distanceFeet) + " feet)");
             debugPrint("[MELEE-MOVEMENT] Range satisfied: " + String.format("%.2f", distanceFeet) + " <= " + String.format("%.2f", weaponReach) + " feet");
             debugPrint("[MELEE-MOVEMENT] Cancelling movement and triggering melee attack");
             
-            Unit targetUnit = meleeTarget; // Save reference before clearing state
+            IUnit targetUnit = meleeTarget; // Save reference before clearing state
             cancelMeleeMovement(selfUnit);
             
             // Start the actual melee attack sequence
@@ -2029,14 +2316,14 @@ public class Character {
         }
         
         // Check if we're still moving (hasTarget indicates movement in progress)
-        if (selfUnit.hasTarget) {
+        if (selfUnit.hasTarget()) {
             // Still moving - check if target has moved significantly and update path if needed
-            double distanceToCurrentTarget = Math.hypot(selfUnit.targetX - meleeTarget.x, selfUnit.targetY - meleeTarget.y);
+            double distanceToCurrentTarget = Math.hypot(selfUnit.getTargetX() - meleeTarget.getX(), selfUnit.getTargetY() - meleeTarget.getY());
             double targetMovementFeet = distanceToCurrentTarget / 7.0;
             
             // If target moved more than 3 feet, recalculate approach path
             if (targetMovementFeet > 3.0) {
-                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.character.getDisplayName() + " moved " + String.format("%.2f", targetMovementFeet) + " feet - updating approach path");
+                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.getCharacter().getDisplayName() + " moved " + String.format("%.2f", targetMovementFeet) + " feet - updating approach path");
                 updateApproachPath(selfUnit, meleeTarget, meleeWeapon);
             }
         } else {
@@ -2050,7 +2337,7 @@ public class Character {
                 updateApproachPath(selfUnit, meleeTarget, meleeWeapon);
             } else {
                 // Target too far away - give up pursuit
-                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.character.getDisplayName() + " too far away (" + String.format("%.2f", distanceFeet) + " feet) - cancelling pursuit");
+                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.getCharacter().getDisplayName() + " too far away (" + String.format("%.2f", distanceFeet) + " feet) - cancelling pursuit");
                 cancelMeleeMovement(selfUnit);
             }
         }
@@ -2059,14 +2346,14 @@ public class Character {
     /**
      * Update the approach path to the melee target (used when target moves during pursuit)
      */
-    private void updateApproachPath(Unit selfUnit, Unit target, MeleeWeapon meleeWeapon) {
+    private void updateApproachPath(IUnit selfUnit, IUnit target, MeleeWeapon meleeWeapon) {
         // Calculate optimal approach position within melee range
         double weaponReach = meleeWeapon.getTotalReach();
         double approachDistance = weaponReach - 0.5; // Leave 0.5 feet buffer
         
         // Calculate direction from target to attacker
-        double dx = selfUnit.x - target.x;
-        double dy = selfUnit.y - target.y;
+        double dx = selfUnit.getX() - target.getX();
+        double dy = selfUnit.getY() - target.getY();
         double currentDistance = Math.hypot(dx, dy);
         
         // Normalize direction vector
@@ -2077,8 +2364,8 @@ public class Character {
         
         // Calculate new approach position
         double approachPixelDistance = approachDistance * 7.0; // Convert feet to pixels
-        double approachX = target.x + (dx * approachPixelDistance);
-        double approachY = target.y + (dy * approachPixelDistance);
+        double approachX = target.getX() + (dx * approachPixelDistance);
+        double approachY = target.getY() + (dy * approachPixelDistance);
         
         // Update movement target
         selfUnit.setTarget(approachX, approachY);
@@ -2087,18 +2374,18 @@ public class Character {
     /**
      * Cancel melee movement and clear related state
      */
-    private void cancelMeleeMovement(Unit selfUnit) {
+    private void cancelMeleeMovement(IUnit selfUnit) {
         isMovingToMelee = false;
         meleeTarget = null;
         
         // Stop movement by setting target to current position
-        if (selfUnit != null && selfUnit.hasTarget) {
-            selfUnit.setTarget(selfUnit.x, selfUnit.y);
+        if (selfUnit != null && selfUnit.hasTarget()) {
+            selfUnit.setTarget(selfUnit.getX(), selfUnit.getY());
             debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " movement stopped at current position");
         }
     }
     
-    private void checkContinuousAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void checkContinuousAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Debug logging for checkContinuousAttack entry
         debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " checkContinuousAttack called - persistentAttack=" + persistentAttack + ", usesAutomaticTargeting=" + usesAutomaticTargeting);
         
@@ -2128,7 +2415,7 @@ public class Character {
                 return;
             }
         }
-        if (currentTarget.character.isIncapacitated()) {
+        if (currentTarget.getCharacter().isIncapacitated()) {
             // Target incapacitated - schedule automatic target change after 1 second delay
             System.out.println(getDisplayName() + " target incapacitated - scheduling automatic retargeting in 1 second");
             
@@ -2144,7 +2431,7 @@ public class Character {
             
             // Preserve the current facing direction so weapon continues to aim at last target location
             if (lastTargetFacing != null) {
-                shooter.targetFacing = lastTargetFacing;
+                shooter.setTargetFacing(lastTargetFacing);
             }
             return;
         }
@@ -2156,7 +2443,7 @@ public class Character {
             
             // Preserve the current facing direction so weapon continues to aim at last target location
             if (lastTargetFacing != null && shooter != null) {
-                shooter.targetFacing = lastTargetFacing;
+                shooter.setTargetFacing(lastTargetFacing);
             }
             return;
         }
@@ -2167,7 +2454,7 @@ public class Character {
             
             // Preserve the current facing direction so weapon continues to aim at last target location
             if (lastTargetFacing != null && shooter != null) {
-                shooter.targetFacing = lastTargetFacing;
+                shooter.setTargetFacing(lastTargetFacing);
             }
             return;
         }
@@ -2176,7 +2463,7 @@ public class Character {
         handleContinuousFiring(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
-    private void handleContinuousFiring(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void handleContinuousFiring(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || ((RangedWeapon)weapon).getCurrentFiringMode() == null) {
             // Default behavior for weapons without firing modes
             continueStandardAttack(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
@@ -2201,7 +2488,7 @@ public class Character {
         }
     }
     
-    private void continueStandardAttack(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void continueStandardAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Prevent duplicate continue attack commands for the same tick
         if (lastContinueAttackTick == currentTick) {
             System.out.println(getDisplayName() + " already scheduled continue attack for tick " + currentTick + " - ignoring duplicate command");
@@ -2212,12 +2499,12 @@ public class Character {
         if (((RangedWeapon)weapon).getFiringDelay() > 0) {
             long nextAttackTick = currentTick + ((RangedWeapon)weapon).getFiringDelay();
             eventQueue.add(new ScheduledEvent(nextAttackTick, () -> {
-                if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated() && 
+                if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated() && 
                     weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
-                    System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (single shot) after " + ((RangedWeapon)weapon).getFiringDelay() + " tick delay");
+                    System.out.println(getDisplayName() + " continues attacking " + currentTarget.getCharacter().getDisplayName() + " (single shot) after " + ((RangedWeapon)weapon).getFiringDelay() + " tick delay");
                     isAttacking = true;
                     scheduleAttackFromCurrentState(shooter, currentTarget, nextAttackTick, eventQueue, ownerId, gameCallbacks);
-                } else if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated() && 
+                } else if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated() && 
                           weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0 && canReload() && !isReloading) {
                     System.out.println(getDisplayName() + " out of ammunition, starting reload instead of continuing attack");
                     startReloadSequence(shooter, nextAttackTick, eventQueue, ownerId, gameCallbacks);
@@ -2225,7 +2512,7 @@ public class Character {
             }, ownerId));
         } else {
             if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
-                System.out.println(getDisplayName() + " continues attacking " + currentTarget.character.getDisplayName() + " (single shot)");
+                System.out.println(getDisplayName() + " continues attacking " + currentTarget.getCharacter().getDisplayName() + " (single shot)");
                 isAttacking = true;
                 scheduleAttackFromCurrentState(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
             } else if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0 && canReload() && !isReloading) {
@@ -2235,7 +2522,7 @@ public class Character {
         }
     }
     
-    private void handleBurstFiring(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void handleBurstFiring(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Check if a burst is already in progress from the new burst implementation
         if (isAutomaticFiring) {
             // Burst already in progress from scheduleFiring() method - wait for it to complete
@@ -2256,7 +2543,7 @@ public class Character {
                 
                 final long finalNextBurstTick = nextBurstTick;
                 eventQueue.add(new ScheduledEvent(finalNextBurstTick, () -> {
-                    if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
+                    if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated()) {
                         System.out.println(getDisplayName() + " starting next burst for auto targeting after " + ((RangedWeapon)weapon).getFiringDelay() + " tick delay");
                         isAttacking = true;
                         startAttackSequence(shooter, currentTarget, finalNextBurstTick, eventQueue, ownerId, gameCallbacks);
@@ -2267,7 +2554,7 @@ public class Character {
         }
         
         // No burst in progress - start new attack sequence which will trigger burst via scheduleFiring()
-        if (currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
+        if (currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated()) {
             System.out.println(getDisplayName() + " starting new burst attack sequence for auto targeting");
             // Check if we can start new attack sequence without clearing isAttacking flag
             if (isAttacking) {
@@ -2281,7 +2568,7 @@ public class Character {
         }
     }
     
-    private void handleFullAutoFiring(Unit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    private void handleFullAutoFiring(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (!isAutomaticFiring) {
             // Start new full auto sequence
             isAutomaticFiring = true;
@@ -2296,8 +2583,8 @@ public class Character {
         // Schedule next shot at firing delay
         long nextShotTick = currentTick + ((RangedWeapon)weapon).getFiringDelay();
         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
-            if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
-                System.out.println(getDisplayName() + " continues full-auto firing at " + currentTarget.character.getDisplayName() + " (shot " + (burstShotsFired + 1) + ")");
+            if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated()) {
+                System.out.println(getDisplayName() + " continues full-auto firing at " + currentTarget.getCharacter().getDisplayName() + " (shot " + (burstShotsFired + 1) + ")");
                 lastAutomaticShot = nextShotTick;
                 isAttacking = true;
                 scheduleAttackFromCurrentState(shooter, currentTarget, nextShotTick, eventQueue, ownerId, gameCallbacks);
@@ -2308,23 +2595,6 @@ public class Character {
                 System.out.println(getDisplayName() + " stops full-auto firing");
             }
         }, ownerId));
-    }
-    
-    public boolean isUsesAutomaticTargeting() {
-        return usesAutomaticTargeting;
-    }
-    
-    public void setUsesAutomaticTargeting(boolean usesAutomaticTargeting) {
-        this.usesAutomaticTargeting = usesAutomaticTargeting;
-    }
-    
-    // Combat Experience Getters
-    public int getCombatEngagements() {
-        return combatEngagements;
-    }
-    
-    public int getWoundsReceived() {
-        return woundsReceived;
     }
     
     public int getTotalWoundsInflicted() {
@@ -2341,20 +2611,8 @@ public class Character {
         }
     }
     
-    public int getAttacksAttempted() {
-        return attacksAttempted;
-    }
-    
-    public int getAttacksSuccessful() {
-        return attacksSuccessful;
-    }
-    
     public double getAccuracyPercentage() {
         return attacksAttempted > 0 ? (attacksSuccessful * 100.0 / attacksAttempted) : 0.0;
-    }
-    
-    public int getTargetsIncapacitated() {
-        return targetsIncapacitated;
     }
     
     // Headshot Statistics Getters
@@ -2595,8 +2853,8 @@ public class Character {
     /**
      * Check if target is within melee range of attacker using edge-to-edge distance
      */
-    private boolean isInMeleeRange(Unit attacker, Unit target, MeleeWeapon weapon) {
-        double centerToCenter = Math.hypot(target.x - attacker.x, target.y - attacker.y);
+    private boolean isInMeleeRange(IUnit attacker, IUnit target, MeleeWeapon weapon) {
+        double centerToCenter = Math.hypot(target.getX() - attacker.getX(), target.getY() - attacker.getY());
         // Convert to edge-to-edge by subtracting target radius (1.5 feet = 10.5 pixels)
         double edgeToEdge = centerToCenter - (1.5 * 7.0);
         double pixelRange = weapon.getTotalReach() * 7.0; // Convert feet to pixels (7 pixels = 1 foot)

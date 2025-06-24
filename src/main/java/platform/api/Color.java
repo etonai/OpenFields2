@@ -23,6 +23,7 @@ public class Color {
     public static final Color DARK_GRAY = new Color(0.25f, 0.25f, 0.25f, 1);
     public static final Color LIGHT_GRAY = new Color(0.75f, 0.75f, 0.75f, 1);
     public static final Color ORANGE = new Color(1, 0.65f, 0, 1);
+    public static final Color PURPLE = new Color(0.5f, 0, 0.5f, 1);
     public static final Color BROWN = new Color(0.65f, 0.16f, 0.16f, 1);
     
     /**

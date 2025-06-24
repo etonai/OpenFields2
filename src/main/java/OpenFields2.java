@@ -170,7 +170,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             c1.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_dagger");
             c1.currentWeaponState = c1.weapon.getInitialState();
             c1.setFaction(1);
-            units.add(new Unit(c1, 100, 100, Color.RED, nextUnitId++));
+            units.add(new Unit(c1, 100, 100, platform.api.Color.fromJavaFX(Color.RED), nextUnitId++));
         }
         
         combat.Character c2 = characterRegistry.getCharacter(1001);
@@ -179,7 +179,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             c2.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_sword");
             c2.currentWeaponState = c2.weapon.getInitialState();
             c2.setFaction(2);
-            units.add(new Unit(c2, 400, 400, Color.BLUE, nextUnitId++));
+            units.add(new Unit(c2, 400, 400, platform.api.Color.fromJavaFX(Color.BLUE), nextUnitId++));
         }
         
         combat.Character c3 = characterRegistry.getCharacter(1002);
@@ -188,7 +188,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             c3.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_battleaxe");
             c3.currentWeaponState = c3.weapon.getInitialState();
             c3.setFaction(1);
-            units.add(new Unit(c3, 400, 100, Color.GREEN, nextUnitId++));
+            units.add(new Unit(c3, 400, 100, platform.api.Color.fromJavaFX(Color.GREEN), nextUnitId++));
         }
         
         combat.Character c4 = characterRegistry.getCharacter(1003);
@@ -197,7 +197,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             c4.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_magic_sword");
             c4.currentWeaponState = c4.weapon.getInitialState();
             c4.setFaction(2);
-            units.add(new Unit(c4, 100, 400, Color.PURPLE, nextUnitId++));
+            units.add(new Unit(c4, 100, 400, platform.api.Color.fromJavaFX(Color.PURPLE), nextUnitId++));
         }
         
         combat.Character c5 = characterRegistry.getCharacter(1004);
@@ -206,7 +206,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             c5.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_wand");
             c5.currentWeaponState = c5.weapon.getInitialState();
             c5.setFaction(1);
-            units.add(new Unit(c5, 600, 100, Color.ORANGE, nextUnitId++));
+            units.add(new Unit(c5, 600, 100, platform.api.Color.fromJavaFX(Color.ORANGE), nextUnitId++));
         }
         
         combat.Character c6 = characterRegistry.getCharacter(1005);
@@ -215,7 +215,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             c6.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_dagger");
             c6.currentWeaponState = c6.weapon.getInitialState();
             c6.setFaction(2);
-            units.add(new Unit(c6, 600, 400, Color.MAGENTA, nextUnitId++));
+            units.add(new Unit(c6, 600, 400, platform.api.Color.fromJavaFX(Color.MAGENTA), nextUnitId++));
         }
     }
     
@@ -834,7 +834,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     private void applyHitHighlight(Unit target, long impactTick) {
         if (!target.isHitHighlighted) {
             target.isHitHighlighted = true;
-            target.color = Color.YELLOW;
+            target.color = platform.api.Color.fromJavaFX(Color.YELLOW);
             eventQueue.add(new ScheduledEvent(impactTick + 15, () -> {
                 target.color = target.baseColor;
                 target.isHitHighlighted = false;

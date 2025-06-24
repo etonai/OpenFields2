@@ -219,8 +219,8 @@ public class GameEngine {
      * Generates render commands for a unit.
      */
     private void renderUnit(Unit unit) {
-        // Convert JavaFX color to platform color
-        Color color = Color.fromJavaFX(unit.color);
+        // Unit color is already a platform color
+        Color color = unit.color;
         
         // Create unit data
         RenderCommand.UnitData unitData = new RenderCommand.UnitData(

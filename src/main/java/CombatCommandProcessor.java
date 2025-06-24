@@ -460,7 +460,7 @@ public class CombatCommandProcessor {
             if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
                 character.currentWeaponState = character.weapon.getStateByName("aiming");
                 System.out.println("*** CEASE FIRE: " + character.getDisplayName() + " ceases fire, maintains aiming at " + 
-                                 (character.currentTarget != null ? character.currentTarget.character.getDisplayName() : "last target"));
+                                 (character.currentTarget != null ? character.currentTarget.getCharacter().getDisplayName() : "last target"));
             } else {
                 System.out.println("*** CEASE FIRE: " + character.getDisplayName() + " ceases fire");
             }

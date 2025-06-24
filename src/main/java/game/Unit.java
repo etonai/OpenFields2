@@ -1,11 +1,10 @@
 package game;
 
 import combat.Character;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
+import game.interfaces.IUnit;
+// JavaFX imports removed - rendering now handled by platform-specific renderers
 
-public class Unit {
+public class Unit implements IUnit {
     public final int id;
     public Character character;
     public double x, y;
@@ -15,11 +14,11 @@ public class Unit {
     
     // Combat target separation (DevCycle 15f)
     public Unit combatTarget = null;
-    public Color color;
-    public final Color baseColor;
+    public platform.api.Color color;
+    public final platform.api.Color baseColor;
     public boolean isHitHighlighted = false;
     public boolean isFiringHighlighted = false;
-    private Color preIncapacitationColor = null;
+    private platform.api.Color preIncapacitationColor = null;
     long lastTickUpdated = -1;
     
     // Rotation system
@@ -28,9 +27,9 @@ public class Unit {
     public boolean isRotating = false; // Whether unit is currently rotating
     private static final double ROTATION_SPEED = 6.0; // 6 degrees per tick (360 degrees per second at 60fps)
     private static final double ROTATION_THRESHOLD = 15.0; // Rotations less than 15 degrees are instant
-    private static final Color INCAPACITATED_COLOR = Color.web("#A9A9A9"); // Light gray for incapacitated characters
+    private static final platform.api.Color INCAPACITATED_COLOR = platform.api.Color.fromRGB(169, 169, 169); // Light gray for incapacitated characters
 
-    public Unit(Character character, double x, double y, Color color, int id) {
+    public Unit(Character character, double x, double y, platform.api.Color color, int id) {
         this.id = id;
         this.character = character;
         this.x = x;
@@ -49,16 +48,161 @@ public class Unit {
         return id;
     }
 
+    // IUnit interface implementation
+    
+    @Override
     public Character getCharacter() {
         return character;
     }
+    
+    @Override
+    public void setCharacter(Character character) {
+        this.character = character;
+    }
 
+    @Override
     public double getX() {
         return x;
     }
+    
+    @Override
+    public void setX(double x) {
+        this.x = x;
+    }
 
+    @Override
     public double getY() {
         return y;
+    }
+    
+    @Override
+    public void setY(double y) {
+        this.y = y;
+    }
+    
+    @Override
+    public double getTargetX() {
+        return targetX;
+    }
+    
+    @Override
+    public void setTargetX(double targetX) {
+        this.targetX = targetX;
+    }
+    
+    @Override
+    public double getTargetY() {
+        return targetY;
+    }
+    
+    @Override
+    public void setTargetY(double targetY) {
+        this.targetY = targetY;
+    }
+    
+    @Override
+    public boolean hasTarget() {
+        return hasTarget;
+    }
+    
+    @Override
+    public void setHasTarget(boolean hasTarget) {
+        this.hasTarget = hasTarget;
+    }
+    
+    @Override
+    public boolean isStopped() {
+        return isStopped;
+    }
+    
+    @Override
+    public void setStopped(boolean stopped) {
+        this.isStopped = stopped;
+    }
+    
+    @Override
+    public platform.api.Color getColor() {
+        return color;
+    }
+    
+    @Override
+    public void setColor(platform.api.Color color) {
+        this.color = color;
+    }
+    
+    @Override
+    public platform.api.Color getBaseColor() {
+        return baseColor;
+    }
+    
+    @Override
+    public boolean isHitHighlighted() {
+        return isHitHighlighted;
+    }
+    
+    @Override
+    public void setHitHighlighted(boolean highlighted) {
+        this.isHitHighlighted = highlighted;
+    }
+    
+    @Override
+    public boolean isFiringHighlighted() {
+        return isFiringHighlighted;
+    }
+    
+    @Override
+    public void setFiringHighlighted(boolean highlighted) {
+        this.isFiringHighlighted = highlighted;
+    }
+    
+    @Override
+    public platform.api.Color getPreIncapacitationColor() {
+        return preIncapacitationColor;
+    }
+    
+    @Override
+    public void setPreIncapacitationColor(platform.api.Color color) {
+        this.preIncapacitationColor = color;
+    }
+    
+    @Override
+    public long getLastTickUpdated() {
+        return lastTickUpdated;
+    }
+    
+    @Override
+    public void setLastTickUpdated(long tick) {
+        this.lastTickUpdated = tick;
+    }
+    
+    @Override
+    public double getCurrentFacing() {
+        return currentFacing;
+    }
+    
+    @Override
+    public void setCurrentFacing(double facing) {
+        this.currentFacing = facing;
+    }
+    
+    @Override
+    public double getTargetFacing() {
+        return targetFacing;
+    }
+    
+    @Override
+    public void setTargetFacing(double facing) {
+        this.targetFacing = facing;
+    }
+    
+    @Override
+    public boolean isRotating() {
+        return isRotating;
+    }
+    
+    @Override
+    public void setRotating(boolean rotating) {
+        this.isRotating = rotating;
     }
     public void setTarget(double x, double y) {
         this.targetX = x;
@@ -67,11 +211,13 @@ public class Unit {
         this.isStopped = false;
     }
     
-    public void setCombatTarget(Unit target) {
-        this.combatTarget = target;
+    @Override
+    public void setCombatTarget(IUnit target) {
+        this.combatTarget = (Unit) target; // Safe cast - we control implementation
     }
     
-    public Unit getCombatTarget() {
+    @Override
+    public IUnit getCombatTarget() {
         return combatTarget;
     }
     
@@ -135,7 +281,7 @@ public class Unit {
             setTargetFacing(targetX, targetY);
         } else {
             // Update facing toward auto-targeting target as character position changes
-            setTargetFacing(character.currentTarget.x, character.currentTarget.y);
+            setTargetFacing(character.currentTarget.getX(), character.currentTarget.getY());
         }
 
         double dx = targetX - x;
@@ -156,40 +302,7 @@ public class Unit {
         if (Math.abs(moveY) > Math.abs(dy)) y = targetY; else y += moveY;
     }
 
-    public void render(GraphicsContext gc, boolean isSelected, boolean debugMode) {
-        gc.setFill(color);
-        gc.fillOval(x - 10.5, y - 10.5, 21, 21);
-        
-        // Show yellow circle around unit when firing
-        // if (isFiringHighlighted) {
-        //     gc.setStroke(Color.YELLOW);
-        //     gc.setLineWidth(3);
-        //     gc.strokeOval(x - 15, y - 15, 30, 30);
-        // }
-        
-        if (isSelected) {
-            // Show small yellow X at movement target location
-            if (hasTarget) {
-                gc.setStroke(Color.YELLOW);
-                gc.setLineWidth(2);
-                // Draw X by drawing two diagonal lines
-                gc.strokeLine(targetX - 5, targetY - 5, targetX + 5, targetY + 5);
-                gc.strokeLine(targetX - 5, targetY + 5, targetX + 5, targetY - 5);
-            }
-            
-            gc.setFill(Color.BLACK);
-            gc.setFont(Font.font(12));
-            gc.fillText(character.getDisplayName() + " (" + character.currentHealth + "/" + character.health + ")", x - 15, y - 15);
-            
-            // Display movement type and aiming speed only in debug mode
-            if (debugMode) {
-                gc.setFont(Font.font(10));
-                gc.fillText(character.getCurrentMovementType().getDisplayName(), x - 15, y + 25);
-                // Display aiming speed
-                gc.fillText(character.getCurrentAimingSpeed().getDisplayName(), x - 15, y + 35);
-            }
-        }
-    }
+    // Rendering removed - now handled by platform-specific renderers via IUnitRenderer interface
 
     public boolean contains(double px, double py) {
         return Math.hypot(px - x, py - y) <= 10.5;
@@ -262,8 +375,34 @@ public class Unit {
         return diff;
     }
     
+    @Override
+    public void updateRotation(double rotationSpeed, double rotationThreshold) {
+        if (!isRotating) return;
+        
+        double rotationDiff = getShortestRotationDifference(currentFacing, targetFacing);
+        
+        if (Math.abs(rotationDiff) <= rotationSpeed) {
+            // Close enough - snap to target
+            currentFacing = targetFacing;
+            isRotating = false;
+        } else {
+            // Continue rotating
+            double rotationStep = Math.signum(rotationDiff) * rotationSpeed;
+            currentFacing += rotationStep;
+            
+            // Normalize angle to 0-360 range
+            while (currentFacing >= 360) currentFacing -= 360;
+            while (currentFacing < 0) currentFacing += 360;
+        }
+    }
+    
+    @Override
+    public void faceToward(double targetX, double targetY) {
+        setTargetFacing(targetX, targetY);
+    }
+    
     /**
-     * Update rotation animation
+     * Update rotation animation with default values
      */
     private void updateRotation() {
         if (!isRotating) return;
@@ -285,26 +424,31 @@ public class Unit {
         }
     }
     
-    /**
-     * Get current facing direction in degrees (0-360, North = 0, clockwise)
-     */
-    public double getCurrentFacing() {
-        return currentFacing;
-    }
+    // getCurrentFacing() method already defined above via IUnit interface
     
     /**
      * Calculates the perpendicular velocity component relative to the line of sight to another unit
      * @param other The other unit (typically the shooter)
      * @return The magnitude of velocity perpendicular to the line of sight, in pixels per tick
      */
-    public double getPerpendicularVelocity(Unit other) {
+    @Override
+    public double getVelocity() {
+        if (!isMoving()) {
+            return 0.0;
+        }
+        double[] vel = getVelocityVector();
+        return Math.sqrt(vel[0] * vel[0] + vel[1] * vel[1]);
+    }
+    
+    @Override
+    public double getPerpendicularVelocity(IUnit other) {
         if (!isMoving()) {
             return 0.0;
         }
         
         // Vector from other unit to this unit (line of sight)
-        double losX = x - other.x;
-        double losY = y - other.y;
+        double losX = x - other.getX();
+        double losY = y - other.getY();
         double losDistance = Math.sqrt(losX * losX + losY * losY);
         
         if (losDistance == 0) {

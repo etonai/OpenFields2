@@ -1518,7 +1518,7 @@ public class InputManager {
         
         // Create and add unit
         int unitId = callbacks.getNextUnitId();
-        Unit newUnit = new Unit(character, finalX, finalY, characterColor, unitId);
+        Unit newUnit = new Unit(character, finalX, finalY, platform.api.Color.fromJavaFX(characterColor), unitId);
         callbacks.setNextUnitId(unitId + 1);
         units.add(newUnit);
         
@@ -1636,7 +1636,7 @@ public class InputManager {
             javafx.scene.paint.Color factionColor = getFactionColor(workflowCoordinator.getDirectAdditionFaction());
             
             // Create and place the unit with all required parameters
-            Unit newUnit = new Unit(character, charX, charY, factionColor, nextUnitId++);
+            Unit newUnit = new Unit(character, charX, charY, platform.api.Color.fromJavaFX(factionColor), nextUnitId++);
             
             // Add to units list
             units.add(newUnit);

@@ -347,21 +347,21 @@ public class SaveGameController {
     }
     
     /**
-     * Convert JavaFX Color to string representation
+     * Convert platform.api.Color to string representation
      * 
-     * @param color JavaFX Color object
+     * @param color platform.api.Color object
      * @return String representation of color
      */
-    private String colorToString(Color color) {
-        if (color.equals(Color.RED)) return "RED";
-        if (color.equals(Color.BLUE)) return "BLUE";
-        if (color.equals(Color.GREEN)) return "GREEN";
-        if (color.equals(Color.PURPLE)) return "PURPLE";
-        if (color.equals(Color.ORANGE)) return "ORANGE";
-        if (color.equals(Color.YELLOW)) return "YELLOW";
-        if (color.equals(Color.DARKGRAY)) return "DARKGRAY";
-        if (color.equals(Color.GRAY)) return "GRAY";
-        if (color.equals(Color.CYAN)) return "CYAN";
+    private String colorToString(platform.api.Color color) {
+        if (color.equals(platform.api.Color.RED)) return "RED";
+        if (color.equals(platform.api.Color.BLUE)) return "BLUE";
+        if (color.equals(platform.api.Color.GREEN)) return "GREEN";
+        if (color.equals(platform.api.Color.PURPLE)) return "PURPLE";
+        if (color.equals(platform.api.Color.ORANGE)) return "ORANGE";
+        if (color.equals(platform.api.Color.YELLOW)) return "YELLOW";
+        if (color.equals(platform.api.Color.DARK_GRAY)) return "DARKGRAY";
+        if (color.equals(platform.api.Color.GRAY)) return "GRAY";
+        if (color.equals(platform.api.Color.CYAN)) return "CYAN";
         return "RED"; // default fallback
     }
     
@@ -537,8 +537,8 @@ public class SaveGameController {
      * @return Unit object
      */
     private Unit deserializeUnitFromCharacterRef(UnitData data, combat.Character character) {
-        Color color = stringToColor(data.color);
-        Color baseColor = stringToColor(data.baseColor);
+        platform.api.Color color = stringToColor(data.color);
+        platform.api.Color baseColor = stringToColor(data.baseColor);
         
         // Create unit with the base color initially, then set current color
         Unit unit = new Unit(character, data.x, data.y, baseColor, data.id);
@@ -572,8 +572,8 @@ public class SaveGameController {
      * @return Unit object
      */
     private Unit deserializeUnit(UnitData data, combat.Character character) {
-        Color color = stringToColor(data.color);
-        Color baseColor = stringToColor(data.baseColor);
+        platform.api.Color color = stringToColor(data.color);
+        platform.api.Color baseColor = stringToColor(data.baseColor);
         
         // Create unit with the base color initially, then set current color
         Unit unit = new Unit(character, data.x, data.y, baseColor, data.id);
@@ -601,23 +601,23 @@ public class SaveGameController {
     }
     
     /**
-     * Convert string representation to JavaFX Color
+     * Convert string representation to platform.api.Color
      * 
      * @param colorString String representation of color
-     * @return JavaFX Color object
+     * @return platform.api.Color object
      */
-    private Color stringToColor(String colorString) {
+    private platform.api.Color stringToColor(String colorString) {
         switch (colorString) {
-            case "RED": return Color.RED;
-            case "BLUE": return Color.BLUE;
-            case "GREEN": return Color.GREEN;
-            case "PURPLE": return Color.PURPLE;
-            case "ORANGE": return Color.ORANGE;
-            case "YELLOW": return Color.YELLOW;
-            case "DARKGRAY": return Color.DARKGRAY;
-            case "GRAY": return Color.GRAY;
-            case "CYAN": return Color.CYAN;
-            default: return Color.RED;
+            case "RED": return platform.api.Color.RED;
+            case "BLUE": return platform.api.Color.BLUE;
+            case "GREEN": return platform.api.Color.GREEN;
+            case "PURPLE": return platform.api.Color.PURPLE;
+            case "ORANGE": return platform.api.Color.ORANGE;
+            case "YELLOW": return platform.api.Color.YELLOW;
+            case "DARKGRAY": return platform.api.Color.DARK_GRAY;
+            case "GRAY": return platform.api.Color.GRAY;
+            case "CYAN": return platform.api.Color.CYAN;
+            default: return platform.api.Color.RED;
         }
     }
 }

@@ -331,7 +331,8 @@ public class DeploymentController {
                 character.currentWeaponState = character.weapon.getInitialState();
                 
                 // Get color based on faction
-                javafx.scene.paint.Color characterColor = getFactionColor(deploymentFaction);
+                javafx.scene.paint.Color javafxColor = getFactionColor(deploymentFaction);
+                platform.api.Color characterColor = platform.api.Color.fromJavaFX(javafxColor);
                 
                 // Create and add unit
                 int unitId = callbacks.getNextUnitId();
