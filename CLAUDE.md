@@ -61,9 +61,9 @@ mvn javafx:run                # Run the JavaFX application
 
 ### Movement System
 - **Crawl**: 0.25x base speed (10.5 pixels/sec)
-- **Walk**: 1.0x base speed (42 pixels/sec) - default
+- **Walk**: 1.0x base speed (42 pixels/sec)
 - **Jog**: 1.5x base speed (63 pixels/sec)
-- **Run**: 2.0x base speed (84 pixels/sec)
+- **Run**: 2.0x base speed (84 pixels/sec) - default
 - **Controls**: W to increase, S to decrease movement type
 - **Display**: Selected unit shows current movement type below name
 

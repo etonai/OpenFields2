@@ -136,7 +136,7 @@ public class Character implements ICharacter {
         this.reflexes = reflexes;
         this.handedness = handedness;
         this.baseMovementSpeed = 42.0;
-        this.currentMovementType = MovementType.WALK;
+        this.currentMovementType = MovementType.RUN;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
@@ -184,7 +184,7 @@ public class Character implements ICharacter {
         this.reflexes = reflexes;
         this.handedness = handedness;
         this.baseMovementSpeed = 42.0;
-        this.currentMovementType = MovementType.WALK;
+        this.currentMovementType = MovementType.RUN;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
@@ -212,7 +212,7 @@ public class Character implements ICharacter {
         this.handedness = handedness;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
-        this.currentMovementType = MovementType.WALK;
+        this.currentMovementType = MovementType.RUN;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
@@ -239,7 +239,7 @@ public class Character implements ICharacter {
         this.reflexes = reflexes;
         this.handedness = handedness;
         this.baseMovementSpeed = 42.0;
-        this.currentMovementType = MovementType.WALK;
+        this.currentMovementType = MovementType.RUN;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
@@ -266,7 +266,7 @@ public class Character implements ICharacter {
         this.handedness = handedness;
         this.weapon = weapon;
         this.baseMovementSpeed = 42.0;
-        this.currentMovementType = MovementType.WALK;
+        this.currentMovementType = MovementType.RUN;
         this.currentAimingSpeed = AimingSpeed.NORMAL;
         this.currentPosition = PositionState.STANDING;
         this.persistentAttack = false;
