@@ -2201,6 +2201,11 @@ public class Character implements ICharacter {
                         isMovingToMelee = true;
                         meleeTarget = newTarget;
                         lastMeleeMovementUpdate = currentTick;
+                        
+                        // Task #9: Ready melee weapon during movement (like manual attacks)
+                        if (meleeWeapon != null) {
+                            startReadyWeaponSequence(selfUnit, currentTick, eventQueue, selfUnit.getId());
+                        }
                     }
                 } else {
                     autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
@@ -2263,6 +2268,11 @@ public class Character implements ICharacter {
                     isMovingToMelee = true;
                     meleeTarget = currentTarget;
                     lastMeleeMovementUpdate = currentTick;
+                    
+                    // Task #9: Ready melee weapon during movement (like manual attacks)
+                    if (meleeWeapon != null) {
+                        startReadyWeaponSequence(selfUnit, currentTick, eventQueue, selfUnit.getId());
+                    }
                 }
             } else {
                 autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
