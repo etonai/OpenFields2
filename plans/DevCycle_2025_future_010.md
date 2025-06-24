@@ -8,6 +8,7 @@
 - **Phase 4:** Defense System - defensive mechanics and counter-attacks ⏳
 - **Phase 5:** Skill System Integration - melee weapon skills and character progression ⏳
 - **Phase 6:** Combat Flow Integration - range detection and tactical positioning ⏳
+- **Phase 7:** Visual Angle Modifier System - geometric targeting enhancement for ranged combat ⏳
 
 ## Overview
 This development cycle enhances the basic melee combat system implemented in DevCycle 9 with advanced defensive mechanics, skill progression, and tactical combat features. The primary objective is to create a rich, balanced melee combat experience with depth and strategic options.
@@ -101,6 +102,48 @@ This development cycle enhances the basic melee combat system implemented in Dev
 - **Mixed Engagements**: Complex scenarios with simultaneous ranged and melee combat
 - **Enhanced Feedback**: Rich visual and audio feedback for all combat states
 
+### 7. Visual Angle Modifier System ⏳ **PLANNED** (Phase 7)
+- [ ] **Geometric Visual Angle Calculation**
+  - [ ] Implement isosceles triangle model for target size calculation
+  - [ ] Calculate visual angle based on target width and distance
+  - [ ] Create visual angle to accuracy modifier conversion system
+  - [ ] Integrate with existing 7 pixels = 1 foot coordinate system
+
+- [ ] **Two-Layer Modifier Integration**
+  - [ ] Preserve existing weapon-based range modifiers (weapon accuracy, projectile drop)
+  - [ ] Add new human vision-based visual angle modifiers (target acquisition, visual acuity)
+  - [ ] Combine both modifier types in final hit calculation
+  - [ ] Ensure backward compatibility with current combat mechanics
+
+- [ ] **Character and Equipment Integration**
+  - [ ] Consider integration with Dexterity and marksmanship skills
+  - [ ] Design equipment effects (scopes, optics) for visual angle enhancement
+  - [ ] Implement character stat modifiers for visual targeting ability
+  - [ ] Add visual angle information to targeting UI interface
+
+**Visual Angle System Features:**
+- **Geometric Model**: Eyeball as point, target as line segment in isosceles triangle
+- **Target Standardization**: Use 3-foot character width for consistent calculations
+- **Angular Scaling**: Larger visual angles = easier shots, smaller angles = harder shots
+- **Dual Modifier System**: Weapon characteristics + human vision factors
+- **Equipment Enhancement**: Scopes effectively increase target's visual angle
+- **Skill Integration**: Marksmanship skills affect visual angle penalty sensitivity
+
+**Example Visual Angle Calculations:**
+```java
+double targetWidth = 3.0; // feet (character width)
+double distance = getDistanceToTarget();
+double visualAngle = Math.toDegrees(2 * Math.atan(targetWidth / (2 * distance)));
+int visualAngleModifier = calculateVisualAngleModifier(visualAngle);
+int totalModifier = weaponRangeModifier + visualAngleModifier + otherModifiers;
+```
+
+**Distance vs Visual Angle Examples:**
+- **Close Range** (10 feet): 3-foot target ≈ 17° angular size (very easy)
+- **Medium Range** (50 feet): 3-foot target ≈ 3.4° angular size (moderate)
+- **Long Range** (200 feet): 3-foot target ≈ 0.9° angular size (very difficult)
+- **Extreme Range** (500 feet): 3-foot target ≈ 0.3° angular size (nearly impossible)
+
 ## Technical Implementation Plan
 
 ### Phase 4: Defense System (Estimated: 4-5 days)
@@ -165,6 +208,28 @@ This development cycle enhances the basic melee combat system implemented in Dev
    - Implement formation disruption mechanics
    - Create tactical decision point feedback
 
+### Phase 7: Visual Angle Modifier System (Estimated: 3-4 days)
+**Priority:** Medium - Ranged combat enhancement and realism
+
+**Implementation Steps:**
+1. **Geometric Calculation System** (Day 1-2)
+   - Implement visual angle calculation using isosceles triangle model
+   - Create `calculateVisualAngle(targetWidth, distance)` method
+   - Convert visual angle to accuracy modifier using scaling function
+   - Integrate with existing 7 pixels = 1 foot coordinate system
+
+2. **Modifier Integration** (Day 2-3)
+   - Preserve existing weapon-based range modifier system
+   - Add visual angle modifier to hit calculation pipeline
+   - Combine weapon and vision modifiers in `CombatResolver.java`
+   - Ensure backward compatibility with current combat mechanics
+
+3. **Character and Equipment Enhancement** (Day 3-4)
+   - Consider Dexterity and marksmanship skill effects on visual angle sensitivity
+   - Design scope/optics equipment effects for visual angle enhancement
+   - Add visual angle information to targeting UI display
+   - Balance visual angle modifier scaling for realistic but engaging gameplay
+
 ## Testing Strategy
 
 ### Unit Testing Requirements
@@ -185,6 +250,13 @@ This development cycle enhances the basic melee combat system implemented in Dev
   - [ ] Formation impact and group combat mechanics
   - [ ] Multi-target engagement rules
   - [ ] Weapon reach and engagement zone accuracy
+
+- [ ] **Visual Angle System Tests**
+  - [ ] Visual angle calculation accuracy at various distances
+  - [ ] Modifier conversion from angle to accuracy penalty/bonus
+  - [ ] Integration with existing range modifier system
+  - [ ] Equipment effects (scopes) on visual angle enhancement
+  - [ ] Character skill effects on visual angle sensitivity
 
 ### Integration Testing
 - [ ] **Complete Combat System Tests**
@@ -246,6 +318,7 @@ This development cycle enhances the basic melee combat system implemented in Dev
 - **`src/main/java/combat/DefenseState.java`** - Defense state machine enum
 - **`src/main/java/combat/TacticalPositioning.java`** - Positioning and formation mechanics
 - **`src/main/java/combat/CombatStatistics.java`** - Skill tracking and progression
+- **`src/main/java/combat/VisualAngleCalculator.java`** - Geometric visual angle calculations and modifiers
 
 ### Enhancement Files
 - **`src/main/java/data/CharacterData.java`** - Add defense and skill progression data
