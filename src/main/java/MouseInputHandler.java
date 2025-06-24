@@ -419,10 +419,15 @@ public class MouseInputHandler {
     private void displayEnhancedCharacterStats(Unit unit) {
         combat.Character character = unit.character;
         
-        // Get current weapon and weapon state information
+        // Task #12: Get active weapon name based on combat mode
         String weaponName = "None";
         String weaponState = "None";
-        if (character.weapon != null) {
+        if (character.isMeleeCombatMode && character.meleeWeapon != null) {
+            weaponName = character.meleeWeapon.getName();
+        } else if (!character.isMeleeCombatMode && character.rangedWeapon != null) {
+            weaponName = character.rangedWeapon.getName();
+        } else if (character.weapon != null) {
+            // Fallback to legacy weapon field
             weaponName = character.weapon.getName();
         }
         if (character.currentWeaponState != null) {
