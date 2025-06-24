@@ -327,6 +327,30 @@ public class GameRenderer {
                 endX = startX + dirX * weaponLength;
                 endY = startY + dirY * weaponLength;
             }
+        } else if (weaponType == WeaponType.MELEE_SHORT || weaponType == WeaponType.MELEE_MEDIUM || 
+                   weaponType == WeaponType.MELEE_LONG || weaponType == WeaponType.MELEE_UNARMED) {
+            // Task #8: State-based melee weapon rendering
+            if (isReadyState) {
+                // Melee ready state: Move 14 pixels (2 feet) closer to target, then rotate 45 degrees towards center
+                double meleeReadyStartX = tangentX + dirX * 14;
+                double meleeReadyStartY = tangentY + dirY * 14;
+                
+                // Calculate 45-degree rotation towards unit center (similar to pistol ready state)
+                double currentAngle = Math.atan2(dirY, dirX);
+                double rotationDirection = isLeftHanded ? 1 : -1; // Left-handed: clockwise, Right-handed: counterclockwise
+                double readyAngle = currentAngle + rotationDirection * Math.toRadians(45);
+                
+                startX = meleeReadyStartX;
+                startY = meleeReadyStartY;
+                endX = startX + Math.cos(readyAngle) * weaponLength;
+                endY = startY + Math.sin(readyAngle) * weaponLength;
+            } else {
+                // Melee attacking state: Start at tangent point, extend toward target
+                startX = tangentX;
+                startY = tangentY;
+                endX = startX + dirX * weaponLength;
+                endY = startY + dirY * weaponLength;
+            }
         } else { // OTHER weapons
             // OTHER weapons use default positioning
             startX = tangentX;
