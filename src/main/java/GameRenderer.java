@@ -189,8 +189,8 @@ public class GameRenderer {
      * Render weapon for a unit if they have a target and weapon
      */
     private void renderWeapon(GraphicsContext gc, Unit unit) {
-        // Only render weapon if character has a target, last target direction, or weapon
-        if (unit.character.currentTarget == null && unit.character.lastTargetFacing == null) {
+        // Always render melee weapons when in melee combat mode, otherwise only render with target/facing
+        if (!unit.character.isMeleeCombatMode && unit.character.currentTarget == null && unit.character.lastTargetFacing == null) {
             return;
         }
         
@@ -222,6 +222,12 @@ public class GameRenderer {
             return;
         }
         String weaponState = unit.character.currentWeaponState.getState();
+        
+        // Task #7: Hide melee weapons when in initial state (sheathed)
+        if (unit.character.isMeleeCombatMode && "sheathed".equals(weaponState)) {
+            return; // Hide melee weapons in sheathed state
+        }
+        
         WeaponRenderState renderState = WeaponRenderState.fromWeaponState(weaponState);
         if (!renderState.isVisible()) {
             return; // Hide weapon during hidden states
