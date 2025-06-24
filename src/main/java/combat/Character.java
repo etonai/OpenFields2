@@ -2330,7 +2330,7 @@ public class Character implements ICharacter {
         } else {
             // Movement completed, but we're not in range yet
             // Check if we should pursue further or give up
-            double maxPursuitRange = 50.0; // Maximum pursuit range in feet
+            double maxPursuitRange = 300.0; // Maximum pursuit range: 100 yards (300 feet)
             
             if (distanceFeet <= maxPursuitRange) {
                 // Target is within pursuit range - start new movement
@@ -2338,7 +2338,7 @@ public class Character implements ICharacter {
                 updateApproachPath(selfUnit, meleeTarget, meleeWeapon);
             } else {
                 // Target too far away - give up pursuit
-                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.getCharacter().getDisplayName() + " too far away (" + String.format("%.2f", distanceFeet) + " feet) - cancelling pursuit");
+                debugPrint("[MELEE-MOVEMENT] " + getDisplayName() + " target " + meleeTarget.getCharacter().getDisplayName() + " too far away (" + String.format("%.2f", distanceFeet) + " feet) - cancelling pursuit (max: " + maxPursuitRange + " feet)");
                 cancelMeleeMovement(selfUnit);
             }
         }
