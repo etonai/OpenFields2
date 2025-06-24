@@ -1364,7 +1364,7 @@ public class Character implements ICharacter {
             scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
         } else if ("melee_ready".equals(stateName)) {
             // Ready to attack - schedule the melee attack
-            long attackTime = Math.round(meleeWeapon.getAttackSpeed() * calculateAttackSpeedMultiplier());
+            long attackTime = Math.round(meleeWeapon.getStateBasedAttackSpeed() * calculateAttackSpeedMultiplier());
             System.out.println("[MELEE-STATE] " + getDisplayName() + " ready to attack - scheduling attack in " + attackTime + " ticks");
             scheduleMeleeAttack(attacker, target, currentTick + attackTime, eventQueue, ownerId, gameCallbacks);
         } else if ("switching_to_melee".equals(stateName)) {
@@ -1812,7 +1812,7 @@ public class Character implements ICharacter {
             gameCallbacks.scheduleMeleeImpact((Unit)attacker, (Unit)target, meleeWeapon, attackTick);
             
             // Schedule recovery back to ready state
-            long recoveryTime = Math.round(meleeWeapon.getAttackCooldown() * calculateAttackSpeedMultiplier());
+            long recoveryTime = Math.round(meleeWeapon.getStateBasedAttackCooldown() * calculateAttackSpeedMultiplier());
             debugPrint("[MELEE-STATE] " + getDisplayName() + " scheduling recovery to melee_ready in " + recoveryTime + " ticks");
             
             WeaponState readyState = getActiveWeapon().getStateByName("melee_ready");

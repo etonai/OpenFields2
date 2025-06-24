@@ -190,12 +190,28 @@ public class GameRenderer {
      */
     private void renderWeapon(GraphicsContext gc, Unit unit) {
         // Only render weapon if character has a target, last target direction, or weapon
-        if ((unit.character.currentTarget == null && unit.character.lastTargetFacing == null) || unit.character.weapon == null) {
+        if (unit.character.currentTarget == null && unit.character.lastTargetFacing == null) {
+            return;
+        }
+        
+        // Determine which weapon to render based on combat mode
+        Weapon weaponToRender;
+        if (unit.character.isMeleeCombatMode && unit.character.meleeWeapon != null) {
+            weaponToRender = unit.character.meleeWeapon;
+        } else if (!unit.character.isMeleeCombatMode && unit.character.rangedWeapon != null) {
+            weaponToRender = unit.character.rangedWeapon;
+        } else {
+            // Fallback to legacy weapon field if combat mode weapons not available
+            weaponToRender = unit.character.weapon;
+        }
+        
+        // Skip if no weapon to render
+        if (weaponToRender == null) {
             return;
         }
         
         // Skip if weapon type is OTHER
-        WeaponType weaponType = unit.character.weapon.getWeaponType();
+        WeaponType weaponType = weaponToRender.getWeaponType();
         if (weaponType == WeaponType.OTHER) {
             return;
         }
@@ -212,7 +228,7 @@ public class GameRenderer {
         }
         
         // Calculate weapon properties
-        double weaponLength = getWeaponLength(unit.character.weapon);
+        double weaponLength = getWeaponLength(weaponToRender);
         boolean isLeftHanded = unit.character.handedness == Handedness.LEFT_HANDED;
         
         // Use unit's current facing direction (unit rotation system)

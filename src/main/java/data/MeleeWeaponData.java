@@ -53,6 +53,9 @@ public class MeleeWeaponData {
     @JsonProperty("combatSkill")
     public String combatSkill; // Combat skill associated with this weapon (DevCycle 17)
     
+    @JsonProperty("states")
+    public java.util.List<WeaponStateData> states; // Weapon state transitions for state-based timing
+    
     public MeleeWeaponData() {
         // Default constructor for Jackson
     }

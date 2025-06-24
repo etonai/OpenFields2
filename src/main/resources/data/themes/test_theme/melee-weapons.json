@@ -15,7 +15,14 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "magical slash"
+      "woundDescription": "magical slash",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 75},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 90},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 90}
+      ]
     },
     "mel_dagger": {
       "id": "mel_dagger",
@@ -32,7 +39,14 @@
       "readyingTime": 45,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "dagger strike"
+      "woundDescription": "dagger strike",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 45},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 60},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 60}
+      ]
     },
     "mel_sword": {
       "id": "mel_sword",
@@ -49,7 +63,14 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "sword slash"
+      "woundDescription": "sword slash",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 75},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 90},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 90}
+      ]
     },
     "mel_battleaxe": {
       "id": "mel_battleaxe",
@@ -66,7 +87,14 @@
       "readyingTime": 90,
       "isOneHanded": false,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "axe blow"
+      "woundDescription": "axe blow",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 90},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 120},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 120}
+      ]
     },
     "mel_wand": {
       "id": "mel_wand",
@@ -83,7 +111,14 @@
       "readyingTime": 30,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "wand strike"
+      "woundDescription": "wand strike",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 30},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 45},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 45}
+      ]
     },
     "mel_bowie_knife": {
       "id": "mel_bowie_knife",
@@ -100,7 +135,14 @@
       "readyingTime": 45,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "knife strike"
+      "woundDescription": "knife strike",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 45},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 60},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 60}
+      ]
     },
     "mel_cavalry_sabre": {
       "id": "mel_cavalry_sabre",
@@ -117,7 +159,14 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "sabre slash"
+      "woundDescription": "sabre slash",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 75},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 90},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 90}
+      ]
     },
     "mel_bayonet": {
       "id": "mel_bayonet",
@@ -134,7 +183,14 @@
       "readyingTime": 90,
       "isOneHanded": false,
       "isMeleeVersionOfRanged": true,
-      "woundDescription": "bayonet thrust"
+      "woundDescription": "bayonet thrust",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 90},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 110},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 110}
+      ]
     },
     "mel_tomahawk": {
       "id": "mel_tomahawk",
@@ -151,7 +207,14 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "tomahawk strike"
+      "woundDescription": "tomahawk strike",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 75},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 100},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 100}
+      ]
     },
     "mel_officers_sword": {
       "id": "mel_officers_sword",
@@ -168,7 +231,14 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
-      "woundDescription": "officer's blade"
+      "woundDescription": "officer's blade",
+      "states": [
+        {"state": "sheathed", "action": "unsheathing", "ticks": 0},
+        {"state": "unsheathing", "action": "melee_ready", "ticks": 75},
+        {"state": "melee_ready", "action": "melee_attacking", "ticks": 15},
+        {"state": "melee_attacking", "action": "melee_recovering", "ticks": 85},
+        {"state": "melee_recovering", "action": "melee_ready", "ticks": 85}
+      ]
     }
   }
 }

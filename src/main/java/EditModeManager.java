@@ -701,6 +701,16 @@ public class EditModeManager {
             if (weaponData.woundDescription != null && !weaponData.woundDescription.isEmpty()) {
                 weapon.setWoundDescription(weaponData.woundDescription);
             }
+            
+            // Initialize weapon states if available (DevCycle 22: Task #5)
+            if (weaponData.states != null && !weaponData.states.isEmpty()) {
+                java.util.List<combat.WeaponState> weaponStates = new java.util.ArrayList<>();
+                for (data.WeaponStateData stateData : weaponData.states) {
+                    weaponStates.add(new combat.WeaponState(stateData.state, stateData.action, stateData.ticks));
+                }
+                weapon.initializeStates(weaponStates, "sheathed"); // Use "sheathed" as initial state for melee weapons
+            }
+            
             return weapon;
         }
         return MeleeWeaponFactory.createUnarmed(); // Fallback

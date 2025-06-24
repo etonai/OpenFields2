@@ -196,6 +196,80 @@ public class MeleeWeapon extends Weapon {
     }
     
     /**
+     * Initialize weapon states from JSON data.
+     * This method sets up the state machine for melee weapons similar to ranged weapons.
+     * 
+     * @param states List of WeaponState objects parsed from JSON
+     * @param initialStateName Name of the initial state (typically "sheathed")
+     */
+    public void initializeStates(java.util.List<WeaponState> states, String initialStateName) {
+        this.setStates(states);
+        this.setInitialStateName(initialStateName);
+        
+        // Debug output for state initialization
+        if (states != null && !states.isEmpty()) {
+            debugPrint("[MELEE-STATES] " + name + " initialized with " + states.size() + " states, initial: " + initialStateName);
+        }
+    }
+    
+    /**
+     * Check if this melee weapon has state information configured.
+     * 
+     * @return true if weapon has states configured, false if using legacy timing
+     */
+    public boolean hasStates() {
+        return states != null && !states.isEmpty() && initialStateName != null;
+    }
+    
+    /**
+     * Get state-based attack timing or fallback to legacy attackSpeed.
+     * Looks for "melee_attacking" state timing.
+     * 
+     * @return attack timing in ticks
+     */
+    public int getStateBasedAttackSpeed() {
+        if (hasStates()) {
+            WeaponState attackingState = getStateByName("melee_attacking");
+            if (attackingState != null) {
+                return attackingState.ticks;
+            }
+        }
+        return attackSpeed; // Fallback to legacy timing
+    }
+    
+    /**
+     * Get state-based recovery timing or fallback to legacy attackCooldown.
+     * Looks for "melee_recovering" state timing.
+     * 
+     * @return recovery timing in ticks
+     */
+    public int getStateBasedAttackCooldown() {
+        if (hasStates()) {
+            WeaponState recoveringState = getStateByName("melee_recovering");
+            if (recoveringState != null) {
+                return recoveringState.ticks;
+            }
+        }
+        return attackCooldown; // Fallback to legacy timing
+    }
+    
+    /**
+     * Get state-based readying timing or fallback to legacy readyingTime.
+     * Looks for "unsheathing" state timing.
+     * 
+     * @return readying timing in ticks
+     */
+    public int getStateBasedReadyingTime() {
+        if (hasStates()) {
+            WeaponState unsheathingState = getStateByName("unsheathing");
+            if (unsheathingState != null) {
+                return unsheathingState.ticks;
+            }
+        }
+        return readyingTime; // Fallback to legacy timing
+    }
+
+    /**
      * Map MeleeWeaponType to WeaponType for weapon state management
      */
     private static WeaponType getWeaponTypeForMeleeType(MeleeWeaponType meleeType) {
