@@ -343,10 +343,8 @@ public class EditModeManager {
         FactionRegistry factionRegistry = FactionRegistry.getInstance();
         Integer[] allFactionIds = factionRegistry.getAllFactionIds();
         
-        // Filter out faction 0 (NONE) and cache for later use
-        availableFactionIds = java.util.Arrays.stream(allFactionIds)
-                .filter(id -> id != 0)
-                .toArray(Integer[]::new);
+        // Cache all faction IDs for later use (including NONE faction)
+        availableFactionIds = allFactionIds;
         
         // Display factions with character counts
         for (int i = 0; i < availableFactionIds.length; i++) {
@@ -367,14 +365,12 @@ public class EditModeManager {
     public void handleDirectCharacterAdditionInput(int inputNumber) {
         switch (directAdditionStep) {
             case FACTION_SELECTION:
-                // Get actual number of non-NONE factions
+                // Get actual number of factions
                 if (availableFactionIds == null) {
                     FactionRegistry factionRegistry = FactionRegistry.getInstance();
                     Integer[] allFactionIds = factionRegistry.getAllFactionIds();
-                    // Filter out faction 0 (NONE)
-                    availableFactionIds = java.util.Arrays.stream(allFactionIds)
-                            .filter(id -> id != 0)
-                            .toArray(Integer[]::new);
+                    // Cache all faction IDs (including NONE)
+                    availableFactionIds = allFactionIds;
                 }
                 
                 if (inputNumber >= 1 && inputNumber <= availableFactionIds.length) {
