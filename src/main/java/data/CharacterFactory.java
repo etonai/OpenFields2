@@ -269,21 +269,49 @@ public class CharacterFactory {
     }
     
     private static Character createWeightedRandom() {
-        // Generate two sets of random stats and average them for more balanced results
-        int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
-        int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
-        int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
-        int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
+        // Generate stats using dual-roll averaging and reroll any stat <= 20
+        int avgDexterity, avgCoolness, avgStrength, avgReflexes, avgHealth;
         
-        // Calculate averages
-        int avgDexterity = (dex1 + dex2) / 2;
-        int avgCoolness = (cool1 + cool2) / 2;
-        int avgStrength = (str1 + str2) / 2;
-        int avgReflexes = (ref1 + ref2) / 2;
+        // Generate dexterity with reroll if <= 20
+        do {
+            int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
+            avgDexterity = Math.max(1, (dex1 + dex2) / 2);
+        } while (avgDexterity <= 20);
         
-        // Random handedness
-        Handedness randomHandedness = random.nextBoolean() ? 
-            Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
+        // Generate coolness with reroll if <= 20
+        do {
+            int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
+            avgCoolness = Math.max(1, (cool1 + cool2) / 2);
+        } while (avgCoolness <= 20);
+        
+        // Generate strength with reroll if <= 20
+        do {
+            int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
+            avgStrength = Math.max(1, (str1 + str2) / 2);
+        } while (avgStrength <= 20);
+        
+        // Generate reflexes with reroll if <= 20
+        do {
+            int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
+            avgReflexes = Math.max(1, (ref1 + ref2) / 2);
+        } while (avgReflexes <= 20);
+        
+        // Generate health with reroll if <= 20
+        do {
+            int health1 = random.nextInt(100) + 1, health2 = random.nextInt(100) + 1;
+            avgHealth = Math.max(1, (health1 + health2) / 2);
+        } while (avgHealth <= 20);
+        
+        // Realistic handedness distribution: 89% right, 10% left, 1% ambidextrous
+        Handedness randomHandedness;
+        int handednessRoll = random.nextInt(100) + 1; // 1-100
+        if (handednessRoll <= 89) {
+            randomHandedness = Handedness.RIGHT_HANDED; // 89%
+        } else if (handednessRoll <= 99) {
+            randomHandedness = Handedness.LEFT_HANDED; // 10%
+        } else {
+            randomHandedness = Handedness.AMBIDEXTROUS; // 1%
+        }
         
         // 50/50 gender split for weighted_random
         String gender = random.nextBoolean() ? "male" : "female";
@@ -299,7 +327,7 @@ public class CharacterFactory {
             generateBirthdate(),
             null, // No theme
             avgDexterity,
-            generateArchetypeHealth("weighted_random"),
+            avgHealth, // Use dual-roll averaged health like other stats
             avgCoolness,
             avgStrength,
             avgReflexes,
