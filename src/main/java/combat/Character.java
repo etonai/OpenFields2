@@ -826,6 +826,7 @@ public class Character {
         
         // Check if this is a target change and handle first attack penalty
         boolean targetChanged = (currentTarget != null && currentTarget != target);
+        boolean newTarget = (currentTarget == null);
         
         // If targeting a different unit, cancel all pending attacks and reset
         if (currentTarget != null && currentTarget != target) {
@@ -857,8 +858,8 @@ public class Character {
         }
         
         // Handle first attack penalty system
-        if (targetChanged) {
-            // Target changed - this is a new target, apply first attack penalty
+        if (targetChanged || newTarget) {
+            // Target changed or new target - apply first attack penalty
             isFirstAttackOnTarget = true;
             System.out.println(getDisplayName() + " first attack on " + target.character.getDisplayName() + " - applying " + GameConstants.FIRST_ATTACK_PENALTY + " accuracy penalty");
         } else if (currentTarget == target) {
@@ -1883,7 +1884,6 @@ public class Character {
             
             if (newTarget != null) {
                 // Target found - start attacking
-                currentTarget = newTarget;
                 persistentAttack = true;
                 
                 // Calculate distance for logging
