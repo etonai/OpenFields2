@@ -345,11 +345,38 @@ public class GameRenderer {
                 endX = startX + Math.cos(readyAngle) * weaponLength;
                 endY = startY + Math.sin(readyAngle) * weaponLength;
             } else {
-                // Melee attacking state: Start at tangent point, extend toward target
-                startX = tangentX;
-                startY = tangentY;
-                endX = startX + dirX * weaponLength;
-                endY = startY + dirY * weaponLength;
+                // Task #10: Melee attacking state - use consistent base position and point toward target center
+                double meleeAttackStartX = tangentX + dirX * 14;
+                double meleeAttackStartY = tangentY + dirY * 14;
+                
+                // Calculate direction toward target center
+                if (unit.character.currentTarget != null) {
+                    Unit target = (Unit)unit.character.currentTarget;
+                    double targetDirX = target.x - meleeAttackStartX;
+                    double targetDirY = target.y - meleeAttackStartY;
+                    double targetDistance = Math.sqrt(targetDirX * targetDirX + targetDirY * targetDirY);
+                    
+                    // Avoid division by zero and normalize direction
+                    if (targetDistance > 0.001) { // Small threshold to avoid zero-distance issues
+                        targetDirX /= targetDistance;
+                        targetDirY /= targetDistance;
+                    } else {
+                        // Fallback to unit facing direction if target is too close
+                        targetDirX = dirX;
+                        targetDirY = dirY;
+                    }
+                    
+                    startX = meleeAttackStartX;
+                    startY = meleeAttackStartY;
+                    endX = startX + targetDirX * weaponLength;
+                    endY = startY + targetDirY * weaponLength;
+                } else {
+                    // Fallback: No target available, use unit facing direction
+                    startX = meleeAttackStartX;
+                    startY = meleeAttackStartY;
+                    endX = startX + dirX * weaponLength;
+                    endY = startY + dirY * weaponLength;
+                }
             }
         } else { // OTHER weapons
             // OTHER weapons use default positioning
