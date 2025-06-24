@@ -2172,6 +2172,7 @@ public class Character implements ICharacter {
             if (newTarget != null) {
                 // Target found - start attacking
                 persistentAttack = true;
+                currentTarget = newTarget; // DevCycle 22: Fix auto targeting infinite loop by setting currentTarget
                 
                 // Calculate distance for logging
                 double dx = newTarget.getX() - selfUnit.getX();

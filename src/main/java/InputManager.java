@@ -415,33 +415,7 @@ public class InputManager {
     
     // DevCycle 15k: System integrator methods removed - call systemIntegrator directly
     
-    // Legacy validation method (for backward compatibility)
-    private boolean legacyValidateComponentIntegrity() {
-        inputDiagnosticService.recordDebugLog("LIFECYCLE", "INFO", "Validating component integrity");
-        
-        boolean allHealthy = true;
-        
-        // Validate each component
-        if (eventRouter == null) {
-            inputDiagnosticService.recordDebugLog("LIFECYCLE", "ERROR", "InputEventRouter not initialized");
-            allHealthy = false;
-        }
-        
-        if (stateTracker == null) {
-            inputDiagnosticService.recordDebugLog("LIFECYCLE", "ERROR", "InputStateTracker not initialized");
-            allHealthy = false;
-        }
-        
-        // Additional legacy validation can be added here if needed
-        
-        if (allHealthy) {
-            inputDiagnosticService.recordDebugLog("LIFECYCLE", "INFO", "All components healthy");
-        } else {
-            inputDiagnosticService.recordDebugLog("LIFECYCLE", "ERROR", "Component integrity validation failed");
-        }
-        
-        return allHealthy;
-    }
+    // DevCycle 22: Legacy validation method removed - unused
     
     /**
      * Get the InputStateTracker for external access to input state management.
@@ -831,34 +805,10 @@ public class InputManager {
     // All batch character creation functionality is now handled by the dedicated controller
     
     
-    /**
-     * Start the character deployment workflow (DevCycle 15h: Delegated to DeploymentController)
-     */
-    private void promptForCharacterDeployment() {
-        deploymentController.promptForCharacterDeployment();
-    }
-    
-    /**
-     * Handle input during character deployment workflow (DevCycle 15h: Delegated to DeploymentController)
-     * 
-     * @param inputNumber The number entered by the user
-     */
-    private void handleCharacterDeploymentInput(int inputNumber) {
-        deploymentController.handleCharacterDeploymentInput(inputNumber);
-    }
-    
-    
-    
-    
-    
-    
-    
-    /**
-     * Cancel character deployment and reset state (DevCycle 15h: Delegated to DeploymentController)
-     */
-    private void cancelCharacterDeployment() {
-        deploymentController.cancelCharacterDeployment();
-    }
+    // DevCycle 22: Character deployment delegation methods removed - unused pure delegation
+    // - promptForCharacterDeployment()
+    // - handleCharacterDeploymentInput()  
+    // - cancelCharacterDeployment()
     
     
     
@@ -1050,33 +1000,10 @@ public class InputManager {
         victoryOutcomeController.promptForNextFactionOutcome();
     }
     
-    /**
-     * Prompt for the next faction's victory outcome
-     */
-    private void promptForNextFactionOutcome() {
-        // DevCycle 15h: Delegate to VictoryOutcomeController
-        victoryOutcomeController.promptForNextFactionOutcome();
-    }
-    
-    /**
-     * Handle input for victory outcome selection (DevCycle 15h: Delegated to VictoryOutcomeController)
-     * 
-     * @param outcomeNumber The number entered by the user
-     */
-    private void handleVictoryOutcomeInput(int outcomeNumber) {
-        victoryOutcomeController.handleVictoryOutcomeInput(outcomeNumber);
-    }
-    
-    
-    
-    
-    /**
-     * Cancel manual victory and reset state
-     */
-    private void cancelManualVictory() {
-        // DevCycle 15h: Delegate to VictoryOutcomeController
-        victoryOutcomeController.cancelManualVictory();
-    }
+    // DevCycle 22: Victory outcome delegation methods removed - unused pure delegation
+    // - promptForNextFactionOutcome()
+    // - handleVictoryOutcomeInput()
+    // - cancelManualVictory()
     
     
     /**
@@ -1095,19 +1022,9 @@ public class InputManager {
         
     }
     
-    /**
-     * Handle scenario name input when ENTER is pressed (DevCycle 15j: Simplified to delegation)
-     */
-    private void handleScenarioNameInput() {
-        gameStateManager.handleScenarioNameInput();
-    }
+    // DevCycle 22: handleScenarioNameInput() removed - unused pure delegation
     
-    /**
-     * Prompt for theme selection (DevCycle 15j: Simplified to delegation)
-     */
-    private void promptForThemeSelection() {
-        gameStateManager.handleScenarioNameInput();
-    }
+    // DevCycle 22: promptForThemeSelection() removed - unused and incorrectly implemented
     
     /**
      * Handle theme selection input (DevCycle 15j: Simplified to delegation)
@@ -1235,72 +1152,11 @@ public class InputManager {
         }
     }
     
-    /**
-     * Display enhanced character stats for single character selection
-     */
-    private void displayEnhancedCharacterStats(Unit unit) {
-        combat.Character character = unit.character;
-        
-        // Single character selection format: "Selected: ID:Nickname"
-        System.out.println("Selected: " + character.id + ":" + character.nickname);
-        
-        // Status Line 1: Health, Faction, Weapon Name, Position State
-        String weaponName = (character.weapon != null) ? character.weapon.getName() : "None";
-        String factionName = getFactionDisplayName(character.faction);
-        String positionName = character.getCurrentPosition().getDisplayName();
-        
-        System.out.println("Health: " + character.currentHealth + "/" + character.health + 
-                         ", Faction: " + factionName + 
-                         ", Weapon: " + weaponName + 
-                         ", Position: " + positionName);
-        
-        // Status Line 2: Current Movement, Aiming Speed, Hesitation Time
-        String movementName = character.getCurrentMovementType().getDisplayName();
-        String aimingName = character.getCurrentAimingSpeed().getDisplayName();
-        
-        // Calculate remaining hesitation time
-        long currentTick = gameClock.getCurrentTick();
-        long remainingHesitation = Math.max(0, character.hesitationEndTick - currentTick);
-        long remainingBravery = Math.max(0, character.braveryPenaltyEndTick - currentTick);
-        double hesitationSeconds = remainingHesitation / 60.0; // Convert ticks to seconds
-        double braverySeconds = remainingBravery / 60.0;
-        
-        System.out.println("Movement: " + movementName + 
-                         ", Aiming: " + aimingName + 
-                         ", Hesitation: " + String.format("%.1fs", hesitationSeconds) +
-                         " (Wound: " + String.format("%.1fs", hesitationSeconds) +
-                         ", Bravery: " + String.format("%.1fs", braverySeconds) + ")");
-    }
+    // DevCycle 22: displayEnhancedCharacterStats() removed - unused display method
     
-    /**
-     * Display character IDs and names for multi-character selection
-     */
-    private void displayMultiCharacterSelection() {
-        System.out.print("Selected: ");
-        boolean first = true;
-        for (Unit unit : selectionManager.getSelectedUnits()) {
-            if (!first) {
-                System.out.print(", ");
-            }
-            System.out.print(unit.character.id + ":" + unit.character.nickname);
-            first = false;
-        }
-        System.out.println();
-    }
+    // DevCycle 22: displayMultiCharacterSelection() removed - duplicated in DisplayCoordinator and MouseInputHandler
     
-    /**
-     * Get display name for faction
-     */
-    private String getFactionDisplayName(int faction) {
-        switch (faction) {
-            case 1: return "Red";
-            case 2: return "Blue";
-            case 3: return "Green";
-            case 4: return "Yellow";
-            case 5: return "Purple";
-            default: return "Faction " + faction;
-        }
-    }
+    // DevCycle 22: getFactionDisplayName() removed - duplicated in DisplayHelpers and InputUtils
     
     /**
      * Handle target zone controls
@@ -1651,43 +1507,7 @@ public class InputManager {
         cancelDirectCharacterAddition();
     }
     
-    /**
-     * Generate a random character for the specified faction
-     */
-    private combat.Character generateRandomCharacterForFaction(int faction) {
-        // Generate random stats for the character
-        java.util.Random random = new java.util.Random();
-        
-        // Generate random names
-        String[] firstNames = {"John", "Mary", "James", "Sarah", "Robert", "Jane", "William", "Emma"};
-        String[] lastNames = {"Smith", "Johnson", "Brown", "Wilson", "Davis", "Miller", "Moore", "Taylor"};
-        String firstName = firstNames[random.nextInt(firstNames.length)];
-        String lastName = lastNames[random.nextInt(lastNames.length)];
-        String nickname = firstName + " " + lastName.charAt(0) + ".";
-        
-        // Generate random stats (40-90 range for variety)
-        int dexterity = 40 + random.nextInt(51); // 40-90
-        int strength = 40 + random.nextInt(51);  // 40-90
-        int reflexes = 40 + random.nextInt(51);  // 40-90
-        int coolness = 40 + random.nextInt(51);  // 40-90
-        int health = 60 + random.nextInt(41);    // 60-100
-        
-        // Random handedness
-        combat.Handedness handedness = random.nextBoolean() ? combat.Handedness.RIGHT_HANDED : combat.Handedness.LEFT_HANDED;
-        
-        // Create character using simple constructor
-        combat.Character character = new combat.Character(nickname, dexterity, health, coolness, strength, reflexes, handedness);
-        
-        // Set faction
-        character.faction = faction;
-        
-        // Add basic weapons
-        character.weapon = data.WeaponFactory.createWeapon("wpn_colt_peacemaker");
-        character.meleeWeapon = combat.MeleeWeaponFactory.createWeapon("mel_sword");
-        character.currentWeaponState = character.weapon.getInitialState();
-        
-        return character;
-    }
+    // DevCycle 22: generateRandomCharacterForFaction() removed - unused complex character generation logic
     
     /**
      * Get faction character information including available character count
