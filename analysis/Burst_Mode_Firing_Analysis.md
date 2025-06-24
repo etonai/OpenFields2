@@ -1,6 +1,7 @@
 # Burst Mode Firing Analysis - OpenFields2
 
-*Created: 2025-06-23*
+*Created: 2025-06-23*  
+*Updated: 2025-06-24 - DevCycle 20 fixes*
 
 ## Overview
 
@@ -73,9 +74,11 @@ public AimingSpeed savedAimingSpeed = null; // Saved aiming speed for first shot
 ### Timing Sequence Example
 ```java
 // First shot: Full aiming time (e.g., 30 ticks for normal aiming)
-// Shot 2: fireTick + cyclicRate * 1 = +6 ticks
-// Shot 3: fireTick + cyclicRate * 2 = +12 ticks
+// Shot 2: fireTick + firingDelay * 1 = +6 ticks
+// Shot 3: fireTick + firingDelay * 2 = +12 ticks
 ```
+
+**UPDATE (DevCycle 20)**: Burst timing now correctly uses `firingDelay` instead of `cyclicRate`.
 
 ## 4. Implementation Details
 
@@ -93,7 +96,7 @@ if (weapon instanceof RangedWeapon &&
     
     // Schedule remaining shots in the burst
     for (int shot = 2; shot <= ((RangedWeapon)weapon).getBurstSize(); shot++) {
-        long nextShotTick = fireTick + (((RangedWeapon)weapon).getCyclicRate() * (shot - 1));
+        long nextShotTick = fireTick + (((RangedWeapon)weapon).getFiringDelay() * (shot - 1));
         final int shotNumber = shot;
         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
             // Fire additional burst shot with validation
@@ -123,23 +126,34 @@ if (burstShotsFired >= ((RangedWeapon)weapon).getBurstSize()) {
 ## 5. Aiming Speed Logic
 
 ### First vs Subsequent Shot Accuracy
-Located in `Character.java:1312-1324`:
+
+**UPDATE (DevCycle 20)**: The aiming speed system has been simplified. Characters no longer change their aiming speed state during burst/auto firing. Instead:
+
+- **First Shot**: Uses character's current aiming speed modifier
+- **Subsequent Shots (2+)**: Apply a fixed -20 accuracy penalty (Quick aiming modifier)
+- **State Management**: Character's aiming speed remains unchanged throughout burst
+
+The new implementation in `Character.java`:
 ```java
-case BURST:
-    if (!isAutomaticFiring || burstShotsFired <= 1) {
-        // First shot of burst uses current aiming speed
-        savedAimingSpeed = currentAimingSpeed;
-        return currentAimingSpeed;
-    } else {
-        // Subsequent shots use quick aiming
-        return AimingSpeed.QUICK;
+public boolean shouldApplyBurstAutoPenalty() {
+    if (weapon == null || !(weapon instanceof RangedWeapon)) {
+        return false;
     }
+    
+    FiringMode mode = ((RangedWeapon)weapon).getCurrentFiringMode();
+    if (mode == FiringMode.BURST || mode == FiringMode.FULL_AUTO) {
+        // Apply penalty to bullets 2+ in burst/auto
+        return isAutomaticFiring && burstShotsFired > 1;
+    }
+    
+    return false;
+}
 ```
 
-**Aiming Speed Effects:**
-- **First Shot**: Uses character's current aiming speed (Careful/Normal/Quick)
-- **Subsequent Shots**: Automatically switch to `AimingSpeed.QUICK` (-20 accuracy penalty)
-- **Saved State**: Original aiming speed preserved for restoration
+This penalty is applied in `CombatCalculator.java` during hit determination:
+```java
+double burstAutoPenalty = shooter.character.shouldApplyBurstAutoPenalty() ? -20.0 : 0.0;
+```
 
 ## 6. Ammunition and Resource Management
 
@@ -155,12 +169,17 @@ case BURST:
 
 ## 7. Interruption Conditions
 
+**UPDATE (DevCycle 20)**: Interruption behavior has been refined:
+
 Burst firing can be interrupted by:
 
-1. **Target Loss**: Target becomes incapacitated or moves out of range
+1. **Firing Mode Switch**: Changing firing mode immediately cancels burst/auto
 2. **Shooter Incapacitation**: Shooter takes critical damage during burst
-3. **Ammunition Depletion**: No rounds remaining mid-burst
+3. **Ammunition Depletion**: No rounds remaining mid-burst (fires available rounds)
 4. **Wounds/Hesitation**: Combat stress effects trigger hesitation state
+5. **New Attack Command**: Starting a new attack cancels ongoing burst/auto
+
+**Important**: Target incapacitation does NOT interrupt burst - remaining bullets fire at corpse location
 
 ### Interruption Handling
 ```java
@@ -257,6 +276,21 @@ Burst mode in OpenFields2 provides a tactical middle ground between single shot 
 
 The implementation successfully balances realism with gameplay considerations, providing players with meaningful tactical choices while maintaining the game's turn-based combat flow through precise event timing.
 
+## 12. DevCycle 20 Changes Summary
+
+The following key changes were implemented in DevCycle 20:
+
+1. **Timing Fix**: Burst and full auto modes now use `firingDelay` instead of `cyclicRate`
+2. **Accuracy System**: Simplified to apply fixed -20 penalty to bullets 2+ without changing character state
+3. **State Management**: Removed `savedAimingSpeed` - character's aiming speed never changes
+4. **Interruption Logic**: 
+   - Added immediate cancellation on mode switch and new attack commands
+   - Burst continues firing at corpse if target dies mid-burst
+   - Partial bursts allowed with insufficient ammo
+5. **Full Auto Consistency**: Full auto mode follows same rules as burst (firingDelay timing, -20 penalty)
+
+These changes ensure burst firing works as originally intended, with predictable timing and accuracy modifiers.
+
 ---
 
-*This analysis is based on OpenFields2 codebase as of DevCycle 19 (2025-06-23)*
+*This analysis is based on OpenFields2 codebase as of DevCycle 20 (2025-06-24)*

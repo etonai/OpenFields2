@@ -40,6 +40,11 @@ public class Character {
     public int faction;
     public boolean usesAutomaticTargeting;
     public FiringMode preferredFiringMode;
+    
+    // Auto-targeting debug throttling
+    private static boolean autoTargetDebugVisible = false; // Master flag to show/hide ALL auto-target debug messages
+    private static boolean autoTargetDebugEnabled = false; // Set to true to enable verbose auto-target debugging
+    private long lastAutoTargetDebugTick = -1;
     public List<Skill> skills;
     public List<Wound> wounds;
     
@@ -812,6 +817,13 @@ public class Character {
     public void startAttackSequence(Unit shooter, Unit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (weapon == null || currentWeaponState == null) return;
         
+        // Always interrupt burst/auto when starting a new attack
+        if (isAutomaticFiring) {
+            isAutomaticFiring = false;
+            burstShotsFired = 0;
+            System.out.println(getDisplayName() + " burst/auto firing interrupted by new attack command");
+        }
+        
         // Check if this is a target change and handle first attack penalty
         boolean targetChanged = (currentTarget != null && currentTarget != target);
         
@@ -824,6 +836,12 @@ public class Character {
                 System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " attack sequence - cannot cancel pending events");
             }
             currentWeaponState = weapon.getStateByName("ready");
+            // Interrupt burst/auto if in progress
+            if (isAutomaticFiring) {
+                isAutomaticFiring = false;
+                burstShotsFired = 0;
+                System.out.println(getDisplayName() + " burst/auto firing interrupted by new attack command");
+            }
             System.out.println(getDisplayName() + " cancels attack on " + currentTarget.character.getDisplayName() + " and retargets " + target.character.getDisplayName() + " at tick " + currentTick);
         } else if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
             currentWeaponState = weapon.getStateByName("ready");
@@ -1144,17 +1162,21 @@ public class Character {
                     isAutomaticFiring = true;
                     burstShotsFired = 1; // First shot just fired
                     lastAutomaticShot = fireTick;
-                    System.out.println(getDisplayName() + " starts burst firing (" + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + ")");
+                    System.out.println(getDisplayName() + " starts burst firing (" + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + ") - first shot at tick " + fireTick);
                     
                     // Schedule remaining shots in the burst
                     for (int shot = 2; shot <= ((RangedWeapon)weapon).getBurstSize(); shot++) {
-                        long nextShotTick = fireTick + (((RangedWeapon)weapon).getCyclicRate() * (shot - 1));
+                        long nextShotTick = fireTick + (((RangedWeapon)weapon).getFiringDelay() * (shot - 1));
                         final int shotNumber = shot;
                         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
-                            if (currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated() && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
+                            // Continue burst even if target dies (fires at corpse), but stop if shooter incapacitated or out of ammo
+                            if (currentTarget != null && !this.isIncapacitated() && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
                                 ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
                                 burstShotsFired++;
-                                System.out.println(getDisplayName() + " burst fires shot " + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + " (9mm round, ammo remaining: " + ((RangedWeapon)weapon).getAmmunition() + ")");
+                                String targetStatus = currentTarget.character.isIncapacitated() ? " at incapacitated target" : "";
+                                System.out.println(getDisplayName() + " burst fires shot " + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + 
+                                                   " at tick " + nextShotTick + " (" + weapon.getProjectileName() + 
+                                                   ", ammo remaining: " + ((RangedWeapon)weapon).getAmmunition() + ")" + targetStatus);
                                 
                                 gameCallbacks.playWeaponSound(weapon);
                                 gameCallbacks.applyFiringHighlight(shooter, nextShotTick);
@@ -1172,14 +1194,12 @@ public class Character {
                                 if (burstShotsFired >= ((RangedWeapon)weapon).getBurstSize()) {
                                     isAutomaticFiring = false;
                                     burstShotsFired = 0;
-                                    savedAimingSpeed = null;
                                     System.out.println(getDisplayName() + " completes burst firing");
                                 }
                             } else {
                                 // Burst interrupted
                                 isAutomaticFiring = false;
                                 burstShotsFired = 0;
-                                savedAimingSpeed = null;
                                 System.out.println(getDisplayName() + " burst firing interrupted (target lost or no ammo)");
                             }
                         }, ownerId));
@@ -1328,39 +1348,25 @@ public class Character {
     }
     
     private AimingSpeed determineAimingSpeedForShot() {
-        // If no weapon or firing mode, use current aiming speed
-        if (weapon == null || !(weapon instanceof RangedWeapon) || ((RangedWeapon)weapon).getCurrentFiringMode() == null) {
-            return currentAimingSpeed;
+        // Always use current aiming speed - burst/auto penalty is applied separately
+        return currentAimingSpeed;
+    }
+    
+    /**
+     * Check if the current shot should have burst/auto quick penalty
+     */
+    public boolean shouldApplyBurstAutoPenalty() {
+        if (weapon == null || !(weapon instanceof RangedWeapon)) {
+            return false;
         }
         
-        switch (((RangedWeapon)weapon).getCurrentFiringMode()) {
-            case SINGLE_SHOT:
-                // Single shot always uses current aiming speed
-                return currentAimingSpeed;
-                
-            case BURST:
-                if (!isAutomaticFiring || burstShotsFired <= 1) {
-                    // First shot of burst uses current aiming speed
-                    savedAimingSpeed = currentAimingSpeed;
-                    return currentAimingSpeed;
-                } else {
-                    // Subsequent shots use quick aiming
-                    return AimingSpeed.QUICK;
-                }
-                
-            case FULL_AUTO:
-                if (!isAutomaticFiring || burstShotsFired <= 1) {
-                    // First shot of auto uses current aiming speed
-                    savedAimingSpeed = currentAimingSpeed;
-                    return currentAimingSpeed;
-                } else {
-                    // Subsequent shots use quick aiming
-                    return AimingSpeed.QUICK;
-                }
-                
-            default:
-                return currentAimingSpeed;
+        FiringMode mode = ((RangedWeapon)weapon).getCurrentFiringMode();
+        if (mode == FiringMode.BURST || mode == FiringMode.FULL_AUTO) {
+            // Apply penalty to bullets 2+ in burst/auto
+            return isAutomaticFiring && burstShotsFired > 1;
         }
+        
+        return false;
     }
     
     public double getWeaponReadySpeedMultiplier() {
@@ -1818,7 +1824,7 @@ public class Character {
     public void updateAutomaticTargeting(Unit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
         // Debug: Always log when this method is called for characters with auto-targeting enabled
         if (usesAutomaticTargeting) {
-            debugPrint("[AUTO-TARGET-ENTRY] " + getDisplayName() + " updateAutomaticTargeting called at tick " + currentTick);
+            autoTargetDebugPrint("[AUTO-TARGET-ENTRY] " + getDisplayName() + " updateAutomaticTargeting called at tick " + currentTick, currentTick);
         }
         
         // Only execute if automatic targeting is enabled
@@ -1844,26 +1850,26 @@ public class Character {
         
         // Skip if character is already attacking (let existing attack complete)
         if (isAttacking) {
-            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: already attacking (isAttacking=" + isAttacking + 
+            autoTargetDebugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: already attacking (isAttacking=" + isAttacking + 
                       ", weapon state: " + (currentWeaponState != null ? currentWeaponState.getState() : "null") + 
-                      ", persistentAttack=" + persistentAttack + ")");
+                      ", persistentAttack=" + persistentAttack + ")", currentTick);
             return;
         }
         
         // Skip if character is reloading (let reload complete)
         if (isReloading) {
-            debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: reloading weapon");
+            autoTargetDebugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: reloading weapon", currentTick);
             return;
         }
         
         // Additional debug info about current state
-        debugPrint("[AUTO-TARGET-STATE] " + getDisplayName() + " state check: isAttacking=" + isAttacking + 
+        autoTargetDebugPrint("[AUTO-TARGET-STATE] " + getDisplayName() + " state check: isAttacking=" + isAttacking + 
                   ", weapon state=" + (currentWeaponState != null ? currentWeaponState.getState() : "null") + 
                   ", persistentAttack=" + persistentAttack + 
-                  ", currentTarget=" + (currentTarget != null ? currentTarget.character.getDisplayName() : "null"));
+                  ", currentTarget=" + (currentTarget != null ? currentTarget.character.getDisplayName() : "null"), currentTick);
         
-        debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " executing automatic targeting (current target: " + 
-                             (currentTarget != null ? currentTarget.character.getDisplayName() : "none") + ")");
+        autoTargetDebugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " executing automatic targeting (current target: " + 
+                             (currentTarget != null ? currentTarget.character.getDisplayName() : "none") + ")", currentTick);
         
         // Check if current target is still valid
         boolean currentTargetValid = currentTarget != null 
@@ -1886,13 +1892,13 @@ public class Character {
                 double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
                 
                 String zoneStatus = (targetZone != null && targetZone.contains((int)newTarget.x, (int)newTarget.y)) ? " (in target zone)" : "";
-                System.out.println("[AUTO-TARGET] " + getDisplayName() + " acquired target " + 
+                autoTargetInfoPrint("[AUTO-TARGET] " + getDisplayName() + " acquired target " + 
                                  newTarget.character.getDisplayName() + " at distance " + 
                                  String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
                 
                 // Start attack sequence - check combat mode to determine attack type
                 if (isMeleeCombatMode() && meleeWeapon != null) {
-                    debugPrint("[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
+                    autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
                     // Check if already in melee range
                     double distance = Math.hypot(newTarget.x - selfUnit.x, newTarget.y - selfUnit.y);
                     double meleeRangePixels = meleeWeapon.getTotalReach() * 7.0; // Convert feet to pixels
@@ -1902,14 +1908,14 @@ public class Character {
                         startMeleeAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
                     } else {
                         // Move to melee range first
-                        debugPrint("[AUTO-TARGET] " + getDisplayName() + " moving to melee range (current distance: " + String.format("%.1f", distance/7.0) + " feet, need: " + meleeWeapon.getTotalReach() + " feet)");
+                        autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " moving to melee range (current distance: " + String.format("%.1f", distance/7.0) + " feet, need: " + meleeWeapon.getTotalReach() + " feet)");
                         // Set melee movement target - the updateMeleeMovement method will handle the attack when in range
                         isMovingToMelee = true;
                         meleeTarget = newTarget;
                         lastMeleeMovementUpdate = currentTick;
                     }
                 } else {
-                    debugPrint("[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
+                    autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
                     startAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
                 }
             } else {
@@ -1923,7 +1929,7 @@ public class Character {
                         selfUnit.targetFacing = lastTargetFacing;
                     }
                     
-                    System.out.println("[AUTO-TARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting but maintaining weapon direction");
+                    autoTargetInfoPrint("[AUTO-TARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting but maintaining weapon direction");
                 }
             }
         } else {
@@ -1948,13 +1954,13 @@ public class Character {
             double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
             
             String zoneStatus = (targetZone != null && targetZone.contains((int)currentTarget.x, (int)currentTarget.y)) ? " (in target zone)" : "";
-            System.out.println("[AUTO-TARGET] " + getDisplayName() + " continuing attack on target " + 
+            autoTargetInfoPrint("[AUTO-TARGET] " + getDisplayName() + " continuing attack on target " + 
                              currentTarget.character.getDisplayName() + " at distance " + 
                              String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
             
             // Start attack sequence - check combat mode to determine attack type
             if (isMeleeCombatMode() && meleeWeapon != null) {
-                debugPrint("[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
+                autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
                 // Check if already in melee range
                 double distance = Math.hypot(currentTarget.x - selfUnit.x, currentTarget.y - selfUnit.y);
                 double meleeRangePixels = meleeWeapon.getTotalReach() * 7.0; // Convert feet to pixels
@@ -1964,14 +1970,14 @@ public class Character {
                     startMeleeAttackSequence(selfUnit, currentTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
                 } else {
                     // Move to melee range first
-                    System.out.println("[AUTO-TARGET] " + getDisplayName() + " moving to melee range (current distance: " + String.format("%.1f", distance/7.0) + " feet, need: " + meleeWeapon.getTotalReach() + " feet)");
+                    autoTargetInfoPrint("[AUTO-TARGET] " + getDisplayName() + " moving to melee range (current distance: " + String.format("%.1f", distance/7.0) + " feet, need: " + meleeWeapon.getTotalReach() + " feet)");
                     // Set melee movement target - the updateMeleeMovement method will handle the attack when in range
                     isMovingToMelee = true;
                     meleeTarget = currentTarget;
                     lastMeleeMovementUpdate = currentTick;
                 }
             } else {
-                debugPrint("[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
+                autoTargetDebugPrintAlways("[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
                 startAttackSequence(selfUnit, currentTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
             }
         }
@@ -2287,8 +2293,8 @@ public class Character {
             burstShotsFired++;
         }
         
-        // Schedule next shot at cyclic rate
-        long nextShotTick = currentTick + ((RangedWeapon)weapon).getCyclicRate();
+        // Schedule next shot at firing delay
+        long nextShotTick = currentTick + ((RangedWeapon)weapon).getFiringDelay();
         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
             if (persistentAttack && currentTarget != null && !currentTarget.character.isIncapacitated() && !this.isIncapacitated()) {
                 System.out.println(getDisplayName() + " continues full-auto firing at " + currentTarget.character.getDisplayName() + " (shot " + (burstShotsFired + 1) + ")");
@@ -2299,7 +2305,6 @@ public class Character {
                 // Stop automatic firing if conditions not met
                 isAutomaticFiring = false;
                 burstShotsFired = 0;
-                savedAimingSpeed = null;
                 System.out.println(getDisplayName() + " stops full-auto firing");
             }
         }, ownerId));
@@ -2372,6 +2377,12 @@ public class Character {
     // Firing mode management
     public void cycleFiringMode() {
         if (weapon != null && weapon instanceof RangedWeapon) {
+            // Interrupt burst/auto firing when switching modes
+            if (isAutomaticFiring) {
+                isAutomaticFiring = false;
+                burstShotsFired = 0;
+                System.out.println(getDisplayName() + " burst/auto firing interrupted by mode switch");
+            }
             ((RangedWeapon)weapon).cycleFiringMode();
         }
     }
@@ -2608,6 +2619,67 @@ public class Character {
         } catch (Exception e) {
             // If reflection fails, silently skip debug output
             // This prevents crashes if GameRenderer class structure changes
+        }
+    }
+    
+    /**
+     * Debug print for auto-targeting that can be throttled to reduce spam
+     */
+    private void autoTargetDebugPrint(String message, long currentTick) {
+        if (!autoTargetDebugVisible || !autoTargetDebugEnabled) return;
+        
+        // Throttle repetitive messages - only print every 60 ticks (1 second) for same character
+        if (currentTick - lastAutoTargetDebugTick >= 60) {
+            debugPrint(message);
+            lastAutoTargetDebugTick = currentTick;
+        }
+    }
+    
+    /**
+     * Debug print for auto-targeting that always prints (for important events)
+     */
+    private void autoTargetDebugPrintAlways(String message) {
+        if (autoTargetDebugVisible && autoTargetDebugEnabled) {
+            debugPrint(message);
+        }
+    }
+    
+    /**
+     * Print auto-targeting info messages (important events like target acquisition)
+     * These use System.out.println and respect the visibility flag
+     */
+    private void autoTargetInfoPrint(String message) {
+        if (autoTargetDebugVisible) {
+            System.out.println(message);
+        }
+    }
+    
+    /**
+     * Master control to show/hide ALL auto-targeting debug messages
+     */
+    public static void setAutoTargetDebugVisible(boolean visible) {
+        autoTargetDebugVisible = visible;
+        if (visible) {
+            System.out.println("Auto-targeting debug messages are now VISIBLE");
+        } else {
+            System.out.println("Auto-targeting debug messages are now HIDDEN (completely suppressed)");
+        }
+    }
+    
+    /**
+     * Enable/disable verbose auto-targeting debug messages (when visible)
+     * When disabled, repetitive AUTO-TARGET messages are suppressed
+     */
+    public static void setAutoTargetDebugEnabled(boolean enabled) {
+        autoTargetDebugEnabled = enabled;
+        if (autoTargetDebugVisible) {
+            if (enabled) {
+                System.out.println("Auto-targeting debug messages set to VERBOSE (may be very chatty)");
+            } else {
+                System.out.println("Auto-targeting debug messages set to THROTTLED (reduced spam)");
+            }
+        } else {
+            System.out.println("Auto-targeting debug messages are hidden - enable visibility first with setAutoTargetDebugVisible(true)");
         }
     }
     

@@ -75,6 +75,14 @@ mvn javafx:run                # Run the JavaFX application
 - **Display**: Selected unit shows current aiming speed below movement type
 - **Timing**: Only affects aiming phase duration, not other weapon states
 
+### Burst and Full Auto Firing (DevCycle 20)
+- **Burst Mode**: Fires exactly `burstSize` bullets (e.g., UZI fires 3)
+- **Timing**: Uses `firingDelay` between shots (e.g., UZI: +0, +6, +12 ticks)
+- **Accuracy**: First bullet uses character's current aiming speed, bullets 2+ get -20 penalty
+- **Full Auto**: Continues firing until trigger release, same timing and accuracy rules
+- **Interruptions**: Mode switch, new attack, or hesitation stops burst; target death does NOT
+- **Partial Bursts**: Fires available ammo even if less than full burst size
+
 ### Combat Modifiers
 - **Movement Penalties**: Shooting accuracy decreases while moving
   - **Walking**: -5 modifier

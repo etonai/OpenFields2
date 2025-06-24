@@ -16,6 +16,7 @@ public final class CombatCalculator {
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = calculateMovementModifier(shooter);
         double aimingSpeedModifier = shooter.character.getCurrentAimingSpeed().getAccuracyModifier();
+        double burstAutoPenalty = shooter.character.shouldApplyBurstAutoPenalty() ? -20.0 : 0.0;
         double targetMovementModifier = calculateTargetMovementModifier(shooter, target);
         double woundModifier = calculateWoundModifier(shooter);
         double stressMod = Math.min(0, stressModifier + GameConstants.statToModifier(shooter.character.coolness));
@@ -25,7 +26,7 @@ public final class CombatCalculator {
         double firstAttackPenalty = (shooter.character.isFirstAttackOnTarget && !shooter.character.getCurrentAimingSpeed().isVeryCareful()) ? GameConstants.FIRST_ATTACK_PENALTY : 0;
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
-        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + firstAttackPenalty + sizeModifier + coverModifier;
+        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + burstAutoPenalty + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + firstAttackPenalty + sizeModifier + coverModifier;
         
         if (distanceFeet <= maximumRange) {
             chanceToHit = Math.max(chanceToHit, 0.01);
@@ -43,6 +44,9 @@ public final class CombatCalculator {
             System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
             System.out.println("Movement modifier: " + movementModifier);
             System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (" + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
+            if (burstAutoPenalty != 0) {
+                System.out.println("Burst/Auto penalty: " + burstAutoPenalty + " (bullet " + shooter.character.burstShotsFired + ")");
+            }
             
             // Enhanced target movement debug info
             if (target.isMoving()) {

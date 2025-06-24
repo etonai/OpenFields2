@@ -28,6 +28,26 @@ public class OpenFields2Main {
         System.out.println("Starting OpenFields2 with platform: " + platformName);
         System.out.println("Using new engine: " + useNewEngine);
         
+        // Load debug configuration from config file (command line flags can override)
+        try {
+            Class<?> debugConfigClass = Class.forName("config.DebugConfig");
+            java.lang.reflect.Method getInstanceMethod = debugConfigClass.getMethod("getInstance");
+            java.lang.reflect.Method applyConfigMethod = debugConfigClass.getMethod("applyConfiguration");
+            Object debugConfig = getInstanceMethod.invoke(null);
+            applyConfigMethod.invoke(debugConfig);
+        } catch (Exception e) {
+            System.err.println("Failed to load debug configuration: " + e.getMessage());
+        }
+        
+        // Configure auto-targeting debug visibility (command line overrides config file)
+        boolean autoTargetDebug = hasFlag(args, "--auto-target-debug");
+        if (autoTargetDebug) {
+            Character.setAutoTargetDebugVisible(true);
+            // Also check for verbose flag
+            boolean verbose = hasFlag(args, "--auto-target-verbose");
+            Character.setAutoTargetDebugEnabled(verbose);
+        }
+        
         if ("console".equals(platformName) || useNewEngine) {
             // Launch with new platform abstraction
             launchWithPlatform(platformName);

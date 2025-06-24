@@ -89,6 +89,9 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         // Display game title and theme information
         displayStartupTitle();
         
+        // Load and apply debug configuration from config file
+        config.DebugConfig.getInstance().applyConfiguration();
+        
         // Initialize faction system
         initializeFactionSystem();
         

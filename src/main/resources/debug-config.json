@@ -1,0 +1,27 @@
+{
+  "debugConfig": {
+    "description": "OpenFields2 Debug Configuration",
+    "version": "1.0",
+    "autoTargeting": {
+      "visible": false,
+      "verbose": false,
+      "description": "Controls AUTO-TARGET debug message visibility and verbosity"
+    },
+    "combat": {
+      "enabled": true,
+      "description": "Enable/disable combat debug messages"
+    },
+    "movement": {
+      "enabled": true,
+      "description": "Enable/disable movement debug messages"
+    },
+    "weapons": {
+      "enabled": true,
+      "description": "Enable/disable weapon state debug messages"
+    },
+    "eventQueue": {
+      "enabled": false,
+      "description": "Enable/disable event queue debug messages (very verbose)"
+    }
+  }
+}
