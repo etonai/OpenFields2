@@ -362,11 +362,63 @@ public class CombatResolver {
             System.out.println(">>> Resolving melee attack: " + attacker.character.getDisplayName() + " attacks " + target.character.getDisplayName() + " with " + weapon.getName());
         }
         
+        // Bug #1 Fix: Check if attacker can perform melee attack (not in recovery)
+        if (!attacker.character.canMeleeAttack(attackTick)) {
+            if (debugMode) {
+                System.out.println(">>> ATTACK BLOCKED: " + attacker.character.getDisplayName() + " is still in recovery from previous attack (recovery ends at tick " + attacker.character.meleeRecoveryEndTick + ")");
+            }
+            return; // Block the attack - attacker is still in recovery
+        }
+        
         // Track attempted attack (both legacy and separate tracking)
         attacker.character.attacksAttempted++;
         attacker.character.meleeAttacksAttempted++;
         
-        // Calculate hit probability
+        // Check if target can defend (DevCycle 23)
+        boolean defenseAttempted = false;
+        boolean defenseSuccessful = false;
+        
+        if (target.character.canDefend(attackTick)) {
+            defenseAttempted = true;
+            target.character.defensiveAttempts++; // Track defense attempt
+            defenseSuccessful = calculateDefenseSuccess(target, weapon, attackTick);
+            
+            if (defenseSuccessful) {
+                target.character.defensiveSuccesses++; // Track successful defense
+                if (debugMode) {
+                    System.out.println(">>> " + target.character.getDisplayName() + " successfully defends against the attack!");
+                }
+                
+                // Grant counter-attack opportunity
+                int counterAttackWindow = 60; // 1 second window (60 ticks)
+                target.character.grantCounterAttackOpportunity(counterAttackWindow, attackTick);
+                
+                // Start defense cooldown using defender's weapon
+                int defenseCooldown = 60; // Default 60 ticks
+                if (target.character.meleeWeapon != null) {
+                    defenseCooldown = target.character.meleeWeapon.getDefenseCooldown();
+                }
+                target.character.startDefenseCooldown(defenseCooldown, attackTick);
+                
+                // Schedule counter-attack if automatic
+                scheduleCounterAttack(target, attacker, attackTick);
+                
+                return; // Attack blocked, no damage
+            } else {
+                // Failed defense still triggers cooldown using defender's weapon
+                int defenseCooldown = 60; // Default 60 ticks
+                if (target.character.meleeWeapon != null) {
+                    defenseCooldown = target.character.meleeWeapon.getDefenseCooldown();
+                }
+                target.character.startDefenseCooldown(defenseCooldown, attackTick);
+                
+                if (debugMode) {
+                    System.out.println(">>> " + target.character.getDisplayName() + " attempts to defend but fails");
+                }
+            }
+        }
+        
+        // Calculate hit probability (only if defense failed or not attempted)
         boolean hits = calculateMeleeHit(attacker, target, weapon);
         
         if (hits) {
@@ -414,6 +466,59 @@ public class CombatResolver {
                 System.out.println(">>> Melee attack missed!");
             }
         }
+        
+        // Bug #1 Fix: Start attack recovery period for attacker
+        // Recovery time should be the full cycle from melee_attacking back to melee_ready
+        int recoveryTime = calculateMeleeRecoveryTime(weapon);
+        attacker.character.startMeleeRecovery(recoveryTime, attackTick);
+        
+        if (debugMode) {
+            System.out.println(">>> " + attacker.character.getDisplayName() + " enters recovery period for " + recoveryTime + " ticks (until tick " + attacker.character.meleeRecoveryEndTick + ")");
+        }
+    }
+    
+    /**
+     * Calculate the full recovery time for a melee weapon after an attack
+     * This includes the time from melee_attacking state back to melee_ready state
+     * Bug #1 Fix: Ensures proper timing between attacks
+     */
+    private int calculateMeleeRecoveryTime(MeleeWeapon weapon) {
+        if (weapon.states == null || weapon.states.isEmpty()) {
+            // Fallback to attack speed if no states defined
+            return weapon.getAttackSpeed();
+        }
+        
+        int totalRecoveryTime = 0;
+        String currentState = "melee_attacking";
+        
+        // Follow the state chain from melee_attacking back to melee_ready
+        for (int i = 0; i < 10; i++) { // Prevent infinite loops
+            WeaponState state = weapon.getStateByName(currentState);
+            if (state == null) {
+                break; // State not found
+            }
+            
+            if ("melee_ready".equals(state.action)) {
+                // Found the path back to ready
+                totalRecoveryTime += state.ticks;
+                break;
+            } else {
+                // Add this state's time and continue to next state
+                totalRecoveryTime += state.ticks;
+                currentState = state.action;
+            }
+        }
+        
+        // Fallback if we couldn't find a path back to ready
+        if (totalRecoveryTime == 0) {
+            totalRecoveryTime = weapon.getAttackSpeed();
+        }
+        
+        if (debugMode) {
+            System.out.println(">>> Calculated recovery time for " + weapon.getName() + ": " + totalRecoveryTime + " ticks");
+        }
+        
+        return totalRecoveryTime;
     }
     
     /**
@@ -528,6 +633,56 @@ public class CombatResolver {
     }
     
     /**
+     * Calculate defense success for melee attacks (DevCycle 23)
+     */
+    private boolean calculateDefenseSuccess(Unit defender, MeleeWeapon attackerWeapon, long defendTick) {
+        combat.Character character = defender.character;
+        MeleeWeapon defenderWeapon = character.meleeWeapon;
+        
+        // Base defense chance: 50%
+        double baseChance = 50.0;
+        
+        // Add dexterity modifier
+        int dexModifier = GameConstants.statToModifier(character.dexterity);
+        
+        // Add weapon skill bonus (+5 per skill level)
+        int skillBonus = 0;
+        if (defenderWeapon != null) {
+            skillBonus = calculateMeleeSkillBonus(defender, defenderWeapon);
+        }
+        
+        // Add weapon defend score bonus (divided by 2 as per spec)
+        int defendScoreBonus = 0;
+        if (defenderWeapon != null) {
+            defendScoreBonus = defenderWeapon.getDefendScore() / 2;
+        }
+        
+        // Calculate total defense chance
+        double totalChance = baseChance + dexModifier + skillBonus + defendScoreBonus;
+        
+        if (debugMode) {
+            System.out.println("=== DEFENSE CALCULATION DEBUG ===");
+            System.out.println("Defender: " + character.getDisplayName());
+            System.out.println("Base Chance: " + baseChance + "%");
+            System.out.println("Dexterity (" + character.dexterity + "): " + (dexModifier >= 0 ? "+" : "") + dexModifier + "%");
+            System.out.println("Weapon Skill Bonus: +" + skillBonus + "%");
+            System.out.println("Weapon Defend Score (" + (defenderWeapon != null ? defenderWeapon.getDefendScore() : 0) + " / 2): +" + defendScoreBonus + "%");
+            System.out.println("Total Defense Chance: " + totalChance + "%");
+        }
+        
+        // Roll for defense success
+        double roll = Math.random() * 100;
+        boolean success = roll < totalChance;
+        
+        if (debugMode) {
+            System.out.println("Defense Roll: " + String.format("%.1f", roll) + " vs " + String.format("%.1f", totalChance) + " = " + (success ? "SUCCESS" : "FAILURE"));
+            System.out.println("=================================");
+        }
+        
+        return success;
+    }
+    
+    /**
      * Get movement penalty based on character's current movement
      */
     private int getMovementPenalty(combat.Character character) {
@@ -580,5 +735,67 @@ public class CombatResolver {
         }
         
         return edgeToEdge <= pixelRange;
+    }
+    
+    /**
+     * Schedule automatic counter-attack after successful defense (DevCycle 23)
+     * TEMPORARILY DISABLED - counter-attacks are not being scheduled
+     */
+    private void scheduleCounterAttack(Unit defender, Unit originalAttacker, long defenseTick) {
+        // TEMPORARILY DISABLED: Return immediately without scheduling counter-attacks
+        return;
+        
+        /*
+        if (!defender.character.hasCounterAttack(defenseTick)) {
+            return; // No counter-attack opportunity
+        }
+        
+        MeleeWeapon weapon = defender.character.meleeWeapon;
+        if (weapon == null) {
+            return; // No melee weapon to counter with
+        }
+        
+        // Check if in melee range
+        if (!isInMeleeRange(defender, originalAttacker, weapon)) {
+            return; // Target moved out of range
+        }
+        
+        // Calculate counter-attack timing (50% faster than normal)
+        int normalAttackTime = weapon.getAttackSpeed();
+        int counterAttackTime = (int)(normalAttackTime * 0.5);
+        long counterAttackTick = defenseTick + counterAttackTime;
+        
+        // Set defense state to COOLDOWN during counter-attack
+        defender.character.setDefenseState(DefenseState.COOLDOWN);
+        
+        if (debugMode) {
+            System.out.println(">>> Scheduling counter-attack by " + defender.character.getDisplayName() + 
+                             " at tick " + counterAttackTick + " (normal: " + normalAttackTime + 
+                             " ticks, counter: " + counterAttackTime + " ticks)");
+        }
+        
+        // Schedule the counter-attack
+        eventQueue.add(new ScheduledEvent(counterAttackTick, () -> {
+            // Clear counter-attack opportunity
+            defender.character.clearCounterAttack();
+            
+            // Track counter-attack execution
+            defender.character.counterAttacksExecuted++;
+            
+            // Store current successful attacks to check if counter-attack succeeds
+            int beforeSuccessful = defender.character.meleeAttacksSuccessful;
+            
+            // Execute counter-attack
+            resolveMeleeAttack(defender, originalAttacker, weapon, counterAttackTick);
+            
+            // Check if counter-attack was successful
+            if (defender.character.meleeAttacksSuccessful > beforeSuccessful) {
+                defender.character.counterAttacksSuccessful++;
+            }
+            
+            // Weapon returns to ready state after attack
+            defender.character.currentWeaponState = new WeaponState("melee_ready", "idle", 0);
+        }, defender.character.id));
+        */
     }
 }

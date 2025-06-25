@@ -81,6 +81,12 @@ public class Character implements ICharacter {
     public int victories = 0;                   // Manual tracking - updated after victories
     public int defeats = 0;                     // Manual tracking - updated after defeats
     
+    // Defensive Statistics (DevCycle 23)
+    public int defensiveAttempts = 0;           // Auto-updated when defense is attempted
+    public int defensiveSuccesses = 0;          // Auto-updated when defense succeeds
+    public int counterAttacksExecuted = 0;      // Auto-updated when counter-attacks are performed
+    public int counterAttacksSuccessful = 0;    // Auto-updated when counter-attacks hit
+    
     // Automatic firing state
     public boolean isAutomaticFiring = false;   // Currently in automatic firing mode
     public int burstShotsFired = 0;             // Number of shots fired in current burst
@@ -90,6 +96,10 @@ public class Character implements ICharacter {
     public long lastContinueAttackTick = -1;    // Tick when last continue attack was scheduled (prevents duplicates)
     public boolean isReloading = false;         // Currently reloading weapon (prevents duplicate reloads)
     public AimingSpeed savedAimingSpeed = null; // Saved aiming speed for first shot in burst/auto
+    
+    // Melee Attack Recovery (Bug #1 fix)
+    public long lastMeleeAttackTick = -1;       // Tick when last melee attack was executed
+    public long meleeRecoveryEndTick = -1;      // Tick when melee recovery period ends
     
     // Hesitation state
     public boolean isHesitating = false;        // Currently hesitating due to wound
@@ -118,6 +128,12 @@ public class Character implements ICharacter {
     public boolean isMovingToMelee = false; // Currently moving to engage target in melee combat
     public IUnit meleeTarget = null; // Target unit for melee attack (maintained during movement)
     private long lastMeleeMovementUpdate = 0; // Last tick when melee movement was updated (for throttling)
+    
+    // Defense state tracking (DevCycle 23)
+    private DefenseState currentDefenseState = DefenseState.READY; // Current defensive state
+    private long defenseCooldownEndTick = 0; // When defense cooldown will end
+    private long counterAttackWindowEndTick = 0; // When counter-attack window expires
+    private boolean hasCounterAttackOpportunity = false; // True when character can counter-attack
 
     // Legacy constructors for backwards compatibility with tests
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
@@ -1370,6 +1386,10 @@ public class Character implements ICharacter {
         } else if ("switching_to_melee".equals(stateName)) {
             System.out.println("[MELEE-STATE] " + getDisplayName() + " switching to melee ready (" + currentState.ticks + " ticks)");
             scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
+        } else if ("melee_attacking".equals(stateName)) {
+            // Already attacking - cannot start another attack until current one completes
+            System.out.println("[MELEE-STATE] " + getDisplayName() + " is already attacking - skipping new attack request");
+            return;
         } else {
             // For any other state (like "slung"), go directly to sheathed state first
             System.out.println("[MELEE-STATE] " + getDisplayName() + " transitioning from " + stateName + " to sheathed (immediate)");
@@ -2976,5 +2996,113 @@ public class Character implements ICharacter {
      */
     public int getCombinedWoundsInflicted() {
         return rangedWoundsInflicted + meleeWoundsInflicted;
+    }
+    
+    // Defense state methods (DevCycle 23)
+    
+    /**
+     * Gets the current defense state
+     * @return Current DefenseState
+     */
+    public DefenseState getDefenseState() {
+        return currentDefenseState;
+    }
+    
+    /**
+     * Sets the defense state
+     * @param state New defense state
+     */
+    public void setDefenseState(DefenseState state) {
+        this.currentDefenseState = state;
+    }
+    
+    /**
+     * Checks if character can defend (not in cooldown or mid-counter-attack)
+     * @return true if character can defend
+     */
+    public boolean canDefend(long currentTick) {
+        return currentDefenseState == DefenseState.READY && currentTick >= defenseCooldownEndTick;
+    }
+    
+    /**
+     * Starts defense cooldown
+     * @param cooldownTicks Duration of cooldown in ticks
+     * @param currentTick Current game tick
+     */
+    public void startDefenseCooldown(int cooldownTicks, long currentTick) {
+        currentDefenseState = DefenseState.COOLDOWN;
+        defenseCooldownEndTick = currentTick + cooldownTicks;
+    }
+    
+    /**
+     * Updates defense state based on current tick
+     * @param currentTick Current game tick
+     */
+    public void updateDefenseState(long currentTick) {
+        if (currentDefenseState == DefenseState.COOLDOWN && currentTick >= defenseCooldownEndTick) {
+            currentDefenseState = DefenseState.READY;
+        }
+        
+        // Clear counter-attack opportunity if window expired
+        if (hasCounterAttackOpportunity && currentTick >= counterAttackWindowEndTick) {
+            hasCounterAttackOpportunity = false;
+        }
+    }
+    
+    /**
+     * Grants a counter-attack opportunity
+     * @param windowDurationTicks Duration of counter-attack window in ticks
+     * @param currentTick Current game tick
+     */
+    public void grantCounterAttackOpportunity(int windowDurationTicks, long currentTick) {
+        hasCounterAttackOpportunity = true;
+        counterAttackWindowEndTick = currentTick + windowDurationTicks;
+    }
+    
+    /**
+     * Checks if character has an active counter-attack opportunity
+     * @param currentTick Current game tick
+     * @return true if counter-attack is available
+     */
+    public boolean hasCounterAttack(long currentTick) {
+        return hasCounterAttackOpportunity && currentTick < counterAttackWindowEndTick;
+    }
+    
+    /**
+     * Clears counter-attack opportunity (used when counter-attack is executed)
+     */
+    public void clearCounterAttack() {
+        hasCounterAttackOpportunity = false;
+    }
+    
+    /**
+     * Checks if character can perform a melee attack (not in recovery from previous attack)
+     * Fix for Bug #1: Rapid Consecutive Melee Attacks
+     * @param currentTick Current game tick
+     * @return true if character can attack (recovery period has ended)
+     */
+    public boolean canMeleeAttack(long currentTick) {
+        return currentTick >= meleeRecoveryEndTick;
+    }
+    
+    /**
+     * Starts melee attack recovery period
+     * Fix for Bug #1: Rapid Consecutive Melee Attacks
+     * @param recoveryTicks Duration of recovery in ticks
+     * @param currentTick Current game tick when attack was executed
+     */
+    public void startMeleeRecovery(int recoveryTicks, long currentTick) {
+        lastMeleeAttackTick = currentTick;
+        meleeRecoveryEndTick = currentTick + recoveryTicks;
+    }
+    
+    /**
+     * Updates melee recovery state based on current tick
+     * Fix for Bug #1: Rapid Consecutive Melee Attacks
+     * @param currentTick Current game tick
+     */
+    public void updateMeleeRecovery(long currentTick) {
+        // Recovery tracking is passive - no active updates needed
+        // Characters can attack again when currentTick >= meleeRecoveryEndTick
     }
 }
