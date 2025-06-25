@@ -162,6 +162,9 @@ public class MeleeWeaponFactory {
             weapon.setWoundDescription(data.woundDescription);
         }
         
+        // Set defense cooldown (DevCycle 23)
+        weapon.setDefenseCooldown(data.defenseCooldown);
+        
         // Load weapon states from the weapon type definition (critical for melee combat state management)
         WeaponType weaponType = getWeaponTypeForMeleeType(data.meleeType);
         WeaponTypeData weaponTypeData = dataManager.getWeaponType(weaponType);

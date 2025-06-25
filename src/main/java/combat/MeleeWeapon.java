@@ -14,6 +14,7 @@ public class MeleeWeapon extends Weapon {
     private int readyingTime; // ticks to ready weapon
     private boolean isOneHanded; // true for one-handed weapons
     private boolean isMeleeVersionOfRanged; // true if melee version of ranged weapon
+    private int defenseCooldown = 60; // DevCycle 23: ticks before next defense attempt (default 60)
 
     public MeleeWeapon(String weaponId, String name, int damage, String soundFile, MeleeWeaponType meleeType, 
                        int defendScore, int attackSpeed, int attackCooldown, double weaponLength, 
@@ -152,6 +153,20 @@ public class MeleeWeapon extends Weapon {
     
     public void setMeleeVersionOfRanged(boolean isMeleeVersionOfRanged) {
         this.isMeleeVersionOfRanged = isMeleeVersionOfRanged;
+    }
+    
+    /**
+     * Get defense cooldown in ticks (DevCycle 23)
+     */
+    public int getDefenseCooldown() {
+        return defenseCooldown;
+    }
+    
+    /**
+     * Set defense cooldown in ticks (DevCycle 23)
+     */
+    public void setDefenseCooldown(int defenseCooldown) {
+        this.defenseCooldown = Math.max(0, defenseCooldown);
     }
     
     /**

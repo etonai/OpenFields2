@@ -71,6 +71,33 @@
       "effectType": "SOCIAL",
       "effectValue": 1.0,
       "appliesTo": []
+    },
+    "skl_knife": {
+      "id": "skl_knife",
+      "name": "Knife",
+      "description": "Proficiency with knives and short bladed weapons",
+      "maxLevel": 10,
+      "effectType": "WEAPON_ACCURACY",
+      "effectValue": 5.0,
+      "appliesTo": ["MELEE_SHORT", "MELEE_MEDIUM"]
+    },
+    "skl_tomahawk": {
+      "id": "skl_tomahawk",
+      "name": "Tomahawk",
+      "description": "Proficiency with tomahawks and hand axes",
+      "maxLevel": 10,
+      "effectType": "WEAPON_ACCURACY",
+      "effectValue": 5.0,
+      "appliesTo": ["MELEE_MEDIUM"]
+    },
+    "skl_rifle_melee": {
+      "id": "skl_rifle_melee",
+      "name": "Rifle (Melee)",
+      "description": "Using rifles as melee weapons, including bayonet fighting",
+      "maxLevel": 10,
+      "effectType": "WEAPON_ACCURACY",
+      "effectValue": 5.0,
+      "appliesTo": ["MELEE_LONG"]
     }
   }
 }

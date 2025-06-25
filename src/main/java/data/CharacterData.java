@@ -131,6 +131,32 @@ public class CharacterData {
     @JsonProperty("defeats")
     public int defeats = 0;
     
+    // Defensive Statistics (DevCycle 23)
+    @JsonProperty("defensiveAttempts")
+    public int defensiveAttempts = 0;
+    
+    @JsonProperty("defensiveSuccesses")
+    public int defensiveSuccesses = 0;
+    
+    @JsonProperty("counterAttacksExecuted")
+    public int counterAttacksExecuted = 0;
+    
+    @JsonProperty("counterAttacksSuccessful")
+    public int counterAttacksSuccessful = 0;
+    
+    // Defense state fields (DevCycle 23)
+    @JsonProperty("currentDefenseState")
+    public String currentDefenseState = "READY";
+    
+    @JsonProperty("defenseCooldownEndTick")
+    public long defenseCooldownEndTick = 0;
+    
+    @JsonProperty("counterAttackWindowEndTick")
+    public long counterAttackWindowEndTick = 0;
+    
+    @JsonProperty("hasCounterAttackOpportunity")
+    public boolean hasCounterAttackOpportunity = false;
+    
     public CharacterData() {
         // Default constructor for Jackson
         this.skills = new ArrayList<>();

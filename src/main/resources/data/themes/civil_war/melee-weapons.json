@@ -15,6 +15,8 @@
       "readyingTime": 45,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseCooldown": 60,
+      "combatSkill": "skl_knife",
       "woundDescription": "knife strike",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -39,6 +41,8 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseCooldown": 60,
+      "combatSkill": "skl_knife",
       "woundDescription": "sabre slash",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -63,6 +67,8 @@
       "readyingTime": 90,
       "isOneHanded": false,
       "isMeleeVersionOfRanged": true,
+      "defenseCooldown": 60,
+      "combatSkill": "skl_rifle_melee",
       "woundDescription": "bayonet thrust",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -87,6 +93,8 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseCooldown": 60,
+      "combatSkill": "skl_tomahawk",
       "woundDescription": "tomahawk strike",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -111,6 +119,8 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseCooldown": 60,
+      "combatSkill": "skl_knife",
       "woundDescription": "officer's blade",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},

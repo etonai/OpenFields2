@@ -47,6 +47,9 @@ public class MeleeWeaponData {
     @JsonProperty("isMeleeVersionOfRanged")
     public boolean isMeleeVersionOfRanged;
     
+    @JsonProperty("defenseCooldown")
+    public int defenseCooldown = 60; // DevCycle 23: default 60 ticks
+    
     @JsonProperty("woundDescription")
     public String woundDescription; // Renamed from projectileName (DevCycle 17)
     

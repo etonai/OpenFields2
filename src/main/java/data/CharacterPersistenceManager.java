@@ -193,6 +193,12 @@ public class CharacterPersistenceManager {
         data.victories = character.victories;
         data.defeats = character.defeats;
         
+        // Defensive statistics (DevCycle 23)
+        data.defensiveAttempts = character.defensiveAttempts;
+        data.defensiveSuccesses = character.defensiveSuccesses;
+        data.counterAttacksExecuted = character.counterAttacksExecuted;
+        data.counterAttacksSuccessful = character.counterAttacksSuccessful;
+        
         // Skills
         if (character.skills != null) {
             for (combat.Skill skill : character.skills) {
@@ -210,6 +216,11 @@ public class CharacterPersistenceManager {
                 ));
             }
         }
+        
+        // Defense state (DevCycle 23)
+        data.currentDefenseState = character.getDefenseState().name();
+        // Note: We don't save defense cooldown times or counter-attack windows
+        // as these are transient combat states that shouldn't persist
         
         return data;
     }
@@ -251,6 +262,12 @@ public class CharacterPersistenceManager {
         character.victories = data.victories;
         character.defeats = data.defeats;
         
+        // Set defensive statistics (DevCycle 23)
+        character.defensiveAttempts = data.defensiveAttempts;
+        character.defensiveSuccesses = data.defensiveSuccesses;
+        character.counterAttacksExecuted = data.counterAttacksExecuted;
+        character.counterAttacksSuccessful = data.counterAttacksSuccessful;
+        
         // Set skills
         if (data.skills != null) {
             for (CharacterData.SkillData skillData : data.skills) {
@@ -268,6 +285,17 @@ public class CharacterPersistenceManager {
                 } catch (IllegalArgumentException e) {
                     System.err.println("Warning: Invalid wound data - " + e.getMessage());
                 }
+            }
+        }
+        
+        // Set defense state (DevCycle 23)
+        if (data.currentDefenseState != null) {
+            try {
+                combat.DefenseState defenseState = combat.DefenseState.valueOf(data.currentDefenseState);
+                character.setDefenseState(defenseState);
+            } catch (IllegalArgumentException e) {
+                // Default to READY if invalid state
+                character.setDefenseState(combat.DefenseState.READY);
             }
         }
         
