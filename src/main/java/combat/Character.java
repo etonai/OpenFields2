@@ -13,12 +13,22 @@ import java.util.List;
 import java.util.Date;
 
 public class Character implements ICharacter {
+    
+    // ========================================
+    // IDENTITY AND BASIC ATTRIBUTES
+    // ========================================
+    
+    /** Character unique identifier */
     public int id;
+    
+    /** Character display name and identity */
     public String nickname;
     public String firstName;
     public String lastName;
     public Date birthdate;
     public String themeId;
+    
+    /** Core character attributes and current state */
     public int dexterity;
     public int currentDexterity;
     public int health;
@@ -26,110 +36,166 @@ public class Character implements ICharacter {
     public int coolness;
     public int strength;
     public int reflexes;
+    
+    /** Physical characteristics */
     public Handedness handedness;
     public double baseMovementSpeed;
+    
+    // ========================================
+    // MOVEMENT AND POSITIONING STATE
+    // ========================================
+    
+    /** Current movement configuration */
     public MovementType currentMovementType;
     public AimingSpeed currentAimingSpeed;
     public PositionState currentPosition;
+    
+    // ========================================
+    // WEAPON AND COMBAT STATE
+    // ========================================
+    
+    /** Weapon management */
     public Weapon weapon; // Legacy field - will become rangedWeapon
     public RangedWeapon rangedWeapon; // Primary ranged weapon
     public MeleeWeapon meleeWeapon; // Primary melee weapon
     public boolean isMeleeCombatMode = false; // True when in melee combat mode
     public WeaponState currentWeaponState;
+    
+    /** Combat targeting and state */
     public IUnit currentTarget;
     public boolean persistentAttack;
     public boolean isAttacking;
+    
+    /** Character configuration */
     public int faction;
     public boolean usesAutomaticTargeting;
     public FiringMode preferredFiringMode;
     
-    // Auto-targeting debug throttling
-    private static boolean autoTargetDebugVisible = false; // Master flag to show/hide ALL auto-target debug messages
-    private static boolean autoTargetDebugEnabled = false; // Set to true to enable verbose auto-target debugging
-    private long lastAutoTargetDebugTick = -1;
+    // ========================================
+    // SKILLS AND WOUNDS
+    // ========================================
+    
+    /** Character skills and abilities */
     public List<Skill> skills;
+    
+    /** Current wounds and injuries */
     public List<Wound> wounds;
     
-    // Combat Experience Tracking
+    // ========================================
+    // DEBUG AND SYSTEM STATE
+    // ========================================
+    
+    /** Auto-targeting debug throttling */
+    private static boolean autoTargetDebugVisible = false; // Master flag to show/hide ALL auto-target debug messages
+    private static boolean autoTargetDebugEnabled = false; // Set to true to enable verbose auto-target debugging
+    public long lastAutoTargetDebugTick = -1;
+    
+    // ========================================
+    // COMBAT STATISTICS TRACKING
+    // ========================================
+    
+    /** General combat experience tracking */
     public int combatEngagements = 0;           // Manual tracking (no auto-update yet)
     public int woundsReceived = 0;              // Auto-updated when addWound() called
-    public int woundsInflictedScratch = 0;      // Auto-updated on successful hits
-    public int woundsInflictedLight = 0;        // Auto-updated on successful hits  
-    public int woundsInflictedSerious = 0;      // Auto-updated on successful hits
-    public int woundsInflictedCritical = 0;     // Auto-updated on successful hits
+    
+    /** General attack statistics */
     public int attacksAttempted = 0;            // Auto-updated when attacks are attempted
     public int attacksSuccessful = 0;           // Auto-updated when attacks hit
     public int targetsIncapacitated = 0;        // Auto-updated when targets become incapacitated
     
-    // Separate Ranged Combat Tracking (DevCycle 12)
+    /** Wound infliction by severity */
+    public int woundsInflictedScratch = 0;      // Auto-updated on successful hits
+    public int woundsInflictedLight = 0;        // Auto-updated on successful hits  
+    public int woundsInflictedSerious = 0;      // Auto-updated on successful hits
+    public int woundsInflictedCritical = 0;     // Auto-updated on successful hits
+    
+    /** Ranged combat tracking (DevCycle 12) */
     public int rangedAttacksAttempted = 0;      // Auto-updated when ranged attacks are attempted
     public int rangedAttacksSuccessful = 0;     // Auto-updated when ranged attacks hit
     public int rangedWoundsInflicted = 0;       // Auto-updated when ranged attacks cause wounds
     
-    // Separate Melee Combat Tracking (DevCycle 12)
+    /** Melee combat tracking (DevCycle 12) */
     public int meleeAttacksAttempted = 0;       // Auto-updated when melee attacks are attempted
     public int meleeAttacksSuccessful = 0;      // Auto-updated when melee attacks hit
     public int meleeWoundsInflicted = 0;        // Auto-updated when melee attacks cause wounds
     
-    // Headshot Statistics
+    /** Headshot statistics */
     public int headshotsAttempted = 0;          // Auto-updated when attacks target the head
     public int headshotsSuccessful = 0;         // Auto-updated when headshots hit
     public int headshotsKills = 0;              // Auto-updated when headshots result in kills
     
-    // Battle outcome statistics
+    /** Battle outcome statistics */
     public int battlesParticipated = 0;         // Manual tracking - updated after battles
     public int victories = 0;                   // Manual tracking - updated after victories
     public int defeats = 0;                     // Manual tracking - updated after defeats
     
-    // Defensive Statistics (DevCycle 23)
+    /** Defensive statistics (DevCycle 23) */
     public int defensiveAttempts = 0;           // Auto-updated when defense is attempted
     public int defensiveSuccesses = 0;          // Auto-updated when defense succeeds
     public int counterAttacksExecuted = 0;      // Auto-updated when counter-attacks are performed
     public int counterAttacksSuccessful = 0;    // Auto-updated when counter-attacks hit
     
-    // Automatic firing state
+    // ========================================
+    // AUTOMATIC FIRING STATE
+    // ========================================
+    
+    /** Burst and full-auto firing state */
     public boolean isAutomaticFiring = false;   // Currently in automatic firing mode
     public int burstShotsFired = 0;             // Number of shots fired in current burst
     public long lastAutomaticShot = 0;          // Tick of last automatic shot
-    public long lastAttackScheduledTick = -1;   // Tick when last attack sequence was scheduled (prevents duplicates)
-    public long lastFiringScheduledTick = -1;   // Tick when last firing event was scheduled (prevents duplicate projectiles)
-    public long lastContinueAttackTick = -1;    // Tick when last continue attack was scheduled (prevents duplicates)
+    
+    /** Attack scheduling prevention (prevents duplicates) */
+    public long lastAttackScheduledTick = -1;   // Tick when last attack sequence was scheduled
+    public long lastFiringScheduledTick = -1;   // Tick when last firing event was scheduled
+    public long lastContinueAttackTick = -1;    // Tick when last continue attack was scheduled
+    
+    /** Weapon state management */
     public boolean isReloading = false;         // Currently reloading weapon (prevents duplicate reloads)
     public AimingSpeed savedAimingSpeed = null; // Saved aiming speed for first shot in burst/auto
     
-    // Melee Attack Recovery (Bug #1 fix)
+    // ========================================
+    // HESITATION AND RECOVERY SYSTEMS
+    // ========================================
+    
+    /** Melee attack recovery (Bug #1 fix) */
     public long lastMeleeAttackTick = -1;       // Tick when last melee attack was executed
     public long meleeRecoveryEndTick = -1;      // Tick when melee recovery period ends
     
-    // Hesitation state
+    /** Hesitation state management */
     public boolean isHesitating = false;        // Currently hesitating due to wound
     public long hesitationEndTick = 0;          // When hesitation will end
     public List<ScheduledEvent> pausedEvents = new ArrayList<>(); // Events paused during hesitation
     
-    // Bravery check state
+    /** Bravery check system */
     public int braveryCheckFailures = 0;        // Number of active bravery check failures
     public long braveryPenaltyEndTick = 0;      // When bravery penalty will end
     
-    // Hesitation tracking for display
+    /** Hesitation tracking for display and statistics */
     public long totalWoundHesitationTicks = 0;   // Total hesitation time from wounds
     public long totalBraveryHesitationTicks = 0; // Total hesitation time from bravery failures
     
-    // Target zone for automatic targeting
-    public java.awt.Rectangle targetZone = null; // Target zone rectangle in world coordinates
+    // ========================================
+    // AI TARGETING AND MOVEMENT STATE
+    // ========================================
     
-    // Last target direction for weapon visibility when no current target
+    /** Automatic targeting system */
+    public java.awt.Rectangle targetZone = null; // Target zone rectangle in world coordinates
     public Double lastTargetFacing = null; // Last direction character was aiming (degrees)
     
-    // First attack penalty system - track target changes for accuracy penalty
+    /** First attack penalty system - track target changes for accuracy penalty */
     public IUnit previousTarget = null; // Track previous target to detect target changes
     public boolean isFirstAttackOnTarget = true; // True if this is the first attack on current target
     
-    // Melee movement state tracking
+    /** Melee movement state tracking */
     public boolean isMovingToMelee = false; // Currently moving to engage target in melee combat
     public IUnit meleeTarget = null; // Target unit for melee attack (maintained during movement)
     private long lastMeleeMovementUpdate = 0; // Last tick when melee movement was updated (for throttling)
     
-    // Defense state tracking (DevCycle 23)
+    // ========================================
+    // DEFENSE SYSTEM STATE (DevCycle 23)
+    // ========================================
+    
+    /** Defense state management */
     private DefenseState currentDefenseState = DefenseState.READY; // Current defensive state
     private long defenseCooldownEndTick = 0; // When defense cooldown will end
     private long counterAttackWindowEndTick = 0; // When counter-attack window expires
