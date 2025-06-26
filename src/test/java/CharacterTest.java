@@ -2,7 +2,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import combat.Character;
-import combat.Weapon;
+import combat.RangedWeapon;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,9 +27,9 @@ public class CharacterTest {
         assertEquals(42.0, bart.getBaseMovementSpeed());
         assertNull(bart.getWeapon());
 
-        bart.weapon = new Weapon("Airsoft Pistol", 350.0, 1, 20, "test.wav", 100.0, 0, "pellet");
+        bart.weapon = new RangedWeapon("airsoft_pistol", "Airsoft Pistol", 350.0, 1, 20, "test.wav", 100.0, 0, "pellet");
         assertEquals("Airsoft Pistol", bart.getWeapon().getName());
-        assertEquals(350.0, bart.getWeapon().getVelocityFeetPerSecond());
+        assertEquals(350.0, ((RangedWeapon)bart.getWeapon()).getVelocityFeetPerSecond());
         assertEquals(1, bart.getWeapon().getDamage());
     }
 
