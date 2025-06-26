@@ -42,10 +42,10 @@ public class OpenFields2Main {
         // Configure auto-targeting debug visibility (command line overrides config file)
         boolean autoTargetDebug = hasFlag(args, "--auto-target-debug");
         if (autoTargetDebug) {
-            Character.setAutoTargetDebugVisible(true);
+            combat.CharacterDebugUtils.setAutoTargetDebugVisible(true);
             // Also check for verbose flag
             boolean verbose = hasFlag(args, "--auto-target-verbose");
-            Character.setAutoTargetDebugEnabled(verbose);
+            combat.CharacterDebugUtils.setAutoTargetDebugEnabled(verbose);
         }
         
         if ("console".equals(platformName) || useNewEngine) {
