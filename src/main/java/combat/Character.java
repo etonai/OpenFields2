@@ -1493,8 +1493,8 @@ public class Character implements ICharacter {
                         long nextShotTick = fireTick + (((RangedWeapon)weapon).getFiringDelay() * (shot - 1));
                         final int shotNumber = shot;
                         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
-                            // Continue burst even if target dies (fires at corpse), but stop if shooter incapacitated or out of ammo
-                            if (currentTarget != null && !this.isIncapacitated() && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
+                            // DC-24: Continue burst even if target dies (fires at corpse) or shooter incapacitated, but stop if out of ammo
+                            if (currentTarget != null && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
                                 ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
                                 burstShotsFired++;
                                 String targetStatus = currentTarget.getCharacter().isIncapacitated() ? " at incapacitated target" : "";
@@ -2614,7 +2614,8 @@ public class Character implements ICharacter {
         // Schedule next shot at firing delay
         long nextShotTick = currentTick + ((RangedWeapon)weapon).getFiringDelay();
         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
-            if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated()) {
+            // DC-24: Continue full-auto even if shooter incapacitated (but not if target incapacitated)
+            if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated()) {
                 System.out.println(getDisplayName() + " continues full-auto firing at " + currentTarget.getCharacter().getDisplayName() + " (shot " + (burstShotsFired + 1) + ")");
                 lastAutomaticShot = nextShotTick;
                 isAttacking = true;
