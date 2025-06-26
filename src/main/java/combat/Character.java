@@ -22,6 +22,8 @@ public class Character implements ICharacter {
     public int id;
     
     /** Character display name and identity */
+
+
     public String nickname;
     public String firstName;
     public String lastName;
@@ -656,7 +658,6 @@ public class Character implements ICharacter {
         // Cancel any ongoing attacks when switching modes
         if (isAttacking) {
             isAttacking = false;
-            CharacterDebugUtils.debugPrint("[COMBAT-MODE] Cancelled ongoing attack due to mode switch");
         }
         
         boolean oldMode = isMeleeCombatMode;
@@ -1258,30 +1259,25 @@ public class Character implements ICharacter {
         if (isMeleeCombatMode) {
             // Melee mode - ready the melee weapon
             if (meleeWeapon == null) {
-                CharacterDebugUtils.debugPrint("[WEAPON-READY] " + getDisplayName() + " no melee weapon equipped");
                 return;
             }
             
             // Initialize weapon state if needed for melee weapon
             if (currentWeaponState == null) {
                 currentWeaponState = meleeWeapon.getInitialState();
-                CharacterDebugUtils.debugPrint("[WEAPON-READY] " + getDisplayName() + " initializing melee weapon state to: " + currentWeaponState.getState());
             }
         } else {
             // Ranged mode - ready the ranged weapon
             if (weapon == null) {
-                CharacterDebugUtils.debugPrint("[WEAPON-READY] " + getDisplayName() + " no ranged weapon equipped");
                 return;
             }
             
             // Initialize weapon state if needed for ranged weapon
             if (currentWeaponState == null) {
                 currentWeaponState = weapon.getInitialState();
-                CharacterDebugUtils.debugPrint("[WEAPON-READY] " + getDisplayName() + " initializing ranged weapon state to: " + currentWeaponState.getState());
             }
         }
         
-        CharacterDebugUtils.debugPrint("[WEAPON-READY] " + getDisplayName() + " starting weapon ready sequence from state: " + currentWeaponState.getState());
         scheduleReadyFromCurrentState(unit, currentTick, eventQueue, ownerId);
     }
     
@@ -1290,30 +1286,17 @@ public class Character implements ICharacter {
      * Start melee attack sequence from current weapon state
      */
     public void startMeleeAttackSequence(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        System.out.println("[MELEE-ATTACK] " + getDisplayName() + " startMeleeAttackSequence called");
-        System.out.println("[MELEE-ATTACK] Current tick: " + currentTick + ", Target: " + target.getCharacter().getDisplayName());
-        
         if (meleeWeapon == null) {
-            System.out.println("[MELEE-ATTACK] FAILED - no melee weapon equipped");
             return;
         }
-        
-        System.out.println("[MELEE-ATTACK] Weapon: " + meleeWeapon.getName() + " (reach: " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet)");
-        System.out.println("[MELEE-ATTACK] Current weapon state: " + (currentWeaponState != null ? currentWeaponState.state : "null"));
-        System.out.println("[MELEE-ATTACK] Is attacking: " + isAttacking);
-        System.out.println("[MELEE-ATTACK] Is incapacitated: " + isIncapacitated());
         
         // Check if target is within melee range using edge-to-edge calculation
         double distance = Math.hypot(target.getX() - attacker.getX(), target.getY() - attacker.getY());
         double distanceFeet = distance / 7.0;
         
-        System.out.println("[MELEE-ATTACK] Distance check: " + String.format("%.2f", distanceFeet) + " feet");
         
         if (!isInMeleeRange(attacker, target, meleeWeapon)) {
             // Target is out of range - move towards target
-            System.out.println("[MELEE-ATTACK] FAILED - target out of range: " + String.format("%.2f", distanceFeet) + " feet (need " + String.format("%.2f", meleeWeapon.getTotalReach()) + " feet)");
-            System.out.println("[MELEE-ATTACK] Initiating movement toward target");
-            System.out.println(getDisplayName() + " moving towards " + target.getCharacter().getDisplayName() + " for melee attack");
             attacker.setTarget(target.getX(), target.getY());
             
             // Schedule a follow-up check to attempt attack once in range
@@ -1321,7 +1304,6 @@ public class Character implements ICharacter {
             return;
         }
         
-        System.out.println("[MELEE-ATTACK] Target in range: " + String.format("%.2f", distanceFeet) + " feet - proceeding with attack");
         
         // Calculate facing direction to target
         double dx = target.getX() - attacker.getX();
@@ -1331,13 +1313,10 @@ public class Character implements ICharacter {
         if (angleDegrees < 0) angleDegrees += 360;
         lastTargetFacing = angleDegrees;
         
-        System.out.println("[MELEE-ATTACK] Facing target at " + String.format("%.1f", angleDegrees) + " degrees");
-        System.out.println("[MELEE-ATTACK] Calling scheduleMeleeAttackFromCurrentState");
         
         // Schedule melee attack from current state
         scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
         
-        System.out.println("[MELEE-ATTACK] scheduleMeleeAttackFromCurrentState call completed");
     }
     
     private void scheduleAttackFromCurrentState(IUnit shooter, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
@@ -1347,7 +1326,6 @@ public class Character implements ICharacter {
         
         // Prevent scheduling attacks if weapon is still firing or recovering
         if ("firing".equals(currentState) || "recovering".equals(currentState)) {
-            CharacterDebugUtils.debugPrint("[SCHEDULE-ATTACK] " + getDisplayName() + " skipping attack scheduling - weapon in " + currentState + " state");
             return;
         }
 
@@ -1383,7 +1361,6 @@ public class Character implements ICharacter {
             
             // Log aiming speed usage for burst/auto modes
             if (isAutomaticFiring && burstShotsFired > 1) {
-                System.out.println(getDisplayName() + " uses " + aimingSpeedToUse.getDisplayName() + " aiming for burst/auto shot " + burstShotsFired);
             }
             
             scheduleFiring(shooter, target, currentTick + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
@@ -1394,10 +1371,7 @@ public class Character implements ICharacter {
      * Schedule melee attack from current weapon state
      */
     private void scheduleMeleeAttackFromCurrentState(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        System.out.println("[MELEE-STATE] " + getDisplayName() + " scheduleMeleeAttackFromCurrentState called");
-        
         if (meleeWeapon == null) {
-            System.out.println("[MELEE-STATE] FAILED - no melee weapon");
             return;
         }
         
@@ -1405,69 +1379,43 @@ public class Character implements ICharacter {
         Weapon activeWeapon = getActiveWeapon();
         WeaponState currentState = currentWeaponState;
         
-        System.out.println("[MELEE-STATE] Active weapon: " + (activeWeapon != null ? activeWeapon.getName() : "null"));
-        System.out.println("[MELEE-STATE] Current weapon state: " + (currentState != null ? currentState.getState() : "null"));
         
         if (currentState == null) {
             // Initialize to weapon's initial state if no current state
             currentState = activeWeapon.getInitialState();
             currentWeaponState = currentState;
-            System.out.println("[MELEE-STATE] " + getDisplayName() + " initializing weapon state to: " + (currentState != null ? currentState.getState() : "null"));
         }
         
         String stateName = currentState != null ? currentState.getState() : "null";
-        System.out.println("[MELEE-STATE] " + getDisplayName() + " current weapon state: " + stateName);
         
         // Handle melee weapon state transitions
         if ("sheathed".equals(stateName)) {
-            System.out.println("[MELEE-STATE] " + getDisplayName() + " unsheathing weapon (" + currentState.ticks + " ticks)");
             scheduleMeleeStateTransition("unsheathing", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
         } else if ("unsheathing".equals(stateName)) {
-            System.out.println("[MELEE-STATE] " + getDisplayName() + " becoming melee ready (" + currentState.ticks + " ticks)");
             scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
         } else if ("melee_ready".equals(stateName)) {
             // Ready to attack - schedule the melee attack
             long attackTime = Math.round(meleeWeapon.getStateBasedAttackSpeed() * calculateAttackSpeedMultiplier());
-            System.out.println("[MELEE-STATE] " + getDisplayName() + " ready to attack - scheduling attack in " + attackTime + " ticks");
             scheduleMeleeAttack(attacker, target, currentTick + attackTime, eventQueue, ownerId, gameCallbacks);
         } else if ("switching_to_melee".equals(stateName)) {
-            System.out.println("[MELEE-STATE] " + getDisplayName() + " switching to melee ready (" + currentState.ticks + " ticks)");
             scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
         } else if ("melee_attacking".equals(stateName)) {
             // Already attacking - cannot start another attack until current one completes
-            System.out.println("[MELEE-STATE] " + getDisplayName() + " is already attacking - skipping new attack request");
             return;
         } else {
             // For any other state (like "slung"), go directly to sheathed state first
-            System.out.println("[MELEE-STATE] " + getDisplayName() + " transitioning from " + stateName + " to sheathed (immediate)");
-            System.out.println("[MELEE-STATE] Available states in " + activeWeapon.getName() + ":");
-            
-            // Debug: list all available states
-            if (activeWeapon.states != null) {
-                for (WeaponState state : activeWeapon.states) {
-                    System.out.println("[MELEE-STATE]   - " + state.state + " (" + state.action + ", " + state.ticks + " ticks)");
-                }
-            } else {
-                System.out.println("[MELEE-STATE]   - NO STATES LOADED");
-            }
             
             WeaponState sheathedState = activeWeapon.getStateByName("sheathed");
             if (sheathedState != null) {
                 currentWeaponState = sheathedState;
-                System.out.println("[MELEE-STATE] Direct transition to sheathed successful, continuing attack sequence");
                 scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
             } else {
-                System.out.println("[MELEE-STATE] ERROR: sheathed state not found, cannot proceed with attack");
-                
                 // Emergency fallback: use any available state or create a simple ready state
                 if (activeWeapon.states != null && !activeWeapon.states.isEmpty()) {
                     WeaponState firstState = activeWeapon.states.get(0);
-                    System.out.println("[MELEE-STATE] Emergency fallback: using first available state: " + firstState.state);
                     currentWeaponState = firstState;
                     scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
                 } else {
-                    System.out.println("[MELEE-STATE] CRITICAL: No states available, creating emergency ready state");
-                    // Create a minimal ready state for attack
                     WeaponState emergencyReady = new WeaponState("melee_ready", "melee_attacking", 15);
                     currentWeaponState = emergencyReady;
                     scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
@@ -1533,7 +1481,6 @@ public class Character implements ICharacter {
                     isAutomaticFiring = true;
                     burstShotsFired = 1; // First shot just fired
                     lastAutomaticShot = fireTick;
-                    System.out.println(getDisplayName() + " starts burst firing (" + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + ") - first shot at tick " + fireTick);
                     
                     // Schedule remaining shots in the burst
                     for (int shot = 2; shot <= ((RangedWeapon)weapon).getBurstSize(); shot++) {
@@ -1545,9 +1492,6 @@ public class Character implements ICharacter {
                                 ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
                                 burstShotsFired++;
                                 String targetStatus = currentTarget.getCharacter().isIncapacitated() ? " at incapacitated target" : "";
-                                System.out.println(getDisplayName() + " burst fires shot " + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + 
-                                                   " at tick " + nextShotTick + " (" + weapon.getProjectileName() + 
-                                                   ", ammo remaining: " + ((RangedWeapon)weapon).getAmmunition() + ")" + targetStatus);
                                 
                                 gameCallbacks.playWeaponSound(weapon);
                                 gameCallbacks.applyFiringHighlight((Unit)shooter, nextShotTick);
@@ -1565,13 +1509,11 @@ public class Character implements ICharacter {
                                 if (burstShotsFired >= ((RangedWeapon)weapon).getBurstSize()) {
                                     isAutomaticFiring = false;
                                     burstShotsFired = 0;
-                                    System.out.println(getDisplayName() + " completes burst firing");
                                 }
                             } else {
                                 // Burst interrupted
                                 isAutomaticFiring = false;
                                 burstShotsFired = 0;
-                                System.out.println(getDisplayName() + " burst firing interrupted (target lost or no ammo)");
                             }
                         }, ownerId));
                     }
@@ -1598,10 +1540,8 @@ public class Character implements ICharacter {
                         // Only call checkContinuousAttack if NOT using persistent attack mode
                         // Persistent attack is handled entirely by continueStandardAttack scheduling
                         if (!persistentAttack) {
-                            CharacterDebugUtils.debugPrint("[SCHEDULE-FIRING] " + getDisplayName() + " calling checkContinuousAttack after attack completion (non-persistent) at tick " + completionTick);
                             checkContinuousAttack(shooter, completionTick, eventQueue, ownerId, gameCallbacks);
                         } else {
-                            CharacterDebugUtils.debugPrint("[SCHEDULE-FIRING] " + getDisplayName() + " skipping checkContinuousAttack - persistent attack mode uses continueStandardAttack scheduling");
                         }
                     }
                 }, ownerId));
@@ -1620,7 +1560,6 @@ public class Character implements ICharacter {
         String currentState = currentWeaponState.getState();
         String targetReadyState = isMeleeCombatMode ? "melee_ready" : "ready";
         
-        CharacterDebugUtils.debugPrint("[WEAPON-READY] " + getDisplayName() + " scheduleReadyFromCurrentState - current: " + currentState + ", target: " + targetReadyState);
         
         if (targetReadyState.equals(currentState)) {
             CharacterDebugUtils.debugPrint(getDisplayName() + " weapon is already ready");
@@ -1735,20 +1674,16 @@ public class Character implements ICharacter {
      * Schedule melee state transition
      */
     private void scheduleMeleeStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit attacker, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        System.out.println("[MELEE-STATE] " + getDisplayName() + " scheduleMeleeStateTransition: " + newStateName + " in " + transitionTickLength + " ticks");
         
         // Apply speed multiplier to weapon preparation states
         if (isWeaponPreparationState(newStateName)) {
             double speedMultiplier = calculateWeaponReadySpeedMultiplier();
             transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
-            System.out.println("[MELEE-STATE] Applied speed multiplier, adjusted to " + transitionTickLength + " ticks");
         }
         
         Weapon activeWeapon = getActiveWeapon();
-        System.out.println("[MELEE-STATE] Looking for state '" + newStateName + "' in weapon: " + (activeWeapon != null ? activeWeapon.getName() : "null"));
         
         WeaponState newState = activeWeapon != null ? activeWeapon.getStateByName(newStateName) : null;
-        System.out.println("[MELEE-STATE] Found state: " + (newState != null ? newState.state : "null"));
         
         if (newState != null) {
             // Create final copies for lambda
@@ -1760,23 +1695,16 @@ public class Character implements ICharacter {
                 System.out.println(getDisplayName() + " melee weapon state: " + finalStateName + " at tick " + finalTick);
                 
                 // Continue the attack sequence
-                System.out.println("[MELEE-STATE] State transition completed, continuing attack sequence");
                 scheduleMeleeAttackFromCurrentState(attacker, target, finalTick, eventQueue, ownerId, gameCallbacks);
             }, ownerId));
             
-            System.out.println("[MELEE-STATE] Scheduled state transition event for tick " + (currentTick + transitionTickLength));
         } else {
-            System.out.println("[MELEE-STATE] ERROR: State '" + newStateName + "' not found in weapon, cannot schedule transition");
-            
             // Fallback: skip to melee_ready state immediately
-            System.out.println("[MELEE-STATE] Fallback: attempting direct transition to melee_ready");
             WeaponState readyState = activeWeapon != null ? activeWeapon.getStateByName("melee_ready") : null;
             if (readyState != null) {
                 currentWeaponState = readyState;
-                System.out.println("[MELEE-STATE] Direct transition to melee_ready successful");
                 scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
             } else {
-                System.out.println("[MELEE-STATE] CRITICAL ERROR: melee_ready state also not found, attack sequence failed");
             }
         }
     }
@@ -2119,54 +2047,33 @@ public class Character implements ICharacter {
     }
     
     public void updateAutomaticTargeting(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
-        // Debug: Always log when this method is called for characters with auto-targeting enabled
-        if (usesAutomaticTargeting) {
-            CharacterDebugUtils.autoTargetDebugPrint(this, "[AUTO-TARGET-ENTRY] " + getDisplayName() + " updateAutomaticTargeting called at tick " + currentTick, currentTick);
-        }
         
         // Only execute if automatic targeting is enabled
         if (!usesAutomaticTargeting) {
-            // Only log this for characters that recently had auto-targeting enabled
-            if (currentTarget != null || persistentAttack) {
-                CharacterDebugUtils.debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: auto-targeting disabled");
-            }
             return;
         }
         
         // Skip if character is incapacitated
         if (this.isIncapacitated()) {
-            CharacterDebugUtils.debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: incapacitated");
             return;
         }
         
         // Skip if character has no weapon
         if (weapon == null) {
-            CharacterDebugUtils.debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: no weapon");
             return;
         }
         
         // Skip if character is already attacking (let existing attack complete)
         if (isAttacking) {
-            CharacterDebugUtils.autoTargetDebugPrint(this, "[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: already attacking (isAttacking=" + isAttacking + 
-                      ", weapon state: " + (currentWeaponState != null ? currentWeaponState.getState() : "null") + 
-                      ", persistentAttack=" + persistentAttack + ")", currentTick);
             return;
         }
         
         // Skip if character is reloading (let reload complete)
         if (isReloading) {
-            CharacterDebugUtils.autoTargetDebugPrint(this, "[AUTO-TARGET-DEBUG] " + getDisplayName() + " skipped: reloading weapon", currentTick);
             return;
         }
         
-        // Additional debug info about current state
-        CharacterDebugUtils.autoTargetDebugPrint(this, "[AUTO-TARGET-STATE] " + getDisplayName() + " state check: isAttacking=" + isAttacking + 
-                  ", weapon state=" + (currentWeaponState != null ? currentWeaponState.getState() : "null") + 
-                  ", persistentAttack=" + persistentAttack + 
-                  ", currentTarget=" + (currentTarget != null ? currentTarget.getCharacter().getDisplayName() : "null"), currentTick);
         
-        CharacterDebugUtils.autoTargetDebugPrint(this, "[AUTO-TARGET-DEBUG] " + getDisplayName() + " executing automatic targeting (current target: " + 
-                             (currentTarget != null ? currentTarget.getCharacter().getDisplayName() : "none") + ")", currentTick);
         
         // Check if current target is still valid
         boolean currentTargetValid = currentTarget != null 
@@ -2174,7 +2081,6 @@ public class Character implements ICharacter {
             && this.isHostileTo(currentTarget.getCharacter());
         
         if (!currentTargetValid) {
-            CharacterDebugUtils.debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " current target invalid, searching for new target...");
             // Find a new target with target zone priority
             IUnit newTarget = findNearestHostileTargetWithZonePriority(selfUnit, gameCallbacks);
             
@@ -2189,13 +2095,9 @@ public class Character implements ICharacter {
                 double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
                 
                 String zoneStatus = (targetZone != null && targetZone.contains((int)newTarget.getX(), (int)newTarget.getY())) ? " (in target zone)" : "";
-                CharacterDebugUtils.autoTargetInfoPrint(this, "[AUTO-TARGET] " + getDisplayName() + " acquired target " + 
-                                 newTarget.getCharacter().getDisplayName() + " at distance " + 
-                                 String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
                 
                 // Start attack sequence - check combat mode to determine attack type
                 if (isMeleeCombatMode() && meleeWeapon != null) {
-                    CharacterDebugUtils.autoTargetDebugPrintAlways(this, "[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
                     // Check if already in melee range
                     double distance = Math.hypot(newTarget.getX() - selfUnit.getX(), newTarget.getY() - selfUnit.getY());
                     double meleeRangePixels = meleeWeapon.getTotalReach() * 7.0; // Convert feet to pixels
@@ -2205,7 +2107,6 @@ public class Character implements ICharacter {
                         startMeleeAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
                     } else {
                         // Move to melee range first
-                        CharacterDebugUtils.autoTargetDebugPrintAlways(this, "[AUTO-TARGET] " + getDisplayName() + " moving to melee range (current distance: " + String.format("%.1f", distance/7.0) + " feet, need: " + meleeWeapon.getTotalReach() + " feet)");
                         // Set melee movement target - the updateMeleeMovement method will handle the attack when in range
                         isMovingToMelee = true;
                         meleeTarget = newTarget;
@@ -2217,7 +2118,6 @@ public class Character implements ICharacter {
                         }
                     }
                 } else {
-                    CharacterDebugUtils.autoTargetDebugPrintAlways(this, "[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
                     startAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
                 }
             } else {
@@ -2231,22 +2131,18 @@ public class Character implements ICharacter {
                         selfUnit.setTargetFacing(lastTargetFacing);
                     }
                     
-                    CharacterDebugUtils.autoTargetInfoPrint(this, "[AUTO-TARGET] " + getDisplayName() + " found no valid targets within range, disabling automatic targeting but maintaining weapon direction");
                 }
             }
         } else {
             // Handle case where we have a valid target but need to initiate/continue attack
-            CharacterDebugUtils.debugPrint("[AUTO-TARGET-VALID] " + getDisplayName() + " has valid target " + currentTarget.getCharacter().getDisplayName() + ", persistentAttack=" + persistentAttack);
             
             // Set persistent attack for auto-targeting continuation if not already set
             if (!persistentAttack) {
                 persistentAttack = true;
-                CharacterDebugUtils.debugPrint("[AUTO-TARGET-VALID] " + getDisplayName() + " setting persistentAttack=true for auto-targeting continuation");
             }
             
             // Only initiate attack sequence if not already in progress
             if (isMovingToMelee || isAttacking) {
-                CharacterDebugUtils.debugPrint("[AUTO-TARGET-VALID] " + getDisplayName() + " attack/movement already in progress - skipping initiation");
                 return;
             }
             
@@ -2256,9 +2152,6 @@ public class Character implements ICharacter {
             double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
             
             String zoneStatus = (targetZone != null && targetZone.contains((int)currentTarget.getX(), (int)currentTarget.getY())) ? " (in target zone)" : "";
-            CharacterDebugUtils.autoTargetInfoPrint(this, "[AUTO-TARGET] " + getDisplayName() + " continuing attack on target " + 
-                             currentTarget.getCharacter().getDisplayName() + " at distance " + 
-                             String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
             
             // Start attack sequence - check combat mode to determine attack type
             if (isMeleeCombatMode() && meleeWeapon != null) {
@@ -2272,7 +2165,6 @@ public class Character implements ICharacter {
                     startMeleeAttackSequence(selfUnit, currentTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
                 } else {
                     // Move to melee range first
-                    CharacterDebugUtils.autoTargetInfoPrint(this, "[AUTO-TARGET] " + getDisplayName() + " moving to melee range (current distance: " + String.format("%.1f", distance/7.0) + " feet, need: " + meleeWeapon.getTotalReach() + " feet)");
                     // Set melee movement target - the updateMeleeMovement method will handle the attack when in range
                     isMovingToMelee = true;
                     meleeTarget = currentTarget;
@@ -2299,31 +2191,25 @@ public class Character implements ICharacter {
     
     private void checkContinuousAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Debug logging for checkContinuousAttack entry
-        CharacterDebugUtils.debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " checkContinuousAttack called - persistentAttack=" + persistentAttack + ", usesAutomaticTargeting=" + usesAutomaticTargeting);
         
         // Continue only if persistent attack is enabled OR auto-targeting is enabled
         if (!persistentAttack && !usesAutomaticTargeting) {
-            CharacterDebugUtils.debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " exiting: neither persistentAttack nor usesAutomaticTargeting enabled");
             return;
         }
         
         // Skip if character is reloading (let reload complete)
         if (isReloading) {
-            CharacterDebugUtils.debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " exiting: reloading weapon");
             return;
         }
         
-        CharacterDebugUtils.debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " proceeding with continuous attack evaluation");
         
         // Handle case where we have auto-targeting enabled but no current target
         if (currentTarget == null) {
             if (usesAutomaticTargeting) {
-                CharacterDebugUtils.debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " no current target but auto-targeting enabled - delegating to updateAutomaticTargeting");
                 // Delegate to the auto-targeting system to find a new target
                 updateAutomaticTargeting(shooter, currentTick, eventQueue, gameCallbacks);
                 return;
             } else {
-                CharacterDebugUtils.debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " no current target and no auto-targeting - exiting");
                 return;
             }
         }
@@ -2438,7 +2324,6 @@ public class Character implements ICharacter {
         // Check if a burst is already in progress from the new burst implementation
         if (isAutomaticFiring) {
             // Burst already in progress from scheduleFiring() method - wait for it to complete
-            System.out.println(getDisplayName() + " burst already in progress (" + burstShotsFired + "/" + ((RangedWeapon)weapon).getBurstSize() + "), waiting for completion");
             
             // Calculate when current burst will complete and schedule next burst
             int remainingShots = ((RangedWeapon)weapon).getBurstSize() - burstShotsFired;
@@ -2456,7 +2341,6 @@ public class Character implements ICharacter {
                 final long finalNextBurstTick = nextBurstTick;
                 eventQueue.add(new ScheduledEvent(finalNextBurstTick, () -> {
                     if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated()) {
-                        System.out.println(getDisplayName() + " starting next burst for auto targeting after " + ((RangedWeapon)weapon).getFiringDelay() + " tick delay");
                         isAttacking = true;
                         startAttackSequence(shooter, currentTarget, finalNextBurstTick, eventQueue, ownerId, gameCallbacks);
                     }
@@ -2467,7 +2351,6 @@ public class Character implements ICharacter {
         
         // No burst in progress - start new attack sequence which will trigger burst via scheduleFiring()
         if (currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated()) {
-            System.out.println(getDisplayName() + " starting new burst attack sequence for auto targeting");
             // Check if we can start new attack sequence without clearing isAttacking flag
             if (isAttacking) {
                 // Already attacking - don't start duplicate sequence
@@ -2476,7 +2359,6 @@ public class Character implements ICharacter {
             }
             startAttackSequence(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
         } else {
-            System.out.println(getDisplayName() + " burst firing cancelled - no valid target");
         }
     }
     
@@ -2497,7 +2379,6 @@ public class Character implements ICharacter {
         eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
             // DC-24: Continue full-auto even if shooter incapacitated (but not if target incapacitated)
             if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated()) {
-                System.out.println(getDisplayName() + " continues full-auto firing at " + currentTarget.getCharacter().getDisplayName() + " (shot " + (burstShotsFired + 1) + ")");
                 lastAutomaticShot = nextShotTick;
                 isAttacking = true;
                 scheduleAttackFromCurrentState(shooter, currentTarget, nextShotTick, eventQueue, ownerId, gameCallbacks);
