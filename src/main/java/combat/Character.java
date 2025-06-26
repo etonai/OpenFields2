@@ -691,25 +691,6 @@ public class Character implements ICharacter {
         }
     }
     
-    /**
-     * Set combat mode explicitly
-     */
-    public void setCombatMode(boolean meleeMode) {
-        // Cancel any ongoing melee movement when switching modes
-        if (isMovingToMelee) {
-            isMovingToMelee = false;
-            meleeTarget = null;
-        }
-        
-        // Cancel any ongoing attacks when switching modes
-        if (isAttacking) {
-            isAttacking = false;
-            CharacterDebugUtils.debugPrint("[COMBAT-MODE] Cancelled ongoing attack due to mode switch");
-        }
-        
-        isMeleeCombatMode = meleeMode;
-    }
-    
     // Legacy methods for backwards compatibility with tests
     public String getName() {
         return nickname;
@@ -1369,7 +1350,9 @@ public class Character implements ICharacter {
             CharacterDebugUtils.debugPrint("[SCHEDULE-ATTACK] " + getDisplayName() + " skipping attack scheduling - weapon in " + currentState + " state");
             return;
         }
-        long totalTimeToFire = calculateTimeToFire();
+
+        // EDTODO: Verify this is no longer needed
+        // long totalTimeToFire = calculateTimeToFire();
         
         if ("holstered".equals(currentState)) {
             scheduleStateTransition("drawing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
@@ -1627,19 +1610,6 @@ public class Character implements ICharacter {
         }, ownerId));
     }
     
-    private long calculateTimeToFire() {
-        String currentState = currentWeaponState.getState();
-        long timeToFire = 0;
-        
-        WeaponState state = currentWeaponState;
-        while (state != null && !"aiming".equals(state.getState())) {
-            timeToFire += state.ticks;
-            state = weapon.getStateByName(state.getAction());
-        }
-        
-        return timeToFire;
-    }
-    
     
     private void scheduleReadyFromCurrentState(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         // Check weapon and state availability for both ranged and melee
@@ -1759,10 +1729,6 @@ public class Character implements ICharacter {
     
     public double getWeaponReadySpeedMultiplier() {
         return calculateWeaponReadySpeedMultiplier();
-    }
-    
-    public double getAimingSpeedMultiplier() {
-        return calculateAimingSpeedMultiplier();
     }
     
     /**
@@ -2029,48 +1995,7 @@ public class Character implements ICharacter {
     public boolean isHostileTo(Character other) {
         return this.faction != other.faction;
     }
-    
-    private IUnit findNearestHostileTarget(IUnit selfUnit, GameCallbacks gameCallbacks) {
-        List<Unit> allUnits = gameCallbacks.getUnits();
-        IUnit nearestTarget = null;
-        double nearestDistance = Double.MAX_VALUE;
-        java.util.Random random = new java.util.Random();
-        
-        for (IUnit unit : allUnits) {
-            // Skip self
-            if (unit == selfUnit) continue;
-            
-            // Skip if not hostile (same faction)
-            if (!this.isHostileTo(unit.getCharacter())) continue;
-            
-            // Skip if incapacitated
-            if (unit.getCharacter().isIncapacitated()) continue;
-            
-            // Calculate distance
-            double dx = unit.getX() - selfUnit.getX();
-            double dy = unit.getY() - selfUnit.getY();
-            double distance = Math.hypot(dx, dy);
-            
-            // Check weapon range limitations
-            if (weapon != null && distance / 7.0 > ((RangedWeapon)weapon).getMaximumRange()) {
-                continue; // Skip targets beyond weapon range
-            }
-            
-            // Check if this is the nearest target
-            if (distance < nearestDistance) {
-                nearestDistance = distance;
-                nearestTarget = unit;
-            } else if (distance == nearestDistance && nearestTarget != null) {
-                // Random selection for equidistant targets
-                if (random.nextBoolean()) {
-                    nearestTarget = unit;
-                }
-            }
-        }
-        
-        return nearestTarget;
-    }
-    
+
     private IUnit findNearestHostileTargetWithZonePriority(IUnit selfUnit, GameCallbacks gameCallbacks) {
         List<Unit> allUnits = gameCallbacks.getUnits();
         CharacterDebugUtils.debugPrint("[AUTO-TARGET-DEBUG] " + getDisplayName() + " searching " + allUnits.size() + " units for targets...");
@@ -2372,8 +2297,6 @@ public class Character implements ICharacter {
         MeleeCombatManager.updateMeleeMovement(this, selfUnit, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
     }
     
-    // updateApproachPath and cancelMeleeMovement methods removed - functionality moved to MeleeCombatManager (DevCycle 24)
-    
     private void checkContinuousAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Debug logging for checkContinuousAttack entry
         CharacterDebugUtils.debugPrint("[CONTINUOUS-ATTACK] " + getDisplayName() + " checkContinuousAttack called - persistentAttack=" + persistentAttack + ", usesAutomaticTargeting=" + usesAutomaticTargeting);
@@ -2587,35 +2510,12 @@ public class Character implements ICharacter {
         }, ownerId));
     }
     
-    // Combat statistics methods delegated to CombatStatisticsManager (DevCycle 24)
-    
     public int getTotalWoundsInflicted() {
         return CombatStatisticsManager.getTotalWoundsInflicted(this);
     }
     
     public int getWoundsInflictedByType(WoundSeverity severity) {
         return CombatStatisticsManager.getWoundsInflictedByType(this, severity);
-    }
-    
-    public double getAccuracyPercentage() {
-        return CombatStatisticsManager.getAccuracyPercentage(this);
-    }
-    
-    // Headshot Statistics Getters
-    public int getHeadshotsAttempted() {
-        return CombatStatisticsManager.getHeadshotsAttempted(this);
-    }
-    
-    public int getHeadshotsSuccessful() {
-        return CombatStatisticsManager.getHeadshotsSuccessful(this);
-    }
-    
-    public double getHeadshotAccuracyPercentage() {
-        return CombatStatisticsManager.getHeadshotAccuracyPercentage(this);
-    }
-    
-    public int getHeadshotsKills() {
-        return CombatStatisticsManager.getHeadshotsKills(this);
     }
     
     // Firing mode management
@@ -2636,12 +2536,6 @@ public class Character implements ICharacter {
         HesitationManager.triggerHesitation(this, woundSeverity, currentTick, eventQueue, ownerId);
     }
     
-    // Hesitation helper methods moved to HesitationManager (DevCycle 24)
-    
-    public boolean isCurrentlyHesitating(long currentTick) {
-        return HesitationManager.isCurrentlyHesitating(this, currentTick);
-    }
-    
     // Bravery check mechanics delegated to HesitationManager (DevCycle 24)
     public void performBraveryCheck(long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, String reason) {
         HesitationManager.performBraveryCheck(this, currentTick, eventQueue, ownerId, reason);
@@ -2649,10 +2543,6 @@ public class Character implements ICharacter {
     
     public int getBraveryPenalty(long currentTick) {
         return HesitationManager.getBraveryPenalty(this, currentTick);
-    }
-    
-    public boolean isUnderBraveryPenalty(long currentTick) {
-        return getBraveryPenalty(currentTick) > 0;
     }
     
     // Movement wound penalty methods
@@ -2717,35 +2607,6 @@ public class Character implements ICharacter {
         return edgeToEdge <= pixelRange;
     }
     
-    // Debug methods moved to CharacterDebugUtils class (DevCycle 24)
-    
-    // Backward compatibility methods for total combat statistics (DevCycle 12)
-    // Delegated to CharacterLegacyAdapter (DevCycle 24)
-    
-    /**
-     * Returns total attacks attempted across both ranged and melee combat
-     * @return Sum of ranged and melee attacks attempted
-     */
-    public int getCombinedAttacksAttempted() {
-        return CharacterLegacyAdapter.getCombinedAttacksAttempted(this);
-    }
-    
-    /**
-     * Returns total successful attacks across both ranged and melee combat
-     * @return Sum of ranged and melee successful attacks
-     */
-    public int getCombinedAttacksSuccessful() {
-        return CharacterLegacyAdapter.getCombinedAttacksSuccessful(this);
-    }
-    
-    /**
-     * Returns total wounds inflicted across both ranged and melee combat (simple count)
-     * @return Sum of ranged and melee wounds inflicted
-     */
-    public int getCombinedWoundsInflicted() {
-        return CharacterLegacyAdapter.getCombinedWoundsInflicted(this);
-    }
-    
     // Defense state methods (DevCycle 23)
     
     /**
@@ -2805,22 +2666,6 @@ public class Character implements ICharacter {
     public void grantCounterAttackOpportunity(int windowDurationTicks, long currentTick) {
         hasCounterAttackOpportunity = true;
         counterAttackWindowEndTick = currentTick + windowDurationTicks;
-    }
-    
-    /**
-     * Checks if character has an active counter-attack opportunity
-     * @param currentTick Current game tick
-     * @return true if counter-attack is available
-     */
-    public boolean hasCounterAttack(long currentTick) {
-        return hasCounterAttackOpportunity && currentTick < counterAttackWindowEndTick;
-    }
-    
-    /**
-     * Clears counter-attack opportunity (used when counter-attack is executed)
-     */
-    public void clearCounterAttack() {
-        hasCounterAttackOpportunity = false;
     }
     
     /**
