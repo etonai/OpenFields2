@@ -69,6 +69,9 @@ public class Character implements ICharacter {
     public String weaponHoldState = "aiming"; // Default hold state
     public String targetHoldState = null; // Target state for hold state progression
     
+    /** Firing preference - true for aiming state, false for pointedfromhip state */
+    public boolean firesFromAimingState = true; // Default to aiming
+    
     /** Character configuration */
     public int faction;
     public boolean usesAutomaticTargeting;
@@ -891,6 +894,18 @@ public class Character implements ICharacter {
     
     public String getCurrentWeaponHoldState() {
         return weaponHoldState;
+    }
+    
+    public void toggleFiringPreference() {
+        if (!isIncapacitated()) {
+            firesFromAimingState = !firesFromAimingState;
+            System.out.println("*** " + getDisplayName() + " firing preference: " + 
+                             (firesFromAimingState ? "aiming state" : "pointedfromhip state") + " ***");
+        }
+    }
+    
+    public boolean getFiringPreference() {
+        return firesFromAimingState;
     }
     
     public void resetWeaponHoldStateToDefault() {
