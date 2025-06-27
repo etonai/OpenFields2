@@ -898,10 +898,62 @@ public class Character implements ICharacter {
     
     public void toggleFiringPreference() {
         if (!isIncapacitated()) {
+            boolean oldPreference = firesFromAimingState;
             firesFromAimingState = !firesFromAimingState;
+            
+            // Smart context-aware state adjustment (Option C)
+            handleFiringPreferenceStateAdjustment(oldPreference);
+            
             System.out.println("*** " + getDisplayName() + " firing preference: " + 
                              (firesFromAimingState ? "aiming state" : "pointedfromhip state") + " ***");
         }
+    }
+    
+    /**
+     * Handle smart context-aware state adjustments when firing preference changes.
+     * Option C: Immediate adjustment when appropriate, non-disruptive during critical moments.
+     */
+    private void handleFiringPreferenceStateAdjustment(boolean oldPreference) {
+        if (currentWeaponState == null || weapon == null) {
+            return; // No weapon state to adjust
+        }
+        
+        String currentState = currentWeaponState.getState();
+        
+        // Block preference changes during active firing or recovery (non-disruptive)
+        if ("firing".equals(currentState) || "recovering".equals(currentState)) {
+            System.out.println("*** " + getDisplayName() + " firing preference will take effect after current action completes ***");
+            return;
+        }
+        
+        // Immediate state adjustment for idle/ready states when it makes sense
+        if ("pointedfromhip".equals(currentState)) {
+            if (firesFromAimingState) {
+                // Switched from pointedfromhip preference to aiming preference while at pointedfromhip
+                // Immediately progress to aiming state
+                WeaponState aimingState = weapon.getStateByName("aiming");
+                if (aimingState != null) {
+                    currentWeaponState = aimingState;
+                    System.out.println("*** " + getDisplayName() + " weapon state: pointedfromhip -> aiming (preference change) ***");
+                }
+            }
+            // If switching to pointedfromhip preference while at pointedfromhip, no change needed
+        } else if ("aiming".equals(currentState)) {
+            if (!firesFromAimingState) {
+                // Switched from aiming preference to pointedfromhip preference while at aiming
+                // Immediately return to pointedfromhip state
+                WeaponState pointedfromhipState = weapon.getStateByName("pointedfromhip");
+                if (pointedfromhipState != null) {
+                    currentWeaponState = pointedfromhipState;
+                    System.out.println("*** " + getDisplayName() + " weapon state: aiming -> pointedfromhip (preference change) ***");
+                }
+            }
+            // If switching to aiming preference while at aiming, no change needed
+        }
+        
+        // For other states (drawing, unsling, ready, etc.), the preference will affect
+        // where the progression stops during the next attack sequence
+        // No immediate adjustment needed - let normal progression handle it
     }
     
     public boolean getFiringPreference() {
@@ -1385,36 +1437,49 @@ public class Character implements ICharacter {
         
         // Use JSON-driven state progression for all states except aiming and firing
         if (!"aiming".equals(currentState) && !"firing".equals(currentState)) {
-            // Find the next state in the weapon's progression using the action field
-            String nextState = currentWeaponState.getAction();
-            if (nextState != null && !nextState.isEmpty()) {
-                // Check if the next state is available in the weapon
-                WeaponState nextWeaponState = weapon.getStateByName(nextState);
-                if (nextWeaponState != null) {
-                    // Schedule transition to the next state using JSON-driven progression
-                    scheduleStateTransition(nextState, currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-                    return;
+            // Check if we should stop at pointedfromhip based on firing preference
+            if ("pointedfromhip".equals(currentState) && !firesFromAimingState) {
+                // Point-from-hip firing preference - fire from this state
+                // Continue to aiming logic below to handle firing
+            } else {
+                // Find the next state in the weapon's progression using the action field
+                String nextState = currentWeaponState.getAction();
+                if (nextState != null && !nextState.isEmpty()) {
+                    // Check if the next state is available in the weapon
+                    WeaponState nextWeaponState = weapon.getStateByName(nextState);
+                    if (nextWeaponState != null) {
+                        // Schedule transition to the next state using JSON-driven progression
+                        scheduleStateTransition(nextState, currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
+                        return;
+                    }
                 }
             }
         }
         
-        if ("aiming".equals(currentState)) {
-            // Determine which aiming speed to use based on firing mode and shot number
-            AimingSpeed aimingSpeedToUse = determineAimingSpeedForShot();
+        if ("aiming".equals(currentState) || ("pointedfromhip".equals(currentState) && !firesFromAimingState)) {
+            // Handle firing from either aiming state or pointedfromhip state based on preference
+            long fireDelay = currentWeaponState.ticks;
             
-            long adjustedAimingTime = Math.round(currentWeaponState.ticks * aimingSpeedToUse.getTimingMultiplier() * calculateAimingSpeedMultiplier());
-            
-            // Add random additional time for very careful aiming
-            if (aimingSpeedToUse.isVeryCareful()) {
-                long additionalTime = aimingSpeedToUse.getVeryCarefulAdditionalTime();
-                adjustedAimingTime += additionalTime;
+            // Only apply aiming speed modifiers if firing from aiming state
+            if ("aiming".equals(currentState)) {
+                // Determine which aiming speed to use based on firing mode and shot number
+                AimingSpeed aimingSpeedToUse = determineAimingSpeedForShot();
+                
+                fireDelay = Math.round(currentWeaponState.ticks * aimingSpeedToUse.getTimingMultiplier() * calculateAimingSpeedMultiplier());
+                
+                // Add random additional time for very careful aiming
+                if (aimingSpeedToUse.isVeryCareful()) {
+                    long additionalTime = aimingSpeedToUse.getVeryCarefulAdditionalTime();
+                    fireDelay += additionalTime;
+                }
+                
+                // Log aiming speed usage for burst/auto modes
+                if (isAutomaticFiring && burstShotsFired > 1) {
+                }
             }
+            // For pointedfromhip firing, use base timing without aiming speed modifiers
             
-            // Log aiming speed usage for burst/auto modes
-            if (isAutomaticFiring && burstShotsFired > 1) {
-            }
-            
-            scheduleFiring(shooter, target, currentTick + adjustedAimingTime, eventQueue, ownerId, gameCallbacks);
+            scheduleFiring(shooter, target, currentTick + fireDelay, eventQueue, ownerId, gameCallbacks);
         }
     }
     
@@ -1496,6 +1561,11 @@ public class Character implements ICharacter {
         lastFiringScheduledTick = fireTick;
         
         eventQueue.add(new ScheduledEvent(fireTick, () -> {
+            // Add firing console output (Task 3)
+            String firingMode = firesFromAimingState ? "shootingfromaiming" : "shootingfromhip";
+            System.out.println(getDisplayName() + " fires a " + weapon.getName() + " at " + 
+                             target.getCharacter().getDisplayName() + ", " + firingMode + ", at tick " + fireTick);
+            
             currentWeaponState = weapon.getStateByName("firing");
             
             if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0) {
@@ -1575,7 +1645,9 @@ public class Character implements ICharacter {
                         startReloadSequence(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId, gameCallbacks);
                     } else {
                         long completionTick = fireTick + firingState.ticks + recoveringState.ticks;
-                        currentWeaponState = weapon.getStateByName("aiming");
+                        // Set recovery state based on firing preference (Task 2)
+                        String recoveryTargetState = firesFromAimingState ? "aiming" : "pointedfromhip";
+                        currentWeaponState = weapon.getStateByName(recoveryTargetState);
                         isAttacking = false; // Attack sequence complete
                         
                         // Only call checkContinuousAttack if NOT using persistent attack mode

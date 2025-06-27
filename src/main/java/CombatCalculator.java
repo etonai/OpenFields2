@@ -24,9 +24,10 @@ public final class CombatCalculator {
         double positionModifier = calculatePositionModifier(target);
         double braveryModifier = calculateBraveryModifier(shooter, currentTick);
         double firstAttackPenalty = (shooter.character.isFirstAttackOnTarget && !shooter.character.getCurrentAimingSpeed().isVeryCareful()) ? GameConstants.FIRST_ATTACK_PENALTY : 0;
+        double firingStateModifier = shooter.character.firesFromAimingState ? 0.0 : -20.0; // -20 penalty for pointedfromhip firing
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
-        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + burstAutoPenalty + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + firstAttackPenalty + sizeModifier + coverModifier;
+        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + burstAutoPenalty + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + firstAttackPenalty + firingStateModifier + sizeModifier + coverModifier;
         
         if (distanceFeet <= maximumRange) {
             chanceToHit = Math.max(chanceToHit, 0.01);
@@ -64,6 +65,7 @@ public final class CombatCalculator {
             System.out.println("Position modifier: " + String.format("%.1f", positionModifier) + " (target: " + target.character.getCurrentPosition().getDisplayName() + ")");
             System.out.println("Bravery modifier: " + String.format("%.1f", braveryModifier) + " " + getBraveryModifierDebugInfo(shooter, currentTick));
             System.out.println("First attack penalty: " + firstAttackPenalty + " (first attack: " + shooter.character.isFirstAttackOnTarget + ", very careful: " + shooter.character.getCurrentAimingSpeed().isVeryCareful() + ")");
+            System.out.println("Firing state modifier: " + firingStateModifier + " (firing from " + (shooter.character.firesFromAimingState ? "aiming" : "pointedfromhip") + ")");
             System.out.println("Size modifier: " + sizeModifier);
             System.out.println("Cover modifier: " + coverModifier);
             System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");

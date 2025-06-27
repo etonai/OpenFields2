@@ -105,7 +105,7 @@ public class CombatCommandProcessor {
      */
     private void handleFiringModeControls(KeyEvent e) {
         // F key - cycle firing mode for selected units (only when not in edit mode to avoid conflict)
-        if (e.getCode() == KeyCode.F && !e.isControlDown() && selectionManager.hasSelection()) {
+        if (e.getCode() == KeyCode.F && !e.isControlDown() && !e.isShiftDown() && selectionManager.hasSelection()) {
             for (Unit unit : selectionManager.getSelectedUnits()) {
                 if (!unit.character.isIncapacitated() && unit.character.hasMultipleFiringModes()) {
                     unit.character.cycleFiringMode();

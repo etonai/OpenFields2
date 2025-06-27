@@ -491,6 +491,14 @@ public class KeyboardInputHandler {
                                  (oldHoldState.equals(newHoldState) ? " (no change)" : " (was " + oldHoldState + ")"));
             }
         }
+        
+        // SHIFT-F: Toggle firing preference (aiming vs pointedfromhip)
+        if (e.getCode() == KeyCode.F && e.isShiftDown() && selectionManager.getSelectionCount() == 1) {
+            Unit unit = selectionManager.getSelected();
+            if (!unit.character.isIncapacitated()) {
+                unit.character.toggleFiringPreference();
+            }
+        }
     }
     
     // ─────────────────────────────────────────────────────────────────────────────────
