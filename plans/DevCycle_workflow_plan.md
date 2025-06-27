@@ -86,6 +86,65 @@ Each development cycle follows a structured approach from initial brainstorming 
 
 ### **Phase 6: Cycle Closure**
 
+**Two Closure Approaches:**
+
+#### **A. Claude-Managed Closeout (Standard)**
+For DevCycles managed by Claude, follows automated closeout process:
+
+**Process:**
+1. **Final Implementation Validation**
+   - Ensure all tasks marked as completed in todo list
+   - Verify compilation successful (`mvn compile`)
+   - Confirm all features working as specified
+   - Test implemented functionality
+
+2. **Update DevCycle Document Status**
+   - Change implementation status to "✅ COMPLETED"
+   - Update "Last Implementation Update" timestamp
+   - Add final implementation summary and metrics
+   - Document lessons learned and technical insights
+
+3. **Create Comprehensive Final Summary**
+   - Document all files modified and lines changed
+   - Summarize key achievements and technical innovations
+   - Include compilation and testing results
+   - Add performance impact assessment
+   - Follow pattern from previous completed cycles
+
+4. **Move Document to Completed Folder**
+   - Move `plans/DevCycle_2025_00##.md` to `plans/completed/DevCycle_2025_00##.md`
+   - Update any cross-references to new location
+
+5. **Update CLAUDE.md Documentation**
+   - Add new features to game mechanics section
+   - Document new controls and key bindings
+   - Update tactical applications and usage instructions
+   - Ensure user-facing documentation is current
+
+6. **Git Operations (Automatic)**
+   - Create final commit for documentation updates
+   - Merge development branch to main branch
+   - Tag completion: `git tag DC-##-complete`
+   - Clean up development branch
+   
+   **Exception Cases** (ask permission first):
+   - Merge conflicts detected
+   - Compilation failures
+   - Test failures
+   - User explicitly requests manual control
+
+7. **Cleanup and Validation**
+   - Remove temporary debug output added for testing
+   - Ensure code is clean and production-ready
+   - Verify all success criteria met
+
+8. **Next Cycle Preparation**
+   - Development environment ready for next cycle
+   - Main branch updated with completed work
+
+#### **B. Manual Script-Based Closeout (Alternative)**
+For manual management or complex scenarios, use automated scripts:
+
 **Process:**
 1. **Final Satisfaction Check**: Confirm all systems working and bugs addressed
 2. **Document Archival**: Use the `archive_cycle.sh` script to move all cycle documents to `completed/` directory
