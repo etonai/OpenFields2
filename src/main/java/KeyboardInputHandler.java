@@ -496,7 +496,7 @@ public class KeyboardInputHandler {
         if (e.getCode() == KeyCode.F && e.isShiftDown() && selectionManager.getSelectionCount() == 1) {
             Unit unit = selectionManager.getSelected();
             if (!unit.character.isIncapacitated()) {
-                unit.character.toggleFiringPreference();
+                unit.character.toggleFiringPreference(gameClock.getCurrentTick());
             }
         }
     }

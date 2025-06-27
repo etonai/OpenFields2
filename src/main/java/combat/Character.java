@@ -72,6 +72,10 @@ public class Character implements ICharacter {
     /** Firing preference - true for aiming state, false for pointedfromhip state */
     public boolean firesFromAimingState = true; // Default to aiming
     
+    /** Aiming duration tracking (DevCycle 27) */
+    public long aimingStartTick = -1; // Tick when aiming state began (-1 = not aiming)
+    public long pointingFromHipStartTick = -1; // Tick when pointedfromhip state began (-1 = not pointing)
+    
     /** Character configuration */
     public int faction;
     public boolean usesAutomaticTargeting;
@@ -592,6 +596,63 @@ public class Character implements ICharacter {
         this.currentWeaponState = state;
     }
     
+    // Aiming duration tracking methods (DevCycle 27)
+    
+    /**
+     * Start timing for aiming state.
+     */
+    public void startAimingTiming(long currentTick) {
+        this.aimingStartTick = currentTick;
+        this.pointingFromHipStartTick = -1; // Clear pointing timing
+    }
+    
+    /**
+     * Start timing for pointing from hip state.
+     */
+    public void startPointingFromHipTiming(long currentTick) {
+        this.pointingFromHipStartTick = currentTick;
+        this.aimingStartTick = -1; // Clear aiming timing
+    }
+    
+    /**
+     * Get duration spent in aiming state.
+     */
+    public long getAimingDuration(long currentTick) {
+        if (aimingStartTick < 0) {
+            return 0;
+        }
+        return currentTick - aimingStartTick;
+    }
+    
+    /**
+     * Get duration spent in pointing from hip state.
+     */
+    public long getPointingFromHipDuration(long currentTick) {
+        if (pointingFromHipStartTick < 0) {
+            return 0;
+        }
+        return currentTick - pointingFromHipStartTick;
+    }
+    
+    /**
+     * Reset all aiming timing (called when changing targets or exiting aiming states).
+     */
+    public void resetAimingTiming() {
+        this.aimingStartTick = -1;
+        this.pointingFromHipStartTick = -1;
+    }
+    
+    /**
+     * Get current aiming duration based on firing preference.
+     */
+    public long getCurrentAimingDuration(long currentTick) {
+        if (firesFromAimingState) {
+            return getAimingDuration(currentTick);
+        } else {
+            return getPointingFromHipDuration(currentTick);
+        }
+    }
+    
     // Dual weapon system methods
     
     /**
@@ -896,13 +957,13 @@ public class Character implements ICharacter {
         return weaponHoldState;
     }
     
-    public void toggleFiringPreference() {
+    public void toggleFiringPreference(long currentTick) {
         if (!isIncapacitated()) {
             boolean oldPreference = firesFromAimingState;
             firesFromAimingState = !firesFromAimingState;
             
             // Smart context-aware state adjustment (Option C)
-            handleFiringPreferenceStateAdjustment(oldPreference);
+            handleFiringPreferenceStateAdjustment(oldPreference, currentTick);
             
             System.out.println("*** " + getDisplayName() + " firing preference: " + 
                              (firesFromAimingState ? "aiming state" : "pointedfromhip state") + " ***");
@@ -913,7 +974,7 @@ public class Character implements ICharacter {
      * Handle smart context-aware state adjustments when firing preference changes.
      * Option C: Immediate adjustment when appropriate, non-disruptive during critical moments.
      */
-    private void handleFiringPreferenceStateAdjustment(boolean oldPreference) {
+    private void handleFiringPreferenceStateAdjustment(boolean oldPreference, long currentTick) {
         if (currentWeaponState == null || weapon == null) {
             return; // No weapon state to adjust
         }
@@ -934,6 +995,7 @@ public class Character implements ICharacter {
                 WeaponState aimingState = weapon.getStateByName("aiming");
                 if (aimingState != null) {
                     currentWeaponState = aimingState;
+                    startAimingTiming(currentTick); // DevCycle 27: Start timing for aiming state
                     System.out.println("*** " + getDisplayName() + " weapon state: pointedfromhip -> aiming (preference change) ***");
                 }
             }
@@ -945,6 +1007,7 @@ public class Character implements ICharacter {
                 WeaponState pointedfromhipState = weapon.getStateByName("pointedfromhip");
                 if (pointedfromhipState != null) {
                     currentWeaponState = pointedfromhipState;
+                    startPointingFromHipTiming(currentTick); // DevCycle 27: Start timing for pointing state
                     System.out.println("*** " + getDisplayName() + " weapon state: aiming -> pointedfromhip (preference change) ***");
                 }
             }
@@ -1303,6 +1366,8 @@ public class Character implements ICharacter {
                 System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " attack sequence - cannot cancel pending events");
             }
             currentWeaponState = weapon.getStateByName("ready");
+            // DevCycle 27: Reset aiming timing when changing targets
+            resetAimingTiming();
             // Interrupt burst/auto if in progress
             if (isAutomaticFiring) {
                 isAutomaticFiring = false;
@@ -1549,6 +1614,14 @@ public class Character implements ICharacter {
         long transitionTick = currentTick + transitionTickLength;
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
             currentWeaponState = weapon.getStateByName(newStateName);
+            
+            // DevCycle 27: Start timing when entering aiming or pointing states
+            if ("aiming".equals(newStateName)) {
+                startAimingTiming(transitionTick);
+            } else if ("pointedfromhip".equals(newStateName)) {
+                startPointingFromHipTiming(transitionTick);
+            }
+            
             scheduleAttackFromCurrentState(shooter, target, transitionTick, eventQueue, ownerId, gameCallbacks);
         }, ownerId));
     }
@@ -1561,12 +1634,16 @@ public class Character implements ICharacter {
         lastFiringScheduledTick = fireTick;
         
         eventQueue.add(new ScheduledEvent(fireTick, () -> {
-            // Add firing console output (Task 3)
+            // Add firing console output (Task 3) with aiming duration (DevCycle 27)
             String firingMode = firesFromAimingState ? "shootingfromaiming" : "shootingfromhip";
+            long aimingDuration = getCurrentAimingDuration(fireTick);
+            String aimingText = firesFromAimingState ? "aimed " + aimingDuration + " ticks" : "pointed " + aimingDuration + " ticks";
             System.out.println(getDisplayName() + " fires a " + weapon.getName() + " at " + 
-                             target.getCharacter().getDisplayName() + ", " + firingMode + ", at tick " + fireTick);
+                             target.getCharacter().getDisplayName() + ", " + firingMode + " (" + aimingText + "), at tick " + fireTick);
             
             currentWeaponState = weapon.getStateByName("firing");
+            // DevCycle 27: Reset aiming timing after firing (timing is now reported)
+            resetAimingTiming();
             
             if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0) {
             } else if (weapon instanceof RangedWeapon) {
@@ -1648,6 +1725,14 @@ public class Character implements ICharacter {
                         // Set recovery state based on firing preference (Task 2)
                         String recoveryTargetState = firesFromAimingState ? "aiming" : "pointedfromhip";
                         currentWeaponState = weapon.getStateByName(recoveryTargetState);
+                        
+                        // DevCycle 27: Start timing when entering aiming or pointing states after recovery
+                        if ("aiming".equals(recoveryTargetState)) {
+                            startAimingTiming(completionTick);
+                        } else if ("pointedfromhip".equals(recoveryTargetState)) {
+                            startPointingFromHipTiming(completionTick);
+                        }
+                        
                         isAttacking = false; // Attack sequence complete
                         
                         // Only call checkContinuousAttack if NOT using persistent attack mode
@@ -1750,6 +1835,13 @@ public class Character implements ICharacter {
             Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
             String previousState = currentWeaponState != null ? currentWeaponState.getState() : "None";
             currentWeaponState = activeWeapon.getStateByName(newStateName);
+            
+            // DevCycle 27: Start timing when entering aiming or pointing states during ready sequence
+            if ("aiming".equals(newStateName)) {
+                startAimingTiming(transitionTick);
+            } else if ("pointedfromhip".equals(newStateName)) {
+                startPointingFromHipTiming(transitionTick);
+            }
             
             // Output weapon state change (like the old system)
             System.out.println("*** " + getDisplayName() + " weapon state: " + previousState + " -> " + newStateName + " ***");
