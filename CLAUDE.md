@@ -138,6 +138,33 @@ mvn javafx:run                # Run the JavaFX application
   - **Intimidation Tactics**: Hold at "pointedfromhip" for visible but non-lethal threat
   - **Defensive Stances**: Maintain aiming position without automatic firing
 
+### Firing Preference System (DevCycle 26)
+- **SHIFT-F Toggle**: Each character can toggle between two firing modes for ranged weapons
+  - **Aiming Mode** (default): Fires from "aiming" state with normal accuracy
+  - **Point-from-Hip Mode**: Fires from "pointedfromhip" state with -20 hit penalty
+- **Smart Context-Aware Switching**: Preference changes adapt to current weapon state
+  - **Immediate Adjustment**: When at pointedfromhip/aiming, immediately switches to preferred state
+  - **Non-Disruptive**: During firing/recovery, preference change queued until action completes
+  - **Intuitive Progression**: For other states, preference affects next attack sequence targeting
+- **State Progression Impact**: Weapon progression respects firing preference
+  - **Aiming Mode**: Full progression through all states (slung → unsling → ready → pointedfromhip → aiming → firing)
+  - **Point-from-Hip Mode**: Stops at pointedfromhip (slung → unsling → ready → pointedfromhip → firing)
+- **Recovery Behavior**: After firing, recovery transitions back to preferred firing state
+  - **Aiming Mode**: firing → recovering → aiming (existing behavior)
+  - **Point-from-Hip Mode**: firing → recovering → pointedfromhip (new behavior)
+- **Weapon Compatibility**: Applies to all ranged weapon types (pistols, rifles, submachine guns)
+  - **Universal Support**: Works with holstered, slung, and sheathed weapon initial states
+  - **Melee Exclusion**: Melee weapons unaffected, use existing combat system
+- **User Interface Integration**: 
+  - **Character Stats**: Firing preference displayed in Shift+/ character information
+  - **Console Output**: Firing messages show "shootingfromaiming" or "shootingfromhip"
+  - **Tactical Feedback**: Immediate visual confirmation of preference changes
+- **Tactical Applications**:
+  - **Quick Engagement**: Point-from-hip for faster weapon readiness at accuracy cost
+  - **Precision Shooting**: Aiming mode for maximum accuracy in critical situations
+  - **Situational Adaptation**: Switch preferences mid-combat based on tactical needs
+  - **Character Specialization**: Set preferred firing styles for different character archetypes
+
 ### Enhanced Combat Tracking (DevCycle 12)
 - **Separate Statistics**: Combat tracking now differentiates between ranged and melee attacks
   - **Ranged**: `rangedAttacksAttempted`, `rangedAttacksSuccessful`, `rangedWoundsInflicted`
