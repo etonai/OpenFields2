@@ -267,7 +267,7 @@ public class MouseInputHandler {
             // Delegate target zone selection to CombatCommandProcessor
             combatCommandProcessor.startTargetZoneSelection(x, y);
         } else {
-            handleRightClick(clickedUnit, x, y, e.isShiftDown());
+            handleRightClick(clickedUnit, x, y, e.isShiftDown(), e.isControlDown());
         }
     }
     
@@ -278,10 +278,11 @@ public class MouseInputHandler {
      * @param x World x coordinate of click
      * @param y World y coordinate of click
      * @param isShiftDown Whether Shift key was held
+     * @param isControlDown Whether Ctrl key was held
      */
-    private void handleRightClick(Unit clickedUnit, double x, double y, boolean isShiftDown) {
+    private void handleRightClick(Unit clickedUnit, double x, double y, boolean isShiftDown, boolean isControlDown) {
         if (clickedUnit != null) {
-            handleRightClickOnUnit(clickedUnit, x, y, isShiftDown);
+            handleRightClickOnUnit(clickedUnit, x, y, isShiftDown, isControlDown);
         } else {
             handleRightClickOnEmptySpace(x, y);
         }
@@ -294,8 +295,9 @@ public class MouseInputHandler {
      * @param x World x coordinate of click
      * @param y World y coordinate of click
      * @param isShiftDown Whether Shift key was held
+     * @param isControlDown Whether Ctrl key was held
      */
-    private void handleRightClickOnUnit(Unit clickedUnit, double x, double y, boolean isShiftDown) {
+    private void handleRightClickOnUnit(Unit clickedUnit, double x, double y, boolean isShiftDown, boolean isControlDown) {
         if (selectionManager.isUnitSelected(clickedUnit) && selectionManager.getSelectionCount() == 1) {
             // Right-click on self (single selection) - cease fire or ready weapon
             if (callbacks.isEditMode()) {
@@ -313,6 +315,9 @@ public class MouseInputHandler {
         } else if (isShiftDown && selectionManager.hasSelection() && !selectionManager.isUnitSelected(clickedUnit)) {
             // Shift+right-click on different unit - toggle persistent attack for all selected
             handlePersistentAttackToggle(clickedUnit);
+        } else if (isControlDown && selectionManager.hasSelection() && !selectionManager.isUnitSelected(clickedUnit)) {
+            // Ctrl+right-click on enemy unit - target with hold state for all selected units
+            handleHoldStateCombat(clickedUnit, x, y);
         } else if (selectionManager.hasSelection() && !selectionManager.isUnitSelected(clickedUnit)) {
             // Right-click on enemy unit - attack with all selected units
             handleCombatRightClick(clickedUnit, x, y);
@@ -376,6 +381,81 @@ public class MouseInputHandler {
         
         // Delegate combat operations to CombatCommandProcessor
         combatCommandProcessor.handleCombatRightClick(x, y, targetUnit, units);
+    }
+    
+    /**
+     * Handle Ctrl+right-click for weapon hold state targeting.
+     * 
+     * @param targetUnit The unit to target with hold state
+     * @param x World x coordinate of click
+     * @param y World y coordinate of click
+     */
+    private void handleHoldStateCombat(Unit targetUnit, double x, double y) {
+        if (callbacks.isEditMode()) {
+            System.out.println(">>> Combat actions disabled in edit mode");
+            return;
+        }
+        
+        for (Unit attackingUnit : selectionManager.getSelectedUnits()) {
+            if (!attackingUnit.character.isIncapacitated() && attackingUnit != targetUnit) {
+                // Set combat target for attacking unit
+                attackingUnit.setCombatTarget(targetUnit);
+                
+                // Get the character's current hold state
+                String holdState = attackingUnit.character.getCurrentWeaponHoldState();
+                
+                // Start weapon progression to hold state instead of full attack
+                startWeaponProgressionToHoldState(attackingUnit, targetUnit, holdState);
+                
+                System.out.println("*** " + attackingUnit.character.getDisplayName() + 
+                                 " targeting " + targetUnit.character.getDisplayName() + 
+                                 " with hold state: " + holdState + " ***");
+            }
+        }
+    }
+    
+    /**
+     * Start weapon progression to a specific hold state.
+     * 
+     * @param attackingUnit The unit to progress weapon state
+     * @param targetUnit The target unit
+     * @param holdState The state to hold at
+     */
+    private void startWeaponProgressionToHoldState(Unit attackingUnit, Unit targetUnit, String holdState) {
+        // Set target
+        attackingUnit.character.currentTarget = targetUnit;
+        
+        // Make unit face the target
+        attackingUnit.faceToward(targetUnit.x, targetUnit.y);
+        
+        // Start weapon progression to hold state
+        scheduleWeaponProgressionToState(attackingUnit, holdState, gameClock.getCurrentTick());
+    }
+    
+    /**
+     * Schedule weapon state progression to a specific state.
+     * 
+     * @param unit The unit to progress
+     * @param targetState The state to progress to
+     * @param currentTick Current game tick
+     */
+    private void scheduleWeaponProgressionToState(Unit unit, String targetState, long currentTick) {
+        // Use the character's existing weapon ready system but stop at target state
+        combat.Character character = unit.character;
+        combat.Weapon activeWeapon = character.isMeleeCombatMode() ? character.meleeWeapon : character.weapon;
+        
+        if (activeWeapon == null) {
+            return;
+        }
+        
+        // Initialize weapon state if needed
+        if (character.currentWeaponState == null) {
+            character.currentWeaponState = activeWeapon.getInitialState();
+        }
+        
+        // Start progression using existing system but with hold state target
+        character.targetHoldState = targetState;
+        character.scheduleReadyFromCurrentState(unit, currentTick, eventQueue, unit.getId());
     }
     
     /**

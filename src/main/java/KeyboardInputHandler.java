@@ -479,6 +479,18 @@ public class KeyboardInputHandler {
                 System.out.println("*** " + selectionManager.getSelectionCount() + " units toggled combat mode");
             }
         }
+        
+        // Weapon hold state cycling: H (single character only)
+        if (e.getCode() == KeyCode.H && selectionManager.getSelectionCount() == 1) {
+            Unit unit = selectionManager.getSelected();
+            if (!unit.character.isIncapacitated()) {
+                String oldHoldState = unit.character.getCurrentWeaponHoldState();
+                unit.character.cycleWeaponHoldState();
+                String newHoldState = unit.character.getCurrentWeaponHoldState();
+                System.out.println("*** " + unit.character.getDisplayName() + " weapon hold state: " + newHoldState + 
+                                 (oldHoldState.equals(newHoldState) ? " (no change)" : " (was " + oldHoldState + ")"));
+            }
+        }
     }
     
     // ─────────────────────────────────────────────────────────────────────────────────

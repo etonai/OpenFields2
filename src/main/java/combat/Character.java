@@ -63,6 +63,11 @@ public class Character implements ICharacter {
     public IUnit currentTarget;
     public boolean persistentAttack;
     public boolean isAttacking;
+    public boolean isDefensiveAiming = false;
+    
+    /** Weapon hold state for targeting control */
+    public String weaponHoldState = "aiming"; // Default hold state
+    public String targetHoldState = null; // Target state for hold state progression
     
     /** Character configuration */
     public int faction;
@@ -538,6 +543,7 @@ public class Character implements ICharacter {
     @Override
     public void setWeapon(Weapon weapon) {
         this.weapon = weapon;
+        resetWeaponHoldStateToDefault();
     }
     
     @Override
@@ -548,6 +554,7 @@ public class Character implements ICharacter {
     @Override
     public void setRangedWeapon(RangedWeapon weapon) {
         this.rangedWeapon = weapon;
+        resetWeaponHoldStateToDefault();
     }
     
     @Override
@@ -558,6 +565,7 @@ public class Character implements ICharacter {
     @Override
     public void setMeleeWeapon(MeleeWeapon weapon) {
         this.meleeWeapon = weapon;
+        resetWeaponHoldStateToDefault();
     }
     
     @Override
@@ -568,6 +576,7 @@ public class Character implements ICharacter {
     @Override
     public void setMeleeCombatMode(boolean melee) {
         this.isMeleeCombatMode = melee;
+        resetWeaponHoldStateToDefault();
     }
     
     @Override
@@ -664,6 +673,9 @@ public class Character implements ICharacter {
             } else {
             }
         }
+        
+        // Reset weapon hold state when switching combat modes
+        resetWeaponHoldStateToDefault();
     }
     
     // Legacy methods for backwards compatibility with tests
@@ -849,6 +861,57 @@ public class Character implements ICharacter {
         
         // Check if character has the required skill level (1+)
         return getSkillLevel(skillName) >= 1;
+    }
+    
+    public void cycleWeaponHoldState() {
+        if (!isIncapacitated()) {
+            Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
+            if (activeWeapon == null) {
+                return;
+            }
+            
+            // Get available hold states (exclude firing, recovering, reloading)
+            java.util.List<String> availableStates = getAvailableHoldStates(activeWeapon);
+            if (availableStates.isEmpty()) {
+                return;
+            }
+            
+            // Find current hold state index
+            int currentIndex = availableStates.indexOf(weaponHoldState);
+            if (currentIndex == -1) {
+                // Current hold state not found, default to first available
+                weaponHoldState = availableStates.get(0);
+            } else {
+                // Cycle to next state (wrap around)
+                int nextIndex = (currentIndex + 1) % availableStates.size();
+                weaponHoldState = availableStates.get(nextIndex);
+            }
+        }
+    }
+    
+    public String getCurrentWeaponHoldState() {
+        return weaponHoldState;
+    }
+    
+    public void resetWeaponHoldStateToDefault() {
+        weaponHoldState = "aiming";
+    }
+    
+    private java.util.List<String> getAvailableHoldStates(Weapon weapon) {
+        java.util.List<String> availableStates = new java.util.ArrayList<>();
+        if (weapon == null || weapon.getStates() == null) {
+            return availableStates;
+        }
+        
+        for (WeaponState state : weapon.getStates()) {
+            String stateName = state.getState();
+            // Exclude post-firing states
+            if (!stateName.equals("firing") && !stateName.equals("recovering") && !stateName.equals("reloading")) {
+                availableStates.add(stateName);
+            }
+        }
+        
+        return availableStates;
     }
     
     // ICharacter interface implementation - Combat Statistics
@@ -1280,7 +1343,20 @@ public class Character implements ICharacter {
     }
     
     private void scheduleAttackFromCurrentState(IUnit shooter, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (weapon == null || currentWeaponState == null) return;
+        // Debug: Check weapon and weapon state
+        System.out.println("*** " + getDisplayName() + " scheduleAttackFromCurrentState: weapon=" + 
+                          (weapon != null ? weapon.getName() : "null") + 
+                          ", currentWeaponState=" + (currentWeaponState != null ? currentWeaponState.getState() : "null") + " ***");
+        
+        if (weapon == null || currentWeaponState == null) {
+            // Initialize weapon state if missing
+            if (weapon != null && currentWeaponState == null) {
+                currentWeaponState = weapon.getInitialState();
+                System.out.println("*** " + getDisplayName() + " initialized weapon state to: " + 
+                                  (currentWeaponState != null ? currentWeaponState.getState() : "null") + " ***");
+            }
+            if (currentWeaponState == null) return;
+        }
         
         String currentState = currentWeaponState.getState();
         
@@ -1499,47 +1575,59 @@ public class Character implements ICharacter {
         }, ownerId));
     }
     
-    private void scheduleReadyFromCurrentState(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+    public void scheduleReadyFromCurrentState(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
         // Check weapon and state availability for both ranged and melee
         if (currentWeaponState == null) return;
         if (!isMeleeCombatMode && weapon == null) return;
         if (isMeleeCombatMode && meleeWeapon == null) return;
         
         String currentState = currentWeaponState.getState();
-        String targetReadyState = isMeleeCombatMode ? "melee_ready" : "ready";
         
-        if (targetReadyState.equals(currentState)) {
+        // Determine target state: either hold state or default ready state
+        String targetState;
+        if (targetHoldState != null) {
+            targetState = targetHoldState;
+        } else {
+            targetState = isMeleeCombatMode ? "melee_ready" : "ready";
+        }
+        
+        // Debug output for weapon state progression
+        System.out.println("*** " + getDisplayName() + " weapon progression: current=" + currentState + 
+                          ", target=" + targetState + ", tick=" + currentTick + " ***");
+        
+        // If we're already at the target state, stop progression
+        if (targetState.equals(currentState)) {
+            if (targetHoldState != null) {
+                targetHoldState = null; // Clear target hold state after reaching it
+                System.out.println("*** " + getDisplayName() + " reached hold state: " + currentState + " ***");
+            }
             return;
         }
         
-        // Handle weapon state transitions for both ranged and melee
-        if ("holstered".equals(currentState)) {
-            scheduleReadyStateTransition("drawing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("drawing".equals(currentState)) {
-            scheduleReadyStateTransition(targetReadyState, currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("slung".equals(currentState)) {
-            scheduleReadyStateTransition("unsling", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("unsling".equals(currentState)) {
-            scheduleReadyStateTransition(targetReadyState, currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("sheathed".equals(currentState)) {
-            scheduleReadyStateTransition("unsheathing", currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("unsheathing".equals(currentState)) {
-            scheduleReadyStateTransition(targetReadyState, currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
-        } else if ("aiming".equals(currentState) || "firing".equals(currentState) || "recovering".equals(currentState)) {
-            // Get the appropriate weapon for state lookup
-            Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
-            WeaponState readyState = activeWeapon.getStateByName(targetReadyState);
-            eventQueue.add(new ScheduledEvent(currentTick + currentWeaponState.ticks, () -> {
-                currentWeaponState = readyState;
-            }, ownerId));
-        } else {
-            // For unknown states, try direct transition to ready state
-            Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
-            WeaponState readyState = activeWeapon.getStateByName(targetReadyState);
-            if (readyState != null) {
-                currentWeaponState = readyState;
-            }
+        // Get the appropriate weapon for state transitions
+        Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
+        
+        // Find the next state in the weapon's progression using the action field
+        String nextState = currentWeaponState.getAction();
+        if (nextState == null || nextState.isEmpty()) {
+            // No next state defined, we're at the end of progression
+            return;
         }
+        
+        // Check if the next state is available in the weapon
+        WeaponState nextWeaponState = activeWeapon.getStateByName(nextState);
+        if (nextWeaponState == null) {
+            // Next state not found in weapon, can't progress
+            return;
+        }
+        
+        // Debug: Show what state we're transitioning to and when
+        long transitionTime = currentTick + currentWeaponState.ticks;
+        System.out.println("*** " + getDisplayName() + " scheduling transition from " + currentState + 
+                          " to " + nextState + " in " + currentWeaponState.ticks + " ticks (at tick " + transitionTime + ") ***");
+        
+        // Schedule transition to the next state
+        scheduleReadyStateTransition(nextState, currentTick, currentWeaponState.ticks, unit, eventQueue, ownerId);
     }
     
     public double calculateWeaponReadySpeedMultiplier() {
@@ -1572,7 +1660,11 @@ public class Character implements ICharacter {
         eventQueue.add(new ScheduledEvent(transitionTick, () -> {
             // Get the appropriate weapon for state lookup
             Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
+            String previousState = currentWeaponState != null ? currentWeaponState.getState() : "None";
             currentWeaponState = activeWeapon.getStateByName(newStateName);
+            
+            // Output weapon state change (like the old system)
+            System.out.println("*** " + getDisplayName() + " weapon state: " + previousState + " -> " + newStateName + " ***");
             
             // Continue the ready sequence recursively
             scheduleReadyFromCurrentState(unit, transitionTick, eventQueue, ownerId);
