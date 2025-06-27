@@ -251,6 +251,38 @@
       "weaponAccuracy": 0,
       "firingDelay": 6,
       "cyclicRate": 6,
+      "availableFiringModes": [
+        "SINGLE_SHOT",
+        "FULL_AUTO"
+      ],
+      "weaponLength": 2.5,
+      "combatSkill": "Submachine Gun",
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "aiming", "ticks": 15},
+        {"state": "aiming", "action": "firing", "ticks": 30},
+        {"state": "firing", "action": "recovering", "ticks": 5},
+        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "reloading", "action": "ready", "ticks": 120}
+      ]
+    },
+    "wpn_mp5": {
+      "id": "wpn_mp5",
+      "name": "MP5 Submachine Gun",
+      "type": "SUBMACHINE_GUN",
+      "velocity": 1312.0,
+      "damage": 30,
+      "ammunition": 30,
+      "maxAmmunition": 30,
+      "reloadTicks": 120,
+      "reloadType": "FULL_MAGAZINE",
+      "woundDescription": "9mm round",
+      "soundFile": "/Slap0003.wav",
+      "maximumRange": 656.0,
+      "weaponAccuracy": 0,
+      "firingDelay": 5,
+      "cyclicRate": 5,
       "burstSize": 3,
       "availableFiringModes": [
         "SINGLE_SHOT",
