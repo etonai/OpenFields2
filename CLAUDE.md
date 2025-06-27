@@ -34,7 +34,7 @@ mvn javafx:run                # Run the JavaFX application
 - **Movement**: Right-click empty space to move selected unit
 - **Movement Types**: W/S keys to increase/decrease movement speed (Crawl, Walk, Jog, Run)
 - **Aiming Speed**: Q/E keys to increase/decrease aiming speed (Careful, Normal, Quick)
-- **Combat**: Right-click enemy unit to schedule ranged attack
+- **Combat**: Right-click enemy unit to schedule ranged attack, Ctrl+Right-click to target with hold state
 - **Selection**: Left-click unit to select
 - **Controls**: Arrow keys pan, +/- zoom, Space pauses/resumes
 - **Health system**: Units become incapacitated at 0 health, movement stops
@@ -119,6 +119,24 @@ mvn javafx:run                # Run the JavaFX application
 - **Other Type**: Created by `createSheathedWeapon()` method or default constructor - magical items, tools, etc.
 - **Implementation**: `WeaponType` enum with PISTOL, RIFLE, and OTHER values
 - **Display**: Weapon type shown in character stats display (Shift+/)
+
+### Weapon Hold State System (DevCycle 25)
+- **Hold State Control**: Characters can target opponents and hold at specific weapon states instead of automatically firing
+- **H Key Cycling**: Cycles through weapon-specific available states (single character selection only)
+  - **Available States**: All weapon states except "firing", "recovering", "reloading"
+  - **State Examples**: holstered/slung/sheathed, grippinginholster, drawing/unsling, ready, pointedfromhip, aiming
+- **Dual Targeting Modes**:
+  - **Right-click**: Full attack sequence (existing behavior)
+  - **Ctrl+Right-click**: Target and hold at current hold state
+- **State Management**:
+  - **Default Hold State**: "aiming" (for new characters and weapon switches)
+  - **Weapon Switch Reset**: Hold state automatically resets to "aiming" when changing weapons or combat modes
+  - **Display Integration**: Current hold state shown in character stats (Shift+/)
+- **Tactical Applications**:
+  - **Threat Escalation**: Progress from holstered warning to full aim without committing to fire
+  - **Response Positioning**: Pre-ready weapons for fast response to changing situations
+  - **Intimidation Tactics**: Hold at "pointedfromhip" for visible but non-lethal threat
+  - **Defensive Stances**: Maintain aiming position without automatic firing
 
 ### Enhanced Combat Tracking (DevCycle 12)
 - **Separate Statistics**: Combat tracking now differentiates between ranged and melee attacks
