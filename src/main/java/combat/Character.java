@@ -1368,21 +1368,22 @@ public class Character implements ICharacter {
         // EDTODO: Verify this is no longer needed
         // long totalTimeToFire = calculateTimeToFire();
         
-        if ("holstered".equals(currentState)) {
-            scheduleStateTransition("drawing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("drawing".equals(currentState)) {
-            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("slung".equals(currentState)) {
-            scheduleStateTransition("unsling", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("unsling".equals(currentState)) {
-            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("sheathed".equals(currentState)) {
-            scheduleStateTransition("unsheathing", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("unsheathing".equals(currentState)) {
-            scheduleStateTransition("ready", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("ready".equals(currentState)) {
-            scheduleStateTransition("aiming", currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("aiming".equals(currentState)) {
+        // Use JSON-driven state progression for all states except aiming and firing
+        if (!"aiming".equals(currentState) && !"firing".equals(currentState)) {
+            // Find the next state in the weapon's progression using the action field
+            String nextState = currentWeaponState.getAction();
+            if (nextState != null && !nextState.isEmpty()) {
+                // Check if the next state is available in the weapon
+                WeaponState nextWeaponState = weapon.getStateByName(nextState);
+                if (nextWeaponState != null) {
+                    // Schedule transition to the next state using JSON-driven progression
+                    scheduleStateTransition(nextState, currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
+                    return;
+                }
+            }
+        }
+        
+        if ("aiming".equals(currentState)) {
             // Determine which aiming speed to use based on firing mode and shot number
             AimingSpeed aimingSpeedToUse = determineAimingSpeedForShot();
             
