@@ -653,6 +653,90 @@ public class Character implements ICharacter {
         }
     }
     
+    // Support methods for System 3: Accumulated Aiming Time Bonus System (DevCycle 27)
+    
+    /**
+     * Get the base aiming time for the current weapon from its state data.
+     * @return Base aiming time in ticks, or 30 as default if not found
+     */
+    public long getCurrentWeaponAimingStateTicks() {
+        // Get base aiming time from current weapon's state data
+        WeaponState aimingState = findWeaponState("aiming");
+        return aimingState != null ? aimingState.ticks : 30; // Default 30 if not found
+    }
+    
+    /**
+     * Check if character is currently in aiming or pointing-from-hip state.
+     * @return True if in aiming or pointing state, false otherwise
+     */
+    public boolean isInAimingOrPointingState() {
+        String currentState = getCurrentWeaponStateName();
+        return "aiming".equals(currentState) || "pointedfromhip".equals(currentState);
+    }
+    
+    /**
+     * Check if character is currently in pointing-from-hip state.
+     * @return True if pointing from hip, false otherwise
+     */
+    public boolean isPointingFromHip() {
+        return "pointedfromhip".equals(getCurrentWeaponStateName());
+    }
+    
+    /**
+     * Find a weapon state by name from the current weapon.
+     * @param stateName The name of the state to find
+     * @return The WeaponState if found, null otherwise
+     */
+    private WeaponState findWeaponState(String stateName) {
+        if (weapon != null && weapon.states != null) {
+            for (WeaponState state : weapon.states) {
+                if (stateName.equals(state.state)) {
+                    return state;
+                }
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Get the current weapon state name.
+     * @return Current weapon state name, or empty string if not available
+     */
+    private String getCurrentWeaponStateName() {
+        return currentWeaponState != null ? currentWeaponState.state : "";
+    }
+    
+    /**
+     * Calculate accumulated aiming bonus based on time spent aiming at target.
+     * DevCycle 27: System 3 - Accumulated Aiming Time Bonus System
+     * 
+     * @param currentTick Current game tick
+     * @return The earned accumulated aiming bonus
+     */
+    public AccumulatedAimingBonus calculateEarnedAimingBonus(long currentTick) {
+        if (!isInAimingOrPointingState()) {
+            return AccumulatedAimingBonus.NONE;
+        }
+        
+        long accumulatedTime = getCurrentAimingDuration(currentTick);
+        long baseTime = getCurrentWeaponAimingStateTicks();
+        
+        // Apply weapon ready speed multiplier to thresholds (faster chars earn bonuses quicker)
+        double weaponReadySpeedMultiplier = calculateAimingSpeedMultiplier();
+        long adjustedBaseTime = Math.round(baseTime * weaponReadySpeedMultiplier);
+        
+        // For pointing-from-hip, cap at NORMAL
+        if (isPointingFromHip()) {
+            return accumulatedTime >= adjustedBaseTime ? AccumulatedAimingBonus.NORMAL : AccumulatedAimingBonus.NONE;
+        }
+        
+        // For aiming state, full progression available
+        if (accumulatedTime >= adjustedBaseTime * 3) return AccumulatedAimingBonus.VERY_CAREFUL;
+        if (accumulatedTime >= adjustedBaseTime * 2) return AccumulatedAimingBonus.CAREFUL;
+        if (accumulatedTime >= adjustedBaseTime) return AccumulatedAimingBonus.NORMAL;
+        return AccumulatedAimingBonus.NONE;
+    }
+    
     // Dual weapon system methods
     
     /**
@@ -1537,6 +1621,14 @@ public class Character implements ICharacter {
                     long additionalTime = aimingSpeedToUse.getVeryCarefulAdditionalTime();
                     fireDelay += additionalTime;
                 }
+            }
+            
+            // DevCycle 27: System 3 - Add Very Careful timing for earned bonus
+            AccumulatedAimingBonus earnedBonus = calculateEarnedAimingBonus(currentTick);
+            if (earnedBonus == AccumulatedAimingBonus.VERY_CAREFUL && "aiming".equals(currentState)) {
+                // Add 2-5 seconds random time, same as selected Very Careful
+                long additionalTime = 120 + (long)(Math.random() * 181); // 120-300 ticks
+                fireDelay += additionalTime;
                 
                 // Log aiming speed usage for burst/auto modes
                 if (isAutomaticFiring && burstShotsFired > 1) {
@@ -1634,12 +1726,22 @@ public class Character implements ICharacter {
         lastFiringScheduledTick = fireTick;
         
         eventQueue.add(new ScheduledEvent(fireTick, () -> {
-            // Add firing console output (Task 3) with aiming duration (DevCycle 27)
+            // Add firing console output with aiming duration and earned bonus (DevCycle 27: System 3)
             String firingMode = firesFromAimingState ? "shootingfromaiming" : "shootingfromhip";
             long aimingDuration = getCurrentAimingDuration(fireTick);
             String aimingText = firesFromAimingState ? "aimed " + aimingDuration + " ticks" : "pointed " + aimingDuration + " ticks";
+            
+            // Check for earned bonus and format appropriately
+            AccumulatedAimingBonus earnedBonus = calculateEarnedAimingBonus(fireTick);
+            String bonusText;
+            if (earnedBonus != AccumulatedAimingBonus.NONE) {
+                bonusText = ", earned " + earnedBonus.getDisplayName() + " bonus";
+            } else {
+                bonusText = ", using " + getCurrentAimingSpeed().getDisplayName() + " aiming";
+            }
+            
             System.out.println(getDisplayName() + " fires a " + weapon.getName() + " at " + 
-                             target.getCharacter().getDisplayName() + ", " + firingMode + " (" + aimingText + "), at tick " + fireTick);
+                             target.getCharacter().getDisplayName() + ", " + firingMode + " (" + aimingText + bonusText + "), at tick " + fireTick);
             
             currentWeaponState = weapon.getStateByName("firing");
             // DevCycle 27: Reset aiming timing after firing (timing is now reported)

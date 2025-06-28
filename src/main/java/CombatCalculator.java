@@ -15,7 +15,28 @@ public final class CombatCalculator {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = calculateMovementModifier(shooter);
-        double aimingSpeedModifier = shooter.character.getCurrentAimingSpeed().getAccuracyModifier();
+        
+        // DevCycle 27: System 3 - Calculate accumulated aiming bonus
+        AccumulatedAimingBonus earnedBonus = shooter.character.calculateEarnedAimingBonus(currentTick);
+        double aimingSpeedModifier;
+        boolean useVeryCarefulBenefits = false;
+        
+        if (earnedBonus != AccumulatedAimingBonus.NONE) {
+            // Use only earned bonus when present
+            aimingSpeedModifier = earnedBonus.getAccuracyModifier();
+            useVeryCarefulBenefits = earnedBonus.isVeryCareful() && meetsVeryCarefulSkillRequirements(shooter.character);
+        } else {
+            // Fall back to selected aiming speed
+            AimingSpeed selectedSpeed = shooter.character.getCurrentAimingSpeed();
+            aimingSpeedModifier = selectedSpeed.getAccuracyModifier();
+            useVeryCarefulBenefits = selectedSpeed.isVeryCareful() && meetsVeryCarefulSkillRequirements(shooter.character);
+        }
+        
+        // For burst fire shots 2+, ignore all aiming modifiers
+        if (shooter.character.burstShotsFired > 0) {
+            aimingSpeedModifier = 0; // Burst penalty applied elsewhere
+        }
+        
         double burstAutoPenalty = shooter.character.shouldApplyBurstAutoPenalty() ? -20.0 : 0.0;
         double targetMovementModifier = calculateTargetMovementModifier(shooter, target);
         double woundModifier = calculateWoundModifier(shooter);
@@ -23,7 +44,7 @@ public final class CombatCalculator {
         double skillModifier = calculateSkillModifier(shooter);
         double positionModifier = calculatePositionModifier(target);
         double braveryModifier = calculateBraveryModifier(shooter, currentTick);
-        double firstAttackPenalty = (shooter.character.isFirstAttackOnTarget && !shooter.character.getCurrentAimingSpeed().isVeryCareful()) ? GameConstants.FIRST_ATTACK_PENALTY : 0;
+        double firstAttackPenalty = (shooter.character.isFirstAttackOnTarget && !useVeryCarefulBenefits) ? GameConstants.FIRST_ATTACK_PENALTY : 0;
         double firingStateModifier = shooter.character.firesFromAimingState ? 0.0 : -20.0; // -20 penalty for pointedfromhip firing
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
@@ -44,7 +65,12 @@ public final class CombatCalculator {
             System.out.println("Range modifier: " + String.format("%.2f", rangeModifier) + " (distance: " + String.format("%.2f", distanceFeet) + " feet, max: " + String.format("%.2f", maximumRange) + " feet)");
             System.out.println("Weapon modifier: " + weaponModifier + " (accuracy: " + weaponAccuracy + ")");
             System.out.println("Movement modifier: " + movementModifier);
-            System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (" + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
+            // Show aiming modifier source (earned vs selected)
+            if (earnedBonus != AccumulatedAimingBonus.NONE) {
+                System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (earned " + earnedBonus.getDisplayName() + " bonus, accumulated " + shooter.character.getCurrentAimingDuration(currentTick) + " ticks)");
+            } else {
+                System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (selected " + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
+            }
             if (burstAutoPenalty != 0) {
                 System.out.println("Burst/Auto penalty: " + burstAutoPenalty + " (bullet " + shooter.character.burstShotsFired + ")");
             }
@@ -64,7 +90,7 @@ public final class CombatCalculator {
             System.out.println("Skill modifier: " + String.format("%.1f", skillModifier) + " " + getSkillDebugInfo(shooter));
             System.out.println("Position modifier: " + String.format("%.1f", positionModifier) + " (target: " + target.character.getCurrentPosition().getDisplayName() + ")");
             System.out.println("Bravery modifier: " + String.format("%.1f", braveryModifier) + " " + getBraveryModifierDebugInfo(shooter, currentTick));
-            System.out.println("First attack penalty: " + firstAttackPenalty + " (first attack: " + shooter.character.isFirstAttackOnTarget + ", very careful: " + shooter.character.getCurrentAimingSpeed().isVeryCareful() + ")");
+            System.out.println("First attack penalty: " + firstAttackPenalty + " (first attack: " + shooter.character.isFirstAttackOnTarget + ", very careful benefits: " + useVeryCarefulBenefits + ")");
             System.out.println("Firing state modifier: " + firingStateModifier + " (firing from " + (shooter.character.firesFromAimingState ? "aiming" : "pointedfromhip") + ")");
             System.out.println("Size modifier: " + sizeModifier);
             System.out.println("Cover modifier: " + coverModifier);
@@ -431,6 +457,15 @@ public final class CombatCalculator {
         }
         
         return baseDamage;
+    }
+    
+    /**
+     * Check if character meets skill requirements for Very Careful benefits.
+     * @param character The character to check
+     * @return True if character can use Very Careful benefits, false otherwise
+     */
+    private static boolean meetsVeryCarefulSkillRequirements(combat.Character character) {
+        return character.canUseVeryCarefulAiming();
     }
     
     // Private constructor to prevent instantiation
