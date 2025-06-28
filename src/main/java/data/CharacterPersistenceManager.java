@@ -199,6 +199,9 @@ public class CharacterPersistenceManager {
         data.counterAttacksExecuted = character.counterAttacksExecuted;
         data.counterAttacksSuccessful = character.counterAttacksSuccessful;
         
+        // DevCycle 28: Multiple shot control
+        data.multipleShootCount = character.multipleShootCount;
+        
         // Skills
         if (character.skills != null) {
             for (combat.Skill skill : character.skills) {
@@ -267,6 +270,9 @@ public class CharacterPersistenceManager {
         character.defensiveSuccesses = data.defensiveSuccesses;
         character.counterAttacksExecuted = data.counterAttacksExecuted;
         character.counterAttacksSuccessful = data.counterAttacksSuccessful;
+        
+        // DevCycle 28: Multiple shot control
+        character.multipleShootCount = data.multipleShootCount;
         
         // Set skills
         if (data.skills != null) {

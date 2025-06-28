@@ -270,6 +270,9 @@ public class SaveGameController {
         data.usesAutomaticTargeting = character.usesAutomaticTargeting;
         data.preferredFiringMode = character.preferredFiringMode;
         
+        // DevCycle 28: Multiple shot control
+        data.multipleShootCount = character.multipleShootCount;
+        
         return data;
     }
     
@@ -525,6 +528,9 @@ public class SaveGameController {
         // Restore character preferences (with defaults for backward compatibility)
         character.usesAutomaticTargeting = data.usesAutomaticTargeting;
         character.preferredFiringMode = data.preferredFiringMode != null ? data.preferredFiringMode : FiringMode.SINGLE_SHOT;
+        
+        // DevCycle 28: Multiple shot control (default to 1 for backward compatibility)
+        character.multipleShootCount = data.multipleShootCount > 0 ? data.multipleShootCount : 1;
         
         return character;
     }

@@ -20,10 +20,8 @@ Players can configure characters to fire multiple shots automatically with speci
 
 #### Shot Timing and Accuracy Pattern
 - **First Shot**: Uses character's current aiming speed (Careful/Normal/Quick)
-- **Follow-up Shots (2nd, 3rd)**: Automatically use Quick aiming speed
-- **Fourth Shot**: Returns to character's aiming speed
-- **Fifth Shot**: Uses Quick aiming speed
-- **Pattern**: Aimed → Quick → Quick → Aimed → Quick (repeating for higher counts)
+- **All Follow-up Shots**: Automatically use Quick aiming speed
+- **Pattern**: Aimed → Quick → Quick → Quick → Quick (first shot aimed, all subsequent shots quick)
 - **Inter-Shot Timing**: Uses same delay as Quick aiming mode between shots
 - **Accumulated Aiming Bonuses**: Follow-up shots reset accumulated bonuses (first shot retains bonuses)
 - **First Shot Penalty**: Follow-up shots not affected by first-shot-on-target penalty (if such mechanic exists)

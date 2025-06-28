@@ -98,6 +98,9 @@ public class CombatCommandProcessor {
         
         // Target zone controls (Z key)
         handleTargetZoneControls(e);
+        
+        // Multiple shot control (CTRL+1)
+        handleMultipleShotControl(e);
     }
     
     /**
@@ -471,6 +474,60 @@ public class CombatCommandProcessor {
         // Log number of cancelled events
         if (!toRemove.isEmpty()) {
             System.out.println("*** Cancelled " + toRemove.size() + " scheduled combat events");
+        }
+    }
+    
+    /**
+     * Handle multiple shot control (CTRL+1).
+     * Cycles through multiple shot count (1-5) for selected characters.
+     * Ignored when character is in melee mode.
+     */
+    private void handleMultipleShotControl(KeyEvent e) {
+        // CTRL+1 - cycle multiple shot count for selected units
+        if (e.getCode() == KeyCode.DIGIT1 && e.isControlDown() && !e.isShiftDown() && selectionManager.hasSelection()) {
+            int targetShotCount = 1; // Default to start
+            boolean firstUnit = true;
+            
+            // Get the target shot count - all selected units will be set to same value
+            for (Unit unit : selectionManager.getSelectedUnits()) {
+                if (!unit.character.isIncapacitated() && !unit.character.isMeleeCombatMode) {
+                    if (firstUnit) {
+                        // Get current count from first valid unit and cycle it
+                        int currentCount = unit.character.multipleShootCount;
+                        targetShotCount = (currentCount % 5) + 1; // Cycle 1->2->3->4->5->1
+                        firstUnit = false;
+                    }
+                    break;
+                }
+            }
+            
+            // Apply the target shot count to all selected units
+            int unitsChanged = 0;
+            for (Unit unit : selectionManager.getSelectedUnits()) {
+                if (!unit.character.isIncapacitated() && !unit.character.isMeleeCombatMode) {
+                    unit.character.multipleShootCount = targetShotCount;
+                    unitsChanged++;
+                }
+            }
+            
+            // Provide feedback
+            if (unitsChanged > 0) {
+                if (selectionManager.getSelectionCount() == 1) {
+                    Unit unit = selectionManager.getSelected();
+                    if (!unit.character.isMeleeCombatMode) {
+                        System.out.println("*** " + unit.character.getDisplayName() + 
+                                         " multiple shot count: " + targetShotCount + " ***");
+                    }
+                } else {
+                    System.out.println("*** " + unitsChanged + " units set to " + 
+                                     targetShotCount + " shot" + (targetShotCount > 1 ? "s" : "") + " ***");
+                }
+            } else if (selectionManager.getSelectionCount() == 1 && 
+                      selectionManager.getSelected().character.isMeleeCombatMode) {
+                // Single unit in melee mode - no feedback (CTRL-1 ignored)
+            } else {
+                System.out.println("*** No ranged units selected to change shot count ***");
+            }
         }
     }
     

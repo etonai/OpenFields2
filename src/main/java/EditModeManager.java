@@ -179,16 +179,16 @@ public class EditModeManager {
             }
         }
         
-        // Individual character creation (Ctrl+1)
-        if (e.getCode() == KeyCode.DIGIT1 && e.isControlDown()) {
-            if (callbacks.isEditMode() && !stateTracker.isWaitingForAnyPrompt()) {
-                startIndividualCharacterCreation();
-            } else if (!callbacks.isEditMode()) {
-                System.out.println("*** Individual character creation only available in edit mode (Ctrl+E) ***");
-            } else if (stateTracker.isWaitingForAnyPrompt()) {
-                System.out.println("*** Please complete current operation before creating characters ***");
-            }
-        }
+        // Individual character creation (Ctrl+1) - DISABLED (DevCycle 28: CTRL-1 now used for multiple shot control)
+        // if (e.getCode() == KeyCode.DIGIT1 && e.isControlDown()) {
+        //     if (callbacks.isEditMode() && !stateTracker.isWaitingForAnyPrompt()) {
+        //         startIndividualCharacterCreation();
+        //     } else if (!callbacks.isEditMode()) {
+        //         System.out.println("*** Individual character creation only available in edit mode (Ctrl+E) ***");
+        //     } else if (stateTracker.isWaitingForAnyPrompt()) {
+        //         System.out.println("*** Please complete current operation before creating characters ***");
+        //     }
+        // }
     }
     
     // ====================

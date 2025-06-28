@@ -72,6 +72,15 @@ public class Character implements ICharacter {
     /** Firing preference - true for aiming state, false for pointedfromhip state */
     public boolean firesFromAimingState = true; // Default to aiming
     
+    /** Multiple shot control (DevCycle 28) */
+    public int multipleShootCount = 1; // Number of shots to fire in sequence (1-5)
+    public int currentShotInSequence = 0; // Current shot number during multiple shot execution
+    
+    /** Reaction action system (DevCycle 28) */
+    public IUnit reactionTarget = null; // Target being monitored for weapon state changes
+    public WeaponState reactionBaselineState = null; // Initial weapon state when reaction was set
+    public long reactionTriggerTick = -1; // Tick when reaction should execute (-1 = not triggered)
+    
     /** Aiming duration tracking (DevCycle 27) */
     public long aimingStartTick = -1; // Tick when aiming state began (-1 = not aiming)
     public long pointingFromHipStartTick = -1; // Tick when pointedfromhip state began (-1 = not pointing)
@@ -1529,6 +1538,8 @@ public class Character implements ICharacter {
             currentWeaponState = getOptimalStateForTargetSwitch();
             // DevCycle 27: Reset aiming timing when changing targets
             resetAimingTiming();
+            // DevCycle 28: Reset multiple shot sequence on target change
+            resetMultipleShotSequence();
             // Start timing for new state if applicable
             startTimingForTargetSwitchState(currentTick);
             // Interrupt burst/auto if in progress
@@ -1567,6 +1578,9 @@ public class Character implements ICharacter {
         currentTarget = target;
         isAttacking = true;
         lastAttackScheduledTick = currentTick;
+        
+        // DevCycle 28: Initialize multiple shot sequence
+        currentShotInSequence = 1; // Starting first shot
         
         // Make unit face the target and save the direction for later use
         shooter.faceToward(target.getX(), target.getY());
@@ -1731,6 +1745,99 @@ public class Character implements ICharacter {
             }
             
             scheduleFiring(shooter, target, currentTick + fireDelay, eventQueue, ownerId, gameCallbacks);
+        }
+    }
+    
+    /**
+     * DevCycle 28: Determine the aiming speed for the current shot in a multiple shot sequence.
+     * Pattern: First shot uses character's aiming speed, ALL subsequent shots use Quick
+     * - Shot 1: Character's aiming speed (Aimed)
+     * - Shots 2, 3, 4, 5: Quick aiming speed
+     * 
+     * @return The aiming speed to use for the current shot
+     */
+    private AimingSpeed getAimingSpeedForMultipleShot() {
+        if (currentShotInSequence <= 0 || currentShotInSequence == 1) {
+            // 1st shot always uses character's current aiming speed
+            return getCurrentAimingSpeed();
+        } else {
+            // All subsequent shots (2nd, 3rd, 4th, 5th) use Quick
+            return AimingSpeed.QUICK;
+        }
+    }
+    
+    /**
+     * DevCycle 28: Reset the multiple shot sequence when interrupted.
+     * Called when target changes, character is hit, or sequence is otherwise interrupted.
+     */
+    public void resetMultipleShotSequence() {
+        currentShotInSequence = 0;
+    }
+    
+    /**
+     * DevCycle 28: Update reaction monitoring each tick.
+     * Checks if monitored target's weapon state has changed and schedules reaction.
+     * 
+     * @param selfUnit The unit performing the monitoring
+     * @param currentTick Current game tick
+     * @param eventQueue Event queue for scheduling reactions
+     * @param gameCallbacks Game callbacks for attack scheduling
+     */
+    public void updateReactionMonitoring(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
+        // Skip if no reaction target set
+        if (reactionTarget == null || reactionBaselineState == null) {
+            return;
+        }
+        
+        // Skip if already triggered
+        if (reactionTriggerTick > 0) {
+            return;
+        }
+        
+        // Skip if character is incapacitated or reloading
+        if (isIncapacitated() || isReloading) {
+            return;
+        }
+        
+        // Check if target's weapon state has changed
+        WeaponState currentTargetState = reactionTarget.getCharacter().currentWeaponState;
+        if (currentTargetState != null && currentTargetState != reactionBaselineState) {
+            // Weapon state changed - trigger reaction with delay
+            int reflexModifier = GameConstants.statToModifier(this.reflexes);
+            long reactionDelay = Math.max(1, 30 - reflexModifier); // 30 base minus reflex modifier, minimum 1 tick
+            
+            reactionTriggerTick = currentTick + reactionDelay;
+            
+            // Schedule the reaction attack
+            eventQueue.add(new ScheduledEvent(reactionTriggerTick, () -> {
+                // Check if still valid to react (not incapacitated, target still exists, etc)
+                if (!isIncapacitated() && reactionTarget != null && !isAttacking) {
+                    System.out.println("*** " + getDisplayName() + " reacting to " + 
+                                     reactionTarget.getCharacter().getDisplayName() + 
+                                     " weapon state change (delay: " + reactionDelay + " ticks) ***");
+                    
+                    // Start attack sequence - this will handle queueing if already attacking
+                    startAttackSequence(selfUnit, reactionTarget, reactionTriggerTick, eventQueue, selfUnit.getId(), gameCallbacks);
+                    
+                    // Clear reaction after triggering
+                    reactionTarget = null;
+                    reactionBaselineState = null;
+                    reactionTriggerTick = -1;
+                } else if (isAttacking) {
+                    // Queue the reaction for after current attack
+                    System.out.println("*** " + getDisplayName() + " queuing reaction - already attacking ***");
+                    // Re-schedule for later
+                    eventQueue.add(new ScheduledEvent(reactionTriggerTick + 30, () -> {
+                        if (!isIncapacitated() && reactionTarget != null && !isAttacking) {
+                            startAttackSequence(selfUnit, reactionTarget, reactionTriggerTick + 30, eventQueue, selfUnit.getId(), gameCallbacks);
+                            // Clear reaction after triggering
+                            reactionTarget = null;
+                            reactionBaselineState = null;
+                            reactionTriggerTick = -1;
+                        }
+                    }, selfUnit.getId()));
+                }
+            }, selfUnit.getId()));
         }
     }
     
@@ -1958,6 +2065,8 @@ public class Character implements ICharacter {
                 eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
                     if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0 && canReload() && !isReloading) {
                         isAttacking = false; // Clear attacking flag during reload
+                        // DevCycle 28: Reset multiple shot sequence when reloading
+                        resetMultipleShotSequence();
                         startReloadSequence(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId, gameCallbacks);
                     } else {
                         long completionTick = fireTick + firingState.ticks + recoveringState.ticks;
@@ -1972,13 +2081,31 @@ public class Character implements ICharacter {
                             startPointingFromHipTiming(completionTick);
                         }
                         
-                        isAttacking = false; // Attack sequence complete
-                        
-                        // Only call checkContinuousAttack if NOT using persistent attack mode
-                        // Persistent attack is handled entirely by continueStandardAttack scheduling
-                        if (!persistentAttack) {
-                            checkContinuousAttack(shooter, completionTick, eventQueue, ownerId, gameCallbacks);
+                        // DevCycle 28: Check if we need to fire more shots in the sequence
+                        if (multipleShootCount > 1 && currentShotInSequence < multipleShootCount && currentTarget != null) {
+                            // Determine aiming speed for NEXT shot before incrementing counter
+                            currentShotInSequence++; // Increment to next shot number
+                            AimingSpeed nextShotSpeed = getAimingSpeedForMultipleShot(); // Get speed for this shot number
+                            
+                            // Maintain attack state and schedule next shot
+                            isAttacking = true;
+                            
+                            // Calculate delay based on pattern aiming speed
+                            long quickDelay = Math.round(currentWeaponState.ticks * nextShotSpeed.getTimingMultiplier() * calculateAimingSpeedMultiplier());
+                            
+                            // Schedule the next shot in the sequence
+                            scheduleFiring(shooter, currentTarget, completionTick + quickDelay, eventQueue, ownerId, gameCallbacks);
                         } else {
+                            // Multiple shot sequence complete or single shot
+                            currentShotInSequence = 0; // Reset shot counter
+                            isAttacking = false; // Attack sequence complete
+                            
+                            // Only call checkContinuousAttack if NOT using persistent attack mode
+                            // Persistent attack is handled entirely by continueStandardAttack scheduling
+                            if (!persistentAttack) {
+                                checkContinuousAttack(shooter, completionTick, eventQueue, ownerId, gameCallbacks);
+                            } else {
+                            }
                         }
                     }
                 }, ownerId));
@@ -2096,6 +2223,11 @@ public class Character implements ICharacter {
     }
     
     private AimingSpeed determineAimingSpeedForShot() {
+        // DevCycle 28: Check if we're in a multiple shot sequence
+        if (multipleShootCount > 1 && currentShotInSequence > 0) {
+            return getAimingSpeedForMultipleShot();
+        }
+        
         // Always use current aiming speed - burst/auto penalty is applied separately
         return currentAimingSpeed;
     }

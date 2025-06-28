@@ -299,7 +299,7 @@ public class MouseInputHandler {
      */
     private void handleRightClickOnUnit(Unit clickedUnit, double x, double y, boolean isShiftDown, boolean isControlDown) {
         if (selectionManager.isUnitSelected(clickedUnit) && selectionManager.getSelectionCount() == 1) {
-            // Right-click on self (single selection) - cease fire or ready weapon
+            // Right-click on self (single selection) - cease fire, cancel reaction, or ready weapon
             if (callbacks.isEditMode()) {
                 System.out.println(">>> Combat actions disabled in edit mode");
                 return;
@@ -309,9 +309,23 @@ public class MouseInputHandler {
                 return;
             }
             
+            // DevCycle 28: Check if character has an active reaction to cancel
+            if (clickedUnit.character.reactionTarget != null) {
+                String targetName = clickedUnit.character.reactionTarget.getCharacter().getDisplayName();
+                clickedUnit.character.reactionTarget = null;
+                clickedUnit.character.reactionBaselineState = null;
+                clickedUnit.character.reactionTriggerTick = -1;
+                System.out.println("*** " + clickedUnit.character.getDisplayName() + 
+                                 " cancelled reaction to " + targetName + " ***");
+                return;
+            }
+            
             // Delegate combat operations to CombatCommandProcessor
             // Check if character is currently attacking - if so, cease fire; otherwise ready weapon
             combatCommandProcessor.handleSelfTargetCombat(clickedUnit, gameClock.getCurrentTick(), eventQueue);
+        } else if (isControlDown && isShiftDown && selectionManager.hasSelection() && !selectionManager.isUnitSelected(clickedUnit)) {
+            // DevCycle 28: Ctrl+Shift+right-click on unit - set up reaction action
+            handleReactionSetup(clickedUnit);
         } else if (isShiftDown && selectionManager.hasSelection() && !selectionManager.isUnitSelected(clickedUnit)) {
             // Shift+right-click on different unit - toggle persistent attack for all selected
             handlePersistentAttackToggle(clickedUnit);
@@ -456,6 +470,65 @@ public class MouseInputHandler {
         // Start progression using existing system but with hold state target
         character.targetHoldState = targetState;
         character.scheduleReadyFromCurrentState(unit, currentTick, eventQueue, unit.getId());
+    }
+    
+    /**
+     * DevCycle 28: Handle Ctrl+Shift+right-click for reaction action setup.
+     * Sets selected units to monitor the target unit for weapon state changes.
+     * 
+     * @param targetUnit The unit to monitor for weapon state changes
+     */
+    private void handleReactionSetup(Unit targetUnit) {
+        if (callbacks.isEditMode()) {
+            System.out.println(">>> Combat actions disabled in edit mode");
+            return;
+        }
+        
+        int reactionsSet = 0;
+        for (Unit unit : selectionManager.getSelectedUnits()) {
+            if (!unit.character.isIncapacitated() && unit != targetUnit) {
+                combat.Character character = unit.character;
+                
+                // Set up reaction monitoring
+                character.reactionTarget = targetUnit;
+                
+                // Record baseline weapon state of target
+                if (targetUnit.character.currentWeaponState != null) {
+                    character.reactionBaselineState = targetUnit.character.currentWeaponState;
+                } else if (targetUnit.character.weapon != null) {
+                    // Initialize weapon state if needed
+                    character.reactionBaselineState = targetUnit.character.weapon.getInitialState();
+                } else {
+                    // No weapon state to monitor
+                    character.reactionBaselineState = null;
+                }
+                
+                // Clear any pending reaction trigger
+                character.reactionTriggerTick = -1;
+                
+                // Move character to preferred hold state
+                if (character.weapon != null) {
+                    String preferredHoldState = character.firesFromAimingState ? "aiming" : "pointedfromhip";
+                    scheduleWeaponProgressionToState(unit, preferredHoldState, gameClock.getCurrentTick());
+                }
+                
+                // Make unit face the target
+                unit.setTargetFacing(targetUnit.x, targetUnit.y);
+                
+                reactionsSet++;
+            }
+        }
+        
+        if (reactionsSet > 0) {
+            if (selectionManager.getSelectionCount() == 1) {
+                Unit unit = selectionManager.getSelected();
+                System.out.println("*** " + unit.character.getDisplayName() + 
+                                 " set to react to " + targetUnit.character.getDisplayName() + " ***");
+            } else {
+                System.out.println("*** " + reactionsSet + " units set to react to " + 
+                                 targetUnit.character.getDisplayName() + " ***");
+            }
+        }
     }
     
     /**

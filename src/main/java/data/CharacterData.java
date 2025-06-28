@@ -157,6 +157,10 @@ public class CharacterData {
     @JsonProperty("hasCounterAttackOpportunity")
     public boolean hasCounterAttackOpportunity = false;
     
+    // DevCycle 28: Multiple shot control
+    @JsonProperty("multipleShootCount")
+    public int multipleShootCount = 1;
+    
     public CharacterData() {
         // Default constructor for Jackson
         this.skills = new ArrayList<>();
