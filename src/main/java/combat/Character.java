@@ -660,6 +660,75 @@ public class Character implements ICharacter {
         return getPointingFromHipDuration(currentTick);
     }
     
+    /**
+     * DevCycle 27: System 6 - Get optimal weapon state for target switching based on firing preference.
+     * This prevents unnecessary regression to pointedfromhip when character prefers aiming state.
+     * 
+     * @return WeaponState that respects character's firing preference while allowing efficient progression
+     */
+    WeaponState getOptimalStateForTargetSwitch() {
+        if (weapon == null) {
+            return null;
+        }
+        
+        // For characters who prefer aiming state, try to get them closer to aiming
+        if (firesFromAimingState) {
+            // Check if weapon has aiming state available
+            WeaponState aimingState = weapon.getStateByName("aiming");
+            if (aimingState != null) {
+                // Character prefers aiming - use aiming state directly for immediate targeting
+                return aimingState;
+            }
+            
+            // Fallback: try pointedfromhip if aiming not available
+            WeaponState pointingState = weapon.getStateByName("pointedfromhip");
+            if (pointingState != null) {
+                return pointingState;
+            }
+        } else {
+            // Character prefers pointedfromhip - use that state
+            WeaponState pointingState = weapon.getStateByName("pointedfromhip");
+            if (pointingState != null) {
+                return pointingState;
+            }
+            
+            // Fallback: try aiming if pointedfromhip not available
+            WeaponState aimingState = weapon.getStateByName("aiming");
+            if (aimingState != null) {
+                return aimingState;
+            }
+        }
+        
+        // Final fallback: use ready state (original behavior)
+        WeaponState readyState = weapon.getStateByName("ready");
+        if (readyState != null) {
+            return readyState;
+        }
+        
+        // Emergency fallback: use current state if nothing else works
+        return currentWeaponState;
+    }
+    
+    /**
+     * DevCycle 27: System 6 - Start timing for weapon state after target switch.
+     * This ensures aiming counters begin immediately when switching to targeting states.
+     * 
+     * @param currentTick The current game tick
+     */
+    void startTimingForTargetSwitchState(long currentTick) {
+        if (currentWeaponState == null) {
+            return;
+        }
+        
+        String stateName = currentWeaponState.getState();
+        if ("aiming".equals(stateName)) {
+            startAimingTiming(currentTick);
+        } else if ("pointedfromhip".equals(stateName)) {
+            startPointingFromHipTiming(currentTick);
+        }
+        // For other states (ready, etc.), no timing needs to be started
+    }
+    
     // Support methods for System 3: Accumulated Aiming Time Bonus System (DevCycle 27)
     
     /**
@@ -1456,16 +1525,24 @@ public class Character implements ICharacter {
             } else {
                 System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " attack sequence - cannot cancel pending events");
             }
-            currentWeaponState = weapon.getStateByName("ready");
+            // DevCycle 27: System 6 - Smart target switching that respects firing preference
+            currentWeaponState = getOptimalStateForTargetSwitch();
             // DevCycle 27: Reset aiming timing when changing targets
             resetAimingTiming();
+            // Start timing for new state if applicable
+            startTimingForTargetSwitchState(currentTick);
             // Interrupt burst/auto if in progress
             if (isAutomaticFiring) {
                 isAutomaticFiring = false;
                 burstShotsFired = 0;
                 }
         } else if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
-            currentWeaponState = weapon.getStateByName("ready");
+            // DevCycle 27: System 6 - Smart target switching for aiming state changes
+            currentWeaponState = getOptimalStateForTargetSwitch();
+            // Reset aiming timing when changing targets from aiming state
+            resetAimingTiming();
+            // Start timing for new state if applicable
+            startTimingForTargetSwitchState(currentTick);
         } else if (currentTarget == target && isAttacking) {
             // Already attacking the same target, don't start duplicate attack
             return;
@@ -1789,8 +1866,19 @@ public class Character implements ICharacter {
                 bonusText = ", using " + getCurrentAimingSpeed().getDisplayName() + " aiming";
             }
             
+            // Calculate ammunition display for after firing (DevCycle 27: System 7)
+            String ammunitionText = "";
+            if (weapon instanceof RangedWeapon) {
+                RangedWeapon rangedWeapon = (RangedWeapon) weapon;
+                int currentAmmo = rangedWeapon.getAmmunition();
+                int maxAmmo = rangedWeapon.getMaxAmmunition();
+                // Show ammunition after firing (subtract 1 if there's ammunition to fire)
+                int ammoAfterFiring = currentAmmo > 0 ? currentAmmo - 1 : currentAmmo;
+                ammunitionText = ", [ammo: " + ammoAfterFiring + "/" + maxAmmo + "]";
+            }
+            
             System.out.println(getDisplayName() + " fires a " + weapon.getName() + " at " + 
-                             target.getCharacter().getDisplayName() + ", " + firingMode + " (" + aimingText + bonusText + "), at tick " + fireTick);
+                             target.getCharacter().getDisplayName() + ", " + firingMode + " (" + aimingText + bonusText + ")" + ammunitionText + ", at tick " + fireTick);
             
             currentWeaponState = weapon.getStateByName("firing");
             // DevCycle 27: Reset aiming timing after firing (timing is now reported)
