@@ -653,6 +653,13 @@ public class Character implements ICharacter {
         }
     }
     
+    /**
+     * Get current pointing from hip duration (direct access, not preference-based).
+     */
+    public long getCurrentPointingFromHipDuration(long currentTick) {
+        return getPointingFromHipDuration(currentTick);
+    }
+    
     // Support methods for System 3: Accumulated Aiming Time Bonus System (DevCycle 27)
     
     /**
@@ -1606,38 +1613,80 @@ public class Character implements ICharacter {
         }
         
         if ("aiming".equals(currentState) || ("pointedfromhip".equals(currentState) && !firesFromAimingState)) {
-            // Handle firing from either aiming state or pointedfromhip state based on preference
-            long fireDelay = currentWeaponState.ticks;
+            // DevCycle 27: System 5 - Check for immediate firing when character is already in correct hold state
+            boolean shouldFireImmediately = isAlreadyInCorrectFiringState(currentState, currentTick);
             
-            // Only apply aiming speed modifiers if firing from aiming state
-            if ("aiming".equals(currentState)) {
-                // Determine which aiming speed to use based on firing mode and shot number
-                AimingSpeed aimingSpeedToUse = determineAimingSpeedForShot();
+            long fireDelay;
+            if (shouldFireImmediately) {
+                // Fire immediately (1 tick delay for scheduling) when already in correct state
+                fireDelay = 1;
+                System.out.println("*** " + getDisplayName() + " firing immediately - already in correct state: " + currentState + " ***");
+            } else {
+                // Handle normal firing progression with delays
+                fireDelay = currentWeaponState.ticks;
                 
-                fireDelay = Math.round(currentWeaponState.ticks * aimingSpeedToUse.getTimingMultiplier() * calculateAimingSpeedMultiplier());
+                // Only apply aiming speed modifiers if firing from aiming state
+                if ("aiming".equals(currentState)) {
+                    // Determine which aiming speed to use based on firing mode and shot number
+                    AimingSpeed aimingSpeedToUse = determineAimingSpeedForShot();
+                    
+                    fireDelay = Math.round(currentWeaponState.ticks * aimingSpeedToUse.getTimingMultiplier() * calculateAimingSpeedMultiplier());
+                    
+                    // Add random additional time for very careful aiming
+                    if (aimingSpeedToUse.isVeryCareful()) {
+                        long additionalTime = aimingSpeedToUse.getVeryCarefulAdditionalTime();
+                        fireDelay += additionalTime;
+                    }
+                }
                 
-                // Add random additional time for very careful aiming
-                if (aimingSpeedToUse.isVeryCareful()) {
-                    long additionalTime = aimingSpeedToUse.getVeryCarefulAdditionalTime();
+                // DevCycle 27: System 3 - Add Very Careful timing for earned bonus
+                AccumulatedAimingBonus earnedBonus = calculateEarnedAimingBonus(currentTick);
+                if (earnedBonus == AccumulatedAimingBonus.VERY_CAREFUL && "aiming".equals(currentState)) {
+                    // Add 2-5 seconds random time, same as selected Very Careful
+                    long additionalTime = 120 + (long)(Math.random() * 181); // 120-300 ticks
                     fireDelay += additionalTime;
+                    
+                    // Log aiming speed usage for burst/auto modes
+                    if (isAutomaticFiring && burstShotsFired > 1) {
+                    }
                 }
+                // For pointedfromhip firing, use base timing without aiming speed modifiers
             }
-            
-            // DevCycle 27: System 3 - Add Very Careful timing for earned bonus
-            AccumulatedAimingBonus earnedBonus = calculateEarnedAimingBonus(currentTick);
-            if (earnedBonus == AccumulatedAimingBonus.VERY_CAREFUL && "aiming".equals(currentState)) {
-                // Add 2-5 seconds random time, same as selected Very Careful
-                long additionalTime = 120 + (long)(Math.random() * 181); // 120-300 ticks
-                fireDelay += additionalTime;
-                
-                // Log aiming speed usage for burst/auto modes
-                if (isAutomaticFiring && burstShotsFired > 1) {
-                }
-            }
-            // For pointedfromhip firing, use base timing without aiming speed modifiers
             
             scheduleFiring(shooter, target, currentTick + fireDelay, eventQueue, ownerId, gameCallbacks);
         }
+    }
+    
+    /**
+     * DevCycle 27: System 5 - Check if character is already in the correct firing state and should fire immediately.
+     * This eliminates unnecessary weapon progression delays when the character is already holding at the target state.
+     * 
+     * @param currentState The current weapon state name
+     * @param currentTick The current game tick
+     * @return true if should fire immediately, false if normal progression delays should apply
+     */
+    boolean isAlreadyInCorrectFiringState(String currentState, long currentTick) {
+        // Criteria for immediate firing:
+        // 1. Character is in "aiming" state AND firing preference is aiming
+        // 2. Character is in "pointedfromhip" state AND firing preference is pointedfromhip  
+        // 3. Character has been in current state for some minimum time (not just transitioned)
+        
+        if ("aiming".equals(currentState) && firesFromAimingState) {
+            // Character is aiming and prefers to fire from aiming state
+            // Check if they've been aiming for at least a minimal amount of time (5+ ticks)
+            long timingDuration = getCurrentAimingDuration(currentTick);
+            return timingDuration >= 5;
+        }
+        
+        if ("pointedfromhip".equals(currentState) && !firesFromAimingState) {
+            // Character is pointing from hip and prefers to fire from pointedfromhip state
+            // Check if they've been pointing for at least a minimal amount of time (5+ ticks)
+            long timingDuration = getCurrentPointingFromHipDuration(currentTick);
+            return timingDuration >= 5;
+        }
+        
+        // For all other cases, use normal firing progression with delays
+        return false;
     }
     
     /**
