@@ -220,6 +220,26 @@ mvn javafx:run                # Run the JavaFX application
 - **Document Naming**: `DevCycle_2025_00##_brainstorm.md`, `DevCycle_2025_00##.md`, `DevCycle_2025_00##_bugs_##.md`
 - **Branch Pattern**: Work in `DC_##` branches, merge to main when complete
 
+### DevCycle Closure Checklist (MANDATORY)
+When closing ANY DevCycle, Claude MUST complete ALL of these steps:
+
+1. ✅ **Update DevCycle document with final status and close-out summary**
+2. ✅ **Commit final documentation updates**
+3. ✅ **Switch to main branch** (`git checkout main`)
+4. ✅ **Merge development branch** (`git merge DC_##`)
+5. ✅ **Delete development branch** (`git branch -d DC_##`)
+6. ✅ **Verify clean status** (`git status`)
+
+**🚨 CRITICAL**: The git merge step (#4) is MANDATORY and must NEVER be skipped. DevCycle is NOT closed until the branch is merged to main.
+
+### DevCycle Closure Enforcement
+To prevent missing the branch merge step in future cycles:
+
+1. **Use Closure Template**: Copy `/templates/DevCycle_Closure_Template.md` to end of DevCycle document before closure
+2. **Add Mandatory Todos**: When user requests cycle closure, immediately add all git workflow tasks to todo list
+3. **Double-Check Before Declaration**: Never declare a DevCycle "closed" until branch merge is verified complete
+4. **Status Verification**: Always run `git status` and `git branch` to confirm main branch and clean state
+
 ## Git and Version Control Rules
 
 ### Absolute Prohibitions
