@@ -1670,58 +1670,11 @@ public class Character implements ICharacter {
     
     /**
      * Schedule melee attack from current weapon state
+     * DevCycle 31: Delegate to CombatCoordinator to reduce Character.java size
      */
     private void scheduleMeleeAttackFromCurrentState(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (meleeWeapon == null) {
-            return;
-        }
-        
-        // Get active weapon for state management (use melee weapon's states)
-        Weapon activeWeapon = getActiveWeapon();
-        WeaponState currentState = currentWeaponState;
-        
-        if (currentState == null) {
-            // Initialize to weapon's initial state if no current state
-            currentState = activeWeapon.getInitialState();
-            currentWeaponState = currentState;
-        }
-        
-        String stateName = currentState != null ? currentState.getState() : "null";
-        
-        // Handle melee weapon state transitions
-        if ("sheathed".equals(stateName)) {
-            scheduleMeleeStateTransition("unsheathing", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("unsheathing".equals(stateName)) {
-            scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("melee_ready".equals(stateName)) {
-            // Ready to attack - schedule the melee attack
-            long attackTime = Math.round(meleeWeapon.getStateBasedAttackSpeed() * calculateAttackSpeedMultiplier());
-            scheduleMeleeAttack(attacker, target, currentTick + attackTime, eventQueue, ownerId, gameCallbacks);
-        } else if ("switching_to_melee".equals(stateName)) {
-            scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
-        } else if ("melee_attacking".equals(stateName)) {
-            // Already attacking - cannot start another attack until current one completes
-            return;
-        } else {
-            // For any other state (like "slung"), go directly to sheathed state first
-            
-            WeaponState sheathedState = activeWeapon.getStateByName("sheathed");
-            if (sheathedState != null) {
-                currentWeaponState = sheathedState;
-                scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
-            } else {
-                // Emergency fallback: use any available state or create a simple ready state
-                if (activeWeapon.states != null && !activeWeapon.states.isEmpty()) {
-                    WeaponState firstState = activeWeapon.states.get(0);
-                    currentWeaponState = firstState;
-                    scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
-                } else {
-                    WeaponState emergencyReady = new WeaponState("melee_ready", "melee_attacking", 15);
-                    currentWeaponState = emergencyReady;
-                    scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
-                }
-            }
-        }
+        // DevCycle 31: Delegate to CombatCoordinator for melee attack sequence management
+        CombatCoordinator.getInstance().startMeleeAttackSequenceInternal(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
     private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit shooter, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
@@ -2003,7 +1956,7 @@ public class Character implements ICharacter {
     /**
      * Schedule melee state transition
      */
-    private void scheduleMeleeStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit attacker, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void scheduleMeleeStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit attacker, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         
         // Apply speed multiplier to weapon preparation states
         if (isWeaponPreparationState(newStateName)) {
@@ -2075,7 +2028,7 @@ public class Character implements ICharacter {
     /**
      * Schedule actual melee attack execution
      */
-    private void scheduleMeleeAttack(IUnit attacker, IUnit target, long attackTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void scheduleMeleeAttack(IUnit attacker, IUnit target, long attackTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         
         eventQueue.add(new ScheduledEvent(attackTick, () -> {
             
@@ -2125,7 +2078,7 @@ public class Character implements ICharacter {
     /**
      * Calculate attack speed multiplier based on character stats and skills
      */
-    private double calculateAttackSpeedMultiplier() {
+    public double calculateAttackSpeedMultiplier() {
         // Use same speed calculation as weapon ready speed for consistency
         return calculateWeaponReadySpeedMultiplier();
     }

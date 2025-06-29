@@ -197,6 +197,66 @@ public class CombatCoordinator {
     }
     
     /**
+     * Internal melee attack sequence implementation with full logic from Character class.
+     * Extracted from Character.scheduleMeleeAttackFromCurrentState to reduce Character.java size.
+     * DevCycle 31: Extract melee attack scheduling logic to CombatCoordinator.
+     */
+    public void startMeleeAttackSequenceInternal(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<game.ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        Character character = attacker.getCharacter();
+        
+        if (character.meleeWeapon == null) {
+            return;
+        }
+        
+        // Get active weapon for state management (use melee weapon's states)
+        Weapon activeWeapon = character.getActiveWeapon();
+        WeaponState currentState = character.currentWeaponState;
+        
+        if (currentState == null) {
+            // Initialize to weapon's initial state if no current state
+            currentState = activeWeapon.getInitialState();
+            character.currentWeaponState = currentState;
+        }
+        
+        String stateName = currentState != null ? currentState.getState() : "null";
+        
+        // Handle melee weapon state transitions
+        if ("sheathed".equals(stateName)) {
+            character.scheduleMeleeStateTransition("unsheathing", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
+        } else if ("unsheathing".equals(stateName)) {
+            character.scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
+        } else if ("melee_ready".equals(stateName)) {
+            // Ready to attack - schedule the melee attack
+            long attackTime = Math.round(character.meleeWeapon.getStateBasedAttackSpeed() * character.calculateAttackSpeedMultiplier());
+            character.scheduleMeleeAttack(attacker, target, currentTick + attackTime, eventQueue, ownerId, gameCallbacks);
+        } else if ("switching_to_melee".equals(stateName)) {
+            character.scheduleMeleeStateTransition("melee_ready", currentTick, currentState.ticks, attacker, target, eventQueue, ownerId, gameCallbacks);
+        } else if ("melee_attacking".equals(stateName)) {
+            // Already attacking - cannot start another attack until current one completes
+            return;
+        } else {
+            // For any other state (like "slung"), go directly to sheathed state first
+            
+            WeaponState sheathedState = activeWeapon.getStateByName("sheathed");
+            if (sheathedState != null) {
+                character.currentWeaponState = sheathedState;
+                startMeleeAttackSequenceInternal(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+            } else {
+                // Emergency fallback: use any available state or create a simple ready state
+                if (activeWeapon.states != null && !activeWeapon.states.isEmpty()) {
+                    WeaponState firstState = activeWeapon.states.get(0);
+                    character.currentWeaponState = firstState;
+                    startMeleeAttackSequenceInternal(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+                } else {
+                    WeaponState emergencyReady = new WeaponState("melee_ready", "melee_attacking", 15);
+                    character.currentWeaponState = emergencyReady;
+                    startMeleeAttackSequenceInternal(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+                }
+            }
+        }
+    }
+    
+    /**
      * Continue a persistent attack for a character.
      * Handles burst fire and automatic weapons.
      * 
