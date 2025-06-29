@@ -175,6 +175,15 @@ public interface IAimingSystem {
     combat.AccumulatedAimingBonus calculateEarnedAimingBonus(Character character, long currentTick);
     
     /**
+     * Start timing for appropriate aiming state when switching targets.
+     * Determines whether to start aiming or pointing-from-hip timing based on current weapon state.
+     * 
+     * @param character The character switching targets
+     * @param currentTick The current game tick
+     */
+    void startTimingForTargetSwitchState(Character character, long currentTick);
+    
+    /**
      * Clean up all state for a character that is being removed.
      * 
      * @param characterId The ID of the character to clean up

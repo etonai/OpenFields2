@@ -336,4 +336,24 @@ public class AimingSystem implements IAimingSystem {
         // Combine multipliers
         return reflexMultiplier * quickdrawMultiplier;
     }
+    
+    /**
+     * Start timing for appropriate aiming state when switching targets.
+     * Determines whether to start aiming or pointing-from-hip timing based on current weapon state.
+     * 
+     * @param character The character switching targets
+     * @param currentTick The current game tick
+     */
+    public void startTimingForTargetSwitchState(Character character, long currentTick) {
+        if (character.currentWeaponState == null) {
+            return;
+        }
+        
+        String stateName = character.currentWeaponState.getState();
+        if ("aiming".equals(stateName)) {
+            startAimingTiming(character.id, currentTick);
+        } else if ("pointedfromhip".equals(stateName)) {
+            startPointingFromHipTiming(character.id, currentTick);
+        }
+    }
 }
