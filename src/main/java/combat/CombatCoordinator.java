@@ -21,6 +21,9 @@ public class CombatCoordinator {
     private final IDefenseManager defenseManager;
     private final IWeaponStateManager weaponStateManager;
     private final IReloadManager reloadManager;
+    private final ICharacterSkillsManager skillsManager;
+    private final ICharacterStatsManager statsManager;
+    private final ITargetManager targetManager;
     
     // Service references
     private final IEventSchedulingService eventSchedulingService;
@@ -38,6 +41,9 @@ public class CombatCoordinator {
         this.defenseManager = DefenseManager.getInstance();
         this.weaponStateManager = WeaponStateManager.getInstance();
         this.reloadManager = ReloadManager.getInstance();
+        this.skillsManager = CharacterSkillsManager.getInstance();
+        this.statsManager = CharacterStatsManager.getInstance();
+        this.targetManager = TargetManager.getInstance();
         
         // Get service references
         this.eventSchedulingService = game.EventSchedulingService.getInstance();
@@ -335,6 +341,9 @@ public class CombatCoordinator {
         defenseManager.cleanupCharacter(characterId);
         weaponStateManager.cleanupCharacter(characterId);
         reloadManager.cleanupCharacter(characterId);
+        skillsManager.cleanupCharacter(characterId);
+        statsManager.cleanupCharacter(characterId);
+        targetManager.cleanupCharacter(characterId);
         
         // Cancel any scheduled events
         eventSchedulingService.cancelEventsForOwner(characterId);

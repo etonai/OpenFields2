@@ -6,6 +6,9 @@ import combat.managers.AimingSystem;
 import combat.managers.DefenseManager;
 import combat.managers.WeaponStateManager;
 import combat.managers.ReloadManager;
+import combat.managers.CharacterSkillsManager;
+import combat.managers.CharacterStatsManager;
+import combat.managers.TargetManager;
 import game.ScheduledEvent;
 import game.Unit;
 import game.interfaces.IUnit;
@@ -944,30 +947,18 @@ public class Character implements ICharacter {
         if (isIncapacitated()) {
             return 0.0;
         }
-        return baseMovementSpeed * currentMovementType.getSpeedMultiplier();
+        return MovementController.getEffectiveMovementSpeed(this);
     }
     
     public void increaseMovementType() {
         if (!isIncapacitated()) {
-            // Prone characters can only crawl
-            if (currentPosition == PositionState.PRONE && currentMovementType == MovementType.CRAWL) {
-                return; // Cannot increase from crawl when prone
-            }
-            
-            MovementType newType = currentMovementType.increase();
-            MovementType maxAllowed = getMaxAllowedMovementType();
-            
-            // Check if the new movement type is allowed given wound restrictions
-            if (newType.ordinal() <= maxAllowed.ordinal()) {
-                this.currentMovementType = newType;
-            } else {
-            }
+            MovementController.increaseMovementType(this);
         }
     }
     
     public void decreaseMovementType() {
         if (!isIncapacitated()) {
-            this.currentMovementType = currentMovementType.decrease();
+            MovementController.decreaseMovementType(this);
         }
     }
     
@@ -2516,33 +2507,11 @@ public class Character implements ICharacter {
     }
     
     public MovementType getMaxAllowedMovementType() {
-        // Both legs wounded: can only crawl
-        if (hasBothLegsWounded()) {
-            return MovementType.CRAWL;
-        }
-        
-        // Single leg wound: cannot run
-        if (hasAnyLegWound()) {
-            return MovementType.JOG; // Can walk, jog, crawl but not run
-        }
-        
-        // No leg wounds: no movement restrictions
-        return MovementType.RUN;
+        return MovementController.getMaxAllowedMovementType(this);
     }
     
     public void enforceMovementRestrictions() {
-        MovementType maxAllowed = getMaxAllowedMovementType();
-        
-        // If current movement type exceeds what's allowed, force it down
-        if (currentMovementType.ordinal() > maxAllowed.ordinal()) {
-            currentMovementType = maxAllowed;
-        }
-        
-        // Force prone if both legs are wounded
-        if (hasBothLegsWounded() && currentPosition != PositionState.PRONE) {
-            currentPosition = PositionState.PRONE;
-            currentMovementType = MovementType.CRAWL;
-        }
+        MovementController.enforceMovementRestrictions(this);
     }
     
     /**
