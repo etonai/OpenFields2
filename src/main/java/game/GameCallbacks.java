@@ -12,4 +12,5 @@ public interface GameCallbacks {
     void addMuzzleFlash(Unit shooter, long fireTick);
     void removeAllEventsForOwner(int ownerId);
     List<Unit> getUnits();
+    java.util.PriorityQueue<ScheduledEvent> getEventQueue();
 }

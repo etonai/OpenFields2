@@ -389,6 +389,11 @@ public class GameEngine {
             public List<Unit> getUnits() {
                 return gameState.getUnits();
             }
+            
+            @Override
+            public java.util.PriorityQueue<ScheduledEvent> getEventQueue() {
+                return gameState.getEventQueue();
+            }
         };
     }
     

@@ -126,6 +126,53 @@ public class CharacterStatsManager implements ICharacterStatsManager {
         characterWounds.add(wound);
     }
     
+    @Override
+    public boolean removeWound(int characterId, Wound wound) {
+        List<Wound> characterWounds = wounds.get(characterId);
+        if (characterWounds == null) return false;
+        return characterWounds.remove(wound);
+    }
+    
+    @Override
+    public int getDexterity(int characterId) {
+        return dexterity.getOrDefault(characterId, 0);
+    }
+    
+    @Override
+    public void setDexterity(int characterId, int dexterityValue) {
+        dexterity.put(characterId, dexterityValue);
+    }
+    
+    @Override
+    public int getCoolness(int characterId) {
+        return coolness.getOrDefault(characterId, 0);
+    }
+    
+    @Override
+    public void setCoolness(int characterId, int coolnessValue) {
+        coolness.put(characterId, coolnessValue);
+    }
+    
+    @Override
+    public int getReflexes(int characterId) {
+        return reflexes.getOrDefault(characterId, 0);
+    }
+    
+    @Override
+    public void setReflexes(int characterId, int reflexesValue) {
+        reflexes.put(characterId, reflexesValue);
+    }
+    
+    @Override
+    public int getStrength(int characterId) {
+        return strength.getOrDefault(characterId, 0);
+    }
+    
+    @Override
+    public void setStrength(int characterId, int strengthValue) {
+        strength.put(characterId, strengthValue);
+    }
+    
     /**
      * Initialize stats for a character from Character object
      * @param character Character to initialize from

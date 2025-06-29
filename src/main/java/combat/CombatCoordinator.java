@@ -91,28 +91,106 @@ public class CombatCoordinator {
             }
         }
         
-        // Interrupt any burst/auto firing
-        burstFireManager.setAutomaticFiring(character.id, false);
-        burstFireManager.setBurstShotsFired(character.id, 0);
+        // Call the full attack sequence implementation - get eventQueue from gameCallbacks
+        java.util.PriorityQueue<game.ScheduledEvent> eventQueue = gameCallbacks != null ? gameCallbacks.getEventQueue() : null;
+        return startAttackSequenceInternal(attacker, target, currentTick, eventQueue, attacker.getId(), gameCallbacks);
+    }
+    
+    /**
+     * Internal attack sequence implementation with full logic from Character class.
+     * Extracted from Character.startAttackSequence to reduce Character.java size.
+     */
+    public boolean startAttackSequenceInternal(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<game.ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        Character character = attacker.getCharacter();
         
-        // Set attack state
-        character.isAttacking = true;
-        character.currentTarget = target;
-        
-        // Reset multiple shot sequence if target changed
-        if (character.previousTarget != target) {
-            character.currentShotInSequence = 0;
-            character.previousTarget = target;
+        if (character.weapon == null || character.currentWeaponState == null) {
+            return false;
         }
+        
+        // Always interrupt burst/auto when starting a new attack
+        if (burstFireManager.isAutomaticFiring(character.id)) {
+            burstFireManager.setAutomaticFiring(character.id, false);
+            burstFireManager.setBurstShotsFired(character.id, 0);
+        }
+        
+        // Check if this is a target change and handle first attack penalty
+        boolean targetChanged = (character.currentTarget != null && character.currentTarget != target);
+        boolean newTarget = (character.currentTarget == null);
+        
+        // If targeting a different unit, cancel all pending attacks and reset
+        if (character.currentTarget != null && character.currentTarget != target) {
+            // Clear all pending events for this character
+            if (gameCallbacks != null) {
+                gameCallbacks.removeAllEventsForOwner(attacker.getId());
+            } else {
+                System.err.println("CRITICAL ERROR: gameCallbacks is null in " + character.getDisplayName() + " attack sequence - cannot cancel pending events");
+            }
+            // DevCycle 27: System 6 - Smart target switching that respects firing preference
+            character.currentWeaponState = character.getOptimalStateForTargetSwitch();
+            // DevCycle 27: Reset aiming timing when changing targets
+            character.resetAimingTiming();
+            // DevCycle 28: Reset multiple shot sequence on target change
+            character.resetMultipleShotSequence();
+            // Start timing for new state if applicable
+            character.startTimingForTargetSwitchState(currentTick);
+            // Interrupt burst/auto if in progress
+            if (burstFireManager.isAutomaticFiring(character.id)) {
+                burstFireManager.setAutomaticFiring(character.id, false);
+                burstFireManager.setBurstShotsFired(character.id, 0);
+            }
+        } else if ("aiming".equals(character.currentWeaponState.getState()) && character.currentTarget != target) {
+            // DevCycle 27: System 6 - Smart target switching for aiming state changes
+            character.currentWeaponState = character.getOptimalStateForTargetSwitch();
+            // Reset aiming timing when changing targets from aiming state
+            character.resetAimingTiming();
+            // Start timing for new state if applicable
+            character.startTimingForTargetSwitchState(currentTick);
+        } else if (character.currentTarget == target && character.isAttacking) {
+            // Already attacking the same target, don't start duplicate attack
+            return false;
+        } else if (character.lastAttackScheduledTick == currentTick) {
+            // Prevent multiple attack sequences from being scheduled in the same tick
+            return false;
+        }
+        
+        // Handle first attack penalty system
+        if (targetChanged || newTarget) {
+            // Target changed or new target - apply first attack penalty
+            character.isFirstAttackOnTarget = true;
+        } else if (character.currentTarget == target) {
+            // Same target as before - no first attack penalty
+            character.isFirstAttackOnTarget = false;
+        } else {
+            // This shouldn't happen but be safe - treat as new target
+            character.isFirstAttackOnTarget = true;
+        }
+        
+        character.previousTarget = character.currentTarget;
+        character.currentTarget = target;
+        character.isAttacking = true;
+        character.lastAttackScheduledTick = currentTick;
+        
+        // DevCycle 28: Initialize multiple shot sequence
+        character.currentShotInSequence = 1; // Starting first shot
+        
+        // Make unit face the target and save the direction for later use
+        attacker.faceToward(target.getX(), target.getY());
+        
+        // Calculate and save the target facing direction for weapon visibility
+        double dx = target.getX() - attacker.getX();
+        double dy = target.getY() - attacker.getY();
+        double angleRadians = Math.atan2(dx, -dy);
+        double angleDegrees = Math.toDegrees(angleRadians);
+        if (angleDegrees < 0) angleDegrees += 360;
+        character.lastTargetFacing = angleDegrees;
         
         // Handle melee vs ranged combat
         if (character.isMeleeCombatMode) {
             // Delegate to character for melee attack
-            // For now, we need to pass null for event queue as Character still needs it
-            character.startMeleeAttackSequence(attacker, target, currentTick, null, attacker.getId(), gameCallbacks);
+            character.startMeleeAttackSequence(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
         } else {
             // Schedule ranged attack based on current weapon state
-            scheduleAttackFromCurrentState(attacker, target, currentTick, gameCallbacks);
+            character.scheduleAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
         }
         
         return true;
@@ -352,10 +430,9 @@ public class CombatCoordinator {
     // ===== Private Helper Methods =====
     
     private void scheduleAttackFromCurrentState(IUnit attacker, IUnit target, long currentTick, GameCallbacks gameCallbacks) {
-        // For ranged attacks, delegate to Character's existing attack sequence
-        // The Character class already has all the complex logic for weapon state progression
+        // Schedule ranged attack based on current weapon state
         Character character = attacker.getCharacter();
-        character.startAttackSequence(attacker, target, currentTick, null, attacker.getId(), gameCallbacks);
+        character.scheduleAttackFromCurrentState(attacker, target, currentTick, null, attacker.getId(), gameCallbacks);
     }
     
     private void scheduleWeaponStateProgression(IUnit unit, String targetState, long currentTick) {

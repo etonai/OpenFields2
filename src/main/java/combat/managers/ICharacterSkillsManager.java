@@ -47,10 +47,32 @@ public interface ICharacterSkillsManager {
     void setSkills(int characterId, List<Skill> skills);
     
     /**
+     * Get a specific skill object for a character
+     * @param characterId Character ID
+     * @param skillName Name of the skill
+     * @return The skill object or null if not found
+     */
+    Skill getSkill(int characterId, String skillName);
+    
+    /**
+     * Check if a character has a specific skill
+     * @param characterId Character ID
+     * @param skillName Name of the skill
+     * @return true if character has the skill
+     */
+    boolean hasSkill(int characterId, String skillName);
+    
+    /**
      * Create default skills for a character
      * @param characterId Character ID
      */
     void createDefaultSkills(int characterId);
+    
+    /**
+     * Add default skills to a character if they don't already have them
+     * @param characterId Character ID
+     */
+    void addDefaultSkills(int characterId);
     
     /**
      * Clean up skills data for a character when they are removed

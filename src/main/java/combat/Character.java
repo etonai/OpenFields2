@@ -99,7 +99,7 @@ public class Character implements ICharacter {
     
     // SKILLS AND WOUNDS
     
-    /** Character skills and abilities */
+    /** Character skills and abilities - DevCycle 30: Now managed by CharacterSkillsManager, but kept for compatibility */
     public List<Skill> skills;
     
     /** Current wounds and injuries */
@@ -228,7 +228,7 @@ public class Character implements ICharacter {
         this.faction = 1; // Default faction
         this.usesAutomaticTargeting = false; // Default to manual targeting
         this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
-        this.skills = new ArrayList<>();
+        this.skills = new ArrayList<>(); // Kept for compatibility
         this.wounds = new ArrayList<>();
         initializeDefaultWeapons();
     }
@@ -241,14 +241,18 @@ public class Character implements ICharacter {
 
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, List<Skill> skills) {
         this(nickname, dexterity, health, coolness, strength, reflexes, handedness);
-        this.skills = skills != null ? skills : new ArrayList<>();
+        if (skills != null) {
+            CharacterSkillsManager.getInstance().setSkills(this.id, skills);
+        }
         initializeDefaultWeapons();
     }
 
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness, Weapon weapon, List<Skill> skills) {
         this(nickname, dexterity, health, coolness, strength, reflexes, handedness);
         this.weapon = weapon;
-        this.skills = skills != null ? skills : new ArrayList<>();
+        if (skills != null) {
+            CharacterSkillsManager.getInstance().setSkills(this.id, skills);
+        }
         initializeDefaultWeapons();
     }
 
@@ -276,7 +280,7 @@ public class Character implements ICharacter {
         this.faction = 1; // Default faction
         this.usesAutomaticTargeting = false; // Default to manual targeting
         this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
-        this.skills = new ArrayList<>();
+        this.skills = new ArrayList<>(); // Kept for compatibility
         this.wounds = new ArrayList<>();
         initializeDefaultWeapons();
     }
@@ -304,7 +308,7 @@ public class Character implements ICharacter {
         this.faction = 1; // Default faction
         this.usesAutomaticTargeting = false; // Default to manual targeting
         this.preferredFiringMode = FiringMode.SINGLE_SHOT; // Default firing mode
-        this.skills = new ArrayList<>();
+        this.skills = new ArrayList<>(); // Kept for compatibility
         this.wounds = new ArrayList<>();
         initializeDefaultWeapons();
     }
@@ -330,7 +334,9 @@ public class Character implements ICharacter {
         this.isAttacking = false;
         this.faction = 1; // Default faction
         this.usesAutomaticTargeting = false; // Default to manual targeting
-        this.skills = skills != null ? skills : new ArrayList<>();
+        if (skills != null) {
+            CharacterSkillsManager.getInstance().setSkills(this.id, skills);
+        }
         this.wounds = new ArrayList<>();
         initializeDefaultWeapons();
     }
@@ -357,7 +363,9 @@ public class Character implements ICharacter {
         this.isAttacking = false;
         this.faction = 1; // Default faction
         this.usesAutomaticTargeting = false; // Default to manual targeting
-        this.skills = skills != null ? skills : new ArrayList<>();
+        if (skills != null) {
+            CharacterSkillsManager.getInstance().setSkills(this.id, skills);
+        }
         this.wounds = new ArrayList<>();
         initializeDefaultWeapons();
     }
@@ -863,12 +871,51 @@ public class Character implements ICharacter {
     
     @Override
     public IUnit getCurrentTarget() {
-        return currentTarget;
+        // DevCycle 30: Delegate to TargetManager and sync field for compatibility
+        this.currentTarget = TargetManager.getInstance().getCurrentTarget(this.id);
+        return this.currentTarget;
     }
     
     @Override
     public void setCurrentTarget(IUnit target) {
+        // DevCycle 30: Delegate to TargetManager and sync field for compatibility
+        TargetManager.getInstance().setCurrentTarget(this.id, target);
         this.currentTarget = target;
+    }
+    
+    public boolean hasValidTarget() {
+        return TargetManager.getInstance().hasValidTarget(this.id);
+    }
+    
+    public boolean hasTargetChanged(IUnit newTarget) {
+        return TargetManager.getInstance().hasTargetChanged(this.id, newTarget);
+    }
+    
+    public IUnit getPreviousTarget() {
+        return TargetManager.getInstance().getPreviousTarget(this.id);
+    }
+    
+    public void setPreviousTarget(IUnit target) {
+        TargetManager.getInstance().setPreviousTarget(this.id, target);
+        this.previousTarget = target;
+    }
+    
+    public IUnit getMeleeTarget() {
+        return TargetManager.getInstance().getMeleeTarget(this.id);
+    }
+    
+    public void setMeleeTarget(IUnit target) {
+        TargetManager.getInstance().setMeleeTarget(this.id, target);
+        this.meleeTarget = target;
+    }
+    
+    public IUnit getReactionTarget() {
+        return TargetManager.getInstance().getReactionTarget(this.id);
+    }
+    
+    public void setReactionTarget(IUnit target) {
+        TargetManager.getInstance().setReactionTarget(this.id, target);
+        this.reactionTarget = target;
     }
     
     @Override
@@ -925,22 +972,30 @@ public class Character implements ICharacter {
     
     @Override
     public List<Skill> getSkills() {
-        return skills;
+        // DevCycle 30: Sync from manager to field for compatibility
+        this.skills = CharacterSkillsManager.getInstance().getSkills(this.id);
+        return this.skills;
     }
     
     @Override
     public void setSkills(List<Skill> skills) {
-        this.skills = skills;
+        // DevCycle 30: Sync both manager and field for compatibility
+        CharacterSkillsManager.getInstance().setSkills(this.id, skills);
+        this.skills = skills != null ? new ArrayList<>(skills) : new ArrayList<>();
     }
     
     @Override
     public List<Wound> getWounds() {
-        return wounds;
+        // DevCycle 30: Sync from manager to field for compatibility
+        this.wounds = CharacterStatsManager.getInstance().getWounds(this.id);
+        return this.wounds;
     }
     
     @Override
     public void setWounds(List<Wound> wounds) {
-        this.wounds = wounds;
+        // DevCycle 30: Sync both manager and field for compatibility
+        CharacterStatsManager.getInstance().setWounds(this.id, wounds);
+        this.wounds = wounds != null ? new ArrayList<>(wounds) : new ArrayList<>();
     }
     
     public double getEffectiveMovementSpeed() {
@@ -1216,34 +1271,23 @@ public class Character implements ICharacter {
     }
     
     public Skill getSkill(String skillName) {
-        for (Skill skill : skills) {
-            if (skill.getSkillName().equals(skillName)) {
-                return skill;
-            }
-        }
-        return null;
+        return CharacterSkillsManager.getInstance().getSkill(this.id, skillName);
     }
     
     public int getSkillLevel(String skillName) {
-        Skill skill = getSkill(skillName);
-        return skill != null ? skill.getLevel() : 0;
+        return CharacterSkillsManager.getInstance().getSkillLevel(this.id, skillName);
     }
     
     public void setSkillLevel(String skillName, int level) {
-        Skill skill = getSkill(skillName);
-        if (skill != null) {
-            skill.setLevel(level);
-        } else {
-            addSkill(new Skill(skillName, level));
-        }
+        CharacterSkillsManager.getInstance().setSkillLevel(this.id, skillName, level);
     }
     
     public void addSkill(Skill skill) {
-        skills.add(skill);
+        CharacterSkillsManager.getInstance().addSkill(this.id, skill);
     }
     
     public boolean hasSkill(String skillName) {
-        return getSkill(skillName) != null;
+        return CharacterSkillsManager.getInstance().hasSkill(this.id, skillName);
     }
     
     public static List<Skill> createDefaultSkills() {
@@ -1256,11 +1300,7 @@ public class Character implements ICharacter {
     }
     
     public void addDefaultSkills() {
-        for (Skill defaultSkill : createDefaultSkills()) {
-            if (!hasSkill(defaultSkill.getSkillName())) {
-                addSkill(defaultSkill);
-            }
-        }
+        CharacterSkillsManager.getInstance().addDefaultSkills(this.id);
     }
     
     public void addWound(Wound wound, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
@@ -1317,7 +1357,12 @@ public class Character implements ICharacter {
     }
     
     public boolean removeWound(Wound wound) {
-        return wounds.remove(wound);
+        // DevCycle 30: Delegate to CharacterStatsManager and sync field
+        boolean removed = CharacterStatsManager.getInstance().removeWound(this.id, wound);
+        if (removed) {
+            this.wounds = CharacterStatsManager.getInstance().getWounds(this.id);
+        }
+        return removed;
     }
     
     public boolean canFire() {
@@ -1350,85 +1395,8 @@ public class Character implements ICharacter {
     }
     
     public void startAttackSequence(IUnit shooter, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (weapon == null || currentWeaponState == null) return;
-        
-        // Always interrupt burst/auto when starting a new attack
-        if (BurstFireManager.getInstance().isAutomaticFiring(this.id)) {
-            BurstFireManager.getInstance().setAutomaticFiring(this.id, false);
-            BurstFireManager.getInstance().setBurstShotsFired(this.id, 0);
-        }
-        
-        // Check if this is a target change and handle first attack penalty
-        boolean targetChanged = (currentTarget != null && currentTarget != target);
-        boolean newTarget = (currentTarget == null);
-        
-        // If targeting a different unit, cancel all pending attacks and reset
-        if (currentTarget != null && currentTarget != target) {
-            // Clear all pending events for this character
-            if (gameCallbacks != null) {
-                gameCallbacks.removeAllEventsForOwner(ownerId);
-            } else {
-                System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " attack sequence - cannot cancel pending events");
-            }
-            // DevCycle 27: System 6 - Smart target switching that respects firing preference
-            currentWeaponState = getOptimalStateForTargetSwitch();
-            // DevCycle 27: Reset aiming timing when changing targets
-            resetAimingTiming();
-            // DevCycle 28: Reset multiple shot sequence on target change
-            resetMultipleShotSequence();
-            // Start timing for new state if applicable
-            startTimingForTargetSwitchState(currentTick);
-            // Interrupt burst/auto if in progress
-            if (BurstFireManager.getInstance().isAutomaticFiring(this.id)) {
-                BurstFireManager.getInstance().setAutomaticFiring(this.id, false);
-                BurstFireManager.getInstance().setBurstShotsFired(this.id, 0);
-            }
-        } else if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
-            // DevCycle 27: System 6 - Smart target switching for aiming state changes
-            currentWeaponState = getOptimalStateForTargetSwitch();
-            // Reset aiming timing when changing targets from aiming state
-            resetAimingTiming();
-            // Start timing for new state if applicable
-            startTimingForTargetSwitchState(currentTick);
-        } else if (currentTarget == target && isAttacking) {
-            // Already attacking the same target, don't start duplicate attack
-            return;
-        } else if (lastAttackScheduledTick == currentTick) {
-            // Prevent multiple attack sequences from being scheduled in the same tick
-            return;
-        }
-        
-        // Handle first attack penalty system
-        if (targetChanged || newTarget) {
-            // Target changed or new target - apply first attack penalty
-            isFirstAttackOnTarget = true;
-        } else if (currentTarget == target) {
-            // Same target as before - no first attack penalty
-            isFirstAttackOnTarget = false;
-        } else {
-            // This shouldn't happen but be safe - treat as new target
-            isFirstAttackOnTarget = true;
-        }
-        
-        previousTarget = currentTarget;
-        currentTarget = target;
-        isAttacking = true;
-        lastAttackScheduledTick = currentTick;
-        
-        // DevCycle 28: Initialize multiple shot sequence
-        currentShotInSequence = 1; // Starting first shot
-        
-        // Make unit face the target and save the direction for later use
-        shooter.faceToward(target.getX(), target.getY());
-        
-        // Calculate and save the target facing direction for weapon visibility
-        double dx = target.getX() - shooter.getX();
-        double dy = target.getY() - shooter.getY();
-        double angleRadians = Math.atan2(dx, -dy);
-        double angleDegrees = Math.toDegrees(angleRadians);
-        if (angleDegrees < 0) angleDegrees += 360;
-        lastTargetFacing = angleDegrees;
-        scheduleAttackFromCurrentState(shooter, target, currentTick, eventQueue, ownerId, gameCallbacks);
+        // DevCycle 30: Delegate to CombatCoordinator for attack sequence management
+        CombatCoordinator.getInstance().startAttackSequenceInternal(shooter, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
     public void startReadyWeaponSequence(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
@@ -1492,7 +1460,7 @@ public class Character implements ICharacter {
         
     }
     
-    private void scheduleAttackFromCurrentState(IUnit shooter, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void scheduleAttackFromCurrentState(IUnit shooter, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Debug: Check weapon and weapon state
         System.out.println("*** " + getDisplayName() + " scheduleAttackFromCurrentState: weapon=" + 
                           (weapon != null ? weapon.getName() : "null") + 
@@ -2243,137 +2211,8 @@ public class Character implements ICharacter {
     }
     
     public void updateAutomaticTargeting(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
-        
-        // Only execute if automatic targeting is enabled
-        if (!usesAutomaticTargeting) {
-            return;
-        }
-        
-        // Skip if character is incapacitated
-        if (this.isIncapacitated()) {
-            return;
-        }
-        
-        // Skip if character has no weapon
-        if (weapon == null) {
-            return;
-        }
-        
-        // Skip if character is already attacking (let existing attack complete)
-        if (isAttacking) {
-            return;
-        }
-        
-        // Skip if character is reloading (let reload complete)
-        if (isReloading) {
-            return;
-        }
-        
-        // Check if current target is still valid
-        boolean currentTargetValid = currentTarget != null 
-            && !currentTarget.getCharacter().isIncapacitated() 
-            && this.isHostileTo(currentTarget.getCharacter());
-        
-        if (!currentTargetValid) {
-            // Find a new target with target zone priority
-            IUnit newTarget = AutoTargetingSystem.findNearestHostileTargetWithZonePriority(this, selfUnit, gameCallbacks);
-            
-            if (newTarget != null) {
-                // Target found - start attacking
-                persistentAttack = true;
-                currentTarget = newTarget; // DevCycle 22: Fix auto targeting infinite loop by setting currentTarget
-                
-                // Calculate distance for logging
-                double dx = newTarget.getX() - selfUnit.getX();
-                double dy = newTarget.getY() - selfUnit.getY();
-                double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
-                
-                String zoneStatus = (targetZone != null && targetZone.contains((int)newTarget.getX(), (int)newTarget.getY())) ? " (in target zone)" : "";
-                
-                // Start attack sequence - check combat mode to determine attack type
-                if (isMeleeCombatMode() && meleeWeapon != null) {
-                    // Check if already in melee range
-                    double distance = Math.hypot(newTarget.getX() - selfUnit.getX(), newTarget.getY() - selfUnit.getY());
-                    double meleeRangePixels = meleeWeapon.getTotalReach() * 7.0; // Convert feet to pixels
-                    
-                    if (distance <= meleeRangePixels) {
-                        // Already in range, attack immediately
-                        startMeleeAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
-                    } else {
-                        // Move to melee range first
-                        // Set melee movement target - the updateMeleeMovement method will handle the attack when in range
-                        isMovingToMelee = true;
-                        meleeTarget = newTarget;
-                        lastMeleeMovementUpdate = currentTick;
-                        
-                        // Task #9: Ready melee weapon during movement (like manual attacks)
-                        if (meleeWeapon != null) {
-                            startReadyWeaponSequence(selfUnit, currentTick, eventQueue, selfUnit.getId());
-                        }
-                    }
-                } else {
-                    startAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
-                }
-            } else {
-                // No targets found - disable persistent attack but maintain weapon direction
-                if (persistentAttack) {
-                    persistentAttack = false;
-                    currentTarget = null;
-                    
-                    // Preserve the current facing direction so weapon continues to aim at last target location
-                    if (lastTargetFacing != null && selfUnit != null) {
-                        selfUnit.setTargetFacing(lastTargetFacing);
-                    }
-                    
-                }
-            }
-        } else {
-            // Handle case where we have a valid target but need to initiate/continue attack
-            
-            // Set persistent attack for auto-targeting continuation if not already set
-            if (!persistentAttack) {
-                persistentAttack = true;
-            }
-            
-            // Only initiate attack sequence if not already in progress
-            if (isMovingToMelee || isAttacking) {
-                return;
-            }
-            
-            // Calculate distance for logging
-            double dx = currentTarget.getX() - selfUnit.getX();
-            double dy = currentTarget.getY() - selfUnit.getY();
-            double distanceFeet = Math.hypot(dx, dy) / 7.0; // Convert pixels to feet
-            
-            String zoneStatus = (targetZone != null && targetZone.contains((int)currentTarget.getX(), (int)currentTarget.getY())) ? " (in target zone)" : "";
-            
-            // Start attack sequence - check combat mode to determine attack type
-            if (isMeleeCombatMode() && meleeWeapon != null) {
-                CharacterDebugUtils.autoTargetDebugPrintAlways(this, "[AUTO-TARGET] " + getDisplayName() + " starting MELEE attack sequence");
-                // Check if already in melee range
-                double distance = Math.hypot(currentTarget.getX() - selfUnit.getX(), currentTarget.getY() - selfUnit.getY());
-                double meleeRangePixels = meleeWeapon.getTotalReach() * 7.0; // Convert feet to pixels
-                
-                if (distance <= meleeRangePixels) {
-                    // Already in range, attack immediately
-                    startMeleeAttackSequence(selfUnit, currentTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
-                } else {
-                    // Move to melee range first
-                    // Set melee movement target - the updateMeleeMovement method will handle the attack when in range
-                    isMovingToMelee = true;
-                    meleeTarget = currentTarget;
-                    lastMeleeMovementUpdate = currentTick;
-                    
-                    // Task #9: Ready melee weapon during movement (like manual attacks)
-                    if (meleeWeapon != null) {
-                        startReadyWeaponSequence(selfUnit, currentTick, eventQueue, selfUnit.getId());
-                    }
-                }
-            } else {
-                CharacterDebugUtils.autoTargetDebugPrintAlways(this, "[AUTO-TARGET] " + getDisplayName() + " starting RANGED attack sequence");
-                startAttackSequence(selfUnit, currentTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
-            }
-        }
+        // DevCycle 30: Delegate to AutoTargetingSystem to reduce Character.java size
+        AutoTargetingSystem.updateAutomaticTargeting(this, selfUnit, currentTick, eventQueue, gameCallbacks);
     }
     
     /**

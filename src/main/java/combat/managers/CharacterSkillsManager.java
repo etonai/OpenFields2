@@ -77,6 +77,23 @@ public class CharacterSkillsManager implements ICharacterSkillsManager {
     }
     
     @Override
+    public Skill getSkill(int characterId, String skillName) {
+        List<Skill> skills = characterSkills.get(characterId);
+        if (skills == null) return null;
+        for (Skill skill : skills) {
+            if (skill.skillName.equals(skillName)) {
+                return skill;
+            }
+        }
+        return null;
+    }
+    
+    @Override
+    public boolean hasSkill(int characterId, String skillName) {
+        return getSkill(characterId, skillName) != null;
+    }
+    
+    @Override
     public void createDefaultSkills(int characterId) {
         List<Skill> defaultSkills = new ArrayList<>();
         
@@ -87,6 +104,23 @@ public class CharacterSkillsManager implements ICharacterSkillsManager {
         defaultSkills.add(new Skill(data.SkillsManager.MEDICINE, 50));
         
         setSkills(characterId, defaultSkills);
+    }
+    
+    @Override
+    public void addDefaultSkills(int characterId) {
+        // Add default skills only if the character doesn't already have them
+        if (!hasSkill(characterId, data.SkillsManager.PISTOL)) {
+            addSkill(characterId, new Skill(data.SkillsManager.PISTOL, 50));
+        }
+        if (!hasSkill(characterId, data.SkillsManager.RIFLE)) {
+            addSkill(characterId, new Skill(data.SkillsManager.RIFLE, 50));
+        }
+        if (!hasSkill(characterId, data.SkillsManager.QUICKDRAW)) {
+            addSkill(characterId, new Skill(data.SkillsManager.QUICKDRAW, 50));
+        }
+        if (!hasSkill(characterId, data.SkillsManager.MEDICINE)) {
+            addSkill(characterId, new Skill(data.SkillsManager.MEDICINE, 50));
+        }
     }
     
     @Override
