@@ -4,7 +4,7 @@ public enum AimingSpeed {
     VERY_CAREFUL("Very Careful", 3.0, 15.0), // Base timing, skill bonus calculated separately
     CAREFUL("Careful", 2.0, 15.0),
     NORMAL("Normal", 1.0, 0.0),
-    QUICK("Quick", 0.5, -20.0);
+    QUICK("Quick", 0.2, -20.0);
     
     private final String displayName;
     private final double timingMultiplier;
