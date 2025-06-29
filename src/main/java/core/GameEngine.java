@@ -180,12 +180,10 @@ public class GameEngine {
             !attacker.character.isIncapacitated() && 
             !target.character.isIncapacitated()) {
             
-            // Start attack sequence
-            attacker.character.startAttackSequence(
+            // Start attack sequence using CombatCoordinator
+            combat.CombatCoordinator.getInstance().startAttackSequence(
                 attacker, target,
                 gameState.getGameClock().getCurrentTick(),
-                gameState.getEventQueue(),
-                attackerId,
                 gameCallbacks
             );
         }

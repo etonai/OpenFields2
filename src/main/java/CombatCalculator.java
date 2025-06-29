@@ -33,7 +33,7 @@ public final class CombatCalculator {
         }
         
         // For burst fire shots 2+, ignore all aiming modifiers
-        if (shooter.character.burstShotsFired > 0) {
+        if (shooter.character.getBurstShotsFired() > 0) {
             aimingSpeedModifier = 0; // Burst penalty applied elsewhere
         }
         
@@ -45,7 +45,7 @@ public final class CombatCalculator {
         double positionModifier = calculatePositionModifier(target);
         double braveryModifier = calculateBraveryModifier(shooter, currentTick);
         double firstAttackPenalty = (shooter.character.isFirstAttackOnTarget && !useVeryCarefulBenefits) ? GameConstants.FIRST_ATTACK_PENALTY : 0;
-        double firingStateModifier = shooter.character.firesFromAimingState ? 0.0 : -20.0; // -20 penalty for pointedfromhip firing
+        double firingStateModifier = shooter.character.getFiresFromAimingState() ? 0.0 : -20.0; // -20 penalty for pointedfromhip firing
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
         double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + burstAutoPenalty + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + firstAttackPenalty + firingStateModifier + sizeModifier + coverModifier;
@@ -72,7 +72,7 @@ public final class CombatCalculator {
                 System.out.println("Aiming speed modifier: " + aimingSpeedModifier + " (selected " + shooter.character.getCurrentAimingSpeed().getDisplayName() + ")");
             }
             if (burstAutoPenalty != 0) {
-                System.out.println("Burst/Auto penalty: " + burstAutoPenalty + " (bullet " + shooter.character.burstShotsFired + ")");
+                System.out.println("Burst/Auto penalty: " + burstAutoPenalty + " (bullet " + shooter.character.getBurstShotsFired() + ")");
             }
             
             // Enhanced target movement debug info
@@ -91,7 +91,7 @@ public final class CombatCalculator {
             System.out.println("Position modifier: " + String.format("%.1f", positionModifier) + " (target: " + target.character.getCurrentPosition().getDisplayName() + ")");
             System.out.println("Bravery modifier: " + String.format("%.1f", braveryModifier) + " " + getBraveryModifierDebugInfo(shooter, currentTick));
             System.out.println("First attack penalty: " + firstAttackPenalty + " (first attack: " + shooter.character.isFirstAttackOnTarget + ", very careful benefits: " + useVeryCarefulBenefits + ")");
-            System.out.println("Firing state modifier: " + firingStateModifier + " (firing from " + (shooter.character.firesFromAimingState ? "aiming" : "pointedfromhip") + ")");
+            System.out.println("Firing state modifier: " + firingStateModifier + " (firing from " + (shooter.character.getFiresFromAimingState() ? "aiming" : "pointedfromhip") + ")");
             System.out.println("Size modifier: " + sizeModifier);
             System.out.println("Cover modifier: " + coverModifier);
             System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");

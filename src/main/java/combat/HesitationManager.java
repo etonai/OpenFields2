@@ -1,5 +1,6 @@
 package combat;
 
+import combat.managers.BurstFireManager;
 import game.ScheduledEvent;
 import utils.GameConstants;
 import java.util.ArrayList;
@@ -51,9 +52,9 @@ public class HesitationManager {
             pauseCurrentActions(character, eventQueue, ownerId);
             
             // Stop automatic firing if in progress
-            if (character.isAutomaticFiring) {
-                character.isAutomaticFiring = false;
-                character.burstShotsFired = 0;
+            if (BurstFireManager.getInstance().isAutomaticFiring(character.id)) {
+                BurstFireManager.getInstance().setAutomaticFiring(character.id, false);
+                BurstFireManager.getInstance().setBurstShotsFired(character.id, 0);
                 System.out.println(">>> " + character.getDisplayName() + " automatic firing interrupted by wound");
             }
         }

@@ -1,6 +1,11 @@
 package combat;
 
 import combat.interfaces.ICharacter;
+import combat.managers.BurstFireManager;
+import combat.managers.AimingSystem;
+import combat.managers.DefenseManager;
+import combat.managers.WeaponStateManager;
+import combat.managers.ReloadManager;
 import game.ScheduledEvent;
 import game.Unit;
 import game.interfaces.IUnit;
@@ -65,12 +70,12 @@ public class Character implements ICharacter {
     public boolean isAttacking;
     public boolean isDefensiveAiming = false;
     
-    /** Weapon hold state for targeting control */
-    public String weaponHoldState = "aiming"; // Default hold state
-    public String targetHoldState = null; // Target state for hold state progression
+    /** Weapon hold state for targeting control - DEPRECATED: Now managed by WeaponStateManager */
+    // public String weaponHoldState = "aiming"; // Default hold state
+    // public String targetHoldState = null; // Target state for hold state progression
     
-    /** Firing preference - true for aiming state, false for pointedfromhip state */
-    public boolean firesFromAimingState = true; // Default to aiming
+    /** Firing preference - DEPRECATED: Now managed by WeaponStateManager */
+    // public boolean firesFromAimingState = true; // Default to aiming
     
     /** Multiple shot control (DevCycle 28) */
     public int multipleShootCount = 1; // Number of shots to fire in sequence (1-5)
@@ -81,9 +86,8 @@ public class Character implements ICharacter {
     public WeaponState reactionBaselineState = null; // Initial weapon state when reaction was set
     public long reactionTriggerTick = -1; // Tick when reaction should execute (-1 = not triggered)
     
-    /** Aiming duration tracking (DevCycle 27) */
-    public long aimingStartTick = -1; // Tick when aiming state began (-1 = not aiming)
-    public long pointingFromHipStartTick = -1; // Tick when pointedfromhip state began (-1 = not pointing)
+    /** Aiming duration tracking (DevCycle 27) - Now managed by AimingSystem */
+    // aimingStartTick and pointingFromHipStartTick removed - managed by AimingSystem
     
     /** Character configuration */
     public int faction;
@@ -148,10 +152,7 @@ public class Character implements ICharacter {
     
     // AUTOMATIC FIRING STATE
     
-    /** Burst and full-auto firing state */
-    public boolean isAutomaticFiring = false;   // Currently in automatic firing mode
-    public int burstShotsFired = 0;             // Number of shots fired in current burst
-    public long lastAutomaticShot = 0;          // Tick of last automatic shot
+    // Burst and full-auto firing state - now managed by BurstFireManager
     
     /** Attack scheduling prevention (prevents duplicates) */
     public long lastAttackScheduledTick = -1;   // Tick when last attack sequence was scheduled
@@ -197,12 +198,7 @@ public class Character implements ICharacter {
     public long lastMeleeMovementUpdate = 0; // Last tick when melee movement was updated (for throttling)
     
     // DEFENSE SYSTEM STATE (DevCycle 23)
-    
-    /** Defense state management */
-    private DefenseState currentDefenseState = DefenseState.READY; // Current defensive state
-    private long defenseCooldownEndTick = 0; // When defense cooldown will end
-    private long counterAttackWindowEndTick = 0; // When counter-attack window expires
-    private boolean hasCounterAttackOpportunity = false; // True when character can counter-attack
+    // Defense state is now managed by DefenseManager
 
     // Legacy constructors for backwards compatibility with tests
     public Character(String nickname, int dexterity, int health, int coolness, int strength, int reflexes, Handedness handedness) {
@@ -611,55 +607,42 @@ public class Character implements ICharacter {
      * Start timing for aiming state.
      */
     public void startAimingTiming(long currentTick) {
-        this.aimingStartTick = currentTick;
-        this.pointingFromHipStartTick = -1; // Clear pointing timing
+        AimingSystem.getInstance().startAimingTiming(id, currentTick);
     }
     
     /**
      * Start timing for pointing from hip state.
      */
     public void startPointingFromHipTiming(long currentTick) {
-        this.pointingFromHipStartTick = currentTick;
-        this.aimingStartTick = -1; // Clear aiming timing
+        AimingSystem.getInstance().startPointingFromHipTiming(id, currentTick);
     }
     
     /**
      * Get duration spent in aiming state.
      */
     public long getAimingDuration(long currentTick) {
-        if (aimingStartTick < 0) {
-            return 0;
-        }
-        return currentTick - aimingStartTick;
+        return AimingSystem.getInstance().getAimingDuration(id, currentTick);
     }
     
     /**
      * Get duration spent in pointing from hip state.
      */
     public long getPointingFromHipDuration(long currentTick) {
-        if (pointingFromHipStartTick < 0) {
-            return 0;
-        }
-        return currentTick - pointingFromHipStartTick;
+        return AimingSystem.getInstance().getPointingFromHipDuration(id, currentTick);
     }
     
     /**
      * Reset all aiming timing (called when changing targets or exiting aiming states).
      */
     public void resetAimingTiming() {
-        this.aimingStartTick = -1;
-        this.pointingFromHipStartTick = -1;
+        AimingSystem.getInstance().resetAimingTiming(id);
     }
     
     /**
      * Get current aiming duration based on firing preference.
      */
     public long getCurrentAimingDuration(long currentTick) {
-        if (firesFromAimingState) {
-            return getAimingDuration(currentTick);
-        } else {
-            return getPointingFromHipDuration(currentTick);
-        }
+        return AimingSystem.getInstance().getCurrentAimingDuration(this, currentTick);
     }
     
     /**
@@ -681,7 +664,7 @@ public class Character implements ICharacter {
         }
         
         // For characters who prefer aiming state, try to get them closer to aiming
-        if (firesFromAimingState) {
+        if (getFiresFromAimingState()) {
             // Check if weapon has aiming state available
             WeaponState aimingState = weapon.getStateByName("aiming");
             if (aimingState != null) {
@@ -799,27 +782,7 @@ public class Character implements ICharacter {
      * @return The earned accumulated aiming bonus
      */
     public AccumulatedAimingBonus calculateEarnedAimingBonus(long currentTick) {
-        if (!isInAimingOrPointingState()) {
-            return AccumulatedAimingBonus.NONE;
-        }
-        
-        long accumulatedTime = getCurrentAimingDuration(currentTick);
-        long baseTime = getCurrentWeaponAimingStateTicks();
-        
-        // Apply weapon ready speed multiplier to thresholds (faster chars earn bonuses quicker)
-        double weaponReadySpeedMultiplier = calculateAimingSpeedMultiplier();
-        long adjustedBaseTime = Math.round(baseTime * weaponReadySpeedMultiplier);
-        
-        // For pointing-from-hip, cap at NORMAL
-        if (isPointingFromHip()) {
-            return accumulatedTime >= adjustedBaseTime ? AccumulatedAimingBonus.NORMAL : AccumulatedAimingBonus.NONE;
-        }
-        
-        // For aiming state, full progression available
-        if (accumulatedTime >= adjustedBaseTime * 3) return AccumulatedAimingBonus.VERY_CAREFUL;
-        if (accumulatedTime >= adjustedBaseTime * 2) return AccumulatedAimingBonus.CAREFUL;
-        if (accumulatedTime >= adjustedBaseTime) return AccumulatedAimingBonus.NORMAL;
-        return AccumulatedAimingBonus.NONE;
+        return AimingSystem.getInstance().calculateEarnedAimingBonus(this, currentTick);
     }
     
     // Dual weapon system methods
@@ -1046,54 +1009,18 @@ public class Character implements ICharacter {
     
     public void increaseAimingSpeed() {
         if (!isIncapacitated()) {
-            this.currentAimingSpeed = currentAimingSpeed.increase();
+            AimingSystem.getInstance().increaseAimingSpeed(this);
         }
     }
     
     public void decreaseAimingSpeed() {
         if (!isIncapacitated()) {
-            AimingSpeed newSpeed = currentAimingSpeed.decrease();
-            
-            // Check if trying to go to Very Careful and verify requirements
-            if (newSpeed == AimingSpeed.VERY_CAREFUL) {
-                if (canUseVeryCarefulAiming()) {
-                    this.currentAimingSpeed = newSpeed;
-                }
-                // If can't use very careful, stay at current speed (no change)
-            } else {
-                this.currentAimingSpeed = newSpeed;
-            }
+            AimingSystem.getInstance().decreaseAimingSpeed(this);
         }
     }
     
     public boolean canUseVeryCarefulAiming() {
-        // Must have weapon skill level 1+ for pistol, rifle, or submachine gun weapons
-        if (weapon == null) {
-            return false;
-        }
-        
-        WeaponType weaponType = weapon.getWeaponType();
-        if (weaponType == WeaponType.OTHER) {
-            return false; // OTHER weapons don't support very careful aiming
-        }
-        
-        String skillName;
-        switch (weaponType) {
-            case PISTOL:
-                skillName = SkillsManager.PISTOL;
-                break;
-            case RIFLE:
-                skillName = SkillsManager.RIFLE;
-                break;
-            case SUBMACHINE_GUN:
-                skillName = SkillsManager.SUBMACHINE_GUN;
-                break;
-            default:
-                return false;
-        }
-        
-        // Check if character has the required skill level (1+)
-        return getSkillLevel(skillName) >= 1;
+        return AimingSystem.getInstance().canUseVeryCarefulAiming(this);
     }
     
     public void cycleWeaponHoldState() {
@@ -1103,97 +1030,50 @@ public class Character implements ICharacter {
                 return;
             }
             
-            // Get available hold states (exclude firing, recovering, reloading)
-            java.util.List<String> availableStates = getAvailableHoldStates(activeWeapon);
-            if (availableStates.isEmpty()) {
-                return;
-            }
-            
-            // Find current hold state index
-            int currentIndex = availableStates.indexOf(weaponHoldState);
-            if (currentIndex == -1) {
-                // Current hold state not found, default to first available
-                weaponHoldState = availableStates.get(0);
-            } else {
-                // Cycle to next state (wrap around)
-                int nextIndex = (currentIndex + 1) % availableStates.size();
-                weaponHoldState = availableStates.get(nextIndex);
-            }
+            // Delegate to WeaponStateManager
+            WeaponStateManager.getInstance().cycleWeaponHoldState(this, activeWeapon);
         }
     }
     
     public String getCurrentWeaponHoldState() {
-        return weaponHoldState;
+        return WeaponStateManager.getInstance().getWeaponHoldState(this.id);
     }
     
     public void toggleFiringPreference(long currentTick) {
         if (!isIncapacitated()) {
-            boolean oldPreference = firesFromAimingState;
-            firesFromAimingState = !firesFromAimingState;
-            
-            // Smart context-aware state adjustment (Option C)
-            handleFiringPreferenceStateAdjustment(oldPreference, currentTick);
-            
+            AimingSystem.getInstance().toggleFiringPreference(this, currentTick);
             System.out.println("*** " + getDisplayName() + " firing preference: " + 
-                             (firesFromAimingState ? "aiming state" : "pointedfromhip state") + " ***");
+                             (getFiresFromAimingState() ? "aiming state" : "pointedfromhip state") + " ***");
         }
     }
-    
-    /**
-     * Handle smart context-aware state adjustments when firing preference changes.
-     * Option C: Immediate adjustment when appropriate, non-disruptive during critical moments.
-     */
-    private void handleFiringPreferenceStateAdjustment(boolean oldPreference, long currentTick) {
-        if (currentWeaponState == null || weapon == null) {
-            return; // No weapon state to adjust
-        }
-        
-        String currentState = currentWeaponState.getState();
-        
-        // Block preference changes during active firing or recovery (non-disruptive)
-        if ("firing".equals(currentState) || "recovering".equals(currentState)) {
-            System.out.println("*** " + getDisplayName() + " firing preference will take effect after current action completes ***");
-            return;
-        }
-        
-        // Immediate state adjustment for idle/ready states when it makes sense
-        if ("pointedfromhip".equals(currentState)) {
-            if (firesFromAimingState) {
-                // Switched from pointedfromhip preference to aiming preference while at pointedfromhip
-                // Immediately progress to aiming state
-                WeaponState aimingState = weapon.getStateByName("aiming");
-                if (aimingState != null) {
-                    currentWeaponState = aimingState;
-                    startAimingTiming(currentTick); // DevCycle 27: Start timing for aiming state
-                    System.out.println("*** " + getDisplayName() + " weapon state: pointedfromhip -> aiming (preference change) ***");
-                }
-            }
-            // If switching to pointedfromhip preference while at pointedfromhip, no change needed
-        } else if ("aiming".equals(currentState)) {
-            if (!firesFromAimingState) {
-                // Switched from aiming preference to pointedfromhip preference while at aiming
-                // Immediately return to pointedfromhip state
-                WeaponState pointedfromhipState = weapon.getStateByName("pointedfromhip");
-                if (pointedfromhipState != null) {
-                    currentWeaponState = pointedfromhipState;
-                    startPointingFromHipTiming(currentTick); // DevCycle 27: Start timing for pointing state
-                    System.out.println("*** " + getDisplayName() + " weapon state: aiming -> pointedfromhip (preference change) ***");
-                }
-            }
-            // If switching to aiming preference while at aiming, no change needed
-        }
-        
-        // For other states (drawing, unsling, ready, etc.), the preference will affect
-        // where the progression stops during the next attack sequence
-        // No immediate adjustment needed - let normal progression handle it
-    }
+    // Removed handleFiringPreferenceStateAdjustment - now handled by AimingSystem
     
     public boolean getFiringPreference() {
-        return firesFromAimingState;
+        return WeaponStateManager.getInstance().getFiresFromAimingState(this.id);
     }
     
     public void resetWeaponHoldStateToDefault() {
-        weaponHoldState = "aiming";
+        WeaponStateManager.getInstance().setWeaponHoldState(this.id, "aiming");
+    }
+    
+    /** Setter for weapon hold state - delegates to WeaponStateManager */
+    public void setWeaponHoldState(String holdState) {
+        WeaponStateManager.getInstance().setWeaponHoldState(this.id, holdState);
+    }
+    
+    /** Getter for weapon hold state - delegates to WeaponStateManager */
+    public String getWeaponHoldState() {
+        return WeaponStateManager.getInstance().getWeaponHoldState(this.id);
+    }
+    
+    /** Setter for firing preference - delegates to WeaponStateManager */
+    public void setFiresFromAimingState(boolean firesFromAiming) {
+        WeaponStateManager.getInstance().setFiresFromAimingState(this.id, firesFromAiming);
+    }
+    
+    /** Getter for firing preference - delegates to WeaponStateManager */
+    public boolean getFiresFromAimingState() {
+        return WeaponStateManager.getInstance().getFiresFromAimingState(this.id);
     }
     
     private java.util.List<String> getAvailableHoldStates(Weapon weapon) {
@@ -1329,27 +1209,28 @@ public class Character implements ICharacter {
     
     @Override
     public int getBurstShotsFired() {
-        return burstShotsFired;
+        return BurstFireManager.getInstance().getBurstShotsFired(this.id);
     }
     
     @Override
     public void setBurstShotsFired(int shots) {
-        this.burstShotsFired = shots;
+        BurstFireManager.getInstance().setBurstShotsFired(this.id, shots);
     }
     
     @Override
     public long getLastAutomaticShot() {
-        return lastAutomaticShot;
+        return BurstFireManager.getInstance().getLastAutomaticShot(this.id);
     }
     
     @Override
     public void setLastAutomaticShot(long tick) {
-        this.lastAutomaticShot = tick;
+        BurstFireManager.getInstance().setLastAutomaticShot(this.id, tick);
     }
     
     @Override
     public boolean isReloading() {
-        return isReloading;
+        // Check both local flag and ReloadManager state
+        return isReloading || ReloadManager.getInstance().isReloading(this.id);
     }
     
     @Override
@@ -1495,7 +1376,7 @@ public class Character implements ICharacter {
     
     @Override
     public boolean isAutomaticFiring() {
-        return isAutomaticFiring;
+        return BurstFireManager.getInstance().isAutomaticFiring(this.id);
     }
     
     @Override
@@ -1517,9 +1398,9 @@ public class Character implements ICharacter {
         if (weapon == null || currentWeaponState == null) return;
         
         // Always interrupt burst/auto when starting a new attack
-        if (isAutomaticFiring) {
-            isAutomaticFiring = false;
-            burstShotsFired = 0;
+        if (BurstFireManager.getInstance().isAutomaticFiring(this.id)) {
+            BurstFireManager.getInstance().setAutomaticFiring(this.id, false);
+            BurstFireManager.getInstance().setBurstShotsFired(this.id, 0);
         }
         
         // Check if this is a target change and handle first attack penalty
@@ -1543,10 +1424,10 @@ public class Character implements ICharacter {
             // Start timing for new state if applicable
             startTimingForTargetSwitchState(currentTick);
             // Interrupt burst/auto if in progress
-            if (isAutomaticFiring) {
-                isAutomaticFiring = false;
-                burstShotsFired = 0;
-                }
+            if (BurstFireManager.getInstance().isAutomaticFiring(this.id)) {
+                BurstFireManager.getInstance().setAutomaticFiring(this.id, false);
+                BurstFireManager.getInstance().setBurstShotsFired(this.id, 0);
+            }
         } else if ("aiming".equals(currentWeaponState.getState()) && currentTarget != target) {
             // DevCycle 27: System 6 - Smart target switching for aiming state changes
             currentWeaponState = getOptimalStateForTargetSwitch();
@@ -1685,7 +1566,7 @@ public class Character implements ICharacter {
         // Use JSON-driven state progression for all states except aiming and firing
         if (!"aiming".equals(currentState) && !"firing".equals(currentState)) {
             // Check if we should stop at pointedfromhip based on firing preference
-            if ("pointedfromhip".equals(currentState) && !firesFromAimingState) {
+            if ("pointedfromhip".equals(currentState) && !getFiresFromAimingState()) {
                 // Point-from-hip firing preference - fire from this state
                 // Continue to aiming logic below to handle firing
             } else {
@@ -1703,7 +1584,7 @@ public class Character implements ICharacter {
             }
         }
         
-        if ("aiming".equals(currentState) || ("pointedfromhip".equals(currentState) && !firesFromAimingState)) {
+        if ("aiming".equals(currentState) || ("pointedfromhip".equals(currentState) && !getFiresFromAimingState())) {
             // DevCycle 27: System 5 - Check for immediate firing when character is already in correct hold state
             boolean shouldFireImmediately = isAlreadyInCorrectFiringState(currentState, currentTick);
             
@@ -1738,7 +1619,7 @@ public class Character implements ICharacter {
                     fireDelay += additionalTime;
                     
                     // Log aiming speed usage for burst/auto modes
-                    if (isAutomaticFiring && burstShotsFired > 1) {
+                    if (BurstFireManager.getInstance().isAutomaticFiring(this.id) && BurstFireManager.getInstance().getBurstShotsFired(this.id) > 1) {
                     }
                 }
                 // For pointedfromhip firing, use base timing without aiming speed modifiers
@@ -1757,13 +1638,7 @@ public class Character implements ICharacter {
      * @return The aiming speed to use for the current shot
      */
     private AimingSpeed getAimingSpeedForMultipleShot() {
-        if (currentShotInSequence <= 0 || currentShotInSequence == 1) {
-            // 1st shot always uses character's current aiming speed
-            return getCurrentAimingSpeed();
-        } else {
-            // All subsequent shots (2nd, 3rd, 4th, 5th) use Quick
-            return AimingSpeed.QUICK;
-        }
+        return AimingSystem.getInstance().getAimingSpeedForMultipleShot(this);
     }
     
     /**
@@ -1855,14 +1730,14 @@ public class Character implements ICharacter {
         // 2. Character is in "pointedfromhip" state AND firing preference is pointedfromhip  
         // 3. Character has been in current state for some minimum time (not just transitioned)
         
-        if ("aiming".equals(currentState) && firesFromAimingState) {
+        if ("aiming".equals(currentState) && getFiresFromAimingState()) {
             // Character is aiming and prefers to fire from aiming state
             // Check if they've been aiming for at least a minimal amount of time (5+ ticks)
             long timingDuration = getCurrentAimingDuration(currentTick);
             return timingDuration >= 5;
         }
         
-        if ("pointedfromhip".equals(currentState) && !firesFromAimingState) {
+        if ("pointedfromhip".equals(currentState) && !getFiresFromAimingState()) {
             // Character is pointing from hip and prefers to fire from pointedfromhip state
             // Check if they've been pointing for at least a minimal amount of time (5+ ticks)
             long timingDuration = getCurrentPointingFromHipDuration(currentTick);
@@ -1930,10 +1805,22 @@ public class Character implements ICharacter {
     }
     
     private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit shooter, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        // Apply speed multiplier only to weapon preparation states
-        if (isWeaponPreparationState(newStateName)) {
-            double speedMultiplier = calculateWeaponReadySpeedMultiplier();
-            transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
+        // Create WeaponState objects for transition calculation
+        WeaponState fromState = currentWeaponState;
+        WeaponState toState = weapon.getStateByName(newStateName);
+        
+        // Delegate transition duration calculation to WeaponStateManager
+        long calculatedDuration = WeaponStateManager.getInstance().calculateTransitionDuration(this, fromState, toState);
+        
+        // If WeaponStateManager provided a duration, use it; otherwise fall back to original logic
+        if (calculatedDuration > 0) {
+            transitionTickLength = calculatedDuration;
+        } else {
+            // Apply speed multiplier only to weapon preparation states (fallback)
+            if (isWeaponPreparationState(newStateName)) {
+                double speedMultiplier = calculateWeaponReadySpeedMultiplier();
+                transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
+            }
         }
         
         long transitionTick = currentTick + transitionTickLength;
@@ -1960,9 +1847,9 @@ public class Character implements ICharacter {
         
         eventQueue.add(new ScheduledEvent(fireTick, () -> {
             // Add firing console output with aiming duration and earned bonus (DevCycle 27: System 3)
-            String firingMode = firesFromAimingState ? "shootingfromaiming" : "shootingfromhip";
+            String firingMode = getFiresFromAimingState() ? "shootingfromaiming" : "shootingfromhip";
             long aimingDuration = getCurrentAimingDuration(fireTick);
-            String aimingText = firesFromAimingState ? "aimed " + aimingDuration + " ticks" : "pointed " + aimingDuration + " ticks";
+            String aimingText = getFiresFromAimingState() ? "aimed " + aimingDuration + " ticks" : "pointed " + aimingDuration + " ticks";
             
             // Check for earned bonus and format appropriately
             AccumulatedAimingBonus earnedBonus = calculateEarnedAimingBonus(fireTick);
@@ -2014,46 +1901,9 @@ public class Character implements ICharacter {
                     System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " projectile impact scheduling - hit detection disabled");
                 }
                 
-                // Handle burst firing - schedule additional shots immediately after first shot
-                if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getCurrentFiringMode() == FiringMode.BURST && !isAutomaticFiring) {
-                    isAutomaticFiring = true;
-                    burstShotsFired = 1; // First shot just fired
-                    lastAutomaticShot = fireTick;
-                    
-                    // Schedule remaining shots in the burst
-                    for (int shot = 2; shot <= ((RangedWeapon)weapon).getBurstSize(); shot++) {
-                        long nextShotTick = fireTick + (((RangedWeapon)weapon).getFiringDelay() * (shot - 1));
-                        final int shotNumber = shot;
-                        eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
-                            // DC-24: Continue burst even if target dies (fires at corpse) or shooter incapacitated, but stop if out of ammo
-                            if (currentTarget != null && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() > 0) {
-                                ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
-                                burstShotsFired++;
-                                String targetStatus = currentTarget.getCharacter().isIncapacitated() ? " at incapacitated target" : "";
-                                
-                                gameCallbacks.playWeaponSound(weapon);
-                                gameCallbacks.applyFiringHighlight((Unit)shooter, nextShotTick);
-                                gameCallbacks.addMuzzleFlash((Unit)shooter, nextShotTick);
-                                
-                                double dx2 = currentTarget.getX() - shooter.getX();
-                                double dy2 = currentTarget.getY() - shooter.getY();
-                                double distancePixels2 = Math.hypot(dx2, dy2);
-                                double distanceFeet2 = distancePixels2 / 7.0;
-                                
-                                gameCallbacks.scheduleProjectileImpact((Unit)shooter, (Unit)currentTarget, weapon, nextShotTick, distanceFeet2);
-                                
-                                // Reset burst state after final shot
-                                if (burstShotsFired >= ((RangedWeapon)weapon).getBurstSize()) {
-                                    isAutomaticFiring = false;
-                                    burstShotsFired = 0;
-                                }
-                            } else {
-                                // Burst interrupted
-                                isAutomaticFiring = false;
-                                burstShotsFired = 0;
-                            }
-                        }, ownerId));
-                    }
+                // Handle burst firing - delegate to BurstFireManager
+                if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getCurrentFiringMode() == FiringMode.BURST) {
+                    BurstFireManager.getInstance().scheduleBurstShots(this, shooter, fireTick, gameCallbacks);
                 }
             }
             
@@ -2071,7 +1921,7 @@ public class Character implements ICharacter {
                     } else {
                         long completionTick = fireTick + firingState.ticks + recoveringState.ticks;
                         // Set recovery state based on firing preference (Task 2)
-                        String recoveryTargetState = firesFromAimingState ? "aiming" : "pointedfromhip";
+                        String recoveryTargetState = getFiresFromAimingState() ? "aiming" : "pointedfromhip";
                         currentWeaponState = weapon.getStateByName(recoveryTargetState);
                         
                         // DevCycle 27: Start timing when entering aiming or pointing states after recovery
@@ -2124,6 +1974,7 @@ public class Character implements ICharacter {
         
         // Determine target state: either hold state or default ready state
         String targetState;
+        String targetHoldState = WeaponStateManager.getInstance().getTargetHoldState(this.id);
         if (targetHoldState != null) {
             targetState = targetHoldState;
         } else {
@@ -2137,7 +1988,7 @@ public class Character implements ICharacter {
         // If we're already at the target state, stop progression
         if (targetState.equals(currentState)) {
             if (targetHoldState != null) {
-                targetHoldState = null; // Clear target hold state after reaching it
+                WeaponStateManager.getInstance().setTargetHoldState(this.id, null); // Clear target hold state after reaching it
                 System.out.println("*** " + getDisplayName() + " reached hold state: " + currentState + " ***");
             }
             return;
@@ -2180,11 +2031,7 @@ public class Character implements ICharacter {
     }
     
     private double calculateAimingSpeedMultiplier() {
-        // Apply 25% of the weapon ready speed bonus to aiming
-        double weaponReadyMultiplier = calculateWeaponReadySpeedMultiplier();
-        double speedBonus = 1.0 - weaponReadyMultiplier;
-        double aimingSpeedBonus = speedBonus * 0.25;
-        return 1.0 - aimingSpeedBonus;
+        return AimingSystem.getInstance().calculateAimingSpeedMultiplier(this);
     }
     
     private void scheduleReadyStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
@@ -2218,35 +2065,21 @@ public class Character implements ICharacter {
     }
     
     public boolean isWeaponPreparationState(String stateName) {
-        return "drawing".equals(stateName) || "unsheathing".equals(stateName) || "unsling".equals(stateName) || 
-               "ready".equals(stateName) || "melee_ready".equals(stateName);
+        // Create a temporary WeaponState to delegate to WeaponStateManager
+        WeaponState tempState = new WeaponState(stateName, "", 0);
+        return WeaponStateManager.getInstance().isWeaponPreparationState(tempState);
     }
     
     private AimingSpeed determineAimingSpeedForShot() {
-        // DevCycle 28: Check if we're in a multiple shot sequence
-        if (multipleShootCount > 1 && currentShotInSequence > 0) {
-            return getAimingSpeedForMultipleShot();
-        }
-        
-        // Always use current aiming speed - burst/auto penalty is applied separately
-        return currentAimingSpeed;
+        return AimingSystem.getInstance().determineAimingSpeedForShot(this, currentShotInSequence);
     }
     
     /**
      * Check if the current shot should have burst/auto quick penalty
      */
     public boolean shouldApplyBurstAutoPenalty() {
-        if (weapon == null || !(weapon instanceof RangedWeapon)) {
-            return false;
-        }
-        
-        FiringMode mode = ((RangedWeapon)weapon).getCurrentFiringMode();
-        if (mode == FiringMode.BURST || mode == FiringMode.FULL_AUTO) {
-            // Apply penalty to bullets 2+ in burst/auto
-            return isAutomaticFiring && burstShotsFired > 1;
-        }
-        
-        return false;
+        // Delegate to BurstFireManager which tracks burst shot counts
+        return BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(this.id);
     }
     
     public double getWeaponReadySpeedMultiplier() {
@@ -2394,152 +2227,30 @@ public class Character implements ICharacter {
     public void startReloadSequence(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         if (!canReload() || isReloading) return;
         
-        isReloading = true; // Set reload flag to prevent duplicates
+        // Delegate to ReloadManager
+        boolean started = ReloadManager.getInstance().startReloadSequence(this, (RangedWeapon)weapon, currentTick);
         
-        currentWeaponState = weapon.getStateByName("reloading");
-        
-        long reloadTicks = calculateReloadSpeed();
-        long reloadCompleteTick = currentTick + reloadTicks;
-        
-        eventQueue.add(new ScheduledEvent(reloadCompleteTick, () -> {
-            performReload();
-            
-            // Continue reloading if needed for single-round weapons
-            if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getReloadType() == ReloadType.SINGLE_ROUND && ((RangedWeapon)weapon).getAmmunition() < ((RangedWeapon)weapon).getMaxAmmunition()) {
-                continueReloading(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
-            } else {
-                isReloading = false; // Clear reload flag when finished
-                currentWeaponState = weapon.getStateByName("ready");
-                
-                // Only call checkContinuousAttack if NOT using persistent attack mode
-                // Persistent attack resumes via continueStandardAttack scheduling
-                if (!persistentAttack) {
-                    checkContinuousAttack(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
-                } else {
-                }
-            }
-        }, ownerId));
-    }
-    
-    private void continueReloading(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (weapon == null || !(weapon instanceof RangedWeapon) || ((RangedWeapon)weapon).getAmmunition() >= ((RangedWeapon)weapon).getMaxAmmunition()) {
-            isReloading = false; // Clear reload flag when stopping
-            currentWeaponState = weapon.getStateByName("ready");
-            return;
-        }
-        
-        long reloadTicks = calculateReloadSpeed();
-        long reloadCompleteTick = currentTick + reloadTicks;
-        
-        eventQueue.add(new ScheduledEvent(reloadCompleteTick, () -> {
-            performReload();
-            
-            // Continue reloading if still not full
-            if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() < ((RangedWeapon)weapon).getMaxAmmunition()) {
-                continueReloading(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
-            } else {
-                isReloading = false; // Clear reload flag when finished
-                currentWeaponState = weapon.getStateByName("ready");
-                
-                // Only call checkContinuousAttack if NOT using persistent attack mode
-                // Persistent attack resumes via continueStandardAttack scheduling
-                if (!persistentAttack) {
-                    checkContinuousAttack(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
-                } else {
-                }
-            }
-        }, ownerId));
-    }
-    
-    private long calculateReloadSpeed() {
-        int reflexesModifier = GameConstants.statToModifier(this.reflexes);
-        double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.01);
-        return weapon instanceof RangedWeapon ? Math.round(((RangedWeapon)weapon).getReloadTicks() * reflexesSpeedMultiplier) : 60;
-    }
-    
-    private void performReload() {
-        if (weapon instanceof RangedWeapon) {
-            RangedWeapon rangedWeapon = (RangedWeapon)weapon;
-            if (rangedWeapon.getReloadType() == ReloadType.SINGLE_ROUND) {
-                rangedWeapon.setAmmunition(Math.min(rangedWeapon.getAmmunition() + 1, rangedWeapon.getMaxAmmunition()));
-            } else {
-                rangedWeapon.setAmmunition(rangedWeapon.getMaxAmmunition());
-            }
+        // If reload started successfully and we're not in persistent attack mode,
+        // schedule a check for continuous attack after reload completes
+        if (started && !persistentAttack) {
+            long reloadCompleteTick = ReloadManager.getInstance().getReloadCompletionTick(this.id);
+            eventQueue.add(new ScheduledEvent(reloadCompleteTick, () -> {
+                checkContinuousAttack(unit, reloadCompleteTick, eventQueue, ownerId, gameCallbacks);
+            }, ownerId));
         }
     }
+    
+    // Method removed - now handled internally by ReloadManager
+    
+    // Method removed - now handled by ReloadManager
+    
+    // Method removed - now handled by ReloadManager
     
     public boolean isHostileTo(Character other) {
         return this.faction != other.faction;
     }
 
-    private IUnit findNearestHostileTargetWithZonePriority(IUnit selfUnit, GameCallbacks gameCallbacks) {
-        List<Unit> allUnits = gameCallbacks.getUnits();
-        IUnit nearestZoneTarget = null;
-        IUnit nearestGlobalTarget = null;
-        double nearestZoneDistance = Double.MAX_VALUE;
-        double nearestGlobalDistance = Double.MAX_VALUE;
-        int hostilesFound = 0;
-        java.util.Random random = new java.util.Random();
-        
-        for (IUnit unit : allUnits) {
-            // Skip self
-            if (unit == selfUnit) continue;
-            
-            // Skip if not hostile (same faction)
-            if (!this.isHostileTo(unit.getCharacter())) {
-                continue;
-            }
-            
-            hostilesFound++;
-            
-            // Skip if incapacitated
-            if (unit.getCharacter().isIncapacitated()) continue;
-            
-            // Calculate distance
-            double dx = unit.getX() - selfUnit.getX();
-            double dy = unit.getY() - selfUnit.getY();
-            double distance = Math.hypot(dx, dy);
-            
-            // Check weapon range limitations
-            if (weapon != null && distance / 7.0 > ((RangedWeapon)weapon).getMaximumRange()) {
-                continue; // Skip targets beyond weapon range
-            }
-            
-            // Check if target is within target zone (if zone exists)
-            boolean inTargetZone = false;
-            if (targetZone != null) {
-                inTargetZone = targetZone.contains((int)unit.getX(), (int)unit.getY());
-            }
-            
-            if (inTargetZone) {
-                // Target is in zone - prioritize zone targets
-                if (distance < nearestZoneDistance) {
-                    nearestZoneDistance = distance;
-                    nearestZoneTarget = unit;
-                } else if (distance == nearestZoneDistance && nearestZoneTarget != null) {
-                    // Random selection for equidistant targets
-                    if (random.nextBoolean()) {
-                        nearestZoneTarget = unit;
-                    }
-                }
-            } else {
-                // Target is not in zone - track as global fallback
-                if (distance < nearestGlobalDistance) {
-                    nearestGlobalDistance = distance;
-                    nearestGlobalTarget = unit;
-                } else if (distance == nearestGlobalDistance && nearestGlobalTarget != null) {
-                    // Random selection for equidistant targets
-                    if (random.nextBoolean()) {
-                        nearestGlobalTarget = unit;
-                    }
-                }
-            }
-        }
-        
-        // Return zone target if available, otherwise global target
-        IUnit result = nearestZoneTarget != null ? nearestZoneTarget : nearestGlobalTarget;
-        return result;
-    }
+    // Removed duplicate method - now using AutoTargetingSystem.findNearestHostileTargetWithZonePriority
     
     private void performAutomaticTargetChange(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Only proceed if still in persistent attack mode and not incapacitated
@@ -2556,7 +2267,7 @@ public class Character implements ICharacter {
         }
         
         // Find new target with target zone priority
-        IUnit newTarget = findNearestHostileTargetWithZonePriority(shooter, gameCallbacks);
+        IUnit newTarget = AutoTargetingSystem.findNearestHostileTargetWithZonePriority(this, shooter, gameCallbacks);
         
         if (newTarget != null) {
             // New target found - start attacking
@@ -2619,7 +2330,7 @@ public class Character implements ICharacter {
         
         if (!currentTargetValid) {
             // Find a new target with target zone priority
-            IUnit newTarget = findNearestHostileTargetWithZonePriority(selfUnit, gameCallbacks);
+            IUnit newTarget = AutoTargetingSystem.findNearestHostileTargetWithZonePriority(this, selfUnit, gameCallbacks);
             
             if (newTarget != null) {
                 // Target found - start attacking
@@ -2796,30 +2507,14 @@ public class Character implements ICharacter {
     }
     
     private void handleContinuousFiring(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (weapon == null || ((RangedWeapon)weapon).getCurrentFiringMode() == null) {
-            // Default behavior for weapons without firing modes
+        // Use BurstFireManager to handle continuous firing modes
+        if (!BurstFireManager.getInstance().handleContinuousFiring(this, currentTarget, currentTick)) {
+            // Default behavior for single shot or weapons without firing modes
             continueStandardAttack(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
-            return;
-        }
-        
-        switch (((RangedWeapon)weapon).getCurrentFiringMode()) {
-            case SINGLE_SHOT:
-                // Single shot mode - use standard firing delay
-                continueStandardAttack(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
-                break;
-                
-            case BURST:
-                // Burst mode - fire predetermined number of rounds quickly
-                handleBurstFiring(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
-                break;
-                
-            case FULL_AUTO:
-                // Full auto mode - continuous firing at cyclic rate
-                handleFullAutoFiring(shooter, currentTick, eventQueue, ownerId, gameCallbacks);
-                break;
         }
     }
     
+    // Note: continueStandardAttack is still needed for single-shot mode
     private void continueStandardAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Prevent duplicate continue attack commands for the same tick
         if (lastContinueAttackTick == currentTick) {
@@ -2848,74 +2543,7 @@ public class Character implements ICharacter {
             }
         }
     }
-    
-    private void handleBurstFiring(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        // Check if a burst is already in progress from the new burst implementation
-        if (isAutomaticFiring) {
-            // Burst already in progress from scheduleFiring() method - wait for it to complete
-            
-            // Calculate when current burst will complete and schedule next burst
-            int remainingShots = ((RangedWeapon)weapon).getBurstSize() - burstShotsFired;
-            if (remainingShots > 0) {
-                // Schedule next burst after current burst completes + firing delay
-                // Full burst duration = (burstSize - 1) * cyclicRate + firing delay
-                long fullBurstDuration = (((RangedWeapon)weapon).getBurstSize() - 1) * ((RangedWeapon)weapon).getCyclicRate();
-                long nextBurstTick = lastAutomaticShot + fullBurstDuration + ((RangedWeapon)weapon).getFiringDelay();
-                
-                // Ensure we don't schedule in the past
-                if (nextBurstTick <= currentTick) {
-                    nextBurstTick = currentTick + ((RangedWeapon)weapon).getFiringDelay();
-                }
-                
-                final long finalNextBurstTick = nextBurstTick;
-                eventQueue.add(new ScheduledEvent(finalNextBurstTick, () -> {
-                    if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated()) {
-                        isAttacking = true;
-                        startAttackSequence(shooter, currentTarget, finalNextBurstTick, eventQueue, ownerId, gameCallbacks);
-                    }
-                }, ownerId));
-            }
-            return;
-        }
-        
-        // No burst in progress - start new attack sequence which will trigger burst via scheduleFiring()
-        if (currentTarget != null && !currentTarget.getCharacter().isIncapacitated() && !this.isIncapacitated()) {
-            // Check if we can start new attack sequence without clearing isAttacking flag
-            if (isAttacking) {
-                // Already attacking - don't start duplicate sequence
-                return;
-            }
-            startAttackSequence(shooter, currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
-        } else {
-        }
-    }
-    
-    private void handleFullAutoFiring(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (!isAutomaticFiring) {
-            // Start new full auto sequence
-            isAutomaticFiring = true;
-            burstShotsFired = 1; // First shot already fired
-            lastAutomaticShot = currentTick;
-        } else {
-            // Continue full auto - increment shot count
-            burstShotsFired++;
-        }
-        
-        // Schedule next shot at firing delay
-        long nextShotTick = currentTick + ((RangedWeapon)weapon).getFiringDelay();
-        eventQueue.add(new ScheduledEvent(nextShotTick, () -> {
-            // DC-24: Continue full-auto even if shooter incapacitated (but not if target incapacitated)
-            if (persistentAttack && currentTarget != null && !currentTarget.getCharacter().isIncapacitated()) {
-                lastAutomaticShot = nextShotTick;
-                isAttacking = true;
-                scheduleAttackFromCurrentState(shooter, currentTarget, nextShotTick, eventQueue, ownerId, gameCallbacks);
-            } else {
-                // Stop automatic firing if conditions not met
-                isAutomaticFiring = false;
-                burstShotsFired = 0;
-            }
-        }, ownerId));
-    }
+    // handleBurstFiring and handleFullAutoFiring methods removed - now handled by BurstFireManager
     
     public int getTotalWoundsInflicted() {
         return CombatStatisticsManager.getTotalWoundsInflicted(this);
@@ -3019,7 +2647,7 @@ public class Character implements ICharacter {
      * @return Current DefenseState
      */
     public DefenseState getDefenseState() {
-        return currentDefenseState;
+        return DefenseManager.getInstance().getDefenseState(id);
     }
     
     /**
@@ -3027,7 +2655,7 @@ public class Character implements ICharacter {
      * @param state New defense state
      */
     public void setDefenseState(DefenseState state) {
-        this.currentDefenseState = state;
+        DefenseManager.getInstance().setDefenseState(id, state);
     }
     
     /**
@@ -3035,7 +2663,7 @@ public class Character implements ICharacter {
      * @return true if character can defend
      */
     public boolean canDefend(long currentTick) {
-        return currentDefenseState == DefenseState.READY && currentTick >= defenseCooldownEndTick;
+        return DefenseManager.getInstance().canDefend(this, currentTick);
     }
     
     /**
@@ -3044,23 +2672,17 @@ public class Character implements ICharacter {
      * @param currentTick Current game tick
      */
     public void startDefenseCooldown(int cooldownTicks, long currentTick) {
-        currentDefenseState = DefenseState.COOLDOWN;
-        defenseCooldownEndTick = currentTick + cooldownTicks;
+        DefenseManager.getInstance().setDefenseCooldown(id, currentTick + cooldownTicks);
     }
     
     /**
      * Updates defense state based on current tick
      * @param currentTick Current game tick
+     * @deprecated DefenseManager now handles state updates internally
      */
+    @Deprecated
     public void updateDefenseState(long currentTick) {
-        if (currentDefenseState == DefenseState.COOLDOWN && currentTick >= defenseCooldownEndTick) {
-            currentDefenseState = DefenseState.READY;
-        }
-        
-        // Clear counter-attack opportunity if window expired
-        if (hasCounterAttackOpportunity && currentTick >= counterAttackWindowEndTick) {
-            hasCounterAttackOpportunity = false;
-        }
+        // DefenseManager handles state updates internally
     }
     
     /**
@@ -3069,8 +2691,8 @@ public class Character implements ICharacter {
      * @param currentTick Current game tick
      */
     public void grantCounterAttackOpportunity(int windowDurationTicks, long currentTick) {
-        hasCounterAttackOpportunity = true;
-        counterAttackWindowEndTick = currentTick + windowDurationTicks;
+        DefenseManager.getInstance().setCounterAttackWindow(id, currentTick + windowDurationTicks);
+        DefenseManager.getInstance().setHasCounterAttackOpportunity(id, true);
     }
     
     /**

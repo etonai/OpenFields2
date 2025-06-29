@@ -1,5 +1,6 @@
 package combat;
 
+import combat.managers.BurstFireManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,24 +22,25 @@ public class BurstFiringTest {
         
         // Create test weapon with burst capability
         testWeapon = new RangedWeapon(
+            "test_smg",           // weaponId
             "Test SMG",           // name
-            "9mm round",          // projectileName
-            1300.0,               // velocity
+            1300.0,               // velocityFeetPerSecond
             30,                   // damage
             32,                   // ammunition
             "/test_sound.wav",    // soundFile
             200.0,                // maximumRange
             0,                    // weaponAccuracy
-            "SUBMACHINE_GUN"      // type
+            "9mm round"           // projectileName
         );
         
         // Configure burst mode
         testWeapon.setFiringDelay(6);
         testWeapon.setCyclicRate(10); // Different from firingDelay to test correct usage
         testWeapon.setBurstSize(3);
-        testWeapon.addAvailableFiringMode(FiringMode.SINGLE_SHOT);
-        testWeapon.addAvailableFiringMode(FiringMode.BURST);
-        testWeapon.addAvailableFiringMode(FiringMode.FULL_AUTO);
+        testWeapon.getAvailableFiringModes().clear();
+        testWeapon.getAvailableFiringModes().add(FiringMode.SINGLE_SHOT);
+        testWeapon.getAvailableFiringModes().add(FiringMode.BURST);
+        testWeapon.getAvailableFiringModes().add(FiringMode.FULL_AUTO);
         
         shooter.setWeapon(testWeapon);
     }
@@ -59,22 +61,22 @@ public class BurstFiringTest {
         testWeapon.setCurrentFiringMode(FiringMode.BURST);
         
         // First shot - no penalty
-        shooter.isAutomaticFiring = false;
-        shooter.burstShotsFired = 0;
-        assertFalse(shooter.shouldApplyBurstAutoPenalty());
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, false);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 0);
+        assertFalse(BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(shooter));
         
         // Simulate burst start
-        shooter.isAutomaticFiring = true;
-        shooter.burstShotsFired = 1;
-        assertFalse(shooter.shouldApplyBurstAutoPenalty()); // First shot still no penalty
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, true);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 1);
+        assertFalse(BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(shooter)); // First shot still no penalty
         
         // Second shot - should have penalty
-        shooter.burstShotsFired = 2;
-        assertTrue(shooter.shouldApplyBurstAutoPenalty());
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 2);
+        assertTrue(BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(shooter));
         
         // Third shot - should have penalty
-        shooter.burstShotsFired = 3;
-        assertTrue(shooter.shouldApplyBurstAutoPenalty());
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 3);
+        assertTrue(BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(shooter));
     }
     
     @Test
@@ -83,13 +85,13 @@ public class BurstFiringTest {
         testWeapon.setCurrentFiringMode(FiringMode.FULL_AUTO);
         
         // First shot - no penalty
-        shooter.isAutomaticFiring = true;
-        shooter.burstShotsFired = 1;
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, true);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 1);
         assertFalse(shooter.shouldApplyBurstAutoPenalty());
         
         // Subsequent shots - should have penalty
         for (int shot = 2; shot <= 10; shot++) {
-            shooter.burstShotsFired = shot;
+            BurstFireManager.getInstance().setBurstShotsFired(shooter.id, shot);
             assertTrue(shooter.shouldApplyBurstAutoPenalty(), 
                       "Shot " + shot + " should have burst/auto penalty");
         }
@@ -99,15 +101,15 @@ public class BurstFiringTest {
     public void testBurstInterruptionByModeSwitch() {
         // Set up burst in progress
         testWeapon.setCurrentFiringMode(FiringMode.BURST);
-        shooter.isAutomaticFiring = true;
-        shooter.burstShotsFired = 2;
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, true);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 2);
         
         // Switch mode
         shooter.cycleFiringMode();
         
         // Verify burst was interrupted
-        assertFalse(shooter.isAutomaticFiring);
-        assertEquals(0, shooter.burstShotsFired);
+        assertFalse(shooter.isAutomaticFiring());
+        assertEquals(0, shooter.getBurstShotsFired());
         assertEquals(FiringMode.FULL_AUTO, testWeapon.getCurrentFiringMode());
     }
     
@@ -135,13 +137,13 @@ public class BurstFiringTest {
         // Single shot mode should never apply burst penalty
         testWeapon.setCurrentFiringMode(FiringMode.SINGLE_SHOT);
         
-        shooter.isAutomaticFiring = false;
-        shooter.burstShotsFired = 0;
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, false);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 0);
         assertFalse(shooter.shouldApplyBurstAutoPenalty());
         
         // Even if somehow automatic firing is set
-        shooter.isAutomaticFiring = true;
-        shooter.burstShotsFired = 5;
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, true);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 5);
         assertFalse(shooter.shouldApplyBurstAutoPenalty());
     }
 }

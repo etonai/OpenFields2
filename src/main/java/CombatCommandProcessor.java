@@ -10,6 +10,7 @@ import javafx.scene.input.MouseEvent;
 import java.util.List;
 import java.util.PriorityQueue;
 import combat.*;
+import combat.managers.BurstFireManager;
 import game.*;
 import game.GameCallbacks;
 
@@ -342,8 +343,8 @@ public class CombatCommandProcessor {
         // Set combat target for attacking unit (do NOT set movement target for ranged attacks)
         attackingUnit.setCombatTarget(targetUnit);
         
-        // Schedule ranged attack using existing startAttackSequence method
-        attackingUnit.character.startAttackSequence(attackingUnit, targetUnit, gameClock.getCurrentTick(), eventQueue, attackingUnit.getId(), gameCallbacks);
+        // Schedule ranged attack using CombatCoordinator
+        combat.CombatCoordinator.getInstance().startAttackSequence(attackingUnit, targetUnit, gameClock.getCurrentTick(), gameCallbacks);
         
         System.out.println("*** " + attackingUnit.character.getDisplayName() + 
                           " targeting " + targetUnit.character.getDisplayName() + " for ranged attack ***");
@@ -453,8 +454,8 @@ public class CombatCommandProcessor {
         character.persistentAttack = false;
         
         // Reset automatic firing state
-        character.isAutomaticFiring = false;
-        character.burstShotsFired = 0;
+        BurstFireManager.getInstance().setAutomaticFiring(character.id, false);
+        BurstFireManager.getInstance().setBurstShotsFired(character.id, 0);
         character.savedAimingSpeed = null;
         
         // Maintain weapon in ready state if possible

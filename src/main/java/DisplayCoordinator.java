@@ -199,7 +199,7 @@ public class DisplayCoordinator {
         // Show current weapon state and additional details for active weapon
         System.out.println("Current State: " + (unit.character.currentWeaponState != null ? unit.character.currentWeaponState.getState() : "None"));
         System.out.println("Hold State: " + unit.character.getCurrentWeaponHoldState());
-        System.out.println("Firing Preference: " + (unit.character.firesFromAimingState ? "Aiming State" : "Point-from-Hip State"));
+        System.out.println("Firing Preference: " + (unit.character.getFiresFromAimingState() ? "Aiming State" : "Point-from-Hip State"));
         
         // Show additional details for the active weapon
         if (!unit.character.isMeleeCombatMode && ranged != null) {

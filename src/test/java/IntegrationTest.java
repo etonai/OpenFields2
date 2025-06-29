@@ -2,7 +2,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import combat.*;
 import game.*;
-import javafx.scene.paint.Color;
+import platform.api.Color;
 
 import java.util.ArrayList;
 import java.util.PriorityQueue;
@@ -48,10 +48,23 @@ public class IntegrationTest {
             @Override
             public void scheduleProjectileImpact(Unit shooter, Unit target, Weapon weapon, long fireTick, double distanceFeet) {
                 // Schedule in the test's event queue instead of the game's private queue
-                long impactTick = fireTick + Math.round(distanceFeet / weapon.velocityFeetPerSecond * 60);
+                long travelTime = 0;
+                if (weapon instanceof RangedWeapon) {
+                    RangedWeapon ranged = (RangedWeapon) weapon;
+                    travelTime = Math.round(distanceFeet / ranged.velocityFeetPerSecond * 60);
+                }
+                long impactTick = fireTick + travelTime;
                 eventQueue.add(new ScheduledEvent(impactTick, () -> {
                     // Mock projectile impact for testing
                 }, ScheduledEvent.WORLD_OWNER));
+            }
+            
+            @Override
+            public void scheduleMeleeImpact(Unit attacker, Unit target, MeleeWeapon weapon, long attackTick) {
+                // Mock melee impact for tests
+                eventQueue.add(new ScheduledEvent(attackTick, () -> {
+                    // Mock melee impact execution
+                }, attacker.getId()));
             }
             
             @Override

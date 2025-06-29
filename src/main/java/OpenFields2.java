@@ -97,6 +97,9 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         
         createUnits();
         
+        // Initialize EventSchedulingService for managers
+        game.EventSchedulingService.getInstance().initialize(eventQueue, gameClock);
+        
         // Initialize game renderer with game state
         gameRenderer.setGameState(units, selectionManager);
         

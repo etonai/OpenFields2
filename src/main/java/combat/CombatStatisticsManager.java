@@ -1,5 +1,7 @@
 package combat;
 
+import combat.managers.BurstFireManager;
+
 /**
  * Combat statistics manager for Character combat performance tracking.
  * Extracted from Character class as part of DevCycle 24 refactoring.
@@ -105,9 +107,9 @@ public class CombatStatisticsManager {
     public static void cycleFiringMode(Character character) {
         if (character.weapon != null && character.weapon instanceof RangedWeapon) {
             // Interrupt burst/auto firing when switching modes
-            if (character.isAutomaticFiring) {
-                character.isAutomaticFiring = false;
-                character.burstShotsFired = 0;
+            if (BurstFireManager.getInstance().isAutomaticFiring(character.id)) {
+                BurstFireManager.getInstance().setAutomaticFiring(character.id, false);
+                BurstFireManager.getInstance().setBurstShotsFired(character.id, 0);
                 System.out.println(character.getDisplayName() + " burst/auto firing interrupted by mode switch");
             }
             ((RangedWeapon)character.weapon).cycleFiringMode();

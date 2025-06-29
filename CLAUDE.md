@@ -14,6 +14,28 @@ OpenFields2 is a Java-based tactical combat simulation game built with JavaFX. I
 - **Core entities**: `Character`, `Unit`, `Weapon`, `WeaponState` classes
 - **Coordinate system**: 7 pixels = 1 foot conversion for distance calculations
 
+### Combat Management Architecture (DevCycle 29)
+
+- **CombatCoordinator**: Central orchestrator for all combat operations
+  - Located in `combat/CombatCoordinator.java`
+  - Singleton pattern for global access
+  - Coordinates all combat manager interactions
+  - Entry point for all combat operations
+
+- **Manager Pattern**: Combat behavior extracted into specialized managers
+  - **BurstFireManager**: Handles burst and automatic fire mechanics
+  - **AimingSystem**: Manages aiming calculations and bonuses
+  - **DefenseManager**: Controls defensive actions and counter-attacks
+  - **WeaponStateManager**: Manages weapon state transitions
+  - **ReloadManager**: Handles reload operations
+  - All managers in `combat/managers/` package
+
+- **Architecture Benefits**:
+  - Character class focused on data only
+  - Each manager handles one specific aspect of combat
+  - Testable, maintainable, and extensible design
+  - Clear separation of concerns
+
 ## Development Commands
 
 ### Build and Test

@@ -1,4 +1,9 @@
-import combat.*;
+import combat.Character;
+import combat.Handedness;
+import combat.RangedWeapon;
+import combat.FiringMode;
+import combat.WeaponState;
+import combat.managers.BurstFireManager;
 import game.ScheduledEvent;
 import java.util.PriorityQueue;
 import java.util.Comparator;
@@ -25,7 +30,7 @@ public class BurstFireTest {
     private static void testBurstTiming() {
         System.out.println("TEST 1: Burst Timing (should use firingDelay)\n");
         
-        Character shooter = new Character("Shooter", 25, Archetype.SOLDIER, 75, 75, 75, 100, 75);
+        Character shooter = new Character("Shooter", 75, 100, 75, 75, 75, Handedness.RIGHT_HANDED);
         RangedWeapon uzi = createTestUzi();
         shooter.setWeapon(uzi);
         
@@ -41,15 +46,15 @@ public class BurstFireTest {
         System.out.println("Expected timing: Bullet 1 at tick 0, Bullet 2 at tick 6, Bullet 3 at tick 12");
         
         // Simulate firing
-        shooter.isAutomaticFiring = true;
-        shooter.burstShotsFired = 1;
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, true);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 1);
         
         // Check shouldApplyBurstAutoPenalty
-        System.out.println("\nBullet 1 - Burst penalty: " + shooter.shouldApplyBurstAutoPenalty());
-        shooter.burstShotsFired = 2;
-        System.out.println("Bullet 2 - Burst penalty: " + shooter.shouldApplyBurstAutoPenalty());
-        shooter.burstShotsFired = 3;
-        System.out.println("Bullet 3 - Burst penalty: " + shooter.shouldApplyBurstAutoPenalty());
+        System.out.println("\nBullet 1 - Burst penalty: " + BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(shooter.id));
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 2);
+        System.out.println("Bullet 2 - Burst penalty: " + BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(shooter.id));
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 3);
+        System.out.println("Bullet 3 - Burst penalty: " + BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(shooter.id));
         
         System.out.println("\n---\n");
     }
@@ -57,7 +62,7 @@ public class BurstFireTest {
     private static void testBurstWithLowAmmo() {
         System.out.println("TEST 2: Burst with Insufficient Ammo\n");
         
-        Character shooter = new Character("Shooter", 25, Archetype.SOLDIER, 75, 75, 75, 100, 75);
+        Character shooter = new Character("Shooter", 75, 100, 75, 75, 75, Handedness.RIGHT_HANDED);
         RangedWeapon uzi = createTestUzi();
         uzi.setAmmunition(2); // Only 2 rounds for 3-round burst
         shooter.setWeapon(uzi);
@@ -77,7 +82,7 @@ public class BurstFireTest {
     private static void testModeSwitchInterruption() {
         System.out.println("TEST 3: Mode Switch Interruption\n");
         
-        Character shooter = new Character("Shooter", 25, Archetype.SOLDIER, 75, 75, 75, 100, 75);
+        Character shooter = new Character("Shooter", 75, 100, 75, 75, 75, Handedness.RIGHT_HANDED);
         RangedWeapon uzi = createTestUzi();
         shooter.setWeapon(uzi);
         
@@ -87,21 +92,21 @@ public class BurstFireTest {
         }
         
         // Simulate burst in progress
-        shooter.isAutomaticFiring = true;
-        shooter.burstShotsFired = 2;
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, true);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 2);
         
         System.out.println("Before mode switch:");
         System.out.println("- Firing Mode: " + uzi.getCurrentFiringMode());
-        System.out.println("- isAutomaticFiring: " + shooter.isAutomaticFiring);
-        System.out.println("- burstShotsFired: " + shooter.burstShotsFired);
+        System.out.println("- isAutomaticFiring: " + BurstFireManager.getInstance().isAutomaticFiring(shooter.id));
+        System.out.println("- burstShotsFired: " + BurstFireManager.getInstance().getBurstShotsFired(shooter.id));
         
         // Switch mode
         shooter.cycleFiringMode();
         
         System.out.println("\nAfter mode switch:");
         System.out.println("- Firing Mode: " + uzi.getCurrentFiringMode());
-        System.out.println("- isAutomaticFiring: " + shooter.isAutomaticFiring);
-        System.out.println("- burstShotsFired: " + shooter.burstShotsFired);
+        System.out.println("- isAutomaticFiring: " + BurstFireManager.getInstance().isAutomaticFiring(shooter.id));
+        System.out.println("- burstShotsFired: " + BurstFireManager.getInstance().getBurstShotsFired(shooter.id));
         
         System.out.println("\n---\n");
     }
@@ -109,7 +114,7 @@ public class BurstFireTest {
     private static void testFullAutoTiming() {
         System.out.println("TEST 4: Full Auto Timing (should use firingDelay)\n");
         
-        Character shooter = new Character("Shooter", 25, Archetype.SOLDIER, 75, 75, 75, 100, 75);
+        Character shooter = new Character("Shooter", 75, 100, 75, 75, 75, Handedness.RIGHT_HANDED);
         RangedWeapon uzi = createTestUzi();
         shooter.setWeapon(uzi);
         
@@ -124,35 +129,41 @@ public class BurstFireTest {
         System.out.println("Expected: Continuous fire every 6 ticks");
         
         // Simulate full auto
-        shooter.isAutomaticFiring = true;
-        shooter.burstShotsFired = 1;
+        BurstFireManager.getInstance().setAutomaticFiring(shooter.id, true);
+        BurstFireManager.getInstance().setBurstShotsFired(shooter.id, 1);
         
         System.out.println("\nFull auto penalties:");
         for (int i = 1; i <= 5; i++) {
-            shooter.burstShotsFired = i;
-            System.out.println("Bullet " + i + " - Burst/Auto penalty: " + shooter.shouldApplyBurstAutoPenalty());
+            BurstFireManager.getInstance().setBurstShotsFired(shooter.id, i);
+            System.out.println("Bullet " + i + " - Burst/Auto penalty: " + BurstFireManager.getInstance().shouldApplyBurstAutoPenalty(shooter.id));
         }
         
         System.out.println("\n---\n");
     }
     
     private static RangedWeapon createTestUzi() {
-        RangedWeapon uzi = new RangedWeapon();
-        uzi.name = "Uzi Submachine Gun";
-        uzi.damage = 30;
-        uzi.weaponAccuracy = 0;
-        uzi.setAmmunition(32);
-        uzi.setMaxAmmunition(32);
+        RangedWeapon uzi = new RangedWeapon(
+            "uzi_test",              // weaponId
+            "Uzi Submachine Gun",    // name
+            1300.0,                  // velocityFeetPerSecond
+            30,                      // damage
+            32,                      // ammunition
+            "uzi_fire.wav",          // soundFile
+            200.0,                   // maximumRange
+            0,                       // weaponAccuracy
+            "9mm bullet"             // projectileName
+        );
+        
+        // Set additional properties
         uzi.setFiringDelay(6);
         uzi.setCyclicRate(6);
         uzi.setBurstSize(3);
-        uzi.setVelocity(1300.0);
-        uzi.setMaximumRange(200.0);
         
         // Add firing modes
-        uzi.addAvailableFiringMode(FiringMode.SINGLE_SHOT);
-        uzi.addAvailableFiringMode(FiringMode.BURST);
-        uzi.addAvailableFiringMode(FiringMode.FULL_AUTO);
+        uzi.getAvailableFiringModes().clear();
+        uzi.getAvailableFiringModes().add(FiringMode.SINGLE_SHOT);
+        uzi.getAvailableFiringModes().add(FiringMode.BURST);
+        uzi.getAvailableFiringModes().add(FiringMode.FULL_AUTO);
         
         return uzi;
     }

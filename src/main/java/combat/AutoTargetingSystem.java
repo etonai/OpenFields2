@@ -89,7 +89,7 @@ public class AutoTargetingSystem {
                         }
                     }
                 } else {
-                    character.startAttackSequence(selfUnit, newTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
+                    CombatCoordinator.getInstance().startAttackSequence(selfUnit, newTarget, currentTick, gameCallbacks);
                 }
             } else {
                 // No targets found - disable persistent attack but maintain weapon direction
@@ -145,7 +145,7 @@ public class AutoTargetingSystem {
                     }
                 }
             } else {
-                character.startAttackSequence(selfUnit, character.currentTarget, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
+                CombatCoordinator.getInstance().startAttackSequence(selfUnit, character.currentTarget, currentTick, gameCallbacks);
             }
         }
     }
@@ -257,8 +257,8 @@ public class AutoTargetingSystem {
             System.out.println(character.getDisplayName() + " automatically retargets to " + newTarget.getCharacter().getDisplayName() + 
                              " at " + String.format("%.1f", distanceFeet) + " feet" + zoneStatus);
             
-            // Start new attack sequence
-            character.startAttackSequence(shooter, newTarget, currentTick, eventQueue, ownerId, gameCallbacks);
+            // Start new attack sequence using CombatCoordinator
+            CombatCoordinator.getInstance().startAttackSequence(shooter, newTarget, currentTick, gameCallbacks);
         } else {
             // No targets found - end persistent attack
             System.out.println(character.getDisplayName() + " found no more targets for automatic retargeting");

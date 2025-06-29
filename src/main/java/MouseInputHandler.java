@@ -6,6 +6,7 @@ import game.Unit;
 import game.GameClock;
 import game.GameCallbacks;
 import input.interfaces.InputManagerCallbacks;
+import combat.managers.WeaponStateManager;
 
 /**
  * Handler for mouse input events in the OpenFields2 game.
@@ -358,8 +359,8 @@ public class MouseInputHandler {
                 unit.setTargetFacing(targetUnit.x, targetUnit.y);
                 
                 if (unit.character.isPersistentAttack()) {
-                    // The callbacks object implements both interfaces, so we can cast safely
-                    unit.character.startAttackSequence(unit, targetUnit, gameClock.getCurrentTick(), eventQueue, unit.getId(), (GameCallbacks) callbacks);
+                    // Use CombatCoordinator to start attack sequence
+                    combat.CombatCoordinator.getInstance().startAttackSequence(unit, targetUnit, gameClock.getCurrentTick(), (GameCallbacks) callbacks);
                 } else {
                     unit.character.currentTarget = null;
                 }
@@ -468,7 +469,7 @@ public class MouseInputHandler {
         }
         
         // Start progression using existing system but with hold state target
-        character.targetHoldState = targetState;
+        WeaponStateManager.getInstance().setTargetHoldState(character.id, targetState);
         character.scheduleReadyFromCurrentState(unit, currentTick, eventQueue, unit.getId());
     }
     
@@ -508,7 +509,7 @@ public class MouseInputHandler {
                 
                 // Move character to preferred hold state
                 if (character.weapon != null) {
-                    String preferredHoldState = character.firesFromAimingState ? "aiming" : "pointedfromhip";
+                    String preferredHoldState = character.getFiresFromAimingState() ? "aiming" : "pointedfromhip";
                     scheduleWeaponProgressionToState(unit, preferredHoldState, gameClock.getCurrentTick());
                 }
                 
