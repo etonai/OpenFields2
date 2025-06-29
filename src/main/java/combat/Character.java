@@ -1712,129 +1712,8 @@ public class Character implements ICharacter {
     }
     
     private void scheduleFiring(IUnit shooter, IUnit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        // Prevent duplicate firing events for the same tick
-        if (lastFiringScheduledTick == fireTick) {
-            return;
-        }
-        lastFiringScheduledTick = fireTick;
-        
-        eventQueue.add(new ScheduledEvent(fireTick, () -> {
-            // Add firing console output with aiming duration and earned bonus (DevCycle 27: System 3)
-            String firingMode = getFiresFromAimingState() ? "shootingfromaiming" : "shootingfromhip";
-            long aimingDuration = getCurrentAimingDuration(fireTick);
-            String aimingText = getFiresFromAimingState() ? "aimed " + aimingDuration + " ticks" : "pointed " + aimingDuration + " ticks";
-            
-            // Check for earned bonus and format appropriately
-            AccumulatedAimingBonus earnedBonus = calculateEarnedAimingBonus(fireTick);
-            String bonusText;
-            if (earnedBonus != AccumulatedAimingBonus.NONE) {
-                bonusText = ", earned " + earnedBonus.getDisplayName() + " bonus";
-            } else {
-                bonusText = ", using " + getCurrentAimingSpeed().getDisplayName() + " aiming";
-            }
-            
-            // Calculate ammunition display for after firing (DevCycle 27: System 7)
-            String ammunitionText = "";
-            if (weapon instanceof RangedWeapon) {
-                RangedWeapon rangedWeapon = (RangedWeapon) weapon;
-                int currentAmmo = rangedWeapon.getAmmunition();
-                int maxAmmo = rangedWeapon.getMaxAmmunition();
-                // Show ammunition after firing (subtract 1 if there's ammunition to fire)
-                int ammoAfterFiring = currentAmmo > 0 ? currentAmmo - 1 : currentAmmo;
-                ammunitionText = ", [ammo: " + ammoAfterFiring + "/" + maxAmmo + "]";
-            }
-            
-            System.out.println(getDisplayName() + " fires a " + weapon.getName() + " at " + 
-                             target.getCharacter().getDisplayName() + ", " + firingMode + " (" + aimingText + bonusText + ")" + ammunitionText + ", at tick " + fireTick);
-            
-            currentWeaponState = weapon.getStateByName("firing");
-            // DevCycle 27: Reset aiming timing after firing (timing is now reported)
-            resetAimingTiming();
-            
-            if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0) {
-            } else if (weapon instanceof RangedWeapon) {
-                ((RangedWeapon)weapon).setAmmunition(((RangedWeapon)weapon).getAmmunition() - 1);
-                
-                if (gameCallbacks != null) {
-                    gameCallbacks.playWeaponSound(weapon);
-                    gameCallbacks.applyFiringHighlight((Unit)shooter, fireTick);
-                    gameCallbacks.addMuzzleFlash((Unit)shooter, fireTick);
-                } else {
-                    System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " firing sequence - audio and visual effects disabled");
-                }
-                
-                double dx = target.getX() - shooter.getX();
-                double dy = target.getY() - shooter.getY();
-                double distancePixels = Math.hypot(dx, dy);
-                double distanceFeet = distancePixels / 7.0; // pixelsToFeet conversion
-                
-                if (gameCallbacks != null) {
-                    gameCallbacks.scheduleProjectileImpact((Unit)shooter, (Unit)target, weapon, fireTick, distanceFeet);
-                } else {
-                    System.err.println("CRITICAL ERROR: gameCallbacks is null in " + getDisplayName() + " projectile impact scheduling - hit detection disabled");
-                }
-                
-                // Handle burst firing - delegate to BurstFireManager
-                if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getCurrentFiringMode() == FiringMode.BURST) {
-                    BurstFireManager.getInstance().scheduleBurstShots(this, shooter, fireTick, gameCallbacks);
-                }
-            }
-            
-            WeaponState firingState = weapon.getStateByName("firing");
-            eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks, () -> {
-                currentWeaponState = weapon.getStateByName("recovering");
-                
-                WeaponState recoveringState = weapon.getStateByName("recovering");
-                eventQueue.add(new ScheduledEvent(fireTick + firingState.ticks + recoveringState.ticks, () -> {
-                    if (weapon instanceof RangedWeapon && ((RangedWeapon)weapon).getAmmunition() <= 0 && canReload() && !isReloading) {
-                        isAttacking = false; // Clear attacking flag during reload
-                        // DevCycle 28: Reset multiple shot sequence when reloading
-                        resetMultipleShotSequence();
-                        startReloadSequence(shooter, fireTick + firingState.ticks + recoveringState.ticks, eventQueue, ownerId, gameCallbacks);
-                    } else {
-                        long completionTick = fireTick + firingState.ticks + recoveringState.ticks;
-                        // Set recovery state based on firing preference (Task 2)
-                        String recoveryTargetState = getFiresFromAimingState() ? "aiming" : "pointedfromhip";
-                        currentWeaponState = weapon.getStateByName(recoveryTargetState);
-                        
-                        // DevCycle 27: Start timing when entering aiming or pointing states after recovery
-                        if ("aiming".equals(recoveryTargetState)) {
-                            startAimingTiming(completionTick);
-                        } else if ("pointedfromhip".equals(recoveryTargetState)) {
-                            startPointingFromHipTiming(completionTick);
-                        }
-                        
-                        // DevCycle 28: Check if we need to fire more shots in the sequence
-                        if (multipleShootCount > 1 && currentShotInSequence < multipleShootCount && currentTarget != null) {
-                            // Determine aiming speed for NEXT shot before incrementing counter
-                            currentShotInSequence++; // Increment to next shot number
-                            AimingSpeed nextShotSpeed = AimingSystem.getInstance().getAimingSpeedForMultipleShot(this); // Get speed for this shot number
-                            
-                            // Maintain attack state and schedule next shot
-                            isAttacking = true;
-                            
-                            // Calculate delay based on pattern aiming speed
-                            long quickDelay = Math.round(currentWeaponState.ticks * nextShotSpeed.getTimingMultiplier() * AimingSystem.getInstance().calculateAimingSpeedMultiplier(this));
-                            
-                            // Schedule the next shot in the sequence
-                            scheduleFiring(shooter, currentTarget, completionTick + quickDelay, eventQueue, ownerId, gameCallbacks);
-                        } else {
-                            // Multiple shot sequence complete or single shot
-                            currentShotInSequence = 0; // Reset shot counter
-                            isAttacking = false; // Attack sequence complete
-                            
-                            // Only call checkContinuousAttack if NOT using persistent attack mode
-                            // Persistent attack is handled entirely by continueStandardAttack scheduling
-                            if (!persistentAttack) {
-                                checkContinuousAttack(shooter, completionTick, eventQueue, ownerId, gameCallbacks);
-                            } else {
-                            }
-                        }
-                    }
-                }, ownerId));
-            }, ownerId));
-            
-        }, ownerId));
+        // DevCycle 31: Delegate to CombatCoordinator for firing sequence management
+        CombatCoordinator.getInstance().scheduleFiringInternal(shooter, target, fireTick, eventQueue, ownerId, gameCallbacks);
     }
     
     public void scheduleReadyFromCurrentState(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
@@ -2175,7 +2054,7 @@ public class Character implements ICharacter {
         MeleeCombatManager.updateMeleeMovement(this, selfUnit, currentTick, eventQueue, selfUnit.getId(), gameCallbacks);
     }
     
-    private void checkContinuousAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void checkContinuousAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Debug logging for checkContinuousAttack entry
         
         // Continue only if persistent attack is enabled OR auto-targeting is enabled
