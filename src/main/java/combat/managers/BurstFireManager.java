@@ -359,6 +359,72 @@ public class BurstFireManager implements IBurstFireManager {
         return getBurstShotsFired(characterId) > 1;
     }
     
+    // ===== Continuous Firing Support =====
+    
+    /**
+     * Continue standard (non-burst/auto) attack for persistent attack mode.
+     * 
+     * @param character The character continuing attack
+     * @param shooter The unit shooting
+     * @param currentTick Current game tick
+     * @param gameCallbacks Game callback interface
+     */
+    public void continueStandardAttack(Character character, IUnit shooter, long currentTick, GameCallbacks gameCallbacks) {
+        // Prevent duplicate continue attack commands for the same tick
+        if (character.lastContinueAttackTick == currentTick) {
+            return;
+        }
+        character.lastContinueAttackTick = currentTick;
+        
+        if (!(character.weapon instanceof RangedWeapon)) {
+            return;
+        }
+        
+        RangedWeapon weapon = (RangedWeapon) character.weapon;
+        
+        if (weapon.getFiringDelay() > 0) {
+            long nextAttackTick = currentTick + weapon.getFiringDelay();
+            eventSchedulingService.scheduleEvent(nextAttackTick, () -> {
+                if (character.persistentAttack && character.currentTarget != null && 
+                    !character.currentTarget.getCharacter().isIncapacitated() && !character.isIncapacitated() && 
+                    weapon.getAmmunition() > 0) {
+                    character.isAttacking = true;
+                    // Use CombatCoordinator to schedule attack instead of calling private method
+                    combat.CombatCoordinator.getInstance().startAttackSequence(shooter, character.currentTarget, nextAttackTick, gameCallbacks);
+                } else if (character.persistentAttack && character.currentTarget != null && 
+                          !character.currentTarget.getCharacter().isIncapacitated() && !character.isIncapacitated() && 
+                          weapon.getAmmunition() <= 0 && character.canReload() && !character.isReloading) {
+                    character.startReloadSequence(shooter, nextAttackTick, null, shooter.getId(), gameCallbacks);
+                }
+            }, shooter.getId());
+        } else {
+            if (weapon.getAmmunition() > 0) {
+                character.isAttacking = true;
+                // Use CombatCoordinator to schedule attack instead of calling private method
+                combat.CombatCoordinator.getInstance().startAttackSequence(shooter, character.currentTarget, currentTick, gameCallbacks);
+            } else if (weapon.getAmmunition() <= 0 && character.canReload() && !character.isReloading) {
+                character.startReloadSequence(shooter, currentTick, null, shooter.getId(), gameCallbacks);
+            }
+        }
+    }
+    
+    /**
+     * Handle continuous firing coordination.
+     * Determines whether to use burst/auto or standard attack continuation.
+     * 
+     * @param character The character firing
+     * @param shooter The unit shooting
+     * @param currentTick Current game tick
+     * @param gameCallbacks Game callback interface
+     */
+    public void handleContinuousFiring(Character character, IUnit shooter, long currentTick, GameCallbacks gameCallbacks) {
+        // Use BurstFireManager to handle continuous firing modes
+        if (!handleContinuousFiring(character, character.currentTarget, currentTick)) {
+            // Default behavior for single shot or weapons without firing modes
+            continueStandardAttack(character, shooter, currentTick, gameCallbacks);
+        }
+    }
+    
     @Override
     public void cleanupCharacter(int characterId) {
         // Remove all state for this character

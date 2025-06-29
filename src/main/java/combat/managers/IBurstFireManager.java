@@ -127,6 +127,27 @@ public interface IBurstFireManager {
     boolean shouldApplyBurstAutoPenalty(int characterId);
     
     /**
+     * Continue standard (non-burst/auto) attack for persistent attack mode.
+     * 
+     * @param character The character continuing attack
+     * @param shooter The unit shooting
+     * @param currentTick Current game tick
+     * @param gameCallbacks Game callback interface
+     */
+    void continueStandardAttack(combat.Character character, game.interfaces.IUnit shooter, long currentTick, game.GameCallbacks gameCallbacks);
+    
+    /**
+     * Handle continuous firing coordination.
+     * Determines whether to use burst/auto or standard attack continuation.
+     * 
+     * @param character The character firing
+     * @param shooter The unit shooting
+     * @param currentTick Current game tick
+     * @param gameCallbacks Game callback interface
+     */
+    void handleContinuousFiring(combat.Character character, game.interfaces.IUnit shooter, long currentTick, game.GameCallbacks gameCallbacks);
+    
+    /**
      * Clean up all state for a character that is being removed.
      * 
      * @param characterId The ID of the character to clean up
