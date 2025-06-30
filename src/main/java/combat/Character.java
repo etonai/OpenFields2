@@ -6,10 +6,6 @@ import combat.managers.AttackSequenceManager;
 import combat.managers.WeaponStateTransitionManager;
 import combat.managers.MeleeCombatSequenceManager;
 import combat.managers.ReactionManager;
-import combat.managers.WeaponReadinessManager;
-import combat.managers.AttackContinuationManager;
-import combat.managers.FiringSequenceManager;
-import combat.managers.MultiShotManager;
 import combat.managers.AimingSystem;
 import combat.managers.DefenseManager;
 import combat.managers.WeaponStateManager;
@@ -18,7 +14,6 @@ import combat.managers.CharacterSkillsManager;
 import combat.managers.CharacterStatsManager;
 import combat.managers.TargetManager;
 import game.ScheduledEvent;
-import game.Unit;
 import game.interfaces.IUnit;
 import game.GameCallbacks;
 import data.SkillsManager;
@@ -1094,23 +1089,6 @@ public class Character implements ICharacter {
         return WeaponStateManager.getInstance().getFiresFromAimingState(this.id);
     }
     
-    private java.util.List<String> getAvailableHoldStates(Weapon weapon) {
-        java.util.List<String> availableStates = new java.util.ArrayList<>();
-        if (weapon == null || weapon.getStates() == null) {
-            return availableStates;
-        }
-        
-        for (WeaponState state : weapon.getStates()) {
-            String stateName = state.getState();
-            // Exclude post-firing states
-            if (!stateName.equals("firing") && !stateName.equals("recovering") && !stateName.equals("reloading")) {
-                availableStates.add(stateName);
-            }
-        }
-        
-        return availableStates;
-    }
-    
     // ICharacter interface implementation - Combat Statistics
     
     @Override
@@ -1476,64 +1454,6 @@ public class Character implements ICharacter {
     public void updateReactionMonitoring(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
         // Delegate to ReactionManager following DevCycle 31 Option 4 refactoring pattern
         ReactionManager.getInstance().updateReactionMonitoring(this, selfUnit, currentTick, eventQueue, gameCallbacks);
-    }
-    
-    private void originalUpdateReactionMonitoring(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
-        // Skip if no reaction target set
-        if (reactionTarget == null || reactionBaselineState == null) {
-            return;
-        }
-        
-        // Skip if already triggered
-        if (reactionTriggerTick > 0) {
-            return;
-        }
-        
-        // Skip if character is incapacitated or reloading
-        if (isIncapacitated() || isReloading) {
-            return;
-        }
-        
-        // Check if target's weapon state has changed
-        WeaponState currentTargetState = reactionTarget.getCharacter().currentWeaponState;
-        if (currentTargetState != null && currentTargetState != reactionBaselineState) {
-            // Weapon state changed - trigger reaction with delay
-            int reflexModifier = GameConstants.statToModifier(this.reflexes);
-            long reactionDelay = Math.max(1, 30 - reflexModifier); // 30 base minus reflex modifier, minimum 1 tick
-            
-            reactionTriggerTick = currentTick + reactionDelay;
-            
-            // Schedule the reaction attack
-            eventQueue.add(new ScheduledEvent(reactionTriggerTick, () -> {
-                // Check if still valid to react (not incapacitated, target still exists, etc)
-                if (!isIncapacitated() && reactionTarget != null && !isAttacking) {
-                    System.out.println("*** " + getDisplayName() + " reacting to " + 
-                                     reactionTarget.getCharacter().getDisplayName() + 
-                                     " weapon state change (delay: " + reactionDelay + " ticks) ***");
-                    
-                    // Start attack sequence - this will handle queueing if already attacking
-                    startAttackSequence(selfUnit, reactionTarget, reactionTriggerTick, eventQueue, selfUnit.getId(), gameCallbacks);
-                    
-                    // Clear reaction after triggering
-                    reactionTarget = null;
-                    reactionBaselineState = null;
-                    reactionTriggerTick = -1;
-                } else if (isAttacking) {
-                    // Queue the reaction for after current attack
-                    System.out.println("*** " + getDisplayName() + " queuing reaction - already attacking ***");
-                    // Re-schedule for later
-                    eventQueue.add(new ScheduledEvent(reactionTriggerTick + 30, () -> {
-                        if (!isIncapacitated() && reactionTarget != null && !isAttacking) {
-                            startAttackSequence(selfUnit, reactionTarget, reactionTriggerTick + 30, eventQueue, selfUnit.getId(), gameCallbacks);
-                            // Clear reaction after triggering
-                            reactionTarget = null;
-                            reactionBaselineState = null;
-                            reactionTriggerTick = -1;
-                        }
-                    }, selfUnit.getId()));
-                }
-            }, selfUnit.getId()));
-        }
     }
     
     /**

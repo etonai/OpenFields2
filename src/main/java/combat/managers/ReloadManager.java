@@ -67,6 +67,12 @@ public class ReloadManager implements IReloadManager {
         // Store reload state
         setReloadState(character.id, currentTick, completionTick);
         
+        // Output reload start message
+        String reloadTypeText = (weapon.getReloadType() == ReloadType.SINGLE_ROUND) ? "single round" : "magazine";
+        System.out.println(character.getDisplayName() + " starts reloading " + weapon.getName() + 
+                         " (" + reloadTypeText + ", " + reloadDuration + " ticks) [ammo: " + 
+                         weapon.getAmmunition() + "/" + weapon.getMaxAmmunition() + "], at tick " + currentTick);
+        
         // Schedule reload completion
         eventSchedulingService.scheduleEvent(completionTick, () -> {
             performReload(character, weapon, weapon.getReloadType());
@@ -124,9 +130,16 @@ public class ReloadManager implements IReloadManager {
     
     @Override
     public void performReload(Character character, RangedWeapon weapon, ReloadType reloadType) {
+        int oldAmmo = weapon.getAmmunition();
+        
         if (reloadType == ReloadType.SINGLE_ROUND) {
             // Add one round
             weapon.setAmmunition(Math.min(weapon.getAmmunition() + 1, weapon.getMaxAmmunition()));
+            
+            // Output single round reload message
+            System.out.println(character.getDisplayName() + " loads one round into " + weapon.getName() + 
+                             " [ammo: " + oldAmmo + " -> " + weapon.getAmmunition() + "/" + weapon.getMaxAmmunition() + 
+                             "], at tick " + eventSchedulingService.getCurrentTick());
         } else {
             // Full magazine reload
             weapon.setAmmunition(weapon.getMaxAmmunition());
@@ -243,6 +256,14 @@ public class ReloadManager implements IReloadManager {
         character.isReloading = false;
         reloadStartTicks.remove(character.id);
         reloadCompletionTicks.remove(character.id);
+        
+        // Output reload completion message
+        if (character.weapon instanceof RangedWeapon) {
+            RangedWeapon weapon = (RangedWeapon) character.weapon;
+            System.out.println(character.getDisplayName() + " finishes reloading " + weapon.getName() + 
+                             " [ammo: " + weapon.getAmmunition() + "/" + weapon.getMaxAmmunition() + 
+                             "], at tick " + eventSchedulingService.getCurrentTick());
+        }
         
         // Set weapon state back to ready
         if (character.weapon != null) {
