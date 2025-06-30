@@ -21,7 +21,6 @@ import game.ScheduledEvent;
 import game.interfaces.IUnit;
 import game.GameCallbacks;
 import data.SkillsManager;
-import utils.GameConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -694,30 +693,6 @@ public class Character implements ICharacter {
     // Note: Aiming calculation methods moved to AimingSystem manager
     
     /**
-     * Find a weapon state by name from the current weapon.
-     * @param stateName The name of the state to find
-     * @return The WeaponState if found, null otherwise
-     */
-    private WeaponState findWeaponState(String stateName) {
-        if (weapon != null && weapon.states != null) {
-            for (WeaponState state : weapon.states) {
-                if (stateName.equals(state.state)) {
-                    return state;
-                }
-            }
-        }
-        return null;
-    }
-    
-    /**
-     * Get the current weapon state name.
-     * @return Current weapon state name, or empty string if not available
-     */
-    private String getCurrentWeaponStateName() {
-        return currentWeaponState != null ? currentWeaponState.state : "";
-    }
-    
-    /**
      * Calculate accumulated aiming bonus based on time spent aiming at target.
      * DevCycle 27: System 3 - Accumulated Aiming Time Bonus System
      * 
@@ -790,19 +765,6 @@ public class Character implements ICharacter {
         return TargetManager.getInstance().hasValidTarget(this.id);
     }
     
-    public boolean hasTargetChanged(IUnit newTarget) {
-        return TargetManager.getInstance().hasTargetChanged(this.id, newTarget);
-    }
-    
-    public IUnit getPreviousTarget() {
-        return TargetManager.getInstance().getPreviousTarget(this.id);
-    }
-    
-    public void setPreviousTarget(IUnit target) {
-        TargetManager.getInstance().setPreviousTarget(this.id, target);
-        this.previousTarget = target;
-    }
-    
     public IUnit getMeleeTarget() {
         return TargetManager.getInstance().getMeleeTarget(this.id);
     }
@@ -810,15 +772,6 @@ public class Character implements ICharacter {
     public void setMeleeTarget(IUnit target) {
         TargetManager.getInstance().setMeleeTarget(this.id, target);
         this.meleeTarget = target;
-    }
-    
-    public IUnit getReactionTarget() {
-        return TargetManager.getInstance().getReactionTarget(this.id);
-    }
-    
-    public void setReactionTarget(IUnit target) {
-        TargetManager.getInstance().setReactionTarget(this.id, target);
-        this.reactionTarget = target;
     }
     
     @Override
@@ -961,22 +914,8 @@ public class Character implements ICharacter {
     }
     // Removed handleFiringPreferenceStateAdjustment - now handled by AimingSystem
     
-    public boolean getFiringPreference() {
-        return WeaponStateManager.getInstance().getFiresFromAimingState(this.id);
-    }
-    
     public void resetWeaponHoldStateToDefault() {
         WeaponStateManager.getInstance().setWeaponHoldState(this.id, "aiming");
-    }
-    
-    /** Setter for weapon hold state - delegates to WeaponStateManager */
-    public void setWeaponHoldState(String holdState) {
-        WeaponStateManager.getInstance().setWeaponHoldState(this.id, holdState);
-    }
-    
-    /** Getter for weapon hold state - delegates to WeaponStateManager */
-    public String getWeaponHoldState() {
-        return WeaponStateManager.getInstance().getWeaponHoldState(this.id);
     }
     
     /** Setter for firing preference - delegates to WeaponStateManager */
@@ -1436,8 +1375,7 @@ public class Character implements ICharacter {
     public boolean isWeaponPreparationState(String stateName) {
         return CombatValidationManager.getInstance().isWeaponPreparationState(this, stateName);
     }
-    
-    
+
     /**
      * Check if the current shot should have burst/auto quick penalty
      */
@@ -1596,11 +1534,6 @@ public class Character implements ICharacter {
         return weapon != null && weapon instanceof RangedWeapon && ((RangedWeapon)weapon).hasMultipleFiringModes();
     }
     
-    // Hesitation mechanics delegated to HesitationManager (DevCycle 24)
-    private void triggerHesitation(WoundSeverity woundSeverity, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        HesitationManager.triggerHesitation(this, woundSeverity, currentTick, eventQueue, ownerId);
-    }
-    
     // Bravery check mechanics delegated to HesitationManager (DevCycle 24)
     public void performBraveryCheck(long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, String reason) {
         HesitationManager.performBraveryCheck(this, currentTick, eventQueue, ownerId, reason);
@@ -1630,10 +1563,6 @@ public class Character implements ICharacter {
     
     public MovementType getMaxAllowedMovementType() {
         return MovementController.getMaxAllowedMovementType(this);
-    }
-    
-    public void enforceMovementRestrictions() {
-        MovementController.enforceMovementRestrictions(this);
     }
     
     /**
