@@ -356,4 +356,55 @@ public class AimingSystem implements IAimingSystem {
             startPointingFromHipTiming(character.id, currentTick);
         }
     }
+    
+    /**
+     * Get optimal weapon state for target switching based on firing preference.
+     * This prevents unnecessary regression to pointedfromhip when character prefers aiming state.
+     * Extracted from Character.getOptimalStateForTargetSwitch() (~42 lines).
+     * 
+     * @param character The character switching targets
+     * @return WeaponState that respects character's firing preference while allowing efficient progression
+     */
+    public WeaponState getOptimalStateForTargetSwitch(Character character) {
+        if (character.weapon == null) {
+            return null;
+        }
+        
+        // For characters who prefer aiming state, try to get them closer to aiming
+        if (character.getFiresFromAimingState()) {
+            // Check if weapon has aiming state available
+            WeaponState aimingState = character.weapon.getStateByName("aiming");
+            if (aimingState != null) {
+                // Character prefers aiming - use aiming state directly for immediate targeting
+                return aimingState;
+            }
+            
+            // Fallback: try pointedfromhip if aiming not available
+            WeaponState pointingState = character.weapon.getStateByName("pointedfromhip");
+            if (pointingState != null) {
+                return pointingState;
+            }
+        } else {
+            // Character prefers pointedfromhip - use that state
+            WeaponState pointingState = character.weapon.getStateByName("pointedfromhip");
+            if (pointingState != null) {
+                return pointingState;
+            }
+            
+            // Fallback: try aiming if pointedfromhip not available
+            WeaponState aimingState = character.weapon.getStateByName("aiming");
+            if (aimingState != null) {
+                return aimingState;
+            }
+        }
+        
+        // Final fallback: use ready state (original behavior)
+        WeaponState readyState = character.weapon.getStateByName("ready");
+        if (readyState != null) {
+            return readyState;
+        }
+        
+        // Emergency fallback: use current state if nothing else works
+        return character.currentWeaponState;
+    }
 }

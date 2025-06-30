@@ -14,6 +14,7 @@ import combat.managers.CharacterSkillsManager;
 import combat.managers.CharacterStatsManager;
 import combat.managers.TargetManager;
 import combat.managers.CombatModeManager;
+import combat.managers.HealthManager;
 import game.ScheduledEvent;
 import game.interfaces.IUnit;
 import game.GameCallbacks;
@@ -674,46 +675,7 @@ public class Character implements ICharacter {
      * @return WeaponState that respects character's firing preference while allowing efficient progression
      */
     WeaponState getOptimalStateForTargetSwitch() {
-        if (weapon == null) {
-            return null;
-        }
-        
-        // For characters who prefer aiming state, try to get them closer to aiming
-        if (getFiresFromAimingState()) {
-            // Check if weapon has aiming state available
-            WeaponState aimingState = weapon.getStateByName("aiming");
-            if (aimingState != null) {
-                // Character prefers aiming - use aiming state directly for immediate targeting
-                return aimingState;
-            }
-            
-            // Fallback: try pointedfromhip if aiming not available
-            WeaponState pointingState = weapon.getStateByName("pointedfromhip");
-            if (pointingState != null) {
-                return pointingState;
-            }
-        } else {
-            // Character prefers pointedfromhip - use that state
-            WeaponState pointingState = weapon.getStateByName("pointedfromhip");
-            if (pointingState != null) {
-                return pointingState;
-            }
-            
-            // Fallback: try aiming if pointedfromhip not available
-            WeaponState aimingState = weapon.getStateByName("aiming");
-            if (aimingState != null) {
-                return aimingState;
-            }
-        }
-        
-        // Final fallback: use ready state (original behavior)
-        WeaponState readyState = weapon.getStateByName("ready");
-        if (readyState != null) {
-            return readyState;
-        }
-        
-        // Emergency fallback: use current state if nothing else works
-        return currentWeaponState;
+        return AimingSystem.getInstance().getOptimalStateForTargetSwitch(this);
     }
     
     /**
@@ -1226,33 +1188,12 @@ public class Character implements ICharacter {
     }
     
     public void addWound(Wound wound, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        wounds.add(wound);
-        woundsReceived++;
-        
-        // Apply damage to current health
-        currentHealth -= wound.getDamage();
-        
-        // Enforce movement restrictions immediately after adding wound
-        enforceMovementRestrictions();
-        
-        // Don't add hesitation for incapacitated characters
-        if (!isIncapacitated()) {
-            triggerHesitation(wound.severity, currentTick, eventQueue, ownerId);
-        }
+        HealthManager.getInstance().addWound(this, wound, currentTick, eventQueue, ownerId);
     }
     
     // Backwards compatibility for existing calls
     public void addWound(Wound wound) {
-        wounds.add(wound);
-        woundsReceived++;
-        
-        // Apply damage to current health
-        currentHealth -= wound.getDamage();
-        
-        // Enforce movement restrictions immediately after adding wound
-        enforceMovementRestrictions();
-        
-        // Note: Hesitation will not be triggered without event queue context
+        HealthManager.getInstance().addWound(this, wound);
     }
     
     @Override
@@ -1279,12 +1220,7 @@ public class Character implements ICharacter {
     }
     
     public boolean removeWound(Wound wound) {
-        // DevCycle 30: Delegate to CharacterStatsManager and sync field
-        boolean removed = CharacterStatsManager.getInstance().removeWound(this.id, wound);
-        if (removed) {
-            this.wounds = CharacterStatsManager.getInstance().getWounds(this.id);
-        }
-        return removed;
+        return HealthManager.getInstance().removeWound(this, wound);
     }
     
     public boolean canFire() {
