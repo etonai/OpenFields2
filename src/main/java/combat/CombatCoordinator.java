@@ -404,7 +404,15 @@ public class CombatCoordinator {
      * @param gameCallbacks Game callback interface
      */
     public void handleAttackContinuation(Character character, IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        // Debug logging for checkContinuousAttack entry
+        // DevCycle 33: System 2 - Debug logging to trace attack continuation call sources
+        if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+            System.out.println("[ATTACK-CONTINUATION] " + character.getDisplayName() + 
+                             " handleAttackContinuation called at tick " + currentTick + 
+                             " (persistent: " + character.persistentAttack + 
+                             ", auto-targeting: " + character.usesAutomaticTargeting + 
+                             ", attacking: " + character.isAttacking + 
+                             ", melee recovery: " + (character.isMeleeCombatMode ? character.isInMeleeRecovery(currentTick) : "N/A") + ")");
+        }
         
         // Continue only if persistent attack is enabled OR auto-targeting is enabled
         if (!character.persistentAttack && !character.usesAutomaticTargeting) {

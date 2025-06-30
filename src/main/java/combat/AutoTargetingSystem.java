@@ -46,6 +46,15 @@ public class AutoTargetingSystem {
             return;
         }
         
+        // DevCycle 33: System 2 - Skip if character is in melee recovery to prevent excessive attack continuation calls
+        if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick)) {
+            if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+                System.out.println("[AUTO-TARGETING] " + character.getDisplayName() + 
+                                 " auto-targeting skipped - in melee recovery until tick " + character.meleeRecoveryEndTick);
+            }
+            return;
+        }
+        
         // Check if current target is still valid
         boolean currentTargetValid = character.currentTarget != null 
             && !character.currentTarget.getCharacter().isIncapacitated() 
@@ -112,7 +121,16 @@ public class AutoTargetingSystem {
             }
             
             // Only initiate attack sequence if not already in progress
-            if (character.isMovingToMelee || character.isAttacking) {
+            // DevCycle 33: System 2 - Prevent attacks during melee recovery to eliminate excessive attack continuation calls
+            if (character.isMovingToMelee || character.isAttacking || 
+                (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick))) {
+                
+                // Debug logging for recovery blocking
+                if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick) && 
+                    config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+                    System.out.println("[AUTO-TARGETING] " + character.getDisplayName() + 
+                                     " attack blocked - in melee recovery until tick " + character.meleeRecoveryEndTick);
+                }
                 return;
             }
             
