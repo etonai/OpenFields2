@@ -121,15 +121,38 @@ public class MeleeCombatManager {
         
         System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " executes melee attack on " + target.getCharacter().getDisplayName() + " at tick " + currentTick);
         
+        // DevCycle 33: System 17 - Update weapon state to attacking (missing from System 16)
+        // Set weapon state to melee_attacking for visual consistency with other attack paths
+        if (character.meleeWeapon != null) {
+            WeaponState attackingState = character.meleeWeapon.getStateByName("melee_attacking");
+            if (attackingState != null) {
+                character.currentWeaponState = attackingState;
+            }
+        }
+        
         // DevCycle 33: System 6 - Fix melee attack to use direct impact scheduling instead of ranged attack sequence
-        // Schedule immediate melee impact (no travel time for melee attacks)
-        gameCallbacks.scheduleMeleeImpact((game.Unit)attacker, (game.Unit)target, character.meleeWeapon, currentTick);
+        // DevCycle 33: System 16 - Add same visual delay as System 14 for manual attacks (melee movement-initiated)
+        long visualDelay = 10; // 10 ticks = ~0.17 seconds for attack animation visibility
+        gameCallbacks.scheduleMeleeImpact((game.Unit)attacker, (game.Unit)target, character.meleeWeapon, currentTick + visualDelay);
         
         // Start recovery period
         long recoveryTime = Math.round(character.meleeWeapon.getStateBasedAttackCooldown() * character.calculateAttackSpeedMultiplier());
         character.startMeleeRecovery((int)recoveryTime, currentTick);
         
-        // Clear attacking flag
+        // DevCycle 33: System 18 - Schedule weapon state return and auto-targeting resumption (missing from System 17)
+        // Schedule weapon state return to "melee_ready" after recovery period
+        WeaponState readyState = character.meleeWeapon.getStateByName("melee_ready");
+        if (readyState != null) {
+            eventQueue.add(new ScheduledEvent(currentTick + visualDelay + recoveryTime, () -> {
+                character.currentWeaponState = readyState;
+                character.isAttacking = false; // Clear attacking flag to allow auto-targeting to continue
+                
+                // Call checkContinuousAttack to trigger auto-targeting re-evaluation (same as MeleeCombatSequenceManager)
+                character.checkContinuousAttack(attacker, currentTick + recoveryTime, eventQueue, ownerId, gameCallbacks);
+            }, ownerId));
+        }
+        
+        // Clear attacking flag (redundant but consistent with original logic)
         character.isAttacking = false;
     }
     

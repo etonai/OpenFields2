@@ -380,13 +380,14 @@ public class CombatResolver {
         attacker.character.meleeAttacksAttempted++;
         
         // Check if target can defend (DevCycle 23)
+        // DevCycle 33: System 15 - Add configuration check to prevent entire defensive logic when blocking disabled
         boolean defenseAttempted = false;
         boolean defenseSuccessful = false;
         
-        if (target.character.canDefend(attackTick)) {
+        if (!config.DebugConfig.getInstance().isDefensiveBlockingDisabled() && target.character.canDefend(attackTick)) {
             defenseAttempted = true;
             target.character.defensiveAttempts++; // Track defense attempt
-            defenseSuccessful = calculateDefenseSuccess(target, weapon, attackTick);
+            defenseSuccessful = combat.managers.DefenseManager.getInstance().attemptBlock(target.character, attacker, attackTick);
             
             if (defenseSuccessful) {
                 target.character.defensiveSuccesses++; // Track successful defense

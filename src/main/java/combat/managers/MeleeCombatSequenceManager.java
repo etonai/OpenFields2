@@ -167,15 +167,17 @@ public class MeleeCombatSequenceManager {
             // DevCycle 33: System 1 - Audio moved to resolution phase to prevent spam
             // Audio now plays in CombatResolver.resolveMeleeAttack() after recovery validation
             
-            // Schedule immediate impact (no travel time for melee)
-            gameCallbacks.scheduleMeleeImpact((Unit)attacker, (Unit)target, character.meleeWeapon, attackTick);
+            // DevCycle 33: System 14 - Add brief delay for visual state to be visible (similar to ranged weapons)
+            // Schedule impact after a short visual delay so "melee_attacking" state can be seen
+            long visualDelay = 10; // 10 ticks = ~0.17 seconds for attack animation visibility
+            gameCallbacks.scheduleMeleeImpact((Unit)attacker, (Unit)target, character.meleeWeapon, attackTick + visualDelay);
             
-            // Schedule recovery back to ready state
+            // Schedule recovery back to ready state (after visual delay + recovery period)
             long recoveryTime = Math.round(character.meleeWeapon.getStateBasedAttackCooldown() * character.calculateAttackSpeedMultiplier());
             
             WeaponState readyState = character.getActiveWeapon().getStateByName("melee_ready");
             if (readyState != null) {
-                eventQueue.add(new ScheduledEvent(attackTick + recoveryTime, () -> {
+                eventQueue.add(new ScheduledEvent(attackTick + visualDelay + recoveryTime, () -> {
                     character.currentWeaponState = readyState;
                     character.isAttacking = false; // Clear attacking flag to allow auto-targeting to continue
                     

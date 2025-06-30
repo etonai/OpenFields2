@@ -1,4 +1,4 @@
-"C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot\bin\java.exe" --module-path C:\lib\javafx-sdk-21.0.7\lib --add-modules javafx.controls,javafx.fxml,javafx.media "-javaagent:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\lib\idea_rt.jar=51286:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\bin" -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -classpath C:\dev\TTCombat\OF2Prototype01\target\classes;C:\Users\edwar\.m2\repository\org\openjfx\javafx-controls\21.0.2\javafx-controls-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-controls\21.0.2\javafx-controls-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-graphics\21.0.2\javafx-graphics-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-graphics\21.0.2\javafx-graphics-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-base\21.0.2\javafx-base-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-base\21.0.2\javafx-base-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-media\21.0.2\javafx-media-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-media\21.0.2\javafx-media-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-fxml\21.0.2\javafx-fxml-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-fxml\21.0.2\javafx-fxml-21.0.2-win.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.16.1\jackson-databind-2.16.1.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.16.1\jackson-annotations-2.16.1.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.16.1\jackson-core-2.16.1.jar OpenFields2
+"C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot\bin\java.exe" --module-path C:\lib\javafx-sdk-21.0.7\lib --add-modules javafx.controls,javafx.fxml,javafx.media "-javaagent:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\lib\idea_rt.jar=55622:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\bin" -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -classpath C:\dev\TTCombat\OF2Prototype01\target\classes;C:\Users\edwar\.m2\repository\org\openjfx\javafx-controls\21.0.2\javafx-controls-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-controls\21.0.2\javafx-controls-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-graphics\21.0.2\javafx-graphics-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-graphics\21.0.2\javafx-graphics-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-base\21.0.2\javafx-base-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-base\21.0.2\javafx-base-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-media\21.0.2\javafx-media-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-media\21.0.2\javafx-media-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-fxml\21.0.2\javafx-fxml-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-fxml\21.0.2\javafx-fxml-21.0.2-win.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.16.1\jackson-databind-2.16.1.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.16.1\jackson-annotations-2.16.1.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.16.1\jackson-core-2.16.1.jar OpenFields2
 Debug: I have a breakpoint here. We should have stopped!!!
 *** Loaded character registry from resources
 
@@ -52,34 +52,187 @@ Factions:
 ***********************
 Selected: 1002:Chris | Health: 50/50 | Weapon: Colt Peacemaker | State: holstered | Pos: (400.0, 100.0)
 *** 1002:Chris switched to Melee Combat mode
-*** Debug mode ENABLED ***
-*** 1002:Chris weapon progression: current=sheathed, target=melee_ready, tick=0 ***
-*** 1002:Chris scheduling transition from sheathed to unsheathing in 0 ticks (at tick 0) ***
-*** 1002:Chris moving to engage 1001:Bobby in melee combat ***
+*** 1002:Chris automatic targeting ENABLED ***
 ***********************
 *** Game resumed
 ***********************
+*** 1002:Chris weapon progression: current=sheathed, target=melee_ready, tick=1 ***
+*** 1002:Chris scheduling transition from sheathed to unsheathing in 0 ticks (at tick 1) ***
 *** 1002:Chris weapon state: sheathed -> unsheathing ***
-*** 1002:Chris weapon progression: current=unsheathing, target=melee_ready, tick=0 ***
-*** 1002:Chris scheduling transition from unsheathing to melee_ready in 60 ticks (at tick 60) ***
+*** 1002:Chris weapon progression: current=unsheathing, target=melee_ready, tick=1 ***
+*** 1002:Chris scheduling transition from unsheathing to melee_ready in 60 ticks (at tick 61) ***
 *** 1002:Chris weapon state: unsheathing -> melee_ready ***
-*** 1002:Chris weapon progression: current=melee_ready, target=melee_ready, tick=60 ***
-[MELEE-ATTACK] 1002:Chris startMeleeAttackSequence called at tick 190
-[MELEE-ATTACK] 1002:Chris scheduling melee attack on 1001:Bobby in 60 ticks at tick 190
-[MELEE-ATTACK] 1002:Chris executes melee attack on 1001:Bobby at tick 250
-[MELEE-EVENT] Melee attack impact scheduled at tick 250
-[MELEE-EVENT] Attacker: 1002:Chris -> Target: 1001:Bobby
-[MELEE-EVENT] Weapon: Bowie Knife
-[COMBAT-RECOVERY] 1002:Chris starts melee recovery for 60 ticks (until tick 310)
-[MELEE-EVENT] Executing melee impact resolution at tick 250
+*** 1002:Chris weapon progression: current=melee_ready, target=melee_ready, tick=61 ***
+[MELEE-ATTACK] 1002:Chris startMeleeAttackSequence called at tick 191
+[MELEE-ATTACK] 1002:Chris scheduling melee attack on 1001:Bobby in 60 ticks at tick 191
+[MELEE-ATTACK] 1002:Chris executes melee attack on 1001:Bobby at tick 251
+[COMBAT-RECOVERY] 1002:Chris starts melee recovery for 60 ticks (until tick 311)
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 311
 >>> Resolving melee attack: 1002:Chris attacks 1001:Bobby with Bowie Knife
-=== DEFENSE CALCULATION DEBUG ===
-Defender: 1001:Bobby
-Base Chance: 50.0%
-Dexterity (30): -4%
-Weapon Skill Bonus: +0%
-Weapon Defend Score (75 / 2): +37%
-Total Defense Chance: 83.0%
-Defense Roll: 31.6 vs 83.0 = SUCCESS
-=================================
->>> 1001:Bobby successfully defends against the attack!
+=== MELEE HIT CALCULATION DEBUG ===
+Attacker: 1002:Chris -> Target: 1001:Bobby
+Weapon: Bowie Knife (accuracy: 20)
+Attacker Dexterity: 50 (modifier: 0)
+Weapon Accuracy: 20
+Skill Bonus: 0 (no combat skill specified)
+Movement Penalty: 25
+First Attack Penalty: -15 (first attack: true, very careful: false)
+Attack Modifier: -20
+Target Defense (Dex): 30 (modifier: -4)
+Base Hit Chance: 60% + -20 - -4 = 44%
+Final Hit Chance: 44% (clamped 5-95%)
+[MELEE-COMBAT] Random roll: 27 (need <= 44)
+[MELEE-COMBAT] Result: HIT!
+===================================
+=== MELEE DAMAGE CALCULATION DEBUG ===
+Base Weapon Damage: 40
+Hit Location: left_leg
+Wound Severity: light
+Scaled Damage (after wound severity): 16
+Attacker Strength: 50 (bonus: 0)
+Final Damage: 16 + 0 = 16
+>>> Bowie Knife strikes 1001:Bobby in the left_leg causing a light wound at tick 261
+>>> 1001:Bobby takes 16 damage
+>>> HESITATION STARTED: 1001:Bobby begins hesitating for 15 ticks due to light wound
+>>> 1001:Bobby current health: 79/95
+>>> BRAVERY CHECK: 1001:Bobby rolls 91.6 vs 46 (wounded by Bowie Knife)
+>>> BRAVERY FAILED: 1001:Bobby fails bravery check! Total failures: 1 (penalty: -10 accuracy)
+>>> BRAVERY CHECK: 1005:Frank rolls 46.4 vs 57 (ally 1001:Bobby hit by Bowie Knife)
+>>> BRAVERY PASSED: 1005:Frank passes bravery check
+>>> Melee hit! Bowie Knife deals 16 damage to left_leg
+========================================
+[COMBAT-RECOVERY] 1002:Chris starts melee recovery for 120 ticks (until tick 381)
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+>>> HESITATION ENDED: 1001:Bobby recovers from hesitation at tick 261
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+[AUTO-TARGETING] 1002:Chris auto-targeting skipped - in melee recovery until tick 381
+>>> BRAVERY RECOVERY: 1001:Bobby recovers from bravery failure. Remaining failures: 0
+***********************
+*** Game paused at tick 756
+***********************
