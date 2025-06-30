@@ -617,6 +617,13 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             if (GameRenderer.isDebugMode()) {
                 System.out.println("[MELEE-EVENT] Executing melee impact resolution at tick " + attackTick);
             }
+            
+            // DevCycle 33: System 1 - Play audio only if attack will proceed (after recovery check)
+            if (attacker.character.canMeleeAttack(attackTick)) {
+                // Play melee weapon sound effect only for successful attacks
+                playWeaponSound(weapon);
+            }
+            
             combatResolver.resolveMeleeAttack(attacker, target, weapon, attackTick);
         }, ScheduledEvent.WORLD_OWNER));
     }

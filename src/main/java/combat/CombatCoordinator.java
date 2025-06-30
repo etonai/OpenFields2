@@ -416,6 +416,14 @@ public class CombatCoordinator {
             return;
         }
         
+        // DevCycle 33: System 1 - Skip if character is in melee recovery
+        if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick)) {
+            if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+                System.out.println("[COMBAT-RECOVERY] " + character.getDisplayName() + " attack continuation blocked - in recovery until tick " + character.meleeRecoveryEndTick);
+            }
+            return;
+        }
+        
         // Handle case where we have auto-targeting enabled but no current target
         if (character.currentTarget == null) {
             if (character.usesAutomaticTargeting) {

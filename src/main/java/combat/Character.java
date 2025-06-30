@@ -177,6 +177,7 @@ public class Character implements ICharacter {
     /** Melee attack recovery (Bug #1 fix) */
     public long lastMeleeAttackTick = -1;       // Tick when last melee attack was executed
     public long meleeRecoveryEndTick = -1;      // Tick when melee recovery period ends
+    public long meleeRecoveryDuration = 0;      // Duration of recovery period for debugging
     
     /** Hesitation state management */
     public boolean isHesitating = false;        // Currently hesitating due to wound
@@ -1629,6 +1630,16 @@ public class Character implements ICharacter {
     }
     
     /**
+     * Check if character is currently in melee recovery period
+     * DevCycle 33: System 1 - Stop Attack Scheduling During Recovery
+     * @param currentTick Current game tick
+     * @return true if character is in recovery, false if can attack
+     */
+    public boolean isInMeleeRecovery(long currentTick) {
+        return currentTick < meleeRecoveryEndTick;
+    }
+    
+    /**
      * Starts melee attack recovery period
      * Fix for Bug #1: Rapid Consecutive Melee Attacks
      * @param recoveryTicks Duration of recovery in ticks
@@ -1637,6 +1648,28 @@ public class Character implements ICharacter {
     public void startMeleeRecovery(int recoveryTicks, long currentTick) {
         lastMeleeAttackTick = currentTick;
         meleeRecoveryEndTick = currentTick + recoveryTicks;
+        meleeRecoveryDuration = recoveryTicks;
+        
+        // Debug message for recovery start
+        if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+            System.out.println("[COMBAT-RECOVERY] " + getDisplayName() + " starts melee recovery for " + 
+                             recoveryTicks + " ticks (until tick " + meleeRecoveryEndTick + ")");
+        }
+    }
+    
+    /**
+     * Cancels melee recovery when character becomes incapacitated
+     * DevCycle 33: System 1 - Stop Attack Scheduling During Recovery
+     */
+    public void cancelMeleeRecovery() {
+        if (meleeRecoveryEndTick > 0) {
+            // Debug message for recovery cancellation
+            if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+                System.out.println("[COMBAT-RECOVERY] " + getDisplayName() + " recovery cancelled due to incapacitation");
+            }
+            meleeRecoveryEndTick = -1;
+            meleeRecoveryDuration = 0;
+        }
     }
     
     /**
@@ -1647,5 +1680,10 @@ public class Character implements ICharacter {
     public void updateMeleeRecovery(long currentTick) {
         // Recovery tracking is passive - no active updates needed
         // Characters can attack again when currentTick >= meleeRecoveryEndTick
+        
+        // Cancel recovery if character becomes incapacitated
+        if (isIncapacitated()) {
+            cancelMeleeRecovery();
+        }
     }
 }

@@ -164,8 +164,8 @@ public class MeleeCombatSequenceManager {
             }
             
             
-            // Play melee weapon sound effect (DevCycle 12)
-            gameCallbacks.playWeaponSound(character.meleeWeapon);
+            // DevCycle 33: System 1 - Audio moved to resolution phase to prevent spam
+            // Audio now plays in CombatResolver.resolveMeleeAttack() after recovery validation
             
             // Schedule immediate impact (no travel time for melee)
             gameCallbacks.scheduleMeleeImpact((Unit)attacker, (Unit)target, character.meleeWeapon, attackTick);
