@@ -1,6 +1,7 @@
 package platform.impl.javafx;
 
 import platform.api.AudioSystem;
+import config.DebugConfig;
 import javafx.scene.media.AudioClip;
 import java.net.URL;
 import java.util.HashMap;
@@ -47,6 +48,9 @@ public class JavaFXAudioSystem implements AudioSystem {
     public void playSound(String soundId, float volume) {
         AudioClip clip = sounds.get(soundId);
         if (clip != null) {
+            if (DebugConfig.getInstance().isCombatDebugEnabled()) {
+                System.out.println("[AUDIO-SYSTEM] Playing audio file: " + soundId + " (volume: " + volume + ")");
+            }
             clip.play(masterVolume * Math.max(0, Math.min(1, volume)));
         }
     }

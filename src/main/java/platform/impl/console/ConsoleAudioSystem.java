@@ -1,6 +1,7 @@
 package platform.impl.console;
 
 import platform.api.AudioSystem;
+import config.DebugConfig;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -40,9 +41,8 @@ public class ConsoleAudioSystem implements AudioSystem {
     @Override
     public void playSound(String soundId, float volume) {
         if (loadedSounds.contains(soundId)) {
-            if (debugMode) {
-                System.out.println("[Audio] Playing: " + soundId + 
-                                 " at volume " + (masterVolume * volume));
+            if (debugMode || DebugConfig.getInstance().isCombatDebugEnabled()) {
+                System.out.println("[AUDIO-SYSTEM] Playing audio file: " + soundId + " (volume: " + (masterVolume * volume) + ")");
             }
             
             // Could use terminal bell for certain sounds

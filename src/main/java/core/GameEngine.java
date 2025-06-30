@@ -4,6 +4,7 @@ import platform.api.*;
 import platform.api.Color;
 import game.*;
 import combat.*;
+import config.DebugConfig;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -323,6 +324,9 @@ public class GameEngine {
             @Override
             public void playWeaponSound(Weapon weapon) {
                 if (weapon.soundFile != null) {
+                    if (DebugConfig.getInstance().isCombatDebugEnabled()) {
+                        System.out.println("[COMBAT-AUDIO] Playing weapon sound: " + weapon.soundFile + " for weapon: " + weapon.getName());
+                    }
                     platform.getAudioSystem().playSound(weapon.soundFile);
                 }
             }
