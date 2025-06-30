@@ -15,6 +15,8 @@ import combat.managers.CharacterStatsManager;
 import combat.managers.TargetManager;
 import combat.managers.CombatModeManager;
 import combat.managers.HealthManager;
+import combat.managers.WeaponTimingManager;
+import combat.managers.CombatValidationManager;
 import game.ScheduledEvent;
 import game.interfaces.IUnit;
 import game.GameCallbacks;
@@ -1436,13 +1438,7 @@ public class Character implements ICharacter {
     }
     
     public double calculateWeaponReadySpeedMultiplier() {
-        int reflexesModifier = GameConstants.statToModifier(this.reflexes);
-        double reflexesSpeedMultiplier = 1.0 - (reflexesModifier * 0.015);
-        
-        int quickdrawLevel = getSkillLevel(SkillsManager.QUICKDRAW);
-        double quickdrawSpeedMultiplier = 1.0 - (quickdrawLevel * 0.08);
-        
-        return reflexesSpeedMultiplier * quickdrawSpeedMultiplier;
+        return WeaponTimingManager.getInstance().calculateWeaponReadySpeedMultiplier(this);
     }
     
     
@@ -1452,9 +1448,7 @@ public class Character implements ICharacter {
     }
     
     public boolean isWeaponPreparationState(String stateName) {
-        // Create a temporary WeaponState to delegate to WeaponStateManager
-        WeaponState tempState = new WeaponState(stateName, "", 0);
-        return WeaponStateManager.getInstance().isWeaponPreparationState(tempState);
+        return CombatValidationManager.getInstance().isWeaponPreparationState(this, stateName);
     }
     
     
@@ -1467,7 +1461,7 @@ public class Character implements ICharacter {
     }
     
     public double getWeaponReadySpeedMultiplier() {
-        return calculateWeaponReadySpeedMultiplier();
+        return WeaponTimingManager.getInstance().getWeaponReadySpeedMultiplier(this);
     }
     
     /**
@@ -1498,16 +1492,11 @@ public class Character implements ICharacter {
      * Calculate attack speed multiplier based on character stats and skills
      */
     public double calculateAttackSpeedMultiplier() {
-        // Use same speed calculation as weapon ready speed for consistency
-        return calculateWeaponReadySpeedMultiplier();
+        return WeaponTimingManager.getInstance().calculateAttackSpeedMultiplier(this);
     }
     
     public boolean canReload() {
-        if (weapon == null || !(weapon instanceof RangedWeapon)) return false;
-        RangedWeapon rangedWeapon = (RangedWeapon)weapon;
-        if (rangedWeapon.getAmmunition() >= rangedWeapon.getMaxAmmunition()) return false;
-        String state = currentWeaponState.getState();
-        return "ready".equals(state) || "aiming".equals(state) || "recovering".equals(state);
+        return CombatValidationManager.getInstance().canReload(this);
     }
     
     public void startReloadSequence(IUnit unit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
@@ -1665,12 +1654,7 @@ public class Character implements ICharacter {
      * Check if target is within melee range of attacker using edge-to-edge distance
      */
     public boolean isInMeleeRange(IUnit attacker, IUnit target, MeleeWeapon weapon) {
-        double centerToCenter = Math.hypot(target.getX() - attacker.getX(), target.getY() - attacker.getY());
-        // Convert to edge-to-edge by subtracting target radius (1.5 feet = 10.5 pixels)
-        double edgeToEdge = centerToCenter - (1.5 * 7.0);
-        double pixelRange = weapon.getTotalReach() * 7.0; // Convert feet to pixels (7 pixels = 1 foot)
-        
-        return edgeToEdge <= pixelRange;
+        return CombatValidationManager.getInstance().isInMeleeRange(attacker, target, weapon);
     }
     
     // Defense state methods (DevCycle 23)
