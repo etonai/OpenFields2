@@ -13,6 +13,7 @@ import combat.managers.ReloadManager;
 import combat.managers.CharacterSkillsManager;
 import combat.managers.CharacterStatsManager;
 import combat.managers.TargetManager;
+import combat.managers.CombatModeManager;
 import game.ScheduledEvent;
 import game.interfaces.IUnit;
 import game.GameCallbacks;
@@ -769,87 +770,22 @@ public class Character implements ICharacter {
      * Initialize default weapons (ranged weapon from legacy weapon field, unarmed for melee)
      */
     public void initializeDefaultWeapons() {
-        // Check if we should skip weapon initialization (for platform independence)
-        if (isWeaponInitializationDisabled()) {
-            return;
-        }
-        
-        // Initialize melee weapon to unarmed if not set
-        if (meleeWeapon == null) {
-            meleeWeapon = MeleeWeaponFactory.createUnarmed();
-        }
-        
-        // If we have a legacy weapon, convert it to ranged weapon
-        if (weapon != null && rangedWeapon == null) {
-            if (weapon instanceof RangedWeapon) {
-                rangedWeapon = (RangedWeapon) weapon;
-            }
-            // Note: weapon will remain for backward compatibility
-        }
+        CombatModeManager.getInstance().initializeDefaultWeapons(this);
     }
     
-    /**
-     * Check if weapon initialization should be disabled (for platform independence)
-     */
-    private boolean isWeaponInitializationDisabled() {
-        // Check system property for disabling weapon initialization
-        String skipWeapons = System.getProperty("openfields2.skipDefaultWeapons");
-        return "true".equals(skipWeapons);
-    }
     
     /**
      * Get the currently active weapon based on combat mode
      */
     public Weapon getActiveWeapon() {
-        if (isMeleeCombatMode && meleeWeapon != null) {
-            return meleeWeapon;
-        } else if (rangedWeapon != null) {
-            return rangedWeapon;
-        } else {
-            return weapon; // Fallback to legacy weapon
-        }
+        return CombatModeManager.getInstance().getActiveWeapon(this);
     }
     
     /**
      * Toggle between ranged and melee combat modes
      */
     public void toggleCombatMode() {
-        // Cancel any ongoing melee movement when switching modes
-        if (isMovingToMelee) {
-            isMovingToMelee = false;
-            meleeTarget = null;
-        }
-        
-        // Cancel any ongoing attacks when switching modes
-        if (isAttacking) {
-            isAttacking = false;
-        }
-        
-        boolean oldMode = isMeleeCombatMode;
-        isMeleeCombatMode = !isMeleeCombatMode;
-        
-        // ALWAYS PRINT for diagnosis
-        
-        if (meleeWeapon != null) {
-        }
-        
-        // Ensure character has a melee weapon when switching to melee mode
-        if (isMeleeCombatMode && meleeWeapon == null) {
-            meleeWeapon = MeleeWeaponFactory.createUnarmed();
-        }
-        
-        // Initialize weapon state to melee weapon's initial state when switching to melee mode
-        if (isMeleeCombatMode && meleeWeapon != null) {
-            WeaponState meleeInitialState = meleeWeapon.getInitialState();
-            if (meleeInitialState != null) {
-                WeaponState oldState = currentWeaponState;
-                currentWeaponState = meleeInitialState;
-            } else {
-            }
-        }
-        
-        // Reset weapon hold state when switching combat modes
-        resetWeaponHoldStateToDefault();
+        CombatModeManager.getInstance().toggleCombatMode(this);
     }
     
     // Legacy methods for backwards compatibility with tests
