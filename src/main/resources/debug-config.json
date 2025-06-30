@@ -12,7 +12,7 @@
       "description": "Enable/disable combat debug messages"
     },
     "movement": {
-      "enabled": true,
+      "enabled": false,
       "description": "Enable/disable movement debug messages"
     },
     "weapons": {

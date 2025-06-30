@@ -31,7 +31,7 @@
       "name": "Steel Dagger",
       "type": "MELEE_SHORT",
       "damage": 30,
-      "soundFile": "/magic.wav",
+      "soundFile": "/Slap0003.wav",
       "weaponLength": 1.5,
       "weaponAccuracy": 15,
       "meleeType": "SHORT",
