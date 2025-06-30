@@ -362,6 +362,9 @@ public class CombatResolver {
             System.out.println(">>> Resolving melee attack: " + attacker.character.getDisplayName() + " attacks " + target.character.getDisplayName() + " with " + weapon.getName());
         }
         
+        // DevCycle 33: System 9 - Temporarily disable recovery blocking during combat development
+        // TODO: Re-enable this check after fixing recovery timing coordination
+        /*
         // Bug #1 Fix: Check if attacker can perform melee attack (not in recovery)
         if (!attacker.character.canMeleeAttack(attackTick)) {
             if (debugMode) {
@@ -369,6 +372,7 @@ public class CombatResolver {
             }
             return; // Block the attack - attacker is still in recovery
         }
+        */
         
         // Track attempted attack (both legacy and separate tracking)
         attacker.character.attacksAttempted++;

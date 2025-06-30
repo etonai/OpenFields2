@@ -51,7 +51,8 @@ public class MeleeCombatManager {
         }
         
         // Check if weapon is ready for melee attack
-        if (character.currentWeaponState != null && !"READY".equals(character.currentWeaponState.getState())) {
+        // DevCycle 33: System 5 - Fix weapon state validation to check for "melee_ready" instead of "READY"
+        if (character.currentWeaponState != null && !"melee_ready".equals(character.currentWeaponState.getState())) {
             System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " weapon not ready for melee attack (state: " + character.currentWeaponState.getState() + ") at tick " + currentTick);
             character.isAttacking = false;
             return;
@@ -62,7 +63,7 @@ public class MeleeCombatManager {
         long attackTick = currentTick + attackDelay;
         
         System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " scheduling melee attack on " + 
-                          target.getCharacter().getDisplayName() + " in " + attackDelay + " ticks");
+                          target.getCharacter().getDisplayName() + " in " + attackDelay + " ticks at tick " + currentTick);
         
         // Schedule the actual melee attack
         eventQueue.add(new ScheduledEvent(attackTick, () -> {
@@ -106,24 +107,30 @@ public class MeleeCombatManager {
         
         // Final range check before executing attack
         if (!isInMeleeRange(attacker, target, character.meleeWeapon)) {
-            System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " target moved out of range before attack execution");
+            System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " target moved out of range before attack execution at tick " + currentTick);
             character.isAttacking = false;
             return;
         }
         
         // Check if target is still valid
         if (target.getCharacter().isIncapacitated()) {
-            System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " target incapacitated before attack execution");
+            System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " target incapacitated before attack execution at tick " + currentTick);
             character.isAttacking = false;
             return;
         }
         
-        System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " executes melee attack on " + target.getCharacter().getDisplayName());
+        System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " executes melee attack on " + target.getCharacter().getDisplayName() + " at tick " + currentTick);
         
-        // Delegate to character's standard attack execution logic
-        // This maintains all the existing hit calculation, damage, wound, and audio systems
-        character.isAttacking = false; // Clear flag before calling to avoid recursion
-        character.startAttackSequence(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
+        // DevCycle 33: System 6 - Fix melee attack to use direct impact scheduling instead of ranged attack sequence
+        // Schedule immediate melee impact (no travel time for melee attacks)
+        gameCallbacks.scheduleMeleeImpact((game.Unit)attacker, (game.Unit)target, character.meleeWeapon, currentTick);
+        
+        // Start recovery period
+        long recoveryTime = Math.round(character.meleeWeapon.getStateBasedAttackCooldown() * character.calculateAttackSpeedMultiplier());
+        character.startMeleeRecovery((int)recoveryTime, currentTick);
+        
+        // Clear attacking flag
+        character.isAttacking = false;
     }
     
     // ========================================
