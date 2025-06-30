@@ -377,10 +377,10 @@ public class CombatCoordinator {
                             character.currentShotInSequence = 0; // Reset shot counter
                             character.isAttacking = false; // Attack sequence complete
                             
-                            // Only call checkContinuousAttack if NOT using persistent attack mode
+                            // Only call handleAttackContinuation if NOT using persistent attack mode
                             // Persistent attack is handled entirely by continueStandardAttack scheduling
                             if (!character.persistentAttack) {
-                                character.checkContinuousAttack(shooter, completionTick, eventQueue, ownerId, gameCallbacks);
+                                handleAttackContinuation(character, shooter, completionTick, eventQueue, ownerId, gameCallbacks);
                             } else {
                             }
                         }
@@ -391,6 +391,87 @@ public class CombatCoordinator {
         }, ownerId));
     }
     
+    /**
+     * Handle attack continuation logic for characters.
+     * Extracted from Character.checkContinuousAttack() following DevCycle 31 refactoring.
+     * Manages persistent attacks, auto-targeting, and continuous firing modes.
+     * 
+     * @param character The character attempting to continue attacking
+     * @param shooter The unit performing the attack
+     * @param currentTick The current game tick
+     * @param eventQueue Event queue for scheduling future actions
+     * @param ownerId Owner ID for event scheduling
+     * @param gameCallbacks Game callback interface
+     */
+    public void handleAttackContinuation(Character character, IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        // Debug logging for checkContinuousAttack entry
+        
+        // Continue only if persistent attack is enabled OR auto-targeting is enabled
+        if (!character.persistentAttack && !character.usesAutomaticTargeting) {
+            return;
+        }
+        
+        // Skip if character is reloading (let reload complete)
+        if (character.isReloading) {
+            return;
+        }
+        
+        // Handle case where we have auto-targeting enabled but no current target
+        if (character.currentTarget == null) {
+            if (character.usesAutomaticTargeting) {
+                // Delegate to the auto-targeting system to find a new target
+                character.updateAutomaticTargeting(shooter, currentTick, eventQueue, gameCallbacks);
+                return;
+            } else {
+                return;
+            }
+        }
+        if (character.currentTarget.getCharacter().isIncapacitated()) {
+            // Target incapacitated - schedule automatic target change after 1 second delay
+            
+            // Schedule target reassessment event 1 second later (60 ticks)
+            long retargetTick = currentTick + 60;
+            eventQueue.add(new ScheduledEvent(retargetTick, () -> {
+                character.performAutomaticTargetChange(shooter, retargetTick, eventQueue, ownerId, gameCallbacks);
+            }, ownerId));
+            
+            // Clear current target but maintain persistent attack mode and weapon direction
+            character.currentTarget = null;
+            character.isAttacking = false;
+            
+            // Preserve the current facing direction so weapon continues to aim at last target location
+            if (character.lastTargetFacing != null) {
+                shooter.setTargetFacing(character.lastTargetFacing);
+            }
+            return;
+        }
+        if (character.isIncapacitated()) {
+            character.persistentAttack = false;
+            character.currentTarget = null;
+            character.isAttacking = false;
+            
+            // Preserve the current facing direction so weapon continues to aim at last target location
+            if (character.lastTargetFacing != null && shooter != null) {
+                shooter.setTargetFacing(character.lastTargetFacing);
+            }
+            return;
+        }
+        if (character.weapon == null) {
+            character.persistentAttack = false;
+            character.currentTarget = null;
+            character.isAttacking = false;
+            
+            // Preserve the current facing direction so weapon continues to aim at last target location
+            if (character.lastTargetFacing != null && shooter != null) {
+                shooter.setTargetFacing(character.lastTargetFacing);
+            }
+            return;
+        }
+        
+        // Handle different firing modes for continuous attacks
+        BurstFireManager.getInstance().handleContinuousFiring(character, shooter, currentTick, gameCallbacks);
+    }
+
     /**
      * Continue a persistent attack for a character.
      * Handles burst fire and automatic weapons.

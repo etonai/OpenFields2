@@ -1998,7 +1998,7 @@ public class Character implements ICharacter {
 
     // Removed duplicate method - now using AutoTargetingSystem.findNearestHostileTargetWithZonePriority
     
-    private void performAutomaticTargetChange(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void performAutomaticTargetChange(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // Only proceed if still in persistent attack mode and not incapacitated
         if (!persistentAttack || this.isIncapacitated() || weapon == null) {
             persistentAttack = false;
@@ -2055,72 +2055,8 @@ public class Character implements ICharacter {
     }
     
     public void checkContinuousAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        // Debug logging for checkContinuousAttack entry
-        
-        // Continue only if persistent attack is enabled OR auto-targeting is enabled
-        if (!persistentAttack && !usesAutomaticTargeting) {
-            return;
-        }
-        
-        // Skip if character is reloading (let reload complete)
-        if (isReloading) {
-            return;
-        }
-        
-        // Handle case where we have auto-targeting enabled but no current target
-        if (currentTarget == null) {
-            if (usesAutomaticTargeting) {
-                // Delegate to the auto-targeting system to find a new target
-                updateAutomaticTargeting(shooter, currentTick, eventQueue, gameCallbacks);
-                return;
-            } else {
-                return;
-            }
-        }
-        if (currentTarget.getCharacter().isIncapacitated()) {
-            // Target incapacitated - schedule automatic target change after 1 second delay
-            
-            // Schedule target reassessment event 1 second later (60 ticks)
-            long retargetTick = currentTick + 60;
-            eventQueue.add(new ScheduledEvent(retargetTick, () -> {
-                performAutomaticTargetChange(shooter, retargetTick, eventQueue, ownerId, gameCallbacks);
-            }, ownerId));
-            
-            // Clear current target but maintain persistent attack mode and weapon direction
-            currentTarget = null;
-            isAttacking = false;
-            
-            // Preserve the current facing direction so weapon continues to aim at last target location
-            if (lastTargetFacing != null) {
-                shooter.setTargetFacing(lastTargetFacing);
-            }
-            return;
-        }
-        if (this.isIncapacitated()) {
-            persistentAttack = false;
-            currentTarget = null;
-            isAttacking = false;
-            
-            // Preserve the current facing direction so weapon continues to aim at last target location
-            if (lastTargetFacing != null && shooter != null) {
-                shooter.setTargetFacing(lastTargetFacing);
-            }
-            return;
-        }
-        if (weapon == null) {
-            persistentAttack = false;
-            currentTarget = null;
-            isAttacking = false;
-            
-            // Preserve the current facing direction so weapon continues to aim at last target location
-            if (lastTargetFacing != null && shooter != null) {
-                shooter.setTargetFacing(lastTargetFacing);
-            }
-            return;
-        }
-        
-        // Handle different firing modes for continuous attacks
-        BurstFireManager.getInstance().handleContinuousFiring(this, shooter, currentTick, gameCallbacks);
+        // Delegate to CombatCoordinator following DevCycle 31 refactoring pattern
+        CombatCoordinator.getInstance().handleAttackContinuation(this, shooter, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     // handleBurstFiring and handleFullAutoFiring methods removed - now handled by BurstFireManager
     
