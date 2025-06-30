@@ -1135,25 +1135,11 @@ public class Character implements ICharacter {
     }
     
     public void increasePosition() {
-        if (!isIncapacitated()) {
-            // Characters with both legs wounded cannot stand up from prone
-            if (currentPosition == PositionState.PRONE && hasBothLegsWounded()) {
-                return;
-            }
-            this.currentPosition = currentPosition.increase();
-        }
+        MovementController.increasePosition(this);
     }
     
     public void decreasePosition() {
-        if (!isIncapacitated()) {
-            PositionState oldPosition = currentPosition;
-            this.currentPosition = currentPosition.decrease();
-            
-            // Force crawl movement when going prone
-            if (oldPosition != PositionState.PRONE && currentPosition == PositionState.PRONE) {
-                this.currentMovementType = MovementType.CRAWL;
-            }
-        }
+        MovementController.decreasePosition(this);
     }
     
     public Skill getSkill(String skillName) {
@@ -1692,15 +1678,6 @@ public class Character implements ICharacter {
         DefenseManager.getInstance().setDefenseCooldown(id, currentTick + cooldownTicks);
     }
     
-    /**
-     * Updates defense state based on current tick
-     * @param currentTick Current game tick
-     * @deprecated DefenseManager now handles state updates internally
-     */
-    @Deprecated
-    public void updateDefenseState(long currentTick) {
-        // DefenseManager handles state updates internally
-    }
     
     /**
      * Grants a counter-attack opportunity

@@ -126,4 +126,34 @@ public class MovementController {
             character.setCurrentMovementType(MovementType.CRAWL);
         }
     }
+    
+    /**
+     * Increase character's position state (Prone -> Kneel -> Stand).
+     * Extracted from Character.increasePosition() (~10 lines).
+     */
+    public static void increasePosition(Character character) {
+        if (!character.isIncapacitated()) {
+            // Characters with both legs wounded cannot stand up from prone
+            if (character.currentPosition == PositionState.PRONE && character.hasBothLegsWounded()) {
+                return;
+            }
+            character.currentPosition = character.currentPosition.increase();
+        }
+    }
+    
+    /**
+     * Decrease character's position state (Stand -> Kneel -> Prone).
+     * Extracted from Character.decreasePosition() (~10 lines).
+     */
+    public static void decreasePosition(Character character) {
+        if (!character.isIncapacitated()) {
+            PositionState oldPosition = character.currentPosition;
+            character.currentPosition = character.currentPosition.decrease();
+            
+            // Force crawl movement when going prone
+            if (oldPosition != PositionState.PRONE && character.currentPosition == PositionState.PRONE) {
+                character.currentMovementType = MovementType.CRAWL;
+            }
+        }
+    }
 }
