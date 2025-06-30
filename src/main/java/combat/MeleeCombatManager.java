@@ -30,7 +30,7 @@ public class MeleeCombatManager {
      */
     public static void startMeleeAttackSequence(Character character, IUnit attacker, IUnit target, 
             long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " startMeleeAttackSequence called");
+        System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " startMeleeAttackSequence called at tick " + currentTick);
         
         // Set attacking flag and mark as melee attack
         character.isAttacking = true;
@@ -45,14 +45,14 @@ public class MeleeCombatManager {
         
         // Check range before starting attack
         if (!isInMeleeRange(attacker, target, meleeWeapon)) {
-            System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " target out of melee range - cancelling attack");
+            System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " target out of melee range - cancelling attack at tick " + currentTick);
             character.isAttacking = false;
             return;
         }
         
         // Check if weapon is ready for melee attack
         if (character.currentWeaponState != null && !"READY".equals(character.currentWeaponState.getState())) {
-            System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " weapon not ready for melee attack (state: " + character.currentWeaponState.getState() + ")");
+            System.out.println("[MELEE-ATTACK] " + character.getDisplayName() + " weapon not ready for melee attack (state: " + character.currentWeaponState.getState() + ") at tick " + currentTick);
             character.isAttacking = false;
             return;
         }
