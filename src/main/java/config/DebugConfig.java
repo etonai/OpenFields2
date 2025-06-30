@@ -23,6 +23,10 @@ public class DebugConfig {
     private boolean weaponsDebugEnabled = true;
     private boolean eventQueueDebugEnabled = false;
     
+    // Blocking configuration (DevCycle 33: System 10)
+    private boolean disableDefensiveBlocking = false;
+    private boolean disableRecoveryBlocking = false;
+    
     private DebugConfig() {
         loadConfig();
     }
@@ -74,6 +78,13 @@ public class DebugConfig {
                 if (eventQueue != null) {
                     eventQueueDebugEnabled = eventQueue.get("enabled").asBoolean(false);
                 }
+                
+                // Load blocking configuration (DevCycle 33: System 10)
+                JsonNode blocking = debugConfig.get("blocking");
+                if (blocking != null) {
+                    disableDefensiveBlocking = blocking.get("disableDefensiveBlocking").asBoolean(false);
+                    disableRecoveryBlocking = blocking.get("disableRecoveryBlocking").asBoolean(false);
+                }
             }
             
             System.out.println("Debug configuration loaded from debug-config.json");
@@ -92,6 +103,8 @@ public class DebugConfig {
         System.out.println("  Movement debug: " + movementDebugEnabled);
         System.out.println("  Weapons debug: " + weaponsDebugEnabled);
         System.out.println("  Event queue debug: " + eventQueueDebugEnabled);
+        System.out.println("  Blocking: defensive=" + (disableDefensiveBlocking ? "DISABLED" : "enabled") + 
+                          ", recovery=" + (disableRecoveryBlocking ? "DISABLED" : "enabled"));
     }
     
     // Auto-targeting getters
@@ -118,6 +131,15 @@ public class DebugConfig {
     
     public boolean isEventQueueDebugEnabled() {
         return eventQueueDebugEnabled;
+    }
+    
+    // Blocking configuration getters (DevCycle 33: System 10)
+    public boolean isDefensiveBlockingDisabled() {
+        return disableDefensiveBlocking;
+    }
+    
+    public boolean isRecoveryBlockingDisabled() {
+        return disableRecoveryBlocking;
     }
     
     // Setters for runtime changes

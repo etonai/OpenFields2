@@ -75,11 +75,12 @@ public class DefenseManager implements IDefenseManager {
     
     @Override
     public boolean attemptBlock(Character defender, IUnit attacker, long currentTick) {
-        // DevCycle 33: System 7 - Temporarily disable blocking during combat development
-        // TODO: Re-enable this system after combat timing fixes are complete
-        return false;
+        // DevCycle 33: System 10 - Check configuration for defensive blocking disable
+        if (config.DebugConfig.getInstance().isDefensiveBlockingDisabled()) {
+            return false;
+        }
         
-        /* ORIGINAL BLOCKING LOGIC - TEMPORARILY DISABLED
+        // ORIGINAL BLOCKING LOGIC - RESTORED FOR CONFIGURATION CONTROL
         if (!canDefend(defender, currentTick)) {
             return false;
         }
@@ -107,7 +108,6 @@ public class DefenseManager implements IDefenseManager {
         }
         
         return blockSuccessful;
-        */
     }
     
     @Override
