@@ -2,6 +2,14 @@ package combat;
 
 import combat.interfaces.ICharacter;
 import combat.managers.BurstFireManager;
+import combat.managers.AttackSequenceManager;
+import combat.managers.WeaponStateTransitionManager;
+import combat.managers.MeleeCombatSequenceManager;
+import combat.managers.ReactionManager;
+import combat.managers.WeaponReadinessManager;
+import combat.managers.AttackContinuationManager;
+import combat.managers.FiringSequenceManager;
+import combat.managers.MultiShotManager;
 import combat.managers.AimingSystem;
 import combat.managers.DefenseManager;
 import combat.managers.WeaponStateManager;
@@ -1430,126 +1438,13 @@ public class Character implements ICharacter {
      * Start melee attack sequence from current weapon state
      */
     public void startMeleeAttackSequence(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        if (meleeWeapon == null) {
-            return;
-        }
-        
-        // Check if target is within melee range using edge-to-edge calculation
-        double distance = Math.hypot(target.getX() - attacker.getX(), target.getY() - attacker.getY());
-        double distanceFeet = distance / 7.0;
-        
-        if (!isInMeleeRange(attacker, target, meleeWeapon)) {
-            // Target is out of range - move towards target
-            attacker.setTarget(target.getX(), target.getY());
-            
-            // Schedule a follow-up check to attempt attack once in range
-            scheduleRangeCheckForMeleeAttack(attacker, target, currentTick + 10, eventQueue, ownerId, gameCallbacks);
-            return;
-        }
-        
-        // Calculate facing direction to target
-        double dx = target.getX() - attacker.getX();
-        double dy = target.getY() - attacker.getY();
-        double angleRadians = Math.atan2(dx, -dy);
-        double angleDegrees = Math.toDegrees(angleRadians);
-        if (angleDegrees < 0) angleDegrees += 360;
-        lastTargetFacing = angleDegrees;
-        
-        // Schedule melee attack from current state
-        scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
-        
+        // Delegate to AttackSequenceManager following DevCycle 31 Option 4 refactoring pattern
+        AttackSequenceManager.getInstance().startMeleeAttackSequence(this, attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
     public void scheduleAttackFromCurrentState(IUnit shooter, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        // Debug: Check weapon and weapon state
-        System.out.println("*** " + getDisplayName() + " scheduleAttackFromCurrentState: weapon=" + 
-                          (weapon != null ? weapon.getName() : "null") + 
-                          ", currentWeaponState=" + (currentWeaponState != null ? currentWeaponState.getState() : "null") + " ***");
-        
-        if (weapon == null || currentWeaponState == null) {
-            // Initialize weapon state if missing
-            if (weapon != null && currentWeaponState == null) {
-                currentWeaponState = weapon.getInitialState();
-                System.out.println("*** " + getDisplayName() + " initialized weapon state to: " + 
-                                  (currentWeaponState != null ? currentWeaponState.getState() : "null") + " ***");
-            }
-            if (currentWeaponState == null) return;
-        }
-        
-        String currentState = currentWeaponState.getState();
-        
-        // Prevent scheduling attacks if weapon is still firing or recovering
-        if ("firing".equals(currentState) || "recovering".equals(currentState)) {
-            return;
-        }
-
-        // EDTODO: Verify this is no longer needed
-        // long totalTimeToFire = calculateTimeToFire();
-        
-        // Use JSON-driven state progression for all states except aiming and firing
-        if (!"aiming".equals(currentState) && !"firing".equals(currentState)) {
-            // Check if we should stop at pointedfromhip based on firing preference
-            if ("pointedfromhip".equals(currentState) && !getFiresFromAimingState()) {
-                // Point-from-hip firing preference - fire from this state
-                // Continue to aiming logic below to handle firing
-            } else {
-                // Find the next state in the weapon's progression using the action field
-                String nextState = currentWeaponState.getAction();
-                if (nextState != null && !nextState.isEmpty()) {
-                    // Check if the next state is available in the weapon
-                    WeaponState nextWeaponState = weapon.getStateByName(nextState);
-                    if (nextWeaponState != null) {
-                        // Schedule transition to the next state using JSON-driven progression
-                        scheduleStateTransition(nextState, currentTick, currentWeaponState.ticks, shooter, target, eventQueue, ownerId, gameCallbacks);
-                        return;
-                    }
-                }
-            }
-        }
-        
-        if ("aiming".equals(currentState) || ("pointedfromhip".equals(currentState) && !getFiresFromAimingState())) {
-            // DevCycle 27: System 5 - Check for immediate firing when character is already in correct hold state
-            boolean shouldFireImmediately = isAlreadyInCorrectFiringState(currentState, currentTick);
-            
-            long fireDelay;
-            if (shouldFireImmediately) {
-                // Fire immediately (1 tick delay for scheduling) when already in correct state
-                fireDelay = 1;
-                System.out.println("*** " + getDisplayName() + " firing immediately - already in correct state: " + currentState + " ***");
-            } else {
-                // Handle normal firing progression with delays
-                fireDelay = currentWeaponState.ticks;
-                
-                // Only apply aiming speed modifiers if firing from aiming state
-                if ("aiming".equals(currentState)) {
-                    // Determine which aiming speed to use based on firing mode and shot number
-                    AimingSpeed aimingSpeedToUse = AimingSystem.getInstance().determineAimingSpeedForShot(this, currentShotInSequence);
-                    
-                    fireDelay = Math.round(currentWeaponState.ticks * aimingSpeedToUse.getTimingMultiplier() * AimingSystem.getInstance().calculateAimingSpeedMultiplier(this));
-                    
-                    // Add random additional time for very careful aiming
-                    if (aimingSpeedToUse.isVeryCareful()) {
-                        long additionalTime = aimingSpeedToUse.getVeryCarefulAdditionalTime();
-                        fireDelay += additionalTime;
-                    }
-                }
-                
-                // DevCycle 27: System 3 - Add Very Careful timing for earned bonus
-                AccumulatedAimingBonus earnedBonus = calculateEarnedAimingBonus(currentTick);
-                if (earnedBonus == AccumulatedAimingBonus.VERY_CAREFUL && "aiming".equals(currentState)) {
-                    // Add 2-5 seconds random time, same as selected Very Careful
-                    long additionalTime = 120 + (long)(Math.random() * 181); // 120-300 ticks
-                    fireDelay += additionalTime;
-                    
-                    // Log aiming speed usage for burst/auto modes
-                    if (BurstFireManager.getInstance().isAutomaticFiring(this.id) && BurstFireManager.getInstance().getBurstShotsFired(this.id) > 1) {
-                    }
-                }
-                // For pointedfromhip firing, use base timing without aiming speed modifiers
-            }
-            
-            scheduleFiring(shooter, target, currentTick + fireDelay, eventQueue, ownerId, gameCallbacks);
-        }
+        // Delegate to AttackSequenceManager following DevCycle 31 Option 4 refactoring pattern
+        AttackSequenceManager.getInstance().scheduleAttackFromCurrentState(this, shooter, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
     /**
@@ -1579,6 +1474,11 @@ public class Character implements ICharacter {
      * @param gameCallbacks Game callbacks for attack scheduling
      */
     public void updateReactionMonitoring(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
+        // Delegate to ReactionManager following DevCycle 31 Option 4 refactoring pattern
+        ReactionManager.getInstance().updateReactionMonitoring(this, selfUnit, currentTick, eventQueue, gameCallbacks);
+    }
+    
+    private void originalUpdateReactionMonitoring(IUnit selfUnit, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, GameCallbacks gameCallbacks) {
         // Skip if no reaction target set
         if (reactionTarget == null || reactionBaselineState == null) {
             return;
@@ -1644,7 +1544,7 @@ public class Character implements ICharacter {
      * @param currentTick The current game tick
      * @return true if should fire immediately, false if normal progression delays should apply
      */
-    boolean isAlreadyInCorrectFiringState(String currentState, long currentTick) {
+    public boolean isAlreadyInCorrectFiringState(String currentState, long currentTick) {
         // Criteria for immediate firing:
         // 1. Character is in "aiming" state AND firing preference is aiming
         // 2. Character is in "pointedfromhip" state AND firing preference is pointedfromhip  
@@ -1672,46 +1572,17 @@ public class Character implements ICharacter {
      * Schedule melee attack from current weapon state
      * DevCycle 31: Delegate to CombatCoordinator to reduce Character.java size
      */
-    private void scheduleMeleeAttackFromCurrentState(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void scheduleMeleeAttackFromCurrentState(IUnit attacker, IUnit target, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // DevCycle 31: Delegate to CombatCoordinator for melee attack sequence management
         CombatCoordinator.getInstance().startMeleeAttackSequenceInternal(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
     }
     
-    private void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit shooter, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        // Create WeaponState objects for transition calculation
-        WeaponState fromState = currentWeaponState;
-        WeaponState toState = weapon.getStateByName(newStateName);
-        
-        // Delegate transition duration calculation to WeaponStateManager
-        long calculatedDuration = WeaponStateManager.getInstance().calculateTransitionDuration(this, fromState, toState);
-        
-        // If WeaponStateManager provided a duration, use it; otherwise fall back to original logic
-        if (calculatedDuration > 0) {
-            transitionTickLength = calculatedDuration;
-        } else {
-            // Apply speed multiplier only to weapon preparation states (fallback)
-            if (isWeaponPreparationState(newStateName)) {
-                double speedMultiplier = calculateWeaponReadySpeedMultiplier();
-                transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
-            }
-        }
-        
-        long transitionTick = currentTick + transitionTickLength;
-        eventQueue.add(new ScheduledEvent(transitionTick, () -> {
-            currentWeaponState = weapon.getStateByName(newStateName);
-            
-            // DevCycle 27: Start timing when entering aiming or pointing states
-            if ("aiming".equals(newStateName)) {
-                startAimingTiming(transitionTick);
-            } else if ("pointedfromhip".equals(newStateName)) {
-                startPointingFromHipTiming(transitionTick);
-            }
-            
-            scheduleAttackFromCurrentState(shooter, target, transitionTick, eventQueue, ownerId, gameCallbacks);
-        }, ownerId));
+    public void scheduleStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit shooter, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        // Delegate to WeaponStateTransitionManager following DevCycle 31 Option 4 refactoring pattern
+        WeaponStateTransitionManager.getInstance().scheduleStateTransition(this, newStateName, currentTick, transitionTickLength, shooter, target, eventQueue, ownerId, gameCallbacks);
     }
     
-    private void scheduleFiring(IUnit shooter, IUnit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+    public void scheduleFiring(IUnit shooter, IUnit target, long fireTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
         // DevCycle 31: Delegate to CombatCoordinator for firing sequence management
         CombatCoordinator.getInstance().scheduleFiringInternal(shooter, target, fireTick, eventQueue, ownerId, gameCallbacks);
     }
@@ -1783,34 +1654,9 @@ public class Character implements ICharacter {
     }
     
     
-    private void scheduleReadyStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
-        // Apply speed multiplier only to weapon preparation states
-        if (isWeaponPreparationState(newStateName)) {
-            double speedMultiplier = calculateWeaponReadySpeedMultiplier();
-            transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
-        }
-        
-        long transitionTick = currentTick + transitionTickLength;
-        
-        eventQueue.add(new ScheduledEvent(transitionTick, () -> {
-            // Get the appropriate weapon for state lookup
-            Weapon activeWeapon = isMeleeCombatMode ? meleeWeapon : weapon;
-            String previousState = currentWeaponState != null ? currentWeaponState.getState() : "None";
-            currentWeaponState = activeWeapon.getStateByName(newStateName);
-            
-            // DevCycle 27: Start timing when entering aiming or pointing states during ready sequence
-            if ("aiming".equals(newStateName)) {
-                startAimingTiming(transitionTick);
-            } else if ("pointedfromhip".equals(newStateName)) {
-                startPointingFromHipTiming(transitionTick);
-            }
-            
-            // Output weapon state change (like the old system)
-            System.out.println("*** " + getDisplayName() + " weapon state: " + previousState + " -> " + newStateName + " ***");
-            
-            // Continue the ready sequence recursively
-            scheduleReadyFromCurrentState(unit, transitionTick, eventQueue, ownerId);
-        }, ownerId));
+    public void scheduleReadyStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit unit, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId) {
+        // Delegate to WeaponStateTransitionManager following DevCycle 31 Option 4 refactoring pattern
+        WeaponStateTransitionManager.getInstance().scheduleReadyStateTransition(this, newStateName, currentTick, transitionTickLength, unit, eventQueue, ownerId);
     }
     
     public boolean isWeaponPreparationState(String stateName) {
@@ -1836,122 +1682,24 @@ public class Character implements ICharacter {
      * Schedule melee state transition
      */
     public void scheduleMeleeStateTransition(String newStateName, long currentTick, long transitionTickLength, IUnit attacker, IUnit target, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        
-        // Apply speed multiplier to weapon preparation states
-        if (isWeaponPreparationState(newStateName)) {
-            double speedMultiplier = calculateWeaponReadySpeedMultiplier();
-            transitionTickLength = Math.round(transitionTickLength * speedMultiplier);
-        }
-        
-        Weapon activeWeapon = getActiveWeapon();
-        
-        WeaponState newState = activeWeapon != null ? activeWeapon.getStateByName(newStateName) : null;
-        
-        if (newState != null) {
-            // Create final copies for lambda
-            final String finalStateName = newStateName;
-            final long finalTick = currentTick + transitionTickLength;
-            
-            eventQueue.add(new ScheduledEvent(finalTick, () -> {
-                currentWeaponState = newState;
-                
-                // Continue the attack sequence
-                scheduleMeleeAttackFromCurrentState(attacker, target, finalTick, eventQueue, ownerId, gameCallbacks);
-            }, ownerId));
-            
-        } else {
-            // Fallback: skip to melee_ready state immediately
-            WeaponState readyState = activeWeapon != null ? activeWeapon.getStateByName("melee_ready") : null;
-            if (readyState != null) {
-                currentWeaponState = readyState;
-                scheduleMeleeAttackFromCurrentState(attacker, target, currentTick, eventQueue, ownerId, gameCallbacks);
-            } else {
-            }
-        }
+        // Delegate to MeleeCombatSequenceManager following DevCycle 31 Option 4 refactoring pattern
+        MeleeCombatSequenceManager.getInstance().scheduleMeleeStateTransition(this, newStateName, currentTick, transitionTickLength, attacker, target, eventQueue, ownerId, gameCallbacks);
     }
     
     /**
      * Schedule range check for melee attack - continues tracking target until in range
      */
-    private void scheduleRangeCheckForMeleeAttack(IUnit attacker, IUnit target, long checkTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        eventQueue.add(new ScheduledEvent(checkTick, () -> {
-            // Update movement target to track target's current position
-            attacker.setTarget(target.getX(), target.getY());
-            
-            // Calculate current distance for debug
-            double distance = Math.hypot(target.getX() - attacker.getX(), target.getY() - attacker.getY());
-            double distanceFeet = distance / 7.0;
-            double weaponReach = meleeWeapon.getTotalReach();
-            
-            // Check if now in range
-            if (isInMeleeRange(attacker, target, meleeWeapon)) {
-                // Now in range - proceed with attack
-                
-                // Calculate facing direction to target
-                double dx = target.getX() - attacker.getX();
-                double dy = target.getY() - attacker.getY();
-                double angleRadians = Math.atan2(dx, -dy);
-                double angleDegrees = Math.toDegrees(angleRadians);
-                if (angleDegrees < 0) angleDegrees += 360;
-                lastTargetFacing = angleDegrees;
-                
-                // Schedule melee attack from current state
-                scheduleMeleeAttackFromCurrentState(attacker, target, checkTick, eventQueue, ownerId, gameCallbacks);
-            } else {
-                // Still not in range - schedule another check
-                scheduleRangeCheckForMeleeAttack(attacker, target, checkTick + 10, eventQueue, ownerId, gameCallbacks);
-            }
-        }, ownerId));
+    public void scheduleRangeCheckForMeleeAttack(IUnit attacker, IUnit target, long checkTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        // Delegate to MeleeCombatSequenceManager following DevCycle 31 Option 4 refactoring pattern
+        MeleeCombatSequenceManager.getInstance().scheduleRangeCheckForMeleeAttack(this, attacker, target, checkTick, eventQueue, ownerId, gameCallbacks);
     }
 
     /**
      * Schedule actual melee attack execution
      */
     public void scheduleMeleeAttack(IUnit attacker, IUnit target, long attackTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
-        
-        eventQueue.add(new ScheduledEvent(attackTick, () -> {
-            
-            // Validate target is still valid
-            if (target.getCharacter().isIncapacitated()) {
-                return;
-            }
-            
-            if (isIncapacitated()) {
-                return;
-            }
-            
-            // Update weapon state to attacking
-            WeaponState attackingState = getActiveWeapon().getStateByName("melee_attacking");
-            if (attackingState != null) {
-                currentWeaponState = attackingState;
-            } else {
-            }
-            
-            
-            // Play melee weapon sound effect (DevCycle 12)
-            gameCallbacks.playWeaponSound(meleeWeapon);
-            
-            // Schedule immediate impact (no travel time for melee)
-            gameCallbacks.scheduleMeleeImpact((Unit)attacker, (Unit)target, meleeWeapon, attackTick);
-            
-            // Schedule recovery back to ready state
-            long recoveryTime = Math.round(meleeWeapon.getStateBasedAttackCooldown() * calculateAttackSpeedMultiplier());
-            
-            WeaponState readyState = getActiveWeapon().getStateByName("melee_ready");
-            if (readyState != null) {
-                eventQueue.add(new ScheduledEvent(attackTick + recoveryTime, () -> {
-                    currentWeaponState = readyState;
-                    isAttacking = false; // Clear attacking flag to allow auto-targeting to continue
-                    
-                    // Additional debug: check if auto-targeting should continue
-                    if (usesAutomaticTargeting) {
-                    }
-                    
-                    // Call checkContinuousAttack to trigger auto-targeting re-evaluation (similar to ranged weapon recovery)
-                    checkContinuousAttack(attacker, attackTick + recoveryTime, eventQueue, ownerId, gameCallbacks);
-                }, ownerId));
-            }
-        }, ownerId));
+        // Delegate to MeleeCombatSequenceManager following DevCycle 31 Option 4 refactoring pattern
+        MeleeCombatSequenceManager.getInstance().scheduleMeleeAttack(this, attacker, target, attackTick, eventQueue, ownerId, gameCallbacks);
     }
     
     /**
@@ -2124,7 +1872,7 @@ public class Character implements ICharacter {
     /**
      * Check if target is within melee range of attacker using edge-to-edge distance
      */
-    private boolean isInMeleeRange(IUnit attacker, IUnit target, MeleeWeapon weapon) {
+    public boolean isInMeleeRange(IUnit attacker, IUnit target, MeleeWeapon weapon) {
         double centerToCenter = Math.hypot(target.getX() - attacker.getX(), target.getY() - attacker.getY());
         // Convert to edge-to-edge by subtracting target radius (1.5 feet = 10.5 pixels)
         double edgeToEdge = centerToCenter - (1.5 * 7.0);
