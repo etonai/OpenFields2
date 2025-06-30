@@ -358,7 +358,9 @@ public class CombatResolver {
      * Resolve melee combat attack between attacker and target
      */
     public void resolveMeleeAttack(Unit attacker, Unit target, MeleeWeapon weapon, long attackTick) {
-        if (debugMode) {
+        // DevCycle 33: System 11 - Use DebugConfig for consistent debug control with ranged combat
+        boolean combatDebugEnabled = config.DebugConfig.getInstance().isCombatDebugEnabled();
+        if (combatDebugEnabled) {
             System.out.println(">>> Resolving melee attack: " + attacker.character.getDisplayName() + " attacks " + target.character.getDisplayName() + " with " + weapon.getName());
         }
         
@@ -366,7 +368,7 @@ public class CombatResolver {
         if (!config.DebugConfig.getInstance().isRecoveryBlockingDisabled()) {
             // Bug #1 Fix: Check if attacker can perform melee attack (not in recovery)
             if (!attacker.character.canMeleeAttack(attackTick)) {
-                if (debugMode) {
+                if (combatDebugEnabled) {
                     System.out.println(">>> ATTACK BLOCKED: " + attacker.character.getDisplayName() + " is still in recovery from previous attack (recovery ends at tick " + attacker.character.meleeRecoveryEndTick + ")");
                 }
                 return; // Block the attack - attacker is still in recovery
@@ -388,7 +390,7 @@ public class CombatResolver {
             
             if (defenseSuccessful) {
                 target.character.defensiveSuccesses++; // Track successful defense
-                if (debugMode) {
+                if (combatDebugEnabled) {
                     System.out.println(">>> " + target.character.getDisplayName() + " successfully defends against the attack!");
                 }
                 
@@ -425,7 +427,7 @@ public class CombatResolver {
         boolean hits = calculateMeleeHit(attacker, target, weapon);
         
         if (hits) {
-            if (debugMode) {
+            if (combatDebugEnabled) {
                 System.out.println("=== MELEE DAMAGE CALCULATION DEBUG ===");
             }
             
@@ -445,7 +447,7 @@ public class CombatResolver {
             int strengthBonus = GameConstants.getStrengthDamageBonus(attacker.character.strength);
             int actualDamage = Math.max(1, scaledDamage + strengthBonus);
             
-            if (debugMode) {
+            if (combatDebugEnabled) {
                 System.out.println("Base Weapon Damage: " + weaponDamage);
                 System.out.println("Hit Location: " + hitLocation.name().toLowerCase());
                 System.out.println("Wound Severity: " + woundSeverity.name().toLowerCase());
@@ -460,12 +462,12 @@ public class CombatResolver {
             // Apply damage and wound
             resolveCombatImpact(attacker, target, weapon, attackTick, hitResult);
             
-            if (debugMode) {
+            if (combatDebugEnabled) {
                 System.out.println(">>> Melee hit! " + weapon.getName() + " deals " + actualDamage + " damage to " + hitLocation.name().toLowerCase());
                 System.out.println("========================================");
             }
         } else {
-            if (debugMode) {
+            if (combatDebugEnabled) {
                 System.out.println(">>> Melee attack missed!");
             }
         }
@@ -528,7 +530,9 @@ public class CombatResolver {
      * Calculate if melee attack hits based on attacker skill and target defense
      */
     private boolean calculateMeleeHit(Unit attacker, Unit target, MeleeWeapon weapon) {
-        if (debugMode) {
+        // DevCycle 33: System 11 - Use DebugConfig for consistent debug control with ranged combat
+        boolean combatDebugEnabled = config.DebugConfig.getInstance().isCombatDebugEnabled();
+        if (combatDebugEnabled) {
             System.out.println("=== MELEE HIT CALCULATION DEBUG ===");
             System.out.println("Attacker: " + attacker.character.getDisplayName() + " -> Target: " + target.character.getDisplayName());
             System.out.println("Weapon: " + weapon.getName() + " (accuracy: " + weapon.getWeaponAccuracy() + ")");
@@ -556,7 +560,7 @@ public class CombatResolver {
         // Base hit chance (60%) + modifiers
         int hitChance = 60 + attackModifier - targetDefense;
         
-        if (debugMode) {
+        if (combatDebugEnabled) {
             System.out.println("Attacker Dexterity: " + attacker.character.dexterity + " (modifier: " + attackerDexterity + ")");
             System.out.println("Weapon Accuracy: " + weaponAccuracy);
             System.out.println("Skill Bonus: " + skillBonus + " " + getMeleeSkillDebugInfo(attacker, weapon));
@@ -574,7 +578,7 @@ public class CombatResolver {
         int roll = (int)(Math.random() * 100) + 1;
         boolean hits = roll <= hitChance;
         
-        if (debugMode) {
+        if (combatDebugEnabled) {
             System.out.println("Final Hit Chance: " + hitChance + "% (clamped 5-95%)");
             System.out.println("[MELEE-COMBAT] Random roll: " + roll + " (need <= " + hitChance + ")");
             System.out.println("[MELEE-COMBAT] Result: " + (hits ? "HIT!" : "MISS"));

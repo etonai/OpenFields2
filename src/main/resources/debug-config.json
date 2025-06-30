@@ -24,8 +24,8 @@
       "description": "Enable/disable event queue debug messages (very verbose)"
     },
     "blocking": {
-      "disableDefensiveBlocking": false,
-      "disableRecoveryBlocking": false,
+      "disableDefensiveBlocking": true,
+      "disableRecoveryBlocking": true,
       "description": "Control blocking systems for combat development testing"
     }
   }
