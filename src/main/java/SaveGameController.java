@@ -110,7 +110,7 @@ public class SaveGameController {
     public void promptForLoadSlot() {
         inputManager.setWaitingForLoadSlot(true);
         System.out.println("*** LOAD GAME ***");
-        List<SaveGameManager.SaveSlotInfo> availableSlots = saveGameManager.listAvailableSlots();
+        List<SaveGameManager.SaveSlotInfo> availableSlots = saveGameManager.listAvailableSlotsWithTests();
         
         if (availableSlots.isEmpty()) {
             System.out.println("No save files found.");
@@ -119,11 +119,36 @@ public class SaveGameController {
         
         System.out.println("Available saves:");
         for (SaveGameManager.SaveSlotInfo slot : availableSlots) {
-            System.out.println(slot.slot + ". slot_" + slot.slot + ".json (" + 
-                             slot.getFormattedTimestamp() + ") - " + 
-                             slot.themeId + ", tick " + slot.currentTick);
+            if (slot instanceof SaveGameManager.TestSaveSlotInfo) {
+                SaveGameManager.TestSaveSlotInfo testSlot = (SaveGameManager.TestSaveSlotInfo) slot;
+                System.out.println(testSlot.testSlot + ". " + testSlot.getSlotName() + ".json (" + 
+                                 testSlot.getFormattedTimestamp() + ") - " + 
+                                 testSlot.themeId + ", tick " + testSlot.currentTick);
+            } else {
+                System.out.println(slot.slot + ". slot_" + slot.slot + ".json (" + 
+                                 slot.getFormattedTimestamp() + ") - " + 
+                                 slot.themeId + ", tick " + slot.currentTick);
+            }
         }
-        System.out.println("Enter slot number (1-9) or 0 to cancel: ");
+        
+        String promptText = "Enter slot number (1-9)";
+        if (isDebugModeActive()) {
+            promptText += " or test slot (a-z)";
+        }
+        promptText += " or 0 to cancel: ";
+        System.out.println(promptText);
+    }
+    
+    private boolean isDebugModeActive() {
+        try {
+            // Use reflection to access GameRenderer's debug mode since it's in default package
+            Class<?> gameRendererClass = Class.forName("GameRenderer");
+            java.lang.reflect.Method isDebugMode = gameRendererClass.getMethod("isDebugMode");
+            return (Boolean) isDebugMode.invoke(null);
+        } catch (Exception e) {
+            // If we can't access debug mode, default to false
+            return false;
+        }
     }
     
     /**
@@ -174,6 +199,29 @@ public class SaveGameController {
             }
         } catch (Exception e) {
             System.err.println("Error during load: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            inputManager.setWaitingForLoadSlot(false);
+        }
+    }
+    
+    /**
+     * Load game from the specified test slot
+     * 
+     * @param testSlot Test slot character (a-z)
+     */
+    public void loadGameFromTestSlot(char testSlot) {
+        try {
+            SaveData saveData = saveGameManager.loadFromTestSlot(testSlot);
+            if (saveData != null) {
+                applySaveData(saveData);
+                System.out.println("*** Game loaded successfully from test slot " + testSlot + " ***");
+                System.out.println("*** Loaded at tick " + gameClock.getCurrentTick() + " ***");
+            } else {
+                System.out.println("*** Failed to load game from test slot " + testSlot + " ***");
+            }
+        } catch (Exception e) {
+            System.err.println("Error during test load: " + e.getMessage());
             e.printStackTrace();
         } finally {
             inputManager.setWaitingForLoadSlot(false);

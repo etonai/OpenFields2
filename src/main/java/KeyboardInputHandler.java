@@ -606,6 +606,14 @@ public class KeyboardInputHandler {
             else if (e.getCode() == KeyCode.ESCAPE) {
                 handleWorkflowCancellation();
             }
+            // For load slot selection in debug mode, handle test slot keys (a-z) only if no modifiers
+            else if (stateTracker.isWaitingForLoadSlot() && isDebugModeActive() && isLetterKey(e) && !e.isControlDown() && !e.isShiftDown() && !e.isAltDown()) {
+                char testSlot = extractTestSlotFromKeyEvent(e);
+                if (testSlot >= 'a' && testSlot <= 'z') {
+                    handleTestSlotInput(testSlot);
+                }
+                return; // Early return to avoid processing as numeric input
+            }
             
             if (slotNumber >= 0 && slotNumber <= 10) {
                 handleWorkflowNumericInput(slotNumber);
@@ -907,5 +915,77 @@ public class KeyboardInputHandler {
         // This should delegate to the appropriate system
         // For now, just reset the state
         stateTracker.setWaitingForDirectCharacterAddition(false);
+    }
+    
+    /**
+     * Check if debug mode is currently active.
+     * 
+     * @return true if debug mode is enabled, false otherwise
+     */
+    private boolean isDebugModeActive() {
+        return GameRenderer.isDebugMode();
+    }
+    
+    /**
+     * Check if the given KeyEvent represents a letter key (A-Z).
+     * 
+     * @param e The KeyEvent to check
+     * @return true if it's a letter key, false otherwise
+     */
+    private boolean isLetterKey(KeyEvent e) {
+        return e.getCode() == KeyCode.A || e.getCode() == KeyCode.B || e.getCode() == KeyCode.C ||
+               e.getCode() == KeyCode.D || e.getCode() == KeyCode.E || e.getCode() == KeyCode.F ||
+               e.getCode() == KeyCode.G || e.getCode() == KeyCode.H || e.getCode() == KeyCode.I ||
+               e.getCode() == KeyCode.J || e.getCode() == KeyCode.K || e.getCode() == KeyCode.L ||
+               e.getCode() == KeyCode.M || e.getCode() == KeyCode.N || e.getCode() == KeyCode.O ||
+               e.getCode() == KeyCode.P || e.getCode() == KeyCode.Q || e.getCode() == KeyCode.R ||
+               e.getCode() == KeyCode.S || e.getCode() == KeyCode.T || e.getCode() == KeyCode.U ||
+               e.getCode() == KeyCode.V || e.getCode() == KeyCode.W || e.getCode() == KeyCode.X ||
+               e.getCode() == KeyCode.Y || e.getCode() == KeyCode.Z;
+    }
+    
+    /**
+     * Extract test slot character from KeyEvent.
+     * 
+     * @param e KeyEvent to extract test slot from
+     * @return test slot character (a-z) or '?' if not a valid test slot key
+     */
+    private char extractTestSlotFromKeyEvent(KeyEvent e) {
+        if (e.getCode() == KeyCode.A) return 'a';
+        else if (e.getCode() == KeyCode.B) return 'b';
+        else if (e.getCode() == KeyCode.C) return 'c';
+        else if (e.getCode() == KeyCode.D) return 'd';
+        else if (e.getCode() == KeyCode.E) return 'e';
+        else if (e.getCode() == KeyCode.F) return 'f';
+        else if (e.getCode() == KeyCode.G) return 'g';
+        else if (e.getCode() == KeyCode.H) return 'h';
+        else if (e.getCode() == KeyCode.I) return 'i';
+        else if (e.getCode() == KeyCode.J) return 'j';
+        else if (e.getCode() == KeyCode.K) return 'k';
+        else if (e.getCode() == KeyCode.L) return 'l';
+        else if (e.getCode() == KeyCode.M) return 'm';
+        else if (e.getCode() == KeyCode.N) return 'n';
+        else if (e.getCode() == KeyCode.O) return 'o';
+        else if (e.getCode() == KeyCode.P) return 'p';
+        else if (e.getCode() == KeyCode.Q) return 'q';
+        else if (e.getCode() == KeyCode.R) return 'r';
+        else if (e.getCode() == KeyCode.S) return 's';
+        else if (e.getCode() == KeyCode.T) return 't';
+        else if (e.getCode() == KeyCode.U) return 'u';
+        else if (e.getCode() == KeyCode.V) return 'v';
+        else if (e.getCode() == KeyCode.W) return 'w';
+        else if (e.getCode() == KeyCode.X) return 'x';
+        else if (e.getCode() == KeyCode.Y) return 'y';
+        else if (e.getCode() == KeyCode.Z) return 'z';
+        else return '?';
+    }
+    
+    /**
+     * Handle test slot input for load game functionality.
+     * 
+     * @param testSlot The test slot character (a-z)
+     */
+    private void handleTestSlotInput(char testSlot) {
+        gameStateManager.handleTestSlotLoadInput(testSlot);
     }
 }

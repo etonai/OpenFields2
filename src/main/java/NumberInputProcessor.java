@@ -224,6 +224,17 @@ public class NumberInputProcessor {
             if (selectionNumber >= 1 && selectionNumber <= 10) {
                 processNumericInput(selectionNumber);
             }
+        } else if (stateTracker.isWaitingForLoadSlot() && isDebugModeActive()) {
+            // For load slot in debug mode, support both numbers (1-9) and letters (a-z)
+            int slotNumber = extractDigitFromKeyEvent(e);
+            if (slotNumber >= 0 && slotNumber <= 9) {
+                processNumericInput(slotNumber);
+            } else {
+                char testSlot = extractTestSlotFromKeyEvent(e);
+                if (testSlot >= 'a' && testSlot <= 'z') {
+                    processTestSlotInput(testSlot);
+                }
+            }
         } else {
             // For non-weapon workflows, use standard digit input
             int slotNumber = extractDigitFromKeyEvent(e);
@@ -507,5 +518,67 @@ public class NumberInputProcessor {
     private void handleDirectCharacterAddition(int slotNumber) {
         // DevCycle 15d: Delegate to EditModeManager
         editModeManager.handleDirectCharacterAdditionInput(slotNumber);
+    }
+    
+    /**
+     * Extract test slot character from KeyEvent.
+     * 
+     * @param e KeyEvent to extract test slot from
+     * @return test slot character (a-z) or '?' if not a valid test slot key
+     */
+    private char extractTestSlotFromKeyEvent(KeyEvent e) {
+        if (e.getCode() == KeyCode.A) return 'a';
+        else if (e.getCode() == KeyCode.B) return 'b';
+        else if (e.getCode() == KeyCode.C) return 'c';
+        else if (e.getCode() == KeyCode.D) return 'd';
+        else if (e.getCode() == KeyCode.E) return 'e';
+        else if (e.getCode() == KeyCode.F) return 'f';
+        else if (e.getCode() == KeyCode.G) return 'g';
+        else if (e.getCode() == KeyCode.H) return 'h';
+        else if (e.getCode() == KeyCode.I) return 'i';
+        else if (e.getCode() == KeyCode.J) return 'j';
+        else if (e.getCode() == KeyCode.K) return 'k';
+        else if (e.getCode() == KeyCode.L) return 'l';
+        else if (e.getCode() == KeyCode.M) return 'm';
+        else if (e.getCode() == KeyCode.N) return 'n';
+        else if (e.getCode() == KeyCode.O) return 'o';
+        else if (e.getCode() == KeyCode.P) return 'p';
+        else if (e.getCode() == KeyCode.Q) return 'q';
+        else if (e.getCode() == KeyCode.R) return 'r';
+        else if (e.getCode() == KeyCode.S) return 's';
+        else if (e.getCode() == KeyCode.T) return 't';
+        else if (e.getCode() == KeyCode.U) return 'u';
+        else if (e.getCode() == KeyCode.V) return 'v';
+        else if (e.getCode() == KeyCode.W) return 'w';
+        else if (e.getCode() == KeyCode.X) return 'x';
+        else if (e.getCode() == KeyCode.Y) return 'y';
+        else if (e.getCode() == KeyCode.Z) return 'z';
+        else return '?';
+    }
+    
+    /**
+     * Process test slot input for load game functionality.
+     * 
+     * @param testSlot The test slot character (a-z)
+     */
+    private void processTestSlotInput(char testSlot) {
+        gameStateManager.handleTestSlotLoadInput(testSlot);
+    }
+    
+    /**
+     * Check if debug mode is currently active.
+     * 
+     * @return true if debug mode is enabled, false otherwise
+     */
+    private boolean isDebugModeActive() {
+        try {
+            // Use reflection to access GameRenderer's debug mode since it's in default package
+            Class<?> gameRendererClass = Class.forName("GameRenderer");
+            java.lang.reflect.Method isDebugMode = gameRendererClass.getMethod("isDebugMode");
+            return (Boolean) isDebugMode.invoke(null);
+        } catch (Exception e) {
+            // If we can't access debug mode, default to false
+            return false;
+        }
     }
 }

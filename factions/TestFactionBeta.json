@@ -1,0 +1,65 @@
+{
+  "faction": {
+    "id": -2,
+    "name": "TestFactionBeta",
+    "allies": [],
+    "enemies": [],
+    "color": "#00FF00",
+    "description": "Test faction for automated testing - Beta",
+    "victories": 0,
+    "defeats": 0,
+    "participations": 0
+  },
+  "characters": [
+    {
+      "id": -2001,
+      "nickname": "TargetDummy",
+      "firstName": "Target",
+      "lastName": "Dummy",
+      "birthdate": "January 1, 2025",
+      "themeId": null,
+      "dexterity": 50,
+      "currentDexterity": 50,
+      "health": 100,
+      "currentHealth": 100,
+      "coolness": 50,
+      "strength": 50,
+      "reflexes": 50,
+      "handedness": "RIGHT_HANDED",
+      "baseMovementSpeed": 42.0,
+      "currentMovementType": "WALK",
+      "currentAimingSpeed": "NORMAL",
+      "weaponId": null,
+      "currentWeaponState": null,
+      "skills": [
+        {
+          "skillName": "skl_pistol",
+          "level": 50
+        },
+        {
+          "skillName": "skl_rifle",
+          "level": 50
+        }
+      ],
+      "wounds": [],
+      "usesAutomaticTargeting": false,
+      "preferredFiringMode": "SINGLE_SHOT",
+      "faction": -2,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
+      "headshotsAttempted": 0,
+      "headshotsSuccessful": 0,
+      "headshotsKills": 0,
+      "battlesParticipated": 0,
+      "victories": 0,
+      "defeats": 0
+    }
+  ]
+}

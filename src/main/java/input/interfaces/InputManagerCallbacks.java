@@ -29,6 +29,9 @@ public interface InputManagerCallbacks {
     /** Initiate load operation from specified slot number (1-9) */
     void loadGameFromSlot(int slot);
     
+    /** Initiate load operation from specified test slot character (a-z) */
+    void loadGameFromTestSlot(char testSlot);
+    
     /** Display save slot selection prompt to user */
     void promptForSaveSlot();
     

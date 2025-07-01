@@ -3,10 +3,15 @@ package data;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import combat.Character;
+import combat.Skill;
+import combat.BodyPart;
+import combat.WoundSeverity;
+import combat.Wound;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.File;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +31,7 @@ public class UniversalCharacterRegistry {
         this.nextCharacterId = new AtomicInteger(1000); // Start from 1000 to avoid conflicts
         this.registryFilePath = "characters.json";
         loadRegistry();
+        loadTestFactionCharacters();
     }
     
     public static UniversalCharacterRegistry getInstance() {
@@ -301,6 +307,105 @@ public class UniversalCharacterRegistry {
         }
         
         return character;
+    }
+    
+    /**
+     * Convert CharacterData to Character object.
+     * Similar to SaveGameController.deserializeCharacter but for faction character loading.
+     * 
+     * @param data CharacterData from faction file
+     * @return Character object
+     */
+    private Character convertCharacterDataToCharacter(CharacterData data) {
+        // Handle null values
+        String nickname = data.nickname != null ? data.nickname : "";
+        String firstName = data.firstName != null ? data.firstName : "";
+        String lastName = data.lastName != null ? data.lastName : "";
+        Date birthdate = data.birthdate != null ? data.birthdate : new Date(0);
+        
+        Character character = new Character(
+            data.id, nickname, firstName, lastName, birthdate, data.themeId, data.dexterity, data.health,
+            data.coolness, data.strength, data.reflexes, data.handedness
+        );
+        
+        character.currentDexterity = data.currentDexterity;
+        character.currentHealth = data.currentHealth;
+        character.baseMovementSpeed = data.baseMovementSpeed;
+        character.currentMovementType = data.currentMovementType;
+        character.currentAimingSpeed = data.currentAimingSpeed;
+        
+        // Restore faction
+        character.faction = data.faction;
+        
+        // Restore skills
+        character.skills.clear();
+        if (data.skills != null) {
+            for (CharacterData.SkillData skillData : data.skills) {
+                character.addSkill(new Skill(skillData.skillName, skillData.level));
+            }
+        }
+        
+        // Restore wounds
+        character.wounds.clear();
+        if (data.wounds != null) {
+            for (CharacterData.WoundData woundData : data.wounds) {
+                try {
+                    BodyPart bodyPart = BodyPart.valueOf(woundData.bodyPart);
+                    WoundSeverity severity = WoundSeverity.valueOf(woundData.severity);
+                    int damage = (woundData.damage > 0) ? woundData.damage : 1;
+                    character.addWound(new Wound(bodyPart, severity, "Saved wound", "", damage));
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Warning: Invalid wound data: " + woundData.bodyPart + "/" + woundData.severity);
+                }
+            }
+        }
+        
+        return character;
+    }
+    
+    /**
+     * Load test faction characters into the registry for automated testing.
+     * This loads characters from TestFactionAlpha.json and TestFactionBeta.json
+     * when they exist, allowing test saves to reference these characters.
+     */
+    private void loadTestFactionCharacters() {
+        try {
+            // Load TestFactionAlpha characters
+            loadTestFactionFile("factions/TestFactionAlpha.json");
+            // Load TestFactionBeta characters  
+            loadTestFactionFile("factions/TestFactionBeta.json");
+        } catch (Exception e) {
+            // Silently fail - test factions are optional
+            System.out.println("*** Test factions not found, skipping test character loading");
+        }
+    }
+    
+    /**
+     * Load characters from a specific test faction file.
+     * 
+     * @param filePath Path to the faction JSON file
+     */
+    private void loadTestFactionFile(String filePath) {
+        try {
+            File factionFile = new File(filePath);
+            if (!factionFile.exists()) {
+                return; // Test faction file doesn't exist, skip silently
+            }
+            
+            JsonNode rootNode = objectMapper.readTree(factionFile);
+            JsonNode charactersNode = rootNode.get("characters");
+            
+            if (charactersNode != null && charactersNode.isArray()) {
+                for (JsonNode characterNode : charactersNode) {
+                    CharacterData charData = objectMapper.treeToValue(characterNode, CharacterData.class);
+                    Character character = convertCharacterDataToCharacter(charData);
+                    characters.put(character.id, character);
+                    System.out.println("*** Loaded test character: " + character.getDisplayName() + " (ID: " + character.id + ")");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Warning: Could not load test faction file " + filePath + ": " + e.getMessage());
+        }
     }
     
     /**

@@ -969,6 +969,11 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     }
     
     @Override
+    public void loadGameFromTestSlot(char testSlot) {
+        saveGameController.loadGameFromTestSlot(testSlot);
+    }
+    
+    @Override
     public void createCharacterFromArchetype(int archetypeIndex) {
         editModeController.createCharacterFromArchetype(archetypeIndex);
         inputManager.setWaitingForCharacterCreation(false);

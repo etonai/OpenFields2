@@ -148,6 +148,17 @@ public class GameStateManager {
     }
     
     /**
+     * Handles test slot input for load game functionality.
+     * 
+     * @param testSlot The test slot character (a-z)
+     */
+    public void handleTestSlotLoadInput(char testSlot) {
+        if (stateTracker.isWaitingForLoadSlot()) {
+            callbacks.loadGameFromTestSlot(testSlot);
+        }
+    }
+    
+    /**
      * Handles save/load cancellation.
      */
     public void cancelSaveLoad() {
