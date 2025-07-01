@@ -843,8 +843,6 @@ public class Character implements ICharacter {
     
     @Override
     public List<Wound> getWounds() {
-        // DevCycle 30: Sync from manager to field for compatibility
-        this.wounds = CharacterStatsManager.getInstance().getWounds(this.id);
         return this.wounds;
     }
     
