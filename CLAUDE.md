@@ -239,7 +239,7 @@ mvn javafx:run                # Run the JavaFX application
   - **Q&A Process**: Use iterative question/answer cycles for planning clarity
   - **Review Gates**: All code changes must be reviewed via diff before commit
   - **Phase Structure**: Brainstorm → Plan → Implement → Debug → Close
-- **Document Naming**: `DevCycle_2025_00##_brainstorm.md`, `DevCycle_2025_00##.md`, `DevCycle_2025_00##_bugs_##.md`
+- **Document Naming**: `DevCycle_2025_####_brainstorm.md`, `DevCycle_2025_####.md`, `DevCycle_2025_####_bugs_##.md`
 - **Branch Pattern**: Work in `DC_##` branches, merge to main when complete
 
 ### DevCycle Closure Checklist (MANDATORY)

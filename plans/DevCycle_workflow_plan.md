@@ -19,7 +19,7 @@ Each development cycle follows a structured approach from initial brainstorming 
 ### **Phase 2: Brainstorming**
 
 **Document Creation:**
-- **File Name**: `DevCycle_2025_00##_brainstorm.md`
+- **File Name**: `DevCycle_2025_####_brainstorm.md` (Where ## is the dev cycle number, 0 padded to 4 digits)
 - **Purpose**: Explore and document potential systems for the dev cycle
 
 **Process:**
@@ -41,7 +41,7 @@ Each development cycle follows a structured approach from initial brainstorming 
 ### **Phase 3: Planning and Design**
 
 **Document Creation:**
-- **File Name**: `DevCycle_2025_00##.md`
+- **File Name**: `DevCycle_2025_####.md`
 - **Purpose**: Detailed planning and implementation document
 
 **Process:**
@@ -70,7 +70,7 @@ Each development cycle follows a structured approach from initial brainstorming 
 ### **Phase 5: Bug Fixing**
 
 **Document Creation:**
-- **File Name**: `DevCycle_2025_00##_bugs_01.md`
+- **File Name**: `DevCycle_2025_####_bugs_01.md`
 - **Purpose**: Document and plan bug fixes before cycle closure
 
 **Process:**
@@ -112,7 +112,7 @@ For DevCycles managed by Claude, follows automated closeout process:
    - Follow pattern from previous completed cycles
 
 4. **Move Document to Completed Folder**
-   - Move `plans/DevCycle_2025_00##.md` to `plans/completed/DevCycle_2025_00##.md`
+   - Move `plans/DevCycle_2025_####.md` to `plans/completed/DevCycle_2025_####.md`
    - Update any cross-references to new location
 
 5. **Update CLAUDE.md Documentation**
@@ -191,9 +191,9 @@ For manual management or complex scenarios, use automated scripts:
 ## **File Naming Conventions**
 
 ### **Active Development Documents**
-- **Brainstorm**: `DevCycle_2025_00##_brainstorm.md`
-- **Planning**: `DevCycle_2025_00##.md`
-- **Bug Fixes**: `DevCycle_2025_00##_bugs_##.md`
+- **Brainstorm**: `DevCycle_2025_####_brainstorm.md`
+- **Planning**: `DevCycle_2025_####.md`
+- **Bug Fixes**: `DevCycle_2025_####_bugs_##.md`
 
 ### **Future Planning Documents**
 - **Format**: `DevCycle_2025_future_###_brainstorm.md`
