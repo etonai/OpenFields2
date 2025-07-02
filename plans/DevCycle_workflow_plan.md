@@ -359,6 +359,121 @@ bash close_cycle.sh --help
 
 The script automates the error-prone manual merge process while maintaining safety and providing clear feedback throughout the closure workflow.
 
+## **CLAUDE.md Maintenance Procedures**
+
+### **Cycle Completion Updates**
+When closing out any development cycle, CLAUDE.md must be updated to maintain accurate development tracking information.
+
+**Required Updates During Cycle Closure:**
+1. **Update Last Completed Cycle**: Modify "Current Development Status" section
+   - Change "Last Completed Cycle" to reflect the cycle being closed
+   - Add completion date and brief achievement summary
+   - Update cycle completion dates list with new entry
+
+2. **Update Current Active Cycle**: Modify for next development cycle
+   - Update "Current Active Cycle" information if moving to new cycle
+   - Mark cycle as complete if no immediate follow-on cycle planned
+
+3. **Document Archival**: Ensure document location references remain accurate
+   - Verify completed cycle documents are properly moved to `plans/completed/`
+   - Update any specific document references if naming conventions change
+
+**Example CLAUDE.md Update Process:**
+```markdown
+# Before cycle closure:
+- **Last Completed Cycle**: DevCycle 36 - Headless Testing Architecture (Completed: July 2, 2025)
+- **Current Active Cycle**: DevCycle 37 - CLAUDE.md Enhancement (Started: July 2, 2025)
+
+# After DevCycle 37 closure:
+- **Last Completed Cycle**: DevCycle 37 - CLAUDE.md Enhancement (Completed: July 2, 2025)
+- **Current Active Cycle**: [Next cycle or "No active cycle"]
+```
+
+### **System Completion Procedures Within Cycles**
+
+For iterative cycles with multiple systems, specific procedures apply when completing individual systems before the entire cycle closes.
+
+**System Completion Steps:**
+1. **Mark System Complete**: Update cycle document to show system as ✅ **COMPLETE**
+2. **Document Implementation Summary**: Add brief summary of what was completed
+3. **Commit System Completion**: Create commit specifically for system completion
+   - Use format: `DC-NN: Complete System N - [Brief description]`
+   - Example: `DC-37: Complete System 1 - CLAUDE.md cycle tracking and workflow enhancements`
+
+4. **Update System Status**: If multiple systems in cycle, update cycle document status
+   - Mark completed systems with ✅ **COMPLETE**
+   - Keep cycle open for additional systems unless explicitly ordered to close
+
+**System Completion Commit Process:**
+```bash
+# Update cycle document with system completion
+git add plans/DevCycle_2025_NNNN.md
+
+# Commit implementation files and documentation
+git add [implementation files]
+git commit -m "DC-NN: Complete System N - [Description]
+
+- [Brief list of what was completed]
+- [Any key implementation details]
+- [Integration or testing notes]
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+### **Document Archiving Integration**
+
+**Plan Document Movement Process:**
+When closing a complete development cycle, all related documents must be moved to the completed directory.
+
+**Documents to Archive:**
+- Main cycle document: `DevCycle_YYYY_NNNN.md`
+- Brainstorm documents: `DevCycle_YYYY_NNNN_brainstorm.md`
+- Bug fix documents: `DevCycle_YYYY_NNNN_bugs_NN.md`
+- Any analysis documents created during the cycle
+
+**Archival Steps:**
+1. **Move Documents**: Transfer all cycle-related documents from `plans/` to `plans/completed/`
+2. **Update CLAUDE.md**: Ensure document location references reflect the archival
+3. **Verify Links**: Check that any cross-references to archived documents remain valid
+4. **Commit Archival**: Create specific commit for document archival
+
+**Archival Commit Format:**
+```bash
+git add plans/completed/
+git rm plans/DevCycle_YYYY_NNNN*
+git commit -m "DC-NN: Archive completed cycle documents
+
+- Move DevCycle_YYYY_NNNN.md to completed directory
+- Archive all related brainstorm and bug documents
+- Update CLAUDE.md with completion status
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+### **Workflow Integration Summary**
+
+**Enhanced Cycle Closure Checklist:**
+1. ✅ **Complete all planned systems**
+2. ✅ **Update cycle document with final status**
+3. ✅ **Update CLAUDE.md with cycle completion**
+4. ✅ **Archive plan documents to completed directory**
+5. ✅ **Commit CLAUDE.md and archival changes**
+6. ✅ **Switch to main branch**
+7. ✅ **Merge development branch**
+8. ✅ **Delete development branch**
+9. ✅ **Verify clean repository status**
+
+**System Completion Integration:**
+- **Individual Systems**: Complete systems with documentation updates and targeted commits
+- **Cycle Management**: Keep cycles open for additional systems until explicitly ordered to close
+- **Status Tracking**: Maintain clear visibility into which systems are complete vs. in progress
+
+This enhanced workflow ensures CLAUDE.md remains current and development cycle documentation follows consistent lifecycle management procedures.
+
 ## **Adaptation Notes**
 
 This workflow can be adapted as needed based on:

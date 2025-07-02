@@ -299,6 +299,105 @@ Claude MAY execute these git commands without permission (read-only operations):
 - `git ls-files`
 - Other read-only git inspection commands
 
+## Development Cycle Tracking
+
+### Current Development Status
+- **Last Completed Cycle**: DevCycle 36 - Headless Testing Architecture (Completed: July 2, 2025)
+  - Implemented complete JavaFX-independent combat simulation
+  - Enhanced performance with 1-15ms execution vs several seconds in UI tests
+  - Created comprehensive headless testing framework with 4/4 passing tests
+  - Delivered CI/CD-ready testing architecture without UI dependencies
+
+- **Current Active Cycle**: DevCycle 37 - CLAUDE.md Development Cycle Tracking Enhancement (Started: July 2, 2025)
+  - Status: System 1 in progress - Documentation and workflow enhancements
+  - Focus: Implementing cycle tracking and plan document location management
+
+### Development Cycle Numbering System
+- **Format**: DevCycle YYYY_NNNN (e.g., DevCycle 2025_0037)
+- **Numbering**: Sequential numbering starting from 0001, zero-padded to 4 digits
+- **Year Prefix**: Cycles are prefixed with the current year for organization
+- **Brainstorm Documents**: `DevCycle_YYYY_NNNN_brainstorm.md` for planning phases
+- **Bug Fix Documents**: `DevCycle_YYYY_NNNN_bugs_NN.md` for issue resolution during cycles
+
+### Cycle Completion Dates and Major Achievements
+- **DevCycle 36** (July 2, 2025): Headless Testing Architecture - Complete JavaFX decoupling for automated testing
+- **DevCycle 35** (June 2025): [Previous cycle details - to be populated from completed documents]
+- **DevCycle 34** (June 2025): [Previous cycle details - to be populated from completed documents]
+
+*Note: This tracking section should be updated whenever a development cycle is completed. The workflow document contains detailed procedures for maintaining this information.*
+
+## Planning Document Structure
+
+### Document Organization Overview
+The project uses a comprehensive documentation system organized in the `plans/` directory with specific subdirectories and naming conventions for different types of planning documents.
+
+### Document Location Reference
+
+#### Current/Active Plan Documents
+**Location**: `/mnt/c/dev/TTCombat/OF2Prototype01/plans/`
+
+**Active Development Cycles**:
+- `DevCycle_2025_0037.md` - Current iterative cycle for CLAUDE.md enhancements and workflow improvements
+
+**Future Planning Documents**:
+- `DevCycle_2025_future_005.md` - Future cycle planning for medium-term improvements
+- `DevCycle_2025_future_010.md` - Future cycle planning for long-term enhancements
+- `DevCycle_2025_test_001.md` - Test cycle template for experimental features
+
+**Planning Support Documents**:
+- `FuturePlans.md` - High-level future feature planning and roadmap
+- `FutureTasks.md` - Task backlog and improvement opportunities
+- `DevCycle_workflow_plan.md` - Development cycle process documentation and procedures
+
+#### Completed Plan Documents
+**Location**: `/mnt/c/dev/TTCombat/OF2Prototype01/plans/completed/`
+
+**Recently Completed Cycles** (most recent first):
+- `DevCycle_2025_0036.md` - Headless Testing Architecture (Complete)
+- `DevCycle_2025_0035.md` - [Previous cycle - details in completed document]
+- `DevCycle_2025_0034.md` - [Previous cycle - details in completed document]
+
+**Document Types in Completed Directory**:
+- **Main Cycle Documents**: `DevCycle_2025_NNNN.md` - Primary planning and implementation documentation
+- **Brainstorm Documents**: `DevCycle_2025_NNNN_brainstorm.md` - Initial planning and ideation phase documentation
+- **Bug Fix Documents**: `DevCycle_2025_NNNN_bugs_NN.md` - Issue resolution and debugging documentation
+- **Analysis Documents**: `javafx_decoupling_analysis.md`, `Technical_Debt_Analysis.md` - Technical analysis and research
+
+#### Plan Templates
+**Location**: `/mnt/c/dev/TTCombat/OF2Prototype01/plans/`
+
+**Available Templates**:
+- `DevCycle_template.md` - Standard development cycle template for comprehensive feature implementation
+- `DevCycle_iterative_template.md` - Iterative development cycle template for multiple independent systems
+- `DevCycle_Closure_Template.md` - Template for proper cycle closure documentation and procedures
+
+**Template Usage Guidelines**:
+- **Standard Template**: Use for single large features or comprehensive system overhauls
+- **Iterative Template**: Use for cycles with multiple independent improvements and bug fixes
+- **Closure Template**: Use to ensure proper cycle completion with all required steps
+
+### Document Naming Conventions
+- **DevCycle Documents**: `DevCycle_YYYY_NNNN.md` (main implementation document)
+- **Brainstorm Documents**: `DevCycle_YYYY_NNNN_brainstorm.md` (planning phase)
+- **Bug Documents**: `DevCycle_YYYY_NNNN_bugs_NN.md` (issue resolution)
+- **Future Planning**: `DevCycle_YYYY_future_NNN.md` (future cycle preparation)
+- **Test Cycles**: `DevCycle_YYYY_test_NNN.md` (experimental or test implementations)
+
+### Maintenance Guidelines
+**Keeping Cycle Tracking Current**:
+1. **Cycle Completion**: Update "Current Development Status" section when cycles are completed
+2. **Document Archiving**: Move completed cycle documents to `plans/completed/` directory
+3. **Status Updates**: Maintain accurate status information for current active cycle
+4. **Achievement Recording**: Document major achievements and completion dates for historical reference
+
+**Document Lifecycle Management**:
+1. **Active Phase**: Documents remain in main `plans/` directory during development
+2. **Completion Phase**: Move to `plans/completed/` directory when cycle is closed
+3. **Template Updates**: Keep templates current with evolving workflow processes
+4. **Reference Maintenance**: Ensure all documented paths and references remain valid
+
+*This planning document structure enables efficient development cycle management, clear documentation organization, and comprehensive tracking of project evolution over time.*
+
 ## Documentation Conventions
 
 ### Document Review Process
