@@ -40,5 +40,5 @@ Thumbs.db
 # Claude Code
 .claude/
 
-# Game save files
-saves/
+# Game save files (user saves only, not test fixtures)
+saves/slot_*.json
