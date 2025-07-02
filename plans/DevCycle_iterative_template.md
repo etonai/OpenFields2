@@ -11,6 +11,7 @@ This is an iterative development cycle focused on implementing multiple varied t
 - **Sequential Implementation**: Complete each system fully (including testing) before moving to the next
 - **Flexible Scope**: Systems 2+ are defined only after System 1 is complete
 - **Empty Placeholders**: Future system sections must contain no hints about what those systems should cover
+- **⚠️ CYCLE NEVER COMPLETE UNTIL CLOSED**: Even when all planned systems are finished, the cycle remains open for additional systems until explicitly ordered to close
 
 **Development Cycle Goals:**
 - [Primary Goal for System 1 - be specific and focused]
@@ -213,7 +214,8 @@ git checkout -b DC_NN
 git add [files]
 git commit -m "DC-NN: [Description]"
 
-# Completion workflow (only when entire cycle is complete)
+# Completion workflow (ONLY when cycle closure is explicitly ordered)
+# ⚠️ DO NOT RUN UNTIL EXPLICITLY TOLD TO CLOSE THE CYCLE ⚠️
 git checkout main
 git merge DC_NN
 git branch -d DC_NN
@@ -235,14 +237,51 @@ mvn test -Dtest=[TestName]     # Run specific test
 
 ---
 
+## 🔄 CYCLE COMPLETION POLICY
+
+### Critical Rule: Cycles Are Never "Complete" Until Explicitly Closed
+
+**Individual Systems vs. Entire Cycle:**
+- ✅ **Systems can be marked complete** when all their tasks are finished and tested
+- ❌ **Cycles are NEVER complete** until explicitly ordered to close out
+- 🔄 **Cycles remain open** even when all currently planned systems are finished
+
+### Why Cycles Stay Open:
+1. **Iterative Discovery**: Implementation often reveals new issues or opportunities
+2. **Continuous Improvement**: Additional systems may be identified during development
+3. **Flexible Scope**: Cycles adapt to emerging needs and findings
+4. **User Control**: Only the user decides when a cycle has accomplished enough
+
+### Cycle Status Language:
+- ✅ **"System N Complete"** - Individual system is finished
+- ⭕ **"All Current Systems Complete"** - All planned systems finished, but cycle open
+- 🚫 **NEVER say "Cycle Complete"** unless explicitly ordered to close out
+- 🔄 **"Cycle Ready for Additional Systems"** - Appropriate status when systems done
+
+### Git Branch Management Implications:
+- **DO NOT merge development branch** until cycle closure is ordered
+- **Commit individual system completions** but keep branch separate
+- **Branch remains active** for potential additional systems
+- **Merge only occurs** during explicit cycle closure process
+
+### Documentation Status Implications:
+- Mark individual systems as ✅ **COMPLETE** when finished
+- Update cycle status to reflect current system completion
+- Never mark overall cycle as complete in documentation
+- Always leave room for additional systems to be added
+
+---
+
 ## ⚠️ ITERATIVE DEVELOPMENT REMINDERS ⚠️
 
 ### For Template Users:
 1. **NEVER plan System 2+ while working on System 1**
 2. **NEVER implement before planning is complete**
 3. **NEVER add hints about future systems to placeholder sections**
-4. **ALWAYS complete current system fully before considering next**
-5. **ALWAYS test thoroughly before moving to next system**
+4. **NEVER consider cycle complete until explicitly ordered to close**
+5. **ALWAYS complete current system fully before considering next**
+6. **ALWAYS test thoroughly before moving to next system**
+7. **ALWAYS keep cycles open for potential additional systems**
 
 ### For System Planning:
 - Plan only the current system in detail
@@ -258,4 +297,4 @@ mvn test -Dtest=[TestName]     # Run specific test
 
 ---
 
-*This iterative development cycle focuses on implementing one system at a time while maintaining flexibility for additional improvements discovered during implementation. Each system is completed fully before considering the next, ensuring focused development and thorough validation.*
+*This iterative development cycle focuses on implementing one system at a time while maintaining flexibility for additional improvements discovered during implementation. Each system is completed fully before considering the next, ensuring focused development and thorough validation. The cycle remains open for additional systems until explicitly ordered to close, even when all currently planned systems are complete.*
