@@ -3,8 +3,6 @@
  * Licensed under the MIT License - see LICENSE file for details
  */
 
-import javafx.scene.paint.Color;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
