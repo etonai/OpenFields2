@@ -241,16 +241,23 @@ public class DisplayCoordinator {
                          unit.character.getWoundsInflictedByType(combat.WoundSeverity.CRITICAL) + " critical)");
         
         // Separate combat statistics (DevCycle 12)
+        double rangedSuccessRate = unit.character.rangedAttacksAttempted > 0 ? 
+            (double) unit.character.rangedAttacksSuccessful / unit.character.rangedAttacksAttempted * 100.0 : 0.0;
+        double meleeSuccessRate = unit.character.meleeAttacksAttempted > 0 ? 
+            (double) unit.character.meleeAttacksSuccessful / unit.character.meleeAttacksAttempted * 100.0 : 0.0;
+        double totalSuccessRate = unit.character.getAttacksAttempted() > 0 ? 
+            (double) unit.character.getAttacksSuccessful() / unit.character.getAttacksAttempted() * 100.0 : 0.0;
+        
         System.out.println("Ranged Combat: " + unit.character.rangedAttacksAttempted + " attempted, " + 
-                         unit.character.rangedAttacksSuccessful + " successful, " + 
+                         unit.character.rangedAttacksSuccessful + " successful (" + String.format("%.1f", rangedSuccessRate) + "%), " + 
                          unit.character.rangedWoundsInflicted + " wounds inflicted");
         System.out.println("Melee Combat: " + unit.character.meleeAttacksAttempted + " attempted, " + 
-                         unit.character.meleeAttacksSuccessful + " successful, " + 
+                         unit.character.meleeAttacksSuccessful + " successful (" + String.format("%.1f", meleeSuccessRate) + "%), " + 
                          unit.character.meleeWoundsInflicted + " wounds inflicted");
         
         // Legacy combined statistics
         System.out.println("Total Attacks: " + unit.character.getAttacksAttempted() + " attempted, " + 
-                         unit.character.getAttacksSuccessful() + " successful");
+                         unit.character.getAttacksSuccessful() + " successful (" + String.format("%.1f", totalSuccessRate) + "%)");
         System.out.println("***********************");
     }
     
