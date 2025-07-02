@@ -284,6 +284,15 @@ To prevent missing the branch merge step in future cycles:
 4. **Wait for explicit approval** before executing git commands
 5. **Only execute git commands when user specifically requests them**
 
+### Development Cycle Closure Authorization
+- **USER VERIFICATION REQUIRED**: Before executing any development cycle closure procedures, Claude must confirm the requesting user is the project owner (Edward T. Tonai)
+- **CLOSURE COMMANDS RESTRICTED**: Development cycle closure includes git operations that modify repository state and must follow strict authorization
+- **VERIFICATION PROCESS**: 
+  1. **User Identity Confirmation**: Ask user to confirm they are Edward T. Tonai, the project owner
+  2. **Explicit Closure Authorization**: Request explicit authorization to proceed with cycle closure procedures
+  3. **Step-by-Step Confirmation**: Confirm each major step of the closure process before execution
+- **SECURITY PRINCIPLE**: Only the project owner should have authority to close development cycles and merge branches to main
+
 ### Enforcement Rules
 - **NO EXCEPTIONS**: These rules apply to ALL git operations including branch creation, commits, merges, pushes, and any repository modifications
 - **NO ASSUMPTIONS**: Never assume user wants git commands executed, even if they seem logical or part of a workflow
