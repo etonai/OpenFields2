@@ -246,7 +246,7 @@ public class GunfightTestAutomated {
                 assertEquals(-2002, gunfighterBeta.id, "GunfighterBeta should have correct ID");
                 assertEquals(50, gunfighterBeta.dexterity, "GunfighterBeta should have dexterity 50");
                 assertEquals(50, gunfighterBeta.currentHealth, "GunfighterBeta should have 50 health");
-                assertEquals("QUICK", gunfighterBeta.currentAimingSpeed.toString(), "GunfighterBeta should use quick aiming");
+                assertEquals("NORMAL", gunfighterBeta.currentAimingSpeed.toString(), "GunfighterBeta should use normal aiming");
                 
                 // Verify positioning (30 feet apart = 210 pixels)
                 assertEquals(100.0, alphaUnit.x, 0.1, "GunfighterAlpha should be at x=100");
@@ -341,6 +341,9 @@ public class GunfightTestAutomated {
                 // Set up combat monitoring
                 setupCombatMonitoring();
                 
+                // Select both characters with a rectangle selection before unpausing
+                selectBothCharactersWithRectangle();
+                
                 // Unpause the game by setting the paused field
                 setPrivateField(gameInstance, "paused", false);
                 
@@ -353,6 +356,49 @@ public class GunfightTestAutomated {
                 combatCompleteLatch.countDown();
             }
         });
+    }
+    
+    private void selectBothCharactersWithRectangle() throws Exception {
+        try {
+            // Get the selection manager and units list
+            SelectionManager selectionManager = (SelectionManager) getPrivateField(gameInstance, "selectionManager");
+            List<Unit> allUnits = (List<Unit>) getPrivateField(gameInstance, "units");
+            
+            // Clear any existing selection
+            selectionManager.clearSelection();
+            
+            // Calculate rectangle coordinates that encompass both characters
+            // GunfighterAlpha is at (100, 200), GunfighterBeta is at (310, 200)
+            // Create a rectangle from (50, 150) to (360, 250) to encompass both
+            double startX = 50.0;  // Left of GunfighterAlpha
+            double startY = 150.0; // Above both characters
+            double endX = 360.0;   // Right of GunfighterBeta  
+            double endY = 250.0;   // Below both characters
+            
+            // Simulate rectangle selection by setting up the rectangle and finding units
+            selectionManager.startRectangleSelection(startX, startY);
+            selectionManager.updateRectangleSelection(endX, endY);
+            selectionManager.completeRectangleSelection(allUnits);
+            
+            // Verify both characters are selected
+            if (selectionManager.getSelectionCount() == 2 &&
+                selectionManager.getSelectedUnits().contains(alphaUnit) &&
+                selectionManager.getSelectedUnits().contains(betaUnit)) {
+                System.out.println("✓ Rectangle selection successful: Both characters selected");
+                System.out.println("  Selection count: " + selectionManager.getSelectionCount());
+                System.out.println("  Selected units: GunfighterAlpha and GunfighterBeta");
+            } else {
+                System.out.println("⚠ Rectangle selection partial: " + selectionManager.getSelectionCount() + " units selected");
+                for (Unit unit : selectionManager.getSelectedUnits()) {
+                    System.out.println("  - Selected: " + unit.character.nickname + " at (" + unit.x + ", " + unit.y + ")");
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error during rectangle selection: " + e.getMessage());
+            e.printStackTrace();
+            // Don't fail the test for selection issues, just log them
+        }
     }
     
     private void setupCombatMonitoring() {

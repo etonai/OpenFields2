@@ -78,7 +78,7 @@
       "handedness": "RIGHT_HANDED",
       "baseMovementSpeed": 42.0,
       "currentMovementType": "WALK",
-      "currentAimingSpeed": "QUICK",
+      "currentAimingSpeed": "NORMAL",
       "weaponId": null,
       "currentWeaponState": null,
       "skills": [
