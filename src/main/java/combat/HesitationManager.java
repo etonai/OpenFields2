@@ -61,7 +61,7 @@ public class HesitationManager {
         
         // Schedule hesitation end event
         eventQueue.add(new ScheduledEvent(character.hesitationEndTick, () -> {
-            endHesitation(character, currentTick, eventQueue, ownerId);
+            endHesitation(character, character.hesitationEndTick, eventQueue, ownerId);
         }, ownerId));
     }
     
@@ -128,12 +128,47 @@ public class HesitationManager {
         character.isHesitating = false;
         System.out.println(">>> HESITATION ENDED: " + character.getDisplayName() + " recovers from hesitation at tick " + currentTick);
         
-        // Note: We don't automatically resume paused actions since they may no longer be valid
-        // The character will need to restart actions (aiming, movement, etc.) from their current state
+        // Clear paused events as they are no longer valid
         character.pausedEvents.clear();
         
         // Reset attack state to allow new commands
         character.isAttacking = false;
+        
+        // DevCycle 36: Fix weapon state recovery after hesitation
+        // Check if character is stuck in "recovering" state and schedule proper transition
+        if (character.currentWeaponState != null && "recovering".equals(character.currentWeaponState.getState())) {
+            System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " detected in recovering state, scheduling transition to preferred firing state");
+            
+            // Determine target state based on firing preference
+            String targetState = character.getFiresFromAimingState() ? "aiming" : "pointedfromhip";
+            
+            // Get the transition timing from the current weapon state
+            long transitionTicks = character.currentWeaponState.ticks;
+            
+            System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " scheduling transition from recovering to " + targetState + " in " + transitionTicks + " ticks");
+            
+            // Schedule the state transition directly without requiring unit parameters
+            long transitionTick = currentTick + transitionTicks;
+            eventQueue.add(new ScheduledEvent(transitionTick, () -> {
+                // Get the appropriate weapon for state lookup
+                Weapon activeWeapon = character.isMeleeCombatMode ? character.meleeWeapon : character.weapon;
+                String previousState = character.currentWeaponState != null ? character.currentWeaponState.getState() : "None";
+                character.currentWeaponState = activeWeapon.getStateByName(targetState);
+                
+                // Start timing if entering aiming state
+                if ("aiming".equals(targetState)) {
+                    character.startAimingTiming(transitionTick);
+                } else if ("pointedfromhip".equals(targetState)) {
+                    character.startPointingFromHipTiming(transitionTick);
+                }
+                
+                // Output weapon state change
+                System.out.println(">>> HESITATION RECOVERY COMPLETE: " + character.getDisplayName() + " weapon state: " + previousState + " -> " + targetState + " ***");
+                
+                // Reset attacking flag to allow new combat actions
+                character.isAttacking = false;
+            }, ownerId));
+        }
     }
     
     /**
