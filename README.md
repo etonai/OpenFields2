@@ -6,7 +6,7 @@ I wanted to experiment with AI coding assistants, so I decided to rewrite an old
 
 Open Fields 2 is a Civil War or Wild West themed RTS focusing on individual characters. Individual character have stats based on tabletop role playing games.
 
-## The AI Coding Journey
+## History
 
 A few years ago, I tried to merge my childhood love of army men with my teenage love of playing tabletop role playing games, and put that all into a computer game. Each unit had stats based on role playing game stats, and I controlled them like an RTS. And the combat rules were much more complicated, because they didn't need to be simple.
 
