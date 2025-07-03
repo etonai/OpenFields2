@@ -88,12 +88,12 @@ public class CombatStatisticsManager {
     }
     
     /**
-     * Returns number of kills from headshots
+     * Returns number of incapacitations from headshots
      * @param character Character to get statistics from
-     * @return Total kills from headshots
+     * @return Total incapacitations from headshots
      */
-    public static int getHeadshotsKills(Character character) {
-        return character.headshotsKills;
+    public static int getHeadshotIncapacitations(Character character) {
+        return character.headshotIncapacitations;
     }
     
     // ========================================

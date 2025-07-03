@@ -56,7 +56,7 @@
       "targetsIncapacitated": 0,
       "headshotsAttempted": 0,
       "headshotsSuccessful": 0,
-      "headshotsKills": 0,
+      "headshotIncapacitations": 0,
       "battlesParticipated": 0,
       "victories": 0,
       "defeats": 0
@@ -102,7 +102,7 @@
       "targetsIncapacitated": 0,
       "headshotsAttempted": 0,
       "headshotsSuccessful": 0,
-      "headshotsKills": 0,
+      "headshotIncapacitations": 0,
       "battlesParticipated": 0,
       "victories": 0,
       "defeats": 0

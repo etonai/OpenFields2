@@ -188,7 +188,7 @@ public class CharacterPersistenceManager {
         data.targetsIncapacitated = character.targetsIncapacitated;
         data.headshotsAttempted = character.headshotsAttempted;
         data.headshotsSuccessful = character.headshotsSuccessful;
-        data.headshotsKills = character.headshotsKills;
+        data.headshotIncapacitations = character.headshotIncapacitations;
         data.battlesParticipated = character.battlesParticipated;
         data.victories = character.victories;
         data.defeats = character.defeats;
@@ -260,7 +260,7 @@ public class CharacterPersistenceManager {
         character.targetsIncapacitated = data.targetsIncapacitated;
         character.headshotsAttempted = data.headshotsAttempted;
         character.headshotsSuccessful = data.headshotsSuccessful;
-        character.headshotsKills = data.headshotsKills;
+        character.headshotIncapacitations = data.headshotIncapacitations;
         character.battlesParticipated = data.battlesParticipated;
         character.victories = data.victories;
         character.defeats = data.defeats;

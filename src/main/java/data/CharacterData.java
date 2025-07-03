@@ -119,8 +119,8 @@ public class CharacterData {
     @JsonProperty("headshotsSuccessful")
     public int headshotsSuccessful = 0;
     
-    @JsonProperty("headshotsKills")
-    public int headshotsKills = 0;
+    @JsonProperty("headshotIncapacitations")
+    public int headshotIncapacitations = 0;
     
     @JsonProperty("battlesParticipated")
     public int battlesParticipated = 0;

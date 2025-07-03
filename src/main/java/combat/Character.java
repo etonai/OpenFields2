@@ -149,7 +149,7 @@ public class Character implements ICharacter {
     /** Headshot statistics */
     public int headshotsAttempted = 0;          // Auto-updated when attacks target the head
     public int headshotsSuccessful = 0;         // Auto-updated when headshots hit
-    public int headshotsKills = 0;              // Auto-updated when headshots result in kills
+    public int headshotIncapacitations = 0;    // Auto-updated when headshots result in incapacitations
     
     /** Battle outcome statistics */
     public int battlesParticipated = 0;         // Manual tracking - updated after battles

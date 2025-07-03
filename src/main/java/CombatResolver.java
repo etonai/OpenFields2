@@ -106,10 +106,10 @@ public class CombatResolver {
                 // Track incapacitation caused by this shooter
                 shooter.character.targetsIncapacitated++;
                 
-                // Track headshot kill
+                // Track headshot incapacitation
                 if (hitLocation == BodyPart.HEAD) {
-                    shooter.character.headshotsKills++;
-                    System.out.println(">>> HEADSHOT KILL! " + target.character.getDisplayName() + " was killed by a headshot!");
+                    shooter.character.headshotIncapacitations++;
+                    System.out.println(">>> " + target.character.getDisplayName() + " is incapacitated by headshot!");
                 }
                 
                 if (woundSeverity == WoundSeverity.CRITICAL) {
