@@ -249,11 +249,12 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 2. ✅ **Commit final documentation updates**
 3. ✅ **Switch to main branch** (`git checkout main`)
 4. ✅ **Update CLAUDE.md with cycle completion** - Update "Last Completed Cycle" in Current Development Status section
-5. ✅ **Merge development branch** (`git merge DC_##`)
-6. ✅ **Delete development branch** (`git branch -d DC_##`)
-7. ✅ **Verify clean status** (`git status`)
+5. ✅ **Archive plan documents to completed directory** - Move DevCycle documents from `plans/` to `plans/completed/`
+6. ✅ **Merge development branch** (`git merge DC_##`)
+7. ✅ **Delete development branch** (`git branch -d DC_##`)
+8. ✅ **Verify clean status** (`git status`)
 
-**🚨 CRITICAL**: The git merge step (#5) is MANDATORY and must NEVER be skipped. DevCycle is NOT closed until the branch is merged to main.
+**🚨 CRITICAL**: The git merge step (#6) is MANDATORY and must NEVER be skipped. DevCycle is NOT closed until the branch is merged to main.
 
 ### DevCycle Closure Enforcement
 To prevent missing the branch merge step in future cycles:
