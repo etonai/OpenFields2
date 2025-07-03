@@ -44,6 +44,9 @@ import input.interfaces.InputManagerCallbacks;
 import config.GameConfig;
 
 public class OpenFields2 extends Application implements GameCallbacks, InputManagerCallbacks {
+    
+    // Headless mode flag for testing
+    private boolean headless = false;
 
     public static double pixelsToFeet(double pixels) {
         return pixels / 7.0;
@@ -60,31 +63,10 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     private static final GameConfig gameConfig = GameConfig.getInstance();
     static final double MOVE_SPEED = 42.0;
 
-    private final Canvas canvas = new Canvas() {
-        @Override
-        public boolean isResizable() {
-            return true;
-        }
-        
-        @Override
-        public double prefWidth(double height) {
-            return getWidth();
-        }
-        
-        @Override
-        public double prefHeight(double width) {
-            return getHeight();
-        }
-        
-        @Override
-        public void resize(double width, double height) {
-            setWidth(width);
-            setHeight(height);
-        }
-    };
+    private Canvas canvas;
     private final List<Unit> units = new ArrayList<>();
     private final SelectionManager selectionManager = new SelectionManager();
-    private final GameRenderer gameRenderer = new GameRenderer(canvas);
+    private BaseGameRenderer gameRenderer;
     private InputManager inputManager;
     
     private boolean paused = true;
@@ -104,10 +86,135 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         System.out.println("Debug: I have a breakpoint here. We should have stopped!!!");
         launch(args);
     }
+    
+    /**
+     * Constructor for headless mode - used for testing without JavaFX UI
+     * @param headless true to run in headless mode
+     */
+    public OpenFields2(boolean headless) {
+        this.headless = headless;
+    }
+    
+    /**
+     * Default constructor for normal JavaFX application mode
+     */
+    public OpenFields2() {
+        this(false);
+    }
+    
+    /**
+     * Initialize Canvas and GameRenderer for JavaFX mode
+     */
+    private void initializeCanvas() {
+        canvas = new Canvas() {
+            @Override
+            public boolean isResizable() {
+                return true;
+            }
+            
+            @Override
+            public double prefWidth(double height) {
+                return getWidth();
+            }
+            
+            @Override
+            public double prefHeight(double width) {
+                return getHeight();
+            }
+            
+            @Override
+            public void resize(double width, double height) {
+                setWidth(width);
+                setHeight(height);
+            }
+        };
+        gameRenderer = new GameRenderer(canvas);
+    }
+    
+    /**
+     * Initialize the game in headless mode for testing
+     * @return true if initialization was successful
+     */
+    public boolean initializeHeadless() {
+        if (!headless) {
+            throw new IllegalStateException("initializeHeadless() called in non-headless mode");
+        }
+        
+        // Display game title and theme information
+        displayStartupTitle();
+        
+        // Load and apply debug configuration from config file
+        config.DebugConfig.getInstance().applyConfiguration();
+        
+        // Initialize faction system
+        initializeFactionSystem();
+        
+        createUnits();
+        
+        // Initialize EventSchedulingService for managers
+        game.EventSchedulingService.getInstance().initialize(eventQueue, gameClock);
+        
+        // Initialize game renderer for headless mode
+        gameRenderer = new HeadlessGameRenderer();
+        gameRenderer.setGameState(units, selectionManager);
+        
+        // Skip audio loading in headless mode
+        
+        // Get window dimensions from configuration
+        int windowWidth = gameConfig.getDisplay().getWindow().getWidth();
+        int windowHeight = gameConfig.getDisplay().getWindow().getHeight();
+        
+        // Skip EditModeController in headless mode - it requires JavaFX GameRenderer
+        // editModeController = new EditModeController(units, selectionManager, gameRenderer, 
+        //                                            windowWidth, windowHeight, new EditModeCallbacksImpl());
+        
+        // Skip InputManager in headless mode - not needed for basic testing
+        // inputManager = ...
+        
+        // Create a simple GameRenderer wrapper for SaveGameController in headless mode
+        GameRenderer gameRendererForSave = new HeadlessGameRendererWrapper();
+        
+        // Initialize SaveGameController for headless mode
+        saveGameController = new SaveGameController(units, selectionManager, gameRendererForSave, gameClock,
+                                                   eventQueue, null, new GameStateAccessorImpl());
+        
+        return true;
+    }
+    
+    /**
+     * Runs a single tick of the game loop - for headless mode testing
+     */
+    public void runSingleTick() {
+        run();
+    }
+    
+    /**
+     * Gets the current game clock - for headless mode testing
+     */
+    public GameClock getGameClock() {
+        return gameClock;
+    }
+    
+    /**
+     * Gets the selection manager - for headless mode testing
+     */
+    public SelectionManager getSelectionManager() {
+        return selectionManager;
+    }
+    
+    /**
+     * Gets the save game controller - for headless mode testing
+     */
+    public SaveGameController getSaveGameController() {
+        return saveGameController;
+    }
 
     @Override
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
+        
+        // Initialize Canvas for JavaFX mode
+        initializeCanvas();
         
         // Display game title and theme information
         displayStartupTitle();
@@ -153,16 +260,16 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         });
 
         // Initialize EditModeController
-        editModeController = new EditModeController(units, selectionManager, gameRenderer, 
+        editModeController = new EditModeController(units, selectionManager, (GameRenderer) gameRenderer, 
                                                    windowWidth, windowHeight, new EditModeCallbacksImpl());
         
         // Initialize InputManager
-        inputManager = new InputManager(units, selectionManager, gameRenderer, gameClock, 
+        inputManager = new InputManager(units, selectionManager, (GameRenderer) gameRenderer, gameClock, 
                                       eventQueue, canvas, this);
         inputManager.initializeInputHandlers(scene);
         
         // Initialize SaveGameController
-        saveGameController = new SaveGameController(units, selectionManager, gameRenderer, gameClock,
+        saveGameController = new SaveGameController(units, selectionManager, (GameRenderer) gameRenderer, gameClock,
                                                    eventQueue, inputManager, new GameStateAccessorImpl());
         
         // Validate system integrity

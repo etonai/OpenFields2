@@ -245,11 +245,15 @@ mvn javafx:run                # Run the JavaFX application
 ### DevCycle Closure Checklist (MANDATORY)
 When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 
-1. ✅ **Verify all critical tests pass** - Run and verify all required tests pass:
-   - `mvn test -Dtest=GunfightTestAutomated`
-   - `mvn test -Dtest=BasicMissTestAutomated`
-   - `mvn test -Dtest=BasicMissTestSimple`
-   - `mvn test -Dtest=SpringfieldTestAutomated`
+1. ✅ **Verify all critical tests pass** - Run critical test suite:
+   - **Fast check**: `./test-runner.sh --fast` (runs HeadlessGunfightTest only)
+   - **Full verification**: `./test-runner.sh --all` (runs all critical tests)
+   - **Legacy script**: `./run-critical-tests.sh` (comprehensive but slower)
+   - **Individual tests** (if needed):
+     - `mvn test -Dtest=HeadlessGunfightTest` (fastest)
+     - `mvn test -Dtest=BasicMissTestSimple`
+     - `mvn test -Dtest=BasicMissTestAutomated`
+     - `mvn test -Dtest=GunfightTestAutomated`
 2. ✅ **Update DevCycle document with final status and close-out summary**
 3. ✅ **Commit final documentation updates**
 4. ✅ **Switch to main branch** (`git checkout main`)
@@ -268,7 +272,7 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 - ✅ **GunfightTestAutomated** - Core combat functionality and regression detection
 - ✅ **BasicMissTestAutomated** - Miss calculation and basic combat mechanics
 - ✅ **BasicMissTestSimple** - Simple miss test scenarios and validation
-- ✅ **SpringfieldTestAutomated** - 2v2 Springfield 1861 musket combat testing without exceptions
+- ✅ **HeadlessGunfightTest** - Headless combat validation using real game systems
 
 **Enforcement Rules:**
 - ✅ **System Completion**: No system can be marked ✅ **COMPLETE** until ALL required tests pass
@@ -277,7 +281,7 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
   - `mvn test -Dtest=GunfightTestAutomated`
   - `mvn test -Dtest=BasicMissTestAutomated`
   - `mvn test -Dtest=BasicMissTestSimple`
-  - `mvn test -Dtest=SpringfieldTestAutomated`
+  - `mvn test -Dtest=HeadlessGunfightTest`
 - ✅ **No Exceptions**: This rule applies to ALL systems and cycles, no exceptions allowed
 
 **Rationale**: These tests represent core game functionality, combat mechanics, and regression detection. If any of these tests fail, it indicates fundamental issues that must be resolved before any completion.
