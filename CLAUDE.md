@@ -248,11 +248,12 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 1. ✅ **Update DevCycle document with final status and close-out summary**
 2. ✅ **Commit final documentation updates**
 3. ✅ **Switch to main branch** (`git checkout main`)
-4. ✅ **Merge development branch** (`git merge DC_##`)
-5. ✅ **Delete development branch** (`git branch -d DC_##`)
-6. ✅ **Verify clean status** (`git status`)
+4. ✅ **Update CLAUDE.md with cycle completion** - Update "Last Completed Cycle" in Current Development Status section
+5. ✅ **Merge development branch** (`git merge DC_##`)
+6. ✅ **Delete development branch** (`git branch -d DC_##`)
+7. ✅ **Verify clean status** (`git status`)
 
-**🚨 CRITICAL**: The git merge step (#4) is MANDATORY and must NEVER be skipped. DevCycle is NOT closed until the branch is merged to main.
+**🚨 CRITICAL**: The git merge step (#5) is MANDATORY and must NEVER be skipped. DevCycle is NOT closed until the branch is merged to main.
 
 ### DevCycle Closure Enforcement
 To prevent missing the branch merge step in future cycles:
@@ -311,15 +312,15 @@ Claude MAY execute these git commands without permission (read-only operations):
 ## Development Cycle Tracking
 
 ### Current Development Status
-- **Last Completed Cycle**: DevCycle 36 - Headless Testing Architecture (Completed: July 2, 2025)
-  - Implemented complete JavaFX-independent combat simulation
-  - Enhanced performance with 1-15ms execution vs several seconds in UI tests
-  - Created comprehensive headless testing framework with 4/4 passing tests
-  - Delivered CI/CD-ready testing architecture without UI dependencies
+- **Last Completed Cycle**: DevCycle 37 - Iterative Development Cycle (Completed: July 3, 2025)
+  - Enhanced development workflow with comprehensive CLAUDE.md cycle tracking and document location mapping
+  - Improved combat realism with simplified reaiming system (15-tick delay on target incapacitation)  
+  - Professional combat messaging with eliminated inappropriate "headshot kill" terminology
+  - 3 systems completed in 5 hours across 2 days with all 24 tests passing
 
-- **Current Active Cycle**: DevCycle 37 - CLAUDE.md Development Cycle Tracking Enhancement (Started: July 2, 2025)
-  - Status: System 1 in progress - Documentation and workflow enhancements
-  - Focus: Implementing cycle tracking and plan document location management
+- **Current Active Cycle**: None
+  - Status: Ready for next development cycle planning
+  - All systems operational with clean codebase and comprehensive documentation
 
 ### Development Cycle Numbering System
 - **Format**: DevCycle YYYY_NNNN (e.g., DevCycle 2025_0037)
