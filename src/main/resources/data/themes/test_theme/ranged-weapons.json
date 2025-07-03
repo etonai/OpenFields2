@@ -132,9 +132,9 @@
         {"state": "unsling", "action": "ready", "ticks": 90},
         {"state": "ready", "action": "pointedfromhip", "ticks": 15},
         {"state": "pointedfromhip", "action": "aiming", "ticks": 20},
-        {"state": "aiming", "action": "firing", "ticks": 30},
-        {"state": "firing", "action": "recovering", "ticks": 5},
-        {"state": "recovering", "action": "aiming", "ticks": 20},
+        {"state": "aiming", "action": "firing", "ticks": 45},
+        {"state": "firing", "action": "recovering", "ticks": 8},
+        {"state": "recovering", "action": "aiming", "ticks": 25},
         {"state": "reloading", "action": "ready", "ticks": 1200}
       ]
     },
@@ -143,7 +143,7 @@
       "name": "Lee-Enfield SMLE",
       "type": "RIFLE",
       "velocity": 2440.0,
-      "damage": 60,
+      "damage": 40,
       "ammunition": 10,
       "maxAmmunition": 10,
       "reloadTicks": 180,
@@ -170,7 +170,7 @@
       "name": "M1 Garand",
       "type": "RIFLE",
       "velocity": 2800.0,
-      "damage": 55,
+      "damage": 40,
       "ammunition": 8,
       "maxAmmunition": 8,
       "reloadTicks": 120,
@@ -424,6 +424,34 @@
         {"state": "firing", "action": "recovering", "ticks": 5},
         {"state": "recovering", "action": "aiming", "ticks": 20},
         {"state": "reloading", "action": "ready", "ticks": 180}
+      ]
+    },
+    "wpn_springfield_1861": {
+      "id": "wpn_springfield_1861",
+      "name": "Springfield Model 1861",
+      "type": "RIFLE",
+      "velocity": 1000.0,
+      "damage": 45,
+      "ammunition": 1,
+      "maxAmmunition": 1,
+      "reloadTicks": 1200,
+      "reloadType": "SINGLE_ROUND",
+      "woundDescription": "musket ball",
+      "soundFile": "/Slap0003.wav",
+      "maximumRange": 400.0,
+      "weaponAccuracy": -5,
+      "firingDelay": 180,
+      "weaponLength": 4.5,
+      "combatSkill": "Rifle",
+      "states": [
+        {"state": "slung", "action": "unsling", "ticks": 0},
+        {"state": "unsling", "action": "ready", "ticks": 90},
+        {"state": "ready", "action": "pointedfromhip", "ticks": 15},
+        {"state": "pointedfromhip", "action": "aiming", "ticks": 20},
+        {"state": "aiming", "action": "firing", "ticks": 45},
+        {"state": "firing", "action": "recovering", "ticks": 8},
+        {"state": "recovering", "action": "aiming", "ticks": 25},
+        {"state": "reloading", "action": "ready", "ticks": 1200}
       ]
     }
   }

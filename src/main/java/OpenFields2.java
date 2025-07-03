@@ -143,7 +143,14 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         StackPane root = new StackPane(canvas);
         Scene scene = new Scene(root, windowWidth, windowHeight);
         
-        // Canvas will auto-resize via the resizable implementation
+        // Add dynamic Canvas resizing listeners to handle window resize
+        scene.widthProperty().addListener((obs, oldWidth, newWidth) -> {
+            canvas.setWidth(newWidth.doubleValue());
+        });
+        
+        scene.heightProperty().addListener((obs, oldHeight, newHeight) -> {
+            canvas.setHeight(newHeight.doubleValue());
+        });
 
         // Initialize EditModeController
         editModeController = new EditModeController(units, selectionManager, gameRenderer, 

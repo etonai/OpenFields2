@@ -1,0 +1,950 @@
+"C:\Program Files\Eclipse Adoptium\jdk-21.0.7.6-hotspot\bin\java.exe" -ea -Didea.test.cyclic.buffer.size=1048576 "-javaagent:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\lib\idea_rt.jar=61925:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\bin" -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -classpath "C:\Users\edwar\.m2\repository\org\junit\platform\junit-platform-launcher\1.10.0\junit-platform-launcher-1.10.0.jar;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\lib\idea_rt.jar;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\plugins\junit\lib\junit5-rt.jar;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2\plugins\junit\lib\junit-rt.jar;C:\dev\TTCombat\OF2Prototype01\target\test-classes;C:\dev\TTCombat\OF2Prototype01\target\classes;C:\Users\edwar\.m2\repository\org\junit\jupiter\junit-jupiter\5.10.0\junit-jupiter-5.10.0.jar;C:\Users\edwar\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.0\junit-jupiter-api-5.10.0.jar;C:\Users\edwar\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\edwar\.m2\repository\org\junit\platform\junit-platform-commons\1.10.0\junit-platform-commons-1.10.0.jar;C:\Users\edwar\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\edwar\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.10.0\junit-jupiter-params-5.10.0.jar;C:\Users\edwar\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.0\junit-jupiter-engine-5.10.0.jar;C:\Users\edwar\.m2\repository\org\junit\platform\junit-platform-engine\1.10.0\junit-platform-engine-1.10.0.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-controls\21.0.2\javafx-controls-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-controls\21.0.2\javafx-controls-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-graphics\21.0.2\javafx-graphics-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-graphics\21.0.2\javafx-graphics-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-base\21.0.2\javafx-base-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-base\21.0.2\javafx-base-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-fxml\21.0.2\javafx-fxml-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-fxml\21.0.2\javafx-fxml-21.0.2-win.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-media\21.0.2\javafx-media-21.0.2.jar;C:\Users\edwar\.m2\repository\org\openjfx\javafx-media\21.0.2\javafx-media-21.0.2-win.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.16.1\jackson-databind-2.16.1.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.16.1\jackson-annotations-2.16.1.jar;C:\Users\edwar\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.16.1\jackson-core-2.16.1.jar" com.intellij.rt.junit.JUnitStarter -ideVersion5 -junit5 SpringfieldTestAutomated
+=== Springfield Test Automated Setup ===
+Jul 02, 2025 10:13:34 PM com.sun.javafx.application.PlatformImpl startup
+WARNING: Unsupported JavaFX configuration: classes were loaded from 'unnamed module @643b1d11'
+✓ Test setup complete
+Starting Springfield 1861 Musket 2v2 automated test...
+Game configuration loaded successfully from /config/game-config.json
+*** Loaded character registry from resources
+*** Loaded test character: -1001:MissBot (ID: -1001)
+*** Loaded test character: -1002:GunfighterAlpha (ID: -1002)
+*** Loaded test character: -1003:SoldierAlpha (ID: -1003)
+*** Loaded test character: -2001:TargetDummy (ID: -2001)
+*** Loaded test character: -2002:GunfighterBeta (ID: -2002)
+*** Loaded test character: -2003:SoldierBeta (ID: -2003)
+
+*********************************
+***       OPEN FIELDS 2      ***
+*********************************
+*** Themes loaded successfully: 2 themes available
+*** Default theme: test_theme
+Theme: Test Theme
+
+Debug configuration loaded from debug-config.json
+Debug Settings:
+  Auto-targeting: visible=false, verbose=false
+  Combat debug: true
+  Movement debug: false
+  Weapons debug: true
+  Event queue debug: false
+  Blocking: defensive=DISABLED, recovery=DISABLED
+Failed to apply auto-targeting debug configuration: combat.Character.setAutoTargetDebugVisible(boolean)
+*** Initializing Faction System ***
+Loaded faction registry with 4 factions, nextCharacterId: 1
+=== FACTION REGISTRY ===
+Next Character ID: 1
+Factions:
+  Faction{id=0, name='NONE', allies=[], enemies=[], victories=0, defeats=0, participations=0}
+  Faction{id=1, name='Union', allies=[3], enemies=[2], victories=0, defeats=0, participations=0}
+  Faction{id=2, name='Confederacy', allies=[], enemies=[1, 3], victories=0, defeats=0, participations=0}
+  Faction{id=3, name='Southern Unionists', allies=[1], enemies=[2], victories=0, defeats=0, participations=0}
+*** Faction System Ready ***
+*** Loaded melee weapon type: MELEE_UNARMED with 4 states
+*** Loaded melee weapon type: MELEE_SHORT with 6 states
+*** Loaded melee weapon type: MELEE_MEDIUM with 6 states
+*** Loaded melee weapon type: MELEE_LONG with 6 states
+*** Data loaded successfully: 16 weapons, 8 weapon types, 11 skills, 10 melee weapons
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Steel Dagger (type: MELEE_SHORT, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Officer's Sword (type: MELEE_MEDIUM, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Bowie Knife (type: MELEE_SHORT, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Cavalry Sabre (type: MELEE_MEDIUM, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Bowie Knife (type: MELEE_SHORT, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Indian Tomahawk (type: MELEE_MEDIUM, initial: sheathed)
+***********************
+*** SYSTEM VALIDATION ***
+✓ Faction registry operational (4 factions)
+✓ Character persistence manager operational
+✓ Theme manager operational (2 themes available)
+✓ Weapon factory operational (16 weapons available)
+*** VALIDATION COMPLETE ***
+***********************
+***********************
+*** Game is paused
+***********************
+✓ Game started and debug mode activated
+*** Game loaded from test slot c: saves/test_c.json
+[MELEE-RANGE] Unarmed (UNARMED) total reach: 5.5 feet (4.0 base + 1.5 weapon)
+  Loading -1003:SoldierAlpha: weaponId=wpn_springfield_1861 → Springfield Model 1861
+[MELEE-RANGE] Unarmed (UNARMED) total reach: 5.5 feet (4.0 base + 1.5 weapon)
+  Loading -1002:GunfighterAlpha: weaponId=wpn_springfield_1861 → Springfield Model 1861
+[MELEE-RANGE] Unarmed (UNARMED) total reach: 5.5 feet (4.0 base + 1.5 weapon)
+  Loading -2003:SoldierBeta: weaponId=wpn_springfield_1861 → Springfield Model 1861
+[MELEE-RANGE] Unarmed (UNARMED) total reach: 5.5 feet (4.0 base + 1.5 weapon)
+  Loading -2002:GunfighterBeta: weaponId=wpn_springfield_1861 → Springfield Model 1861
+*** Restored 4 units ***
+*** Game loaded successfully from test slot c ***
+*** Loaded at tick 0 ***
+✓ Springfield 2v2 save loaded
+✓ All 4 soldiers verified with correct stats and positioning
+✓ Auto-targeting enabled and careful aiming set for all characters
+✓ All characters selected with rectangle
+✓ Game unpaused, monitoring 2v2 combat for exceptions and completion
+Exception in thread "JavaFX Application Thread" org.opentest4j.AssertionFailedError: SoldierAlpha should have 100 health ==> expected: <100> but was: <60>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:559)
+	at SpringfieldTestAutomated.lambda$verifySoldiers$4(SpringfieldTestAutomated.java:253)
+	at com.sun.javafx.application.PlatformImpl.lambda$runLater$10(PlatformImpl.java:456)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at com.sun.javafx.application.PlatformImpl.lambda$runLater$11(PlatformImpl.java:455)
+	at com.sun.glass.ui.InvokeLaterDispatcher$Future.run(InvokeLaterDispatcher.java:95)
+	at com.sun.glass.ui.win.WinApplication._runLoop(Native Method)
+	at com.sun.glass.ui.win.WinApplication.lambda$runLoop$3(WinApplication.java:185)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Auto-targeting enabled for all characters
+All characters set to CAREFUL aiming speed for this test
+Combat targets set: Alpha team vs Beta team
+✓ Rectangle selection successful: All 4 characters selected
+  Selection count: 4
+Game unpaused, 2v2 combat monitoring active
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=slung ***
+*** -1002:GunfighterAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=slung ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=slung ***
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=slung ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=unsling ***
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=unsling ***
+*** -1002:GunfighterAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=unsling ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=unsling ***
+*** -1002:GunfighterAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -1002:GunfighterAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -1002:GunfighterAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-1003:SoldierAlpha fires a Springfield Model 1861 at -2003:SoldierBeta, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 216
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -1003:SoldierAlpha -> Target: -2003:SoldierBeta
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 91.62
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 222 (will miss)
+-2002:GunfighterBeta fires a Springfield Model 1861 at -1002:GunfighterAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 216
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2002:GunfighterBeta -> Target: -1002:GunfighterAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 0.0 (skl_rifle: 0)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 21.67%
+Random roll: 18.24
+Result: HIT
+=============================
+=== RANGED DAMAGE CALCULATION DEBUG ===
+Weapon damage: 45
+Wound severity: SERIOUS
+Hit location: HEAD
+Scaled damage: 68
+=========================================
+--- Ranged attack impact scheduled at tick 222 (will hit)
+-1002:GunfighterAlpha fires a Springfield Model 1861 at -2002:GunfighterBeta, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 216
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -1002:GunfighterAlpha -> Target: -2002:GunfighterBeta
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 0.0 (skl_rifle: 0)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 21.67%
+Random roll: 17.17
+Result: HIT
+=============================
+=== RANGED DAMAGE CALCULATION DEBUG ===
+Weapon damage: 45
+Wound severity: LIGHT
+Hit location: LEFT_ARM
+Scaled damage: 18
+=========================================
+--- Ranged attack impact scheduled at tick 222 (will hit)
+-2003:SoldierBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 216
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2003:SoldierBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 79.30
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 222 (will miss)
+>>> musket ball missed -2003:SoldierBeta at tick 222
+>>> musket ball hit -2002:GunfighterBeta in the left_arm causing a light wound at tick 222
+>>> -2002:GunfighterBeta takes 18 damage
+>>> HESITATION STARTED: -2002:GunfighterBeta begins hesitating for 15 ticks due to light wound
+>>> -2002:GunfighterBeta paused 1 scheduled actions due to hesitation
+>>> -2002:GunfighterBeta current health: 32/50
+>>> BRAVERY CHECK: -2002:GunfighterBeta rolls 69.2 vs 50 (wounded by musket ball)
+>>> BRAVERY FAILED: -2002:GunfighterBeta fails bravery check! Total failures: 1 (penalty: -10 accuracy)
+>>> BRAVERY CHECK: -2003:SoldierBeta rolls 7.4 vs 50 (ally -2002:GunfighterBeta hit by musket ball)
+>>> BRAVERY PASSED: -2003:SoldierBeta passes bravery check
+>>> musket ball missed -1003:SoldierAlpha at tick 222
+>>> musket ball hit -1002:GunfighterAlpha in the head causing a serious wound at tick 222
+>>> -1002:GunfighterAlpha takes 68 damage
+>>> HEADSHOT! -2002:GunfighterBeta scored a headshot on -1002:GunfighterAlpha
+>>> -1002:GunfighterAlpha current health: -18/50
+>>> BRAVERY CHECK: -1003:SoldierAlpha rolls 25.6 vs 50 (ally -1002:GunfighterAlpha hit by musket ball)
+>>> BRAVERY PASSED: -1003:SoldierAlpha passes bravery check
+>>> -1002:GunfighterAlpha is incapacitated by headshot!
+>>> -1002:GunfighterAlpha is incapacitated!
+>>> Removed all scheduled actions for -1002:GunfighterAlpha
+>>> HESITATION ENDED: -2002:GunfighterBeta recovers from hesitation at tick 237
+[REAIMING] -2002:GunfighterBeta weapon state reset from firing to reaiming (will return to aiming)
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=reaiming ***
+-2003:SoldierBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 249
+-1003:SoldierAlpha starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 249
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-2002:GunfighterBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 342
+-2002:GunfighterBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 375
+>>> BRAVERY RECOVERY: -2002:GunfighterBeta recovers from bravery failure. Remaining failures: 0
+Combat monitoring: 100 checks (10 seconds)
+  Alpha Team - SoldierAlpha: health=60, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+Combat monitoring: 200 checks (20 seconds)
+  Alpha Team - SoldierAlpha: health=60, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+-2003:SoldierBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 1449
+-2003:SoldierBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 1449
+-1003:SoldierAlpha loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 1449
+-1003:SoldierAlpha finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 1449
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-1003:SoldierAlpha fires a Springfield Model 1861 at -2003:SoldierBeta, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 1574
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -1003:SoldierAlpha -> Target: -2003:SoldierBeta
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 97.76
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 1580 (will miss)
+-2003:SoldierBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 1574
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2003:SoldierBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 54.40
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 1580 (will miss)
+-2002:GunfighterBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 1575
+-2002:GunfighterBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 1575
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+>>> musket ball missed -2003:SoldierBeta at tick 1580
+>>> musket ball missed -1003:SoldierAlpha at tick 1580
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+-1003:SoldierAlpha starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 1607
+-2003:SoldierBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 1607
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-2002:GunfighterBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 1700
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2002:GunfighterBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.66 (distance: 100.08 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: -1.0 (LEFT_ARM LIGHT: -1.0 | total: -1.0)
+Skill modifier: 0.0 (skl_rifle: 0)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 20.66%
+Random roll: 95.24
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 1706 (will miss)
+>>> musket ball missed -1003:SoldierAlpha at tick 1706
+-2002:GunfighterBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 1733
+Combat monitoring: 300 checks (30 seconds)
+  Alpha Team - SoldierAlpha: health=60, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+Combat monitoring: 400 checks (40 seconds)
+  Alpha Team - SoldierAlpha: health=60, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+-2003:SoldierBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 2807
+-2003:SoldierBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 2807
+-1003:SoldierAlpha loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 2807
+-1003:SoldierAlpha finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 2807
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-1003:SoldierAlpha fires a Springfield Model 1861 at -2003:SoldierBeta, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 2932
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -1003:SoldierAlpha -> Target: -2003:SoldierBeta
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 75.13
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 2938 (will miss)
+-2003:SoldierBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 2932
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2003:SoldierBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 73.76
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 2938 (will miss)
+-2002:GunfighterBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 2933
+-2002:GunfighterBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 2933
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+>>> musket ball missed -2003:SoldierBeta at tick 2938
+>>> musket ball missed -1003:SoldierAlpha at tick 2938
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+-1003:SoldierAlpha starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 2965
+-2003:SoldierBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 2965
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+Combat monitoring: 500 checks (50 seconds)
+  Alpha Team - SoldierAlpha: health=60, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+-2002:GunfighterBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 3058
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2002:GunfighterBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.66 (distance: 100.08 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: -1.0 (LEFT_ARM LIGHT: -1.0 | total: -1.0)
+Skill modifier: 0.0 (skl_rifle: 0)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 20.66%
+Random roll: 96.14
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 3064 (will miss)
+>>> musket ball missed -1003:SoldierAlpha at tick 3064
+-2002:GunfighterBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 3091
+Combat monitoring: 600 checks (60 seconds)
+  Alpha Team - SoldierAlpha: health=60, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+-2003:SoldierBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 4165
+-2003:SoldierBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 4165
+-1003:SoldierAlpha loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 4165
+-1003:SoldierAlpha finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 4165
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+Combat monitoring: 700 checks (70 seconds)
+  Alpha Team - SoldierAlpha: health=60, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+-1003:SoldierAlpha fires a Springfield Model 1861 at -2003:SoldierBeta, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 4290
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -1003:SoldierAlpha -> Target: -2003:SoldierBeta
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 96.52
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 4296 (will miss)
+-2003:SoldierBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 4290
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2003:SoldierBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 22.64
+Result: HIT
+=============================
+=== RANGED DAMAGE CALCULATION DEBUG ===
+Weapon damage: 45
+Wound severity: SERIOUS
+Hit location: RIGHT_SHOULDER
+Scaled damage: 45
+=========================================
+--- Ranged attack impact scheduled at tick 4296 (will hit)
+-2002:GunfighterBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 4291
+-2002:GunfighterBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 4291
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+>>> musket ball missed -2003:SoldierBeta at tick 4296
+>>> musket ball hit -1003:SoldierAlpha in the right_shoulder causing a serious wound at tick 4296
+>>> -1003:SoldierAlpha takes 45 damage
+>>> HESITATION STARTED: -1003:SoldierAlpha begins hesitating for 60 ticks due to serious wound
+>>> -1003:SoldierAlpha paused 1 scheduled actions due to hesitation
+>>> -1003:SoldierAlpha current health: 15/60
+>>> BRAVERY CHECK: -1003:SoldierAlpha rolls 29.0 vs 50 (wounded by musket ball)
+>>> BRAVERY PASSED: -1003:SoldierAlpha passes bravery check
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+-2003:SoldierBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 4323
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+>>> HESITATION ENDED: -1003:SoldierAlpha recovers from hesitation at tick 4356
+*** -1003:SoldierAlpha scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=firing ***
+-2002:GunfighterBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 4416
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2002:GunfighterBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.66 (distance: 100.08 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: -1.0 (LEFT_ARM LIGHT: -1.0 | total: -1.0)
+Skill modifier: 0.0 (skl_rifle: 0)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 20.66%
+Random roll: 71.11
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 4422 (will miss)
+>>> musket ball missed -1003:SoldierAlpha at tick 4422
+-2002:GunfighterBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 4449
+Combat monitoring: 800 checks (80 seconds)
+  Alpha Team - SoldierAlpha: health=15, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+Combat monitoring: 900 checks (90 seconds)
+  Alpha Team - SoldierAlpha: health=15, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+-2003:SoldierBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 5523
+-2003:SoldierBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 5523
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-2003:SoldierBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 5648
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2003:SoldierBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 89.12
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 5654 (will miss)
+-2002:GunfighterBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 5649
+-2002:GunfighterBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 5649
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+>>> musket ball missed -1003:SoldierAlpha at tick 5654
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+-2003:SoldierBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 5681
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-2002:GunfighterBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 5774
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2002:GunfighterBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.66 (distance: 100.08 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: -1.0 (LEFT_ARM LIGHT: -1.0 | total: -1.0)
+Skill modifier: 0.0 (skl_rifle: 0)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 20.66%
+Random roll: 54.15
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 5780 (will miss)
+>>> musket ball missed -1003:SoldierAlpha at tick 5780
+-2002:GunfighterBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 5807
+Combat monitoring: 1000 checks (100 seconds)
+  Alpha Team - SoldierAlpha: health=15, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+Combat monitoring: 1100 checks (110 seconds)
+  Alpha Team - SoldierAlpha: health=15, GunfighterAlpha: health=-18
+  Beta Team - SoldierBeta: health=60, GunfighterBeta: health=32
+  Individual incapacitations detected (waiting for team elimination)
+-2003:SoldierBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 6881
+-2003:SoldierBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 6881
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+*** -2003:SoldierBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-2003:SoldierBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 7006
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2003:SoldierBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.67 (distance: 100.00 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 5.0 (skl_rifle: 1)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 26.67%
+Random roll: 92.32
+Result: MISS
+=============================
+--- Ranged attack impact scheduled at tick 7012 (will miss)
+-2002:GunfighterBeta loads one round into Springfield Model 1861 [ammo: 0 -> 1/1], at tick 7007
+-2002:GunfighterBeta finishes reloading Springfield Model 1861 [ammo: 1/1], at tick 7007
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=ready ***
+>>> musket ball missed -1003:SoldierAlpha at tick 7012
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=pointedfromhip ***
+-2003:SoldierBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 7039
+*** -2002:GunfighterBeta scheduleAttackFromCurrentState: weapon=Springfield Model 1861, currentWeaponState=aiming ***
+-2002:GunfighterBeta fires a Springfield Model 1861 at -1003:SoldierAlpha, shootingfromaiming (aimed 90 ticks, earned Careful bonus), [ammo: 0/1], at tick 7132
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+=== HIT CALCULATION DEBUG ===
+Shooter: -2002:GunfighterBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: -40.0 (coolness: 50:0)
+Range modifier: 1.66 (distance: 100.08 feet, max: 400.00 feet)
+Weapon modifier: -5.0 (accuracy: -5)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: -1.0 (LEFT_ARM LIGHT: -1.0 | total: -1.0)
+Skill modifier: 0.0 (skl_rifle: 0)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: 0.0 (first attack: false, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Final chance to hit: 20.66%
+Random roll: 4.87
+Result: HIT
+=============================
+=== RANGED DAMAGE CALCULATION DEBUG ===
+Weapon damage: 45
+Wound severity: SERIOUS
+Hit location: CHEST
+Scaled damage: 45
+=========================================
+--- Ranged attack impact scheduled at tick 7138 (will hit)
+>>> musket ball hit -1003:SoldierAlpha in the chest causing a serious wound at tick 7138
+>>> -1003:SoldierAlpha takes 45 damage
+>>> -1003:SoldierAlpha current health: -30/60
+>>> -1003:SoldierAlpha is incapacitated!
+>>> Removed all scheduled actions for -1003:SoldierAlpha
+Springfield test completed! Beta Team victory - opposing team eliminated.
+=== SoldierAlpha Stats (via DisplayCoordinator) ===
+***********************
+*** CHARACTER STATS ***
+***********************
+Character ID: -1003
+Unit ID: 1
+Nickname: SoldierAlpha
+Faction: -1
+Full Name: Alpha Soldier
+Birthdate: December 31, 2024
+Dexterity: 50 (modifier: 0)
+Strength: 50 (modifier: 0)
+Reflexes: 50 (modifier: 0)
+Health: -30/60
+Coolness: 50 (modifier: 0)
+Handedness: Right-handed
+Base Movement Speed: 0.0 pixels/second
+Current Movement: Run (0.0 pixels/sec)
+Current Aiming Speed: Careful (timing: 2.00x, accuracy: +15)
+Current Position: Prone
+Weapon Ready Speed: 1.00x (reflexes: +0)
+Incapacitated: YES
+Automatic Targeting: ON
+--- WEAPONS ---
+Combat Mode: RANGED
+
+Ranged Weapon: Springfield Model 1861 [ACTIVE] (45 damage, -5 accuracy)
+Melee Weapon: Unarmed (8 damage, 25 accuracy, 5.5ft reach)
+Current State: firing
+Hold State: aiming
+Firing Preference: Aiming State
+Active Details: Range 400.0ft, Velocity 1000.0ft/s, Ammo 0/1
+--- SKILLS ---
+skl_rifle: 1
+--- WOUNDS ---
+right_shoulder: serious, 45 damage (from musket ball, weapon: wpn_springfield_1861)
+chest: serious, 45 damage (from musket ball, weapon: wpn_springfield_1861)
+--- COMBAT EXPERIENCE ---
+Combat Engagements: 0
+Wounds Received: 2
+Wounds Inflicted: 0 total (0 scratch, 0 light, 0 serious, 0 critical)
+Ranged Combat: 4 attempted, 0 successful (0.0%), 0 wounds inflicted
+Melee Combat: 0 attempted, 0 successful (0.0%), 0 wounds inflicted
+Total Attacks: 4 attempted, 0 successful (0.0%)
+***********************
+
+=== GunfighterAlpha Stats (via DisplayCoordinator) ===
+***********************
+*** CHARACTER STATS ***
+***********************
+Character ID: -1002
+Unit ID: 2
+Nickname: GunfighterAlpha
+Faction: -1
+Full Name: Alpha Gunfighter
+Birthdate: December 31, 2024
+Dexterity: 50 (modifier: 0)
+Strength: 50 (modifier: 0)
+Reflexes: 50 (modifier: 0)
+Health: -18/50
+Coolness: 50 (modifier: 0)
+Handedness: Right-handed
+Base Movement Speed: 0.0 pixels/second
+Current Movement: Run (0.0 pixels/sec)
+Current Aiming Speed: Careful (timing: 2.00x, accuracy: +15)
+Current Position: Prone
+Weapon Ready Speed: 1.00x (reflexes: +0)
+Incapacitated: YES
+Automatic Targeting: ON
+--- WEAPONS ---
+Combat Mode: RANGED
+
+Ranged Weapon: Springfield Model 1861 [ACTIVE] (45 damage, -5 accuracy)
+Melee Weapon: Unarmed (8 damage, 25 accuracy, 5.5ft reach)
+Current State: firing
+Hold State: aiming
+Firing Preference: Aiming State
+Active Details: Range 400.0ft, Velocity 1000.0ft/s, Ammo 0/1
+--- SKILLS ---
+skl_pistol: 1
+--- WOUNDS ---
+head: serious, 68 damage (from musket ball, weapon: wpn_springfield_1861)
+--- COMBAT EXPERIENCE ---
+Combat Engagements: 0
+Wounds Received: 1
+Wounds Inflicted: 1 total (0 scratch, 1 light, 0 serious, 0 critical)
+Ranged Combat: 1 attempted, 1 successful (100.0%), 1 wounds inflicted
+Melee Combat: 0 attempted, 0 successful (0.0%), 0 wounds inflicted
+Total Attacks: 1 attempted, 1 successful (100.0%)
+***********************
+
+=== SoldierBeta Stats (via DisplayCoordinator) ===
+***********************
+*** CHARACTER STATS ***
+***********************
+Character ID: -2003
+Unit ID: 3
+Nickname: SoldierBeta
+Faction: -2
+Full Name: Beta Soldier
+Birthdate: December 31, 2024
+Dexterity: 50 (modifier: 0)
+Strength: 50 (modifier: 0)
+Reflexes: 50 (modifier: 0)
+Health: 60/60
+Coolness: 50 (modifier: 0)
+Handedness: Right-handed
+Base Movement Speed: 42.0 pixels/second
+Current Movement: Run (84.0 pixels/sec)
+Current Aiming Speed: Careful (timing: 2.00x, accuracy: +15)
+Current Position: Standing
+Weapon Ready Speed: 1.00x (reflexes: +0)
+Incapacitated: NO
+Automatic Targeting: ON
+--- WEAPONS ---
+Combat Mode: RANGED
+
+Ranged Weapon: Springfield Model 1861 [ACTIVE] (45 damage, -5 accuracy)
+Melee Weapon: Unarmed (8 damage, 25 accuracy, 5.5ft reach)
+Current State: reloading
+Hold State: aiming
+Firing Preference: Aiming State
+Active Details: Range 400.0ft, Velocity 1000.0ft/s, Ammo 0/1
+--- SKILLS ---
+skl_rifle: 1
+--- WOUNDS ---
+No wounds
+--- COMBAT EXPERIENCE ---
+Combat Engagements: 0
+Wounds Received: 0
+Wounds Inflicted: 1 total (0 scratch, 0 light, 1 serious, 0 critical)
+Ranged Combat: 6 attempted, 1 successful (16.7%), 1 wounds inflicted
+Melee Combat: 0 attempted, 0 successful (0.0%), 0 wounds inflicted
+Total Attacks: 6 attempted, 1 successful (16.7%)
+***********************
+
+=== GunfighterBeta Stats (via DisplayCoordinator) ===
+***********************
+*** CHARACTER STATS ***
+***********************
+Character ID: -2002
+Unit ID: 4
+Nickname: GunfighterBeta
+Faction: -2
+Full Name: Beta Gunfighter
+Birthdate: December 31, 2024
+Dexterity: 50 (modifier: 0)
+Strength: 50 (modifier: 0)
+Reflexes: 50 (modifier: 0)
+Health: 32/50
+Coolness: 50 (modifier: 0)
+Handedness: Right-handed
+Base Movement Speed: 42.0 pixels/second
+Current Movement: Run (84.0 pixels/sec)
+Current Aiming Speed: Careful (timing: 2.00x, accuracy: +15)
+Current Position: Standing
+Weapon Ready Speed: 1.00x (reflexes: +0)
+Incapacitated: NO
+Automatic Targeting: ON
+--- WEAPONS ---
+Combat Mode: RANGED
+
+Ranged Weapon: Springfield Model 1861 [ACTIVE] (45 damage, -5 accuracy)
+Melee Weapon: Unarmed (8 damage, 25 accuracy, 5.5ft reach)
+Current State: firing
+Hold State: aiming
+Firing Preference: Aiming State
+Active Details: Range 400.0ft, Velocity 1000.0ft/s, Ammo 0/1
+--- SKILLS ---
+skl_pistol: 1
+--- WOUNDS ---
+left_arm: light, 18 damage (from musket ball, weapon: wpn_springfield_1861)
+--- COMBAT EXPERIENCE ---
+Combat Engagements: 0
+Wounds Received: 1
+Wounds Inflicted: 2 total (0 scratch, 0 light, 2 serious, 0 critical)
+Ranged Combat: 6 attempted, 2 successful (33.3%), 2 wounds inflicted
+Melee Combat: 0 attempted, 0 successful (0.0%), 0 wounds inflicted
+Total Attacks: 6 attempted, 2 successful (33.3%)
+***********************
+=== Springfield Test Automated SUCCESS ===
+2v2 combat completed without exceptions
+Pausing for 5 seconds...
+Springfield test completed! Beta Team victory - opposing team eliminated.
+-2002:GunfighterBeta starts reloading Springfield Model 1861 (single round, 1200 ticks) [ammo: 0/1], at tick 7165
+Test complete.
+
+Process finished with exit code 0

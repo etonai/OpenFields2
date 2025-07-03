@@ -249,6 +249,7 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
    - `mvn test -Dtest=GunfightTestAutomated`
    - `mvn test -Dtest=BasicMissTestAutomated`
    - `mvn test -Dtest=BasicMissTestSimple`
+   - `mvn test -Dtest=SpringfieldTestAutomated`
 2. ✅ **Update DevCycle document with final status and close-out summary**
 3. ✅ **Commit final documentation updates**
 4. ✅ **Switch to main branch** (`git checkout main`)
@@ -267,6 +268,7 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 - ✅ **GunfightTestAutomated** - Core combat functionality and regression detection
 - ✅ **BasicMissTestAutomated** - Miss calculation and basic combat mechanics
 - ✅ **BasicMissTestSimple** - Simple miss test scenarios and validation
+- ✅ **SpringfieldTestAutomated** - 2v2 Springfield 1861 musket combat testing without exceptions
 
 **Enforcement Rules:**
 - ✅ **System Completion**: No system can be marked ✅ **COMPLETE** until ALL required tests pass
@@ -275,9 +277,32 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
   - `mvn test -Dtest=GunfightTestAutomated`
   - `mvn test -Dtest=BasicMissTestAutomated`
   - `mvn test -Dtest=BasicMissTestSimple`
+  - `mvn test -Dtest=SpringfieldTestAutomated`
 - ✅ **No Exceptions**: This rule applies to ALL systems and cycles, no exceptions allowed
 
 **Rationale**: These tests represent core game functionality, combat mechanics, and regression detection. If any of these tests fail, it indicates fundamental issues that must be resolved before any completion.
+
+### System Completion Confirmation Requirements (MANDATORY)
+**System Completion Requirement**: No system can be marked as ✅ **COMPLETE** until the user has explicitly confirmed that the implementation works correctly.
+
+**Enforcement Rules:**
+- ✅ **User Confirmation Required**: Claude must NEVER mark any system as "COMPLETE" without explicit user confirmation
+- ✅ **Implementation Status**: Use "IMPLEMENTED, AWAITING USER CONFIRMATION" status instead of "COMPLETE"
+- ✅ **Confirmation Process**: After implementation, Claude must:
+  1. State "System X implementation complete"
+  2. Request user to test the implementation
+  3. Wait for explicit user confirmation before marking as ✅ **COMPLETE**
+- ✅ **No Assumptions**: Never assume implementation works correctly without user testing
+- ✅ **No Self-Completion**: Claude cannot mark own work as complete
+
+**Violation Consequences**: Marking systems complete without user confirmation violates established workflow and must be immediately corrected.
+
+**Process Example:**
+```
+✅ Implementation complete: System X has been implemented
+⚠️ Status: IMPLEMENTED, AWAITING USER CONFIRMATION  
+❌ Do NOT mark as COMPLETE until user confirms it works
+```
 
 ### DevCycle Closure Enforcement
 To prevent missing the branch merge step in future cycles:
