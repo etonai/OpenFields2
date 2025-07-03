@@ -245,16 +245,28 @@ mvn javafx:run                # Run the JavaFX application
 ### DevCycle Closure Checklist (MANDATORY)
 When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 
-1. ✅ **Update DevCycle document with final status and close-out summary**
-2. ✅ **Commit final documentation updates**
-3. ✅ **Switch to main branch** (`git checkout main`)
-4. ✅ **Update CLAUDE.md with cycle completion** - Update "Last Completed Cycle" in Current Development Status section
-5. ✅ **Archive plan documents to completed directory** - Move DevCycle documents from `plans/` to `plans/completed/`
-6. ✅ **Merge development branch** (`git merge DC_##`)
-7. ✅ **Delete development branch** (`git branch -d DC_##`)
-8. ✅ **Verify clean status** (`git status`)
+1. ✅ **Verify GunfightTestAutomated passes** - Run `mvn test -Dtest=GunfightTestAutomated` and ensure it passes
+2. ✅ **Update DevCycle document with final status and close-out summary**
+3. ✅ **Commit final documentation updates**
+4. ✅ **Switch to main branch** (`git checkout main`)
+5. ✅ **Update CLAUDE.md with cycle completion** - Update "Last Completed Cycle" in Current Development Status section
+6. ✅ **Archive plan documents to completed directory** - Move DevCycle documents from `plans/` to `plans/completed/`
+7. ✅ **Merge development branch** (`git merge DC_##`)
+8. ✅ **Delete development branch** (`git branch -d DC_##`)
+9. ✅ **Verify clean status** (`git status`)
 
-**🚨 CRITICAL**: The git merge step (#6) is MANDATORY and must NEVER be skipped. DevCycle is NOT closed until the branch is merged to main.
+**🚨 CRITICAL**: The git merge step (#7) is MANDATORY and must NEVER be skipped. DevCycle is NOT closed until the branch is merged to main.
+
+### GunfightTestAutomated Mandatory Rule (MANDATORY)
+**Critical Test Requirement**: GunfightTestAutomated must ALWAYS pass before ANY system or DevCycle can be considered complete.
+
+**Enforcement Rules:**
+- ✅ **System Completion**: No system can be marked ✅ **COMPLETE** until GunfightTestAutomated passes
+- ✅ **Cycle Closure**: No DevCycle can be closed until GunfightTestAutomated passes  
+- ✅ **Verification Required**: Must run `mvn test -Dtest=GunfightTestAutomated` and verify success
+- ✅ **No Exceptions**: This rule applies to ALL systems and cycles, no exceptions allowed
+
+**Rationale**: GunfightTestAutomated represents core game functionality and regression detection. If this test fails, it indicates fundamental issues that must be resolved before any completion.
 
 ### DevCycle Closure Enforcement
 To prevent missing the branch merge step in future cycles:
@@ -329,6 +341,19 @@ Claude MAY execute these git commands without permission (read-only operations):
 - **Year Prefix**: Cycles are prefixed with the current year for organization
 - **Brainstorm Documents**: `DevCycle_YYYY_NNNN_brainstorm.md` for planning phases
 - **Bug Fix Documents**: `DevCycle_YYYY_NNNN_bugs_NN.md` for issue resolution during cycles
+
+### DevCycle Number Determination (MANDATORY)
+When creating a new DevCycle, Claude MUST follow this procedure:
+
+1. ✅ **Read CLAUDE.md first** - Check "Current Development Status" section
+2. ✅ **Use "Last Completed Cycle" number + 1** for new cycle number
+3. ✅ **NEVER calculate cycle numbers from file directories** - CLAUDE.md is the authoritative source
+4. ✅ **Add TodoWrite tasks** to enforce correct sequence before creating DevCycle document
+
+**Example Process:**
+- CLAUDE.md shows "Last Completed Cycle: DevCycle 37"
+- Next cycle should be "DevCycle 38"
+- Create todos to verify this process before proceeding
 
 ### Cycle Completion Dates and Major Achievements
 - **DevCycle 36** (July 2, 2025): Headless Testing Architecture - Complete JavaFX decoupling for automated testing
