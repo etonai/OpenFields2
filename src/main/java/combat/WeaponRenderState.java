@@ -50,6 +50,7 @@ public enum WeaponRenderState {
                 
             // Attacking states - weapon visible and aimed
             case "aiming":
+            case "reaiming":
             case "firing":
             case "recovering":
             case "melee_attacking":

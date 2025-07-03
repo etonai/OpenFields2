@@ -250,6 +250,7 @@ public class MovementController {
                     unit.character.getDisplayName() + " cancelled melee movement");
             }
             
+            
             // Set new target position relative to unit's current position
             double newTargetX = unit.x + deltaX;
             double newTargetY = unit.y + deltaY;

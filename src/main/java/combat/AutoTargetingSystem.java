@@ -55,6 +55,46 @@ public class AutoTargetingSystem {
             return;
         }
         
+        // DevCycle 37: System 2 - Create reaiming state when target becomes incapacitated
+        boolean targetJustIncapacitated = character.currentTarget != null 
+            && character.currentTarget.getCharacter().isIncapacitated() 
+            && character.isHostileTo(character.currentTarget.getCharacter())
+            && !character.hasProcessedTargetIncapacitation;
+        
+        if (targetJustIncapacitated) {
+            // Target just became incapacitated - create reaiming state
+            character.hasProcessedTargetIncapacitation = true;
+            
+            // Create temporary "reaiming" state to represent target acquisition time
+            if (character.weapon != null && character.currentWeaponState != null) {
+                String previousState = character.currentWeaponState.getState();
+                
+                // Determine the target state to return to after reaiming
+                String targetStateAfterReaiming;
+                if ("aiming".equals(previousState)) {
+                    targetStateAfterReaiming = "aiming";
+                } else if ("pointedfromhip".equals(previousState)) {
+                    targetStateAfterReaiming = "pointedfromhip";
+                } else {
+                    // For other states, use firing preference to determine target state
+                    targetStateAfterReaiming = character.getFiresFromAimingState() ? "aiming" : "pointedfromhip";
+                }
+                
+                // Create temporary reaiming state (15 ticks)
+                WeaponState reamingState = new WeaponState("reaiming", targetStateAfterReaiming, 15);
+                character.currentWeaponState = reamingState;
+                
+                // Clear any ongoing aiming timing in the AimingSystem
+                combat.managers.AimingSystem.getInstance().resetAimingTiming(character.id);
+                combat.managers.AimingSystem.getInstance().resetPointingFromHipTiming(character.id);
+                
+                if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+                    System.out.println("[REAIMING] " + character.getDisplayName() + 
+                                     " weapon state reset from " + previousState + " to reaiming (will return to " + targetStateAfterReaiming + ")");
+                }
+            }
+        }
+        
         // Check if current target is still valid
         boolean currentTargetValid = character.currentTarget != null 
             && !character.currentTarget.getCharacter().isIncapacitated() 
@@ -68,6 +108,7 @@ public class AutoTargetingSystem {
                 // Target found - start attacking
                 character.persistentAttack = true;
                 character.currentTarget = newTarget; // DevCycle 22: Fix auto targeting infinite loop by setting currentTarget
+                character.hasProcessedTargetIncapacitation = false; // Reset for new target
                 
                 // Calculate distance for logging
                 double dx = newTarget.getX() - selfUnit.getX();
@@ -265,6 +306,7 @@ public class AutoTargetingSystem {
         if (newTarget != null) {
             // New target found - start attacking
             character.currentTarget = newTarget;
+            character.hasProcessedTargetIncapacitation = false; // Reset for new target
             
             // Calculate distance for logging
             double dx = newTarget.getX() - shooter.getX();

@@ -103,6 +103,9 @@ public class Character implements ICharacter {
     public boolean usesAutomaticTargeting;
     public FiringMode preferredFiringMode;
     
+    /** DevCycle 37: System 2 - Target incapacitation processing */
+    public boolean hasProcessedTargetIncapacitation = false;
+    
     // SKILLS AND WOUNDS
     
     /** Character skills and abilities - DevCycle 30: Now managed by CharacterSkillsManager, but kept for compatibility */
@@ -1684,4 +1687,5 @@ public class Character implements ICharacter {
             cancelMeleeRecovery();
         }
     }
+    
 }
