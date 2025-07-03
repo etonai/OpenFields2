@@ -84,7 +84,9 @@ public class SaveGameController {
      * Prompt user for save slot selection
      */
     public void promptForSaveSlot() {
-        inputManager.setWaitingForSaveSlot(true);
+        if (inputManager != null) {
+            inputManager.setWaitingForSaveSlot(true);
+        }
         System.out.println("*** SAVE GAME ***");
         List<SaveGameManager.SaveSlotInfo> availableSlots = saveGameManager.listAvailableSlots();
         
@@ -106,7 +108,9 @@ public class SaveGameController {
      * Prompt user for load slot selection
      */
     public void promptForLoadSlot() {
-        inputManager.setWaitingForLoadSlot(true);
+        if (inputManager != null) {
+            inputManager.setWaitingForLoadSlot(true);
+        }
         System.out.println("*** LOAD GAME ***");
         List<SaveGameManager.SaveSlotInfo> availableSlots = saveGameManager.listAvailableSlotsWithTests();
         
@@ -176,7 +180,9 @@ public class SaveGameController {
             System.err.println("Error during save: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            inputManager.setWaitingForSaveSlot(false);
+            if (inputManager != null) {
+                inputManager.setWaitingForSaveSlot(false);
+            }
         }
     }
     
@@ -199,7 +205,9 @@ public class SaveGameController {
             System.err.println("Error during load: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            inputManager.setWaitingForLoadSlot(false);
+            if (inputManager != null) {
+                inputManager.setWaitingForLoadSlot(false);
+            }
         }
     }
     
@@ -222,7 +230,9 @@ public class SaveGameController {
             System.err.println("Error during test load: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            inputManager.setWaitingForLoadSlot(false);
+            if (inputManager != null) {
+                inputManager.setWaitingForLoadSlot(false);
+            }
         }
     }
     

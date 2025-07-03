@@ -21,7 +21,7 @@ import combat.WeaponRenderState;
  * Handles all rendering operations for the OpenFields2 game.
  * Extracted from OpenFields2.java to separate rendering concerns.
  */
-public class GameRenderer {
+public class GameRenderer implements BaseGameRenderer {
     // Canvas constants - removed hardcoded values, now use actual Canvas size
     
     // Canvas and camera state
