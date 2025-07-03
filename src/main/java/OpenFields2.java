@@ -12,6 +12,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -40,6 +41,7 @@ import data.UniversalCharacterRegistry;
 import data.CharacterFactory;
 import data.FactionRegistry;
 import input.interfaces.InputManagerCallbacks;
+import config.GameConfig;
 
 public class OpenFields2 extends Application implements GameCallbacks, InputManagerCallbacks {
 
@@ -54,11 +56,32 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     }
     
 
-    static final int WIDTH = 800;
-    static final int HEIGHT = 600;
+    // Window dimensions will be loaded from configuration at startup
+    private static final GameConfig gameConfig = GameConfig.getInstance();
     static final double MOVE_SPEED = 42.0;
 
-    private final Canvas canvas = new Canvas(WIDTH, HEIGHT);
+    private final Canvas canvas = new Canvas() {
+        @Override
+        public boolean isResizable() {
+            return true;
+        }
+        
+        @Override
+        public double prefWidth(double height) {
+            return getWidth();
+        }
+        
+        @Override
+        public double prefHeight(double width) {
+            return getHeight();
+        }
+        
+        @Override
+        public void resize(double width, double height) {
+            setWidth(width);
+            setHeight(height);
+        }
+    };
     private final List<Unit> units = new ArrayList<>();
     private final SelectionManager selectionManager = new SelectionManager();
     private final GameRenderer gameRenderer = new GameRenderer(canvas);
@@ -109,12 +132,22 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             System.out.println("Could not load gunshot sound: " + e.getMessage());
         }
         
-        Pane root = new Pane(canvas);
-        Scene scene = new Scene(root);
+        // Get window dimensions from configuration
+        int windowWidth = gameConfig.getDisplay().getWindow().getWidth();
+        int windowHeight = gameConfig.getDisplay().getWindow().getHeight();
+        
+        // Set initial Canvas size to match configured window dimensions
+        canvas.setWidth(windowWidth);
+        canvas.setHeight(windowHeight);
+        
+        StackPane root = new StackPane(canvas);
+        Scene scene = new Scene(root, windowWidth, windowHeight);
+        
+        // Canvas will auto-resize via the resizable implementation
 
         // Initialize EditModeController
         editModeController = new EditModeController(units, selectionManager, gameRenderer, 
-                                                   WIDTH, HEIGHT, new EditModeCallbacksImpl());
+                                                   windowWidth, windowHeight, new EditModeCallbacksImpl());
         
         // Initialize InputManager
         inputManager = new InputManager(units, selectionManager, gameRenderer, gameClock, 
@@ -133,7 +166,11 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         timeline.play();
 
         primaryStage.setScene(scene);
-        primaryStage.setTitle("Unit Movement Game");
+        primaryStage.setTitle(gameConfig.getDisplay().getWindow().getTitle());
+        primaryStage.setWidth(gameConfig.getDisplay().getWindow().getWidth());
+        primaryStage.setHeight(gameConfig.getDisplay().getWindow().getHeight());
+        primaryStage.setResizable(gameConfig.getDisplay().getWindow().isResizable());
+        primaryStage.setFullScreen(gameConfig.getDisplay().getWindow().isFullscreen());
         primaryStage.show();
         
         System.out.println("***********************");
