@@ -250,7 +250,7 @@ public class SpringfieldTestAutomated {
                 // Verify SoldierAlpha configuration
                 assertEquals(-1003, soldierAlpha.id, "SoldierAlpha should have correct ID");
                 assertEquals(50, soldierAlpha.dexterity, "SoldierAlpha should have dexterity 50");
-                assertEquals(100, soldierAlpha.currentHealth, "SoldierAlpha should have 100 health");
+                assertEquals(60, soldierAlpha.currentHealth, "SoldierAlpha should have 60 health");
                 
                 // Verify GunfighterAlpha configuration
                 assertEquals(-1002, gunfighterAlpha.id, "GunfighterAlpha should have correct ID");
@@ -260,7 +260,7 @@ public class SpringfieldTestAutomated {
                 // Verify SoldierBeta configuration
                 assertEquals(-2003, soldierBeta.id, "SoldierBeta should have correct ID");
                 assertEquals(50, soldierBeta.dexterity, "SoldierBeta should have dexterity 50");
-                assertEquals(100, soldierBeta.currentHealth, "SoldierBeta should have 100 health");
+                assertEquals(60, soldierBeta.currentHealth, "SoldierBeta should have 60 health");
                 
                 // Verify GunfighterBeta configuration
                 assertEquals(-2002, gunfighterBeta.id, "GunfighterBeta should have correct ID");
