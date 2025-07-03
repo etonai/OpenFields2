@@ -106,6 +106,52 @@
       "battlesParticipated": 0,
       "victories": 0,
       "defeats": 0
+    },
+    {
+      "id": -2003,
+      "nickname": "SoldierBeta",
+      "firstName": "Beta",
+      "lastName": "Soldier",
+      "birthdate": "January 1, 2025",
+      "themeId": null,
+      "dexterity": 50,
+      "currentDexterity": 50,
+      "health": 60,
+      "currentHealth": 60,
+      "coolness": 50,
+      "strength": 50,
+      "reflexes": 50,
+      "handedness": "RIGHT_HANDED",
+      "baseMovementSpeed": 42.0,
+      "currentMovementType": "WALK",
+      "currentAimingSpeed": "CAREFUL",
+      "weaponId": "wpn_springfield_1861",
+      "currentWeaponState": null,
+      "skills": [
+        {
+          "skillName": "skl_rifle",
+          "level": 1
+        }
+      ],
+      "wounds": [],
+      "usesAutomaticTargeting": true,
+      "preferredFiringMode": "SINGLE_SHOT",
+      "faction": -2,
+      "combatEngagements": 0,
+      "woundsReceived": 0,
+      "woundsInflictedScratch": 0,
+      "woundsInflictedLight": 0,
+      "woundsInflictedSerious": 0,
+      "woundsInflictedCritical": 0,
+      "attacksAttempted": 0,
+      "attacksSuccessful": 0,
+      "targetsIncapacitated": 0,
+      "headshotsAttempted": 0,
+      "headshotsSuccessful": 0,
+      "headshotIncapacitations": 0,
+      "battlesParticipated": 0,
+      "victories": 0,
+      "defeats": 0
     }
   ]
 }

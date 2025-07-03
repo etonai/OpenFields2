@@ -131,13 +131,17 @@ public class HesitationManager {
         // Clear paused events as they are no longer valid
         character.pausedEvents.clear();
         
-        // Reset attack state to allow new commands
+        // CRITICAL FIX: Always reset attack state to allow new commands, regardless of weapon state
         character.isAttacking = false;
+        System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " attack state reset to allow new combat actions");
         
-        // DevCycle 36: Fix weapon state recovery after hesitation
-        // Check if character is stuck in "recovering" state and schedule proper transition
-        if (character.currentWeaponState != null && "recovering".equals(character.currentWeaponState.getState())) {
-            System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " detected in recovering state, scheduling transition to preferred firing state");
+        // DevCycle 36+38: Fix weapon state recovery after hesitation
+        // Check if character is stuck in "recovering" or "firing" state and schedule proper transition
+        if (character.currentWeaponState != null && 
+            ("recovering".equals(character.currentWeaponState.getState()) || 
+             "firing".equals(character.currentWeaponState.getState()))) {
+            String currentState = character.currentWeaponState.getState();
+            System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " detected in " + currentState + " state, scheduling transition to preferred firing state");
             
             // Determine target state based on firing preference
             String targetState = character.getFiresFromAimingState() ? "aiming" : "pointedfromhip";
@@ -168,6 +172,39 @@ public class HesitationManager {
                 // Reset attacking flag to allow new combat actions
                 character.isAttacking = false;
             }, ownerId));
+        } else {
+            // DevCycle 38: Handle characters stuck in "firing" state without proper recovery transition
+            // This can happen when hesitation interrupts the normal firing→recovering→reload/ready flow
+            if (character.currentWeaponState != null && "firing".equals(character.currentWeaponState.getState())) {
+                System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " stuck in firing state after hesitation, scheduling immediate recovery transition");
+                
+                // Immediately transition to the appropriate post-firing state
+                if (character.weapon instanceof RangedWeapon && ((RangedWeapon)character.weapon).getAmmunition() <= 0 && character.canReload() && !character.isReloading) {
+                    // Need to reload - start reload sequence immediately
+                    character.currentWeaponState = character.weapon.getStateByName("reloading");
+                    character.isAttacking = false;
+                    
+                    // Use CombatCoordinator to start reload properly
+                    eventQueue.add(new ScheduledEvent(currentTick + 1, () -> {
+                        // Start reload sequence using proper delegation
+                        character.startReloadSequence(null, currentTick + 1, eventQueue, ownerId, null);
+                        System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " starting reload after hesitation recovery");
+                    }, ownerId));
+                } else {
+                    // Still has ammo - return to ready state and then preferred firing state
+                    String targetState = character.getFiresFromAimingState() ? "aiming" : "pointedfromhip";
+                    character.currentWeaponState = character.weapon.getStateByName(targetState);
+                    
+                    // Start timing for the target state
+                    if ("aiming".equals(targetState)) {
+                        character.startAimingTiming(currentTick);
+                    } else if ("pointedfromhip".equals(targetState)) {
+                        character.startPointingFromHipTiming(currentTick);
+                    }
+                    
+                    System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " returning to " + targetState + " state after hesitation");
+                }
+            }
         }
     }
     

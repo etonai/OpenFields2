@@ -1,0 +1,13 @@
+{
+  "display": {
+    "window": {
+      "width": 1024,
+      "height": 768,
+      "fullscreen": false,
+      "resizable": true,
+      "title": "OpenFields2 - Tactical Combat Simulation"
+    }
+  },
+  "version": "1.0",
+  "configVersion": 1
+}

@@ -245,7 +245,11 @@ mvn javafx:run                # Run the JavaFX application
 ### DevCycle Closure Checklist (MANDATORY)
 When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 
-1. ✅ **Verify GunfightTestAutomated passes** - Run `mvn test -Dtest=GunfightTestAutomated` and ensure it passes
+1. ✅ **Verify all critical tests pass** - Run and verify all required tests pass:
+   - `mvn test -Dtest=GunfightTestAutomated`
+   - `mvn test -Dtest=BasicMissTestAutomated`
+   - `mvn test -Dtest=BasicMissTestSimple`
+   - `mvn test -Dtest=SpringfieldTestAutomated`
 2. ✅ **Update DevCycle document with final status and close-out summary**
 3. ✅ **Commit final documentation updates**
 4. ✅ **Switch to main branch** (`git checkout main`)
@@ -257,16 +261,48 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 
 **🚨 CRITICAL**: The git merge step (#7) is MANDATORY and must NEVER be skipped. DevCycle is NOT closed until the branch is merged to main.
 
-### GunfightTestAutomated Mandatory Rule (MANDATORY)
-**Critical Test Requirement**: GunfightTestAutomated must ALWAYS pass before ANY system or DevCycle can be considered complete.
+### Critical Test Requirements (MANDATORY)
+**Critical Test Requirement**: The following tests must ALWAYS pass before ANY system or DevCycle can be considered complete.
+
+**Required Tests:**
+- ✅ **GunfightTestAutomated** - Core combat functionality and regression detection
+- ✅ **BasicMissTestAutomated** - Miss calculation and basic combat mechanics
+- ✅ **BasicMissTestSimple** - Simple miss test scenarios and validation
+- ✅ **SpringfieldTestAutomated** - 2v2 Springfield 1861 musket combat testing without exceptions
 
 **Enforcement Rules:**
-- ✅ **System Completion**: No system can be marked ✅ **COMPLETE** until GunfightTestAutomated passes
-- ✅ **Cycle Closure**: No DevCycle can be closed until GunfightTestAutomated passes  
-- ✅ **Verification Required**: Must run `mvn test -Dtest=GunfightTestAutomated` and verify success
+- ✅ **System Completion**: No system can be marked ✅ **COMPLETE** until ALL required tests pass
+- ✅ **Cycle Closure**: No DevCycle can be closed until ALL required tests pass  
+- ✅ **Verification Required**: Must run each test individually and verify success:
+  - `mvn test -Dtest=GunfightTestAutomated`
+  - `mvn test -Dtest=BasicMissTestAutomated`
+  - `mvn test -Dtest=BasicMissTestSimple`
+  - `mvn test -Dtest=SpringfieldTestAutomated`
 - ✅ **No Exceptions**: This rule applies to ALL systems and cycles, no exceptions allowed
 
-**Rationale**: GunfightTestAutomated represents core game functionality and regression detection. If this test fails, it indicates fundamental issues that must be resolved before any completion.
+**Rationale**: These tests represent core game functionality, combat mechanics, and regression detection. If any of these tests fail, it indicates fundamental issues that must be resolved before any completion.
+
+### System Completion Confirmation Requirements (MANDATORY)
+**System Completion Requirement**: No system can be marked as ✅ **COMPLETE** until the user has explicitly confirmed that the implementation works correctly.
+
+**Enforcement Rules:**
+- ✅ **User Confirmation Required**: Claude must NEVER mark any system as "COMPLETE" without explicit user confirmation
+- ✅ **Implementation Status**: Use "IMPLEMENTED, AWAITING USER CONFIRMATION" status instead of "COMPLETE"
+- ✅ **Confirmation Process**: After implementation, Claude must:
+  1. State "System X implementation complete"
+  2. Request user to test the implementation
+  3. Wait for explicit user confirmation before marking as ✅ **COMPLETE**
+- ✅ **No Assumptions**: Never assume implementation works correctly without user testing
+- ✅ **No Self-Completion**: Claude cannot mark own work as complete
+
+**Violation Consequences**: Marking systems complete without user confirmation violates established workflow and must be immediately corrected.
+
+**Process Example:**
+```
+✅ Implementation complete: System X has been implemented
+⚠️ Status: IMPLEMENTED, AWAITING USER CONFIRMATION  
+❌ Do NOT mark as COMPLETE until user confirms it works
+```
 
 ### DevCycle Closure Enforcement
 To prevent missing the branch merge step in future cycles:
@@ -355,6 +391,33 @@ When creating a new DevCycle, Claude MUST follow this procedure:
 - CLAUDE.md shows "Last Completed Cycle: DevCycle 37"
 - Next cycle should be "DevCycle 38"
 - Create todos to verify this process before proceeding
+
+### System Creation vs. Implementation (MANDATORY)
+When working with DevCycle systems, Claude MUST distinguish between planning and implementation:
+
+**CREATING a system** = Planning only, no code changes whatsoever
+**IMPLEMENTING a system** = Actual coding after plan approval
+
+#### Mandatory Process for System Creation:
+When user says "create a new system":
+1. ✅ **Add TodoWrite tasks** that enforce correct sequence:
+   - "Plan System X (do not implement)"
+   - "Wait for user approval of plan" 
+   - "Only implement when explicitly requested"
+2. ✅ **Add planning section only** to DevCycle document
+3. ✅ **Mark as ⭕ PLANNING status**
+4. ✅ **STOP** - wait for explicit implementation request
+5. ✅ **NEVER code without explicit "implement" instruction**
+
+#### Implementation Authorization:
+- ✅ **Only implement when user explicitly says**: "implement system X" or "please implement system X"
+- ✅ **NEVER implement** when user says: "create system", "add system", "new system"
+- ✅ **When in doubt, ask**: "Do you want me to (1) plan the system, or (2) plan AND implement it?"
+
+#### Enforcement Rules:
+- ✅ **NO EXCEPTIONS**: This rule applies to ALL system work, no matter how simple or obvious
+- ✅ **VIOLATION CONSEQUENCES**: Unauthorized implementation violates project workflow
+- ✅ **TODO VERIFICATION**: Check todos before any code changes to ensure proper authorization
 
 ### Cycle Completion Dates and Major Achievements
 - **DevCycle 36** (July 2, 2025): Headless Testing Architecture - Complete JavaFX decoupling for automated testing

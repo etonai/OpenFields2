@@ -22,9 +22,7 @@ import combat.WeaponRenderState;
  * Extracted from OpenFields2.java to separate rendering concerns.
  */
 public class GameRenderer {
-    // Canvas constants
-    static final int WIDTH = 800;
-    static final int HEIGHT = 600;
+    // Canvas constants - removed hardcoded values, now use actual Canvas size
     
     // Canvas and camera state
     private final Canvas canvas;
@@ -64,7 +62,7 @@ public class GameRenderer {
     public void render() {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setFill(Color.LIGHTGRAY);
-        gc.fillRect(0, 0, WIDTH, HEIGHT);
+        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
         gc.save();
         gc.translate(offsetX, offsetY);
