@@ -204,19 +204,45 @@ public class MeleeCombatTestAutomated {
             System.err.println("=== END SUMMARY ===");
         }
         
-        // Verify success criteria (restored to original requirements with attack validation)
-        assertFalse(testFailed.get(), "Test failed: " + failureReason);
-        assertFalse(exceptionDetected.get(), "Exception detected during combat. See detailed exception report above.");
-        
-        // Primary success criteria: No exceptions AND at least one defense attempt
-        assertTrue(defenseAttempts.get() >= 1, "At least one defense attempt should have occurred. Actual: " + defenseAttempts.get());
-        
-        // Additional criteria: At least one non-zero defense modifier (indicating successful defense)
-        assertTrue(nonZeroDefenseModifiers.get() >= 1, "At least one non-zero defense modifier should have occurred. Actual: " + nonZeroDefenseModifiers.get());
-        
-        // Enhanced success criteria: At least one attack performed
+        // Calculate total attacks for use in success criteria and reporting
         int totalAttacks = soldierAlpha.getAttacksAttempted() + soldierBeta.getAttacksAttempted();
-        assertTrue(totalAttacks >= 1, "At least one attack should have been performed. Alpha attacks: " + soldierAlpha.getAttacksAttempted() + ", Beta attacks: " + soldierBeta.getAttacksAttempted());
+        
+        // Verify success criteria (restored to original requirements with attack validation)
+        try {
+            assertFalse(testFailed.get(), "Test failed: " + failureReason);
+            assertFalse(exceptionDetected.get(), "Exception detected during combat. See detailed exception report above.");
+            
+            // Primary success criteria: No exceptions AND at least one defense attempt
+            assertTrue(defenseAttempts.get() >= 1, "At least one defense attempt should have occurred. Actual: " + defenseAttempts.get());
+            
+            // Additional criteria: At least one non-zero defense modifier (indicating successful defense)
+            assertTrue(nonZeroDefenseModifiers.get() >= 1, "At least one non-zero defense modifier should have occurred. Actual: " + nonZeroDefenseModifiers.get());
+            
+            // Enhanced success criteria: At least one attack performed
+            assertTrue(totalAttacks >= 1, "At least one attack should have been performed. Alpha attacks: " + soldierAlpha.getAttacksAttempted() + ", Beta attacks: " + soldierBeta.getAttacksAttempted());
+        } catch (AssertionError e) {
+            // Display full character stats when primary success criteria fail
+            System.err.println("=== PRIMARY SUCCESS CRITERIA FAILURE - CHARACTER STATS DEBUG ===");
+            outputDetailedStats();
+            System.err.println("=== END CHARACTER STATS DEBUG ===");
+            throw e; // Re-throw the original assertion error
+        }
+        
+        // Additional failure conditions to detect combat system bugs
+        try {
+            validateCharacterWounds(soldierAlpha, "SoldierAlpha");
+            validateCharacterWounds(soldierBeta, "SoldierBeta");
+            validateCharacterHealth(soldierAlpha, "SoldierAlpha");
+            validateCharacterHealth(soldierBeta, "SoldierBeta");
+            validateAttackTiming();
+            validateAttackFrequency();
+        } catch (AssertionError e) {
+            // Display full character stats when any validation fails
+            System.err.println("=== VALIDATION FAILURE - CHARACTER STATS DEBUG ===");
+            outputDetailedStats();
+            System.err.println("=== END CHARACTER STATS DEBUG ===");
+            throw e; // Re-throw the original assertion error
+        }
         
         System.out.println("Test completed successfully - all success criteria met");
         System.out.println("Defense attempts: " + defenseAttempts.get() + ", Total attacks: " + totalAttacks);
@@ -687,7 +713,8 @@ public class MeleeCombatTestAutomated {
                 line.contains("Caused by:") || line.contains("java.lang.")) {
                 
                 // Only flag as exception if it's not just a debug message about exceptions
-                if (!line.contains("[AUTO-TARGETING ERROR]") && !line.contains("=== UNCAUGHT EXCEPTION DETECTED ===")) {
+                if (!line.contains("[AUTO-TARGETING ERROR]") && !line.contains("=== UNCAUGHT EXCEPTION DETECTED ===") && 
+                    !line.contains("INFO: Benign exception ignored")) {
                     exceptionDetected.set(true);
                     testFailed.set(true);
                     if (failureReason.isEmpty()) {
@@ -752,5 +779,195 @@ public class MeleeCombatTestAutomated {
         // Add other known benign exceptions here as needed
         
         return false;
+    }
+    
+    /**
+     * Validates character wounds to detect combat system bugs.
+     * Fails if character has more than 1 critical wound or any wounds after a critical wound.
+     * 
+     * @param character The character to validate
+     * @param characterName The character name for error messages
+     */
+    private void validateCharacterWounds(combat.Character character, String characterName) {
+        // Check for multiple critical wounds
+        if (character.woundsInflictedCritical > 1) {
+            fail(characterName + " has " + character.woundsInflictedCritical + " critical wounds - should have at most 1");
+        }
+        
+        // Check wound list for wounds after critical wounds
+        if (character.wounds != null && !character.wounds.isEmpty()) {
+            boolean foundCritical = false;
+            int woundIndex = 0;
+            
+            for (Object woundObj : character.wounds) {
+                woundIndex++;
+                
+                if (woundObj instanceof combat.Wound) {
+                    combat.Wound wound = (combat.Wound) woundObj;
+                    
+                    if (combat.WoundSeverity.CRITICAL.equals(wound.getSeverity())) {
+                        foundCritical = true;
+                    } else if (foundCritical) {
+                        // Found a non-critical wound after a critical wound
+                        fail(characterName + " has wound '" + wound.getSeverity() + "' at position " + woundIndex + 
+                             " after a critical wound - no wounds should occur after critical wounds");
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Validates character health to detect excessive damage bugs.
+     * Fails if character health is less than -59.
+     * 
+     * @param character The character to validate
+     * @param characterName The character name for error messages
+     */
+    private void validateCharacterHealth(combat.Character character, String characterName) {
+        if (character.currentHealth < -59) {
+            fail(characterName + " has health " + character.currentHealth + " which is below the minimum threshold of -59");
+        }
+    }
+    
+    /**
+     * Validates attack timing to detect rapid-fire attack bugs.
+     * Fails if any character makes 2 attacks within a 10 tick time period.
+     */
+    private void validateAttackTiming() {
+        // Parse console output for attack messages and extract timing
+        String output = consoleOutput.toString();
+        String[] lines = output.split("\\n");
+        
+        java.util.Map<String, java.util.List<Long>> attacksByCharacter = new java.util.HashMap<>();
+        
+        for (String line : lines) {
+            // Look for melee attack messages with tick information
+            if (line.contains("[MELEE-ATTACK]") && line.contains("startMeleeAttackSequence called at tick")) {
+                try {
+                    // Extract character name and tick number
+                    // Format: "[MELEE-ATTACK] -1003:SoldierAlpha startMeleeAttackSequence called at tick 177"
+                    if (line.contains(":SoldierAlpha")) {
+                        String tickPart = line.substring(line.indexOf("at tick ") + 8);
+                        long tick = Long.parseLong(tickPart.trim());
+                        
+                        attacksByCharacter.computeIfAbsent("SoldierAlpha", k -> new java.util.ArrayList<>()).add(tick);
+                    } else if (line.contains(":SoldierBeta")) {
+                        String tickPart = line.substring(line.indexOf("at tick ") + 8);
+                        long tick = Long.parseLong(tickPart.trim());
+                        
+                        attacksByCharacter.computeIfAbsent("SoldierBeta", k -> new java.util.ArrayList<>()).add(tick);
+                    }
+                } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
+                    // Skip malformed lines
+                    System.out.println("Could not parse attack timing from line: " + line.trim());
+                }
+            }
+        }
+        
+        // Check each character's attack timing
+        for (java.util.Map.Entry<String, java.util.List<Long>> entry : attacksByCharacter.entrySet()) {
+            String characterName = entry.getKey();
+            java.util.List<Long> attackTicks = entry.getValue();
+            
+            // Sort attacks by tick to check consecutive attacks
+            attackTicks.sort(Long::compareTo);
+            
+            // Check for attacks within 10 ticks of each other
+            for (int i = 1; i < attackTicks.size(); i++) {
+                long previousAttack = attackTicks.get(i - 1);
+                long currentAttack = attackTicks.get(i);
+                long timeDifference = currentAttack - previousAttack;
+                
+                if (timeDifference <= 10) {
+                    fail(characterName + " made 2 attacks within " + timeDifference + " ticks " +
+                         "(at tick " + previousAttack + " and tick " + currentAttack + ") - " +
+                         "attacks should be at least 10 ticks apart");
+                }
+            }
+            
+            System.out.println("Attack timing validation: " + characterName + " made " + attackTicks.size() + 
+                             " attacks with proper timing intervals");
+        }
+    }
+    
+    /**
+     * Validates attack frequency to detect rapid-fire attack bugs.
+     * Fails if any character attacks more than 1 time per 30 ticks.
+     */
+    private void validateAttackFrequency() {
+        // Parse console output for attack messages and extract timing
+        String output = consoleOutput.toString();
+        String[] lines = output.split("\\n");
+        
+        java.util.Map<String, java.util.List<Long>> attacksByCharacter = new java.util.HashMap<>();
+        long totalTestTicks = 0;
+        
+        for (String line : lines) {
+            // Track total test duration by looking for tick references
+            if (line.contains("at tick ") && line.contains("Combat completed")) {
+                try {
+                    String tickPart = line.substring(line.indexOf("at tick ") + 8);
+                    // Extract just the number part
+                    String[] tickParts = tickPart.split("\\s+");
+                    if (tickParts.length > 0) {
+                        totalTestTicks = Math.max(totalTestTicks, Long.parseLong(tickParts[0]));
+                    }
+                } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
+                    // Skip malformed lines
+                }
+            }
+            
+            // Look for melee attack messages with tick information
+            if (line.contains("[MELEE-ATTACK]") && line.contains("startMeleeAttackSequence called at tick")) {
+                try {
+                    // Extract character name and tick number
+                    // Format: "[MELEE-ATTACK] -1003:SoldierAlpha startMeleeAttackSequence called at tick 177"
+                    if (line.contains(":SoldierAlpha")) {
+                        String tickPart = line.substring(line.indexOf("at tick ") + 8);
+                        long tick = Long.parseLong(tickPart.trim());
+                        
+                        attacksByCharacter.computeIfAbsent("SoldierAlpha", k -> new java.util.ArrayList<>()).add(tick);
+                        totalTestTicks = Math.max(totalTestTicks, tick);
+                    } else if (line.contains(":SoldierBeta")) {
+                        String tickPart = line.substring(line.indexOf("at tick ") + 8);
+                        long tick = Long.parseLong(tickPart.trim());
+                        
+                        attacksByCharacter.computeIfAbsent("SoldierBeta", k -> new java.util.ArrayList<>()).add(tick);
+                        totalTestTicks = Math.max(totalTestTicks, tick);
+                    }
+                } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
+                    // Skip malformed lines
+                    System.out.println("Could not parse attack frequency from line: " + line.trim());
+                }
+            }
+        }
+        
+        // If we didn't find total ticks from combat completion, estimate from last attack
+        if (totalTestTicks == 0) {
+            totalTestTicks = 600; // Default estimate (10 seconds at 60 ticks/second)
+        }
+        
+        // Check attack frequency for each character
+        for (java.util.Map.Entry<String, java.util.List<Long>> entry : attacksByCharacter.entrySet()) {
+            String characterName = entry.getKey();
+            java.util.List<Long> attackTicks = entry.getValue();
+            int attackCount = attackTicks.size();
+            
+            // Calculate expected maximum attacks (1 attack per 30 ticks)
+            long expectedMaxAttacks = totalTestTicks / 30;
+            if (totalTestTicks % 30 > 0) {
+                expectedMaxAttacks++; // Round up for partial intervals
+            }
+            
+            if (attackCount > expectedMaxAttacks) {
+                fail(characterName + " made " + attackCount + " attacks in " + totalTestTicks + " ticks " +
+                     "(expected maximum: " + expectedMaxAttacks + " attacks for 1 attack per 30 ticks) - " +
+                     "attack frequency too high");
+            }
+            
+            System.out.println("Attack frequency validation: " + characterName + " made " + attackCount + 
+                             " attacks in " + totalTestTicks + " ticks (max allowed: " + expectedMaxAttacks + ")");
+        }
     }
 }
