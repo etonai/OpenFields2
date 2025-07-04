@@ -365,17 +365,22 @@ Claude MAY execute these git commands without permission (read-only operations):
 ## Development Cycle Tracking
 
 ### Current Development Status
-- **Last Completed Cycle**: DevCycle 39 - Headless Combat Testing Enhancement (Completed: July 3, 2025)
-  - Implemented comprehensive headless mode support for OpenFields2 with BaseGameRenderer interface architecture
-  - Enhanced HeadlessGunfightTest to use real combat systems instead of mock outcomes for authentic validation
-  - Created comprehensive test automation framework with fast/full test execution options
-  - Added DisplayCoordinator integration for exact character stats display matching game UI
-  - Established critical test enforcement system with automated test runners for DevCycle closure
-  - 5 core deliverables completed with 7x performance improvement and enhanced test reliability
+- **Last Completed Cycle**: DevCycle 40 - Melee Combat System Enhancements (Completed: July 4, 2025)
+  - Implemented comprehensive melee defense system with dexterity, skill, and weapon bonuses
+  - Restored auto-targeting functionality in MeleeCombatTestAutomated for proper test validation
+  - Resolved stats display synchronization issues with JavaFX thread coordination
+  - **CRITICAL FIX**: Resolved attack state management bug causing rapid attack scheduling in melee combat
+    - Root cause: Missing `isAttacking = true` flag in melee attack initialization
+    - Eliminated 208+ AUTO-TARGETING ERROR messages per test
+    - Normalized attack frequencies from 12+ rapid-fire to 1-15 reasonable attacks per test
+    - Fixed multiple critical wound violations and excessive damage accumulation
+  - Enhanced test infrastructure with comprehensive problem collection and debugging capabilities
+  - 9 core systems completed with comprehensive testing and verification across all combat scenarios
 
 - **Current Active Cycle**: None
   - Status: Ready for next development cycle planning
-  - All systems operational with clean codebase and comprehensive test automation
+  - All systems operational with stable melee combat and enhanced test automation
+  - Attack state management working correctly across all combat modes
 
 ### Development Cycle Numbering System
 - **Format**: DevCycle YYYY_NNNN (e.g., DevCycle 2025_0037)
