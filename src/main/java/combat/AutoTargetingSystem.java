@@ -182,8 +182,10 @@ public class AutoTargetingSystem {
             
             String zoneStatus = (character.targetZone != null && character.targetZone.contains((int)character.currentTarget.getX(), (int)character.currentTarget.getY())) ? " (in target zone)" : "";
             
-            // DevCycle 40: System 9 - Log rapid attack scheduling for investigation but don't fail immediately
-            // Following System 9 Principle 3: Allow natural attack timing, fix underlying scheduling logic
+            // DevCycle 40: System 9 - RESTORED: 5-tick minimum interval protection 
+            // Investigation showed removing this exposed rapid attack scheduling (12 attacks in 177 ticks)
+            // Root cause: Attack state management bug where isAttacking flag cleared prematurely
+            // TODO: Fix underlying attack state coordination between recovery completion and auto-targeting
             long MIN_ATTACK_SCHEDULE_INTERVAL = 5; // Minimum ticks between attack scheduling attempts
             if (character.lastAttackScheduledTick >= 0 && 
                 currentTick - character.lastAttackScheduledTick < MIN_ATTACK_SCHEDULE_INTERVAL) {
