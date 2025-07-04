@@ -125,6 +125,15 @@ public class MeleeCombatTestAutomated {
         System.out.println("Test completed successfully - all success criteria met");
         System.out.println("Defense attempts: " + defenseAttempts.get() + ", Total attacks: " + totalAttacks);
         
+        // Wait 2.5 seconds after combat completion for all systems to settle
+        System.out.println("Waiting 2.5 seconds for all combat systems to settle...");
+        try {
+            Thread.sleep(2500); // Wait 2.5 seconds for background processes to quiet down
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("Wait interrupted");
+        }
+        
         // Output detailed stats for both characters
         outputDetailedStats();
         
@@ -483,15 +492,29 @@ public class MeleeCombatTestAutomated {
                 if (displayCoordinator instanceof DisplayCoordinator) {
                     DisplayCoordinator coordinator = (DisplayCoordinator) displayCoordinator;
                     
-                    // Display stats for SoldierAlpha using actual Shift+/ command
+                    // Display stats for SoldierAlpha using actual Shift+/ command with error handling
                     System.out.println("=== SoldierAlpha Stats (via DisplayCoordinator) ===");
-                    coordinator.displayCharacterStats(alphaUnit);
+                    try {
+                        coordinator.displayCharacterStats(alphaUnit);
+                        System.out.println(">> SoldierAlpha stats completed successfully");
+                    } catch (Exception e) {
+                        System.err.println("Error displaying SoldierAlpha stats: " + e.getMessage());
+                        e.printStackTrace();
+                        displayBasicStats(alphaUnit, "SoldierAlpha (Fallback)");
+                    }
                     
                     System.out.println();  // Blank line between characters
                     
-                    // Display stats for SoldierBeta using actual Shift+/ command
+                    // Display stats for SoldierBeta using actual Shift+/ command with error handling
                     System.out.println("=== SoldierBeta Stats (via DisplayCoordinator) ===");
-                    coordinator.displayCharacterStats(betaUnit);
+                    try {
+                        coordinator.displayCharacterStats(betaUnit);
+                        System.out.println(">> SoldierBeta stats completed successfully");
+                    } catch (Exception e) {
+                        System.err.println("Error displaying SoldierBeta stats: " + e.getMessage());
+                        e.printStackTrace();
+                        displayBasicStats(betaUnit, "SoldierBeta (Fallback)");
+                    }
                     return; // Success - exit method
                 }
             }
@@ -504,6 +527,7 @@ public class MeleeCombatTestAutomated {
             
         } catch (Exception e) {
             System.err.println("Error accessing DisplayCoordinator: " + e.getMessage());
+            e.printStackTrace();
             // Fallback to basic stats display
             displayBasicStats(alphaUnit, "SoldierAlpha");
             System.out.println();
