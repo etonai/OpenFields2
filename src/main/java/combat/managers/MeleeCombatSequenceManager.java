@@ -179,14 +179,22 @@ public class MeleeCombatSequenceManager {
             if (readyState != null) {
                 eventQueue.add(new ScheduledEvent(attackTick + visualDelay + recoveryTime, () -> {
                     character.currentWeaponState = readyState;
-                    character.isAttacking = false; // Clear attacking flag to allow auto-targeting to continue
+                    // DevCycle 40: Fix for multiple attack scheduling bug
+                    // Clear attacking flag AFTER recovery completes, not at the start
+                    // This prevents auto-targeting from scheduling multiple attacks during recovery
+                    character.isAttacking = false;
                     
                     // Additional debug: check if auto-targeting should continue
                     if (character.usesAutomaticTargeting) {
+                        if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+                            System.out.println("[ATTACK-SEQUENCE] " + character.getDisplayName() + 
+                                             " attack sequence complete at tick " + (attackTick + visualDelay + recoveryTime) + 
+                                             ", isAttacking cleared, auto-targeting can resume");
+                        }
                     }
                     
                     // Call checkContinuousAttack to trigger auto-targeting re-evaluation (similar to ranged weapon recovery)
-                    character.checkContinuousAttack(attacker, attackTick + recoveryTime, eventQueue, ownerId, gameCallbacks);
+                    character.checkContinuousAttack(attacker, attackTick + visualDelay + recoveryTime, eventQueue, ownerId, gameCallbacks);
                 }, ownerId));
             }
         }, ownerId));

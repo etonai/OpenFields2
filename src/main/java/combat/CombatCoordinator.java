@@ -210,6 +210,9 @@ public class CombatCoordinator {
             return;
         }
         
+        // DevCycle 40: Set lastAttackScheduledTick for melee attacks to prevent rapid scheduling
+        character.lastAttackScheduledTick = currentTick;
+        
         // Get active weapon for state management (use melee weapon's states)
         Weapon activeWeapon = character.getActiveWeapon();
         WeaponState currentState = character.currentWeaponState;

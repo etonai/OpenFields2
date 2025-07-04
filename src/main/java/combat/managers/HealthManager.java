@@ -52,6 +52,13 @@ public class HealthManager {
         // Apply damage to current health
         character.currentHealth -= wound.getDamage();
         
+        // Check if character became incapacitated from this wound
+        if (isIncapacitated(character)) {
+            if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+                System.out.println(">>> " + character.getDisplayName() + " is incapacitated!");
+            }
+        }
+        
         // Enforce movement restrictions immediately after adding wound
         enforceMovementRestrictions(character);
         
@@ -74,6 +81,13 @@ public class HealthManager {
         
         // Apply damage to current health
         character.currentHealth -= wound.getDamage();
+        
+        // Check if character became incapacitated from this wound
+        if (isIncapacitated(character)) {
+            if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+                System.out.println(">>> " + character.getDisplayName() + " is incapacitated!");
+            }
+        }
         
         // Enforce movement restrictions immediately after adding wound
         enforceMovementRestrictions(character);

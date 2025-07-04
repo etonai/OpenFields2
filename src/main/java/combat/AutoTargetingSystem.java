@@ -182,6 +182,22 @@ public class AutoTargetingSystem {
             
             String zoneStatus = (character.targetZone != null && character.targetZone.contains((int)character.currentTarget.getX(), (int)character.currentTarget.getY())) ? " (in target zone)" : "";
             
+            // DevCycle 40: Additional protection against rapid attack scheduling
+            // This should NEVER happen with proper state management - throw exception to catch bugs
+            long MIN_ATTACK_SCHEDULE_INTERVAL = 5; // Minimum ticks between attack scheduling attempts
+            if (character.lastAttackScheduledTick >= 0 && 
+                currentTick - character.lastAttackScheduledTick < MIN_ATTACK_SCHEDULE_INTERVAL) {
+                throw new IllegalStateException(
+                    "[AUTO-TARGETING ERROR] " + character.getDisplayName() + 
+                    " attempted to schedule attack too soon after previous attack. " +
+                    "Last scheduled: tick " + character.lastAttackScheduledTick + 
+                    ", Current: tick " + currentTick + 
+                    ", Interval: " + (currentTick - character.lastAttackScheduledTick) + 
+                    " (minimum required: " + MIN_ATTACK_SCHEDULE_INTERVAL + ")" +
+                    "\nThis indicates a bug in attack state management - isAttacking flag may have been cleared prematurely."
+                );
+            }
+            
             // Start attack sequence - check combat mode to determine attack type
             if (character.isMeleeCombatMode() && character.meleeWeapon != null) {
                 // Check if already in melee range
