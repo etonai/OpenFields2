@@ -52,9 +52,14 @@ public class MeleeCombatTestAutomated {
     private AtomicInteger nonZeroDefenseModifiers = new AtomicInteger(0);
     private String failureReason = "";
     
-    // Capture console output to analyze defense messages
+    // Problem collection for comprehensive reporting - don't fail fast
+    // Use synchronized collection for thread safety
+    private final java.util.List<String> problems = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+    
+    // Capture console output to analyze defense messages (both stdout and stderr)
     private java.io.ByteArrayOutputStream consoleOutput = new java.io.ByteArrayOutputStream();
     private java.io.PrintStream originalOut;
+    private java.io.PrintStream originalErr;
     
     // Exception detection enhancement
     private Thread.UncaughtExceptionHandler originalExceptionHandler;
@@ -69,14 +74,26 @@ public class MeleeCombatTestAutomated {
     public void setUp() throws Exception {
         System.out.println("=== Melee Combat Test Automated Setup ===");
         
-        // Capture console output to analyze defense messages
+        // Capture console output to analyze defense messages (both stdout and stderr)
         originalOut = System.out;
+        originalErr = System.err;
         consoleOutput = new java.io.ByteArrayOutputStream();
+        
+        // Capture System.out
         System.setOut(new java.io.PrintStream(new java.io.OutputStream() {
             @Override
             public void write(int b) throws java.io.IOException {
                 consoleOutput.write(b);
                 originalOut.write(b); // Still show output normally
+            }
+        }));
+        
+        // Capture System.err  
+        System.setErr(new java.io.PrintStream(new java.io.OutputStream() {
+            @Override
+            public void write(int b) throws java.io.IOException {
+                consoleOutput.write(b);
+                originalErr.write(b); // Still show output normally
             }
         }));
         
@@ -141,9 +158,12 @@ public class MeleeCombatTestAutomated {
         // Restore original exception handler
         Thread.setDefaultUncaughtExceptionHandler(originalExceptionHandler);
         
-        // Restore original System.out
+        // Restore original System.out and System.err
         if (originalOut != null) {
             System.setOut(originalOut);
+        }
+        if (originalErr != null) {
+            System.setErr(originalErr);
         }
         
         System.out.println("✓ Test cleanup complete");
@@ -180,8 +200,10 @@ public class MeleeCombatTestAutomated {
         // Wait for combat completion or timeout (1 minute = 60 seconds)
         assertTrue(combatCompleteLatch.await(65, TimeUnit.SECONDS), "Combat should complete within 1 minute");
         
-        // Analyze console output for defense system activity
-        analyzeDefenseActivity();
+        System.err.println("DEBUG: Combat completed, about to analyze defense activity");
+        
+        // Remove the first analysis - we'll do comprehensive analysis later
+        // analyzeDefenseActivity();
         
         // Enhanced exception reporting
         if (exceptionDetected.get()) {
@@ -207,7 +229,43 @@ public class MeleeCombatTestAutomated {
         // Calculate total attacks for use in success criteria and reporting
         int totalAttacks = soldierAlpha.getAttacksAttempted() + soldierBeta.getAttacksAttempted();
         
-        // Verify success criteria (restored to original requirements with attack validation)
+        // Wait a moment for all combat systems to finalize damage before validation
+        System.err.println("DEBUG: Waiting 3 seconds for combat systems to finalize...");
+        try {
+            Thread.sleep(3000); // Wait 3 seconds for all damage to be processed
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // Run comprehensive validation to collect all problems FIRST (don't fail fast)
+        System.err.println("DEBUG: Starting comprehensive validation...");
+        
+        // Analyze defense activity and check for AUTO-TARGETING ERRORs
+        analyzeDefenseActivity();
+        
+        validateCharacterWounds(soldierAlpha, "SoldierAlpha");
+        validateCharacterWounds(soldierBeta, "SoldierBeta");
+        validateCharacterHealth(soldierAlpha, "SoldierAlpha");
+        validateCharacterHealth(soldierBeta, "SoldierBeta");
+        validateAttackTiming();
+        validateAttackFrequency();
+        
+        // Report all collected problems
+        reportAllProblems();
+        
+        // If any problems were found, display character stats and fail the test
+        System.err.println("DEBUG: Checking if problems.isEmpty(): " + problems.isEmpty());
+        System.err.println("DEBUG: Problems size: " + problems.size());
+        if (!problems.isEmpty()) {
+            System.err.println("=== VALIDATION FAILURE - CHARACTER STATS DEBUG ===");
+            outputDetailedStats();
+            System.err.println("=== END CHARACTER STATS DEBUG ===");
+            System.err.println("DEBUG: About to call fail() with " + problems.size() + " problems");
+            fail("Combat system validation failed with " + problems.size() + " problem(s). See comprehensive problem report above.");
+        }
+        System.err.println("DEBUG: Passed the fail check - no problems found or fail() didn't work");
+        
+        // Now verify basic success criteria AFTER problem collection
         try {
             assertFalse(testFailed.get(), "Test failed: " + failureReason);
             assertFalse(exceptionDetected.get(), "Exception detected during combat. See detailed exception report above.");
@@ -223,22 +281,6 @@ public class MeleeCombatTestAutomated {
         } catch (AssertionError e) {
             // Display full character stats when primary success criteria fail
             System.err.println("=== PRIMARY SUCCESS CRITERIA FAILURE - CHARACTER STATS DEBUG ===");
-            outputDetailedStats();
-            System.err.println("=== END CHARACTER STATS DEBUG ===");
-            throw e; // Re-throw the original assertion error
-        }
-        
-        // Additional failure conditions to detect combat system bugs
-        try {
-            validateCharacterWounds(soldierAlpha, "SoldierAlpha");
-            validateCharacterWounds(soldierBeta, "SoldierBeta");
-            validateCharacterHealth(soldierAlpha, "SoldierAlpha");
-            validateCharacterHealth(soldierBeta, "SoldierBeta");
-            validateAttackTiming();
-            validateAttackFrequency();
-        } catch (AssertionError e) {
-            // Display full character stats when any validation fails
-            System.err.println("=== VALIDATION FAILURE - CHARACTER STATS DEBUG ===");
             outputDetailedStats();
             System.err.println("=== END CHARACTER STATS DEBUG ===");
             throw e; // Re-throw the original assertion error
@@ -699,11 +741,53 @@ public class MeleeCombatTestAutomated {
         String output = consoleOutput.toString();
         String[] lines = output.split("\n");
         
+        // DEBUG: Show what we're analyzing
+        System.err.println("DEBUG: analyzeDefenseActivity() analyzing " + lines.length + " lines of console output");
+        System.err.println("DEBUG: Console output size: " + output.length() + " characters");
+        
+        // DEBUG: Show sample of console output to verify capture and look for AUTO-TARGETING patterns
+        if (output.length() > 0) {
+            String sample = output.length() > 500 ? output.substring(0, 500) + "..." : output;
+            System.err.println("DEBUG: Console output sample: " + sample);
+            
+            // Check if AUTO-TARGETING ERROR appears anywhere in the captured output
+            if (output.contains("[AUTO-TARGETING ERROR]")) {
+                int count = output.split("\\[AUTO-TARGETING ERROR\\]").length - 1;
+                System.err.println("DEBUG: Found " + count + " [AUTO-TARGETING ERROR] occurrences in captured output!");
+            } else {
+                System.err.println("DEBUG: NO [AUTO-TARGETING ERROR] found in captured output - this is the issue");
+            }
+            
+            // Also check for System.err prefix patterns that might indicate the messages are there but formatted differently
+            if (output.contains("AUTO-TARGETING ERROR")) {
+                int count = output.split("AUTO-TARGETING ERROR").length - 1;
+                System.err.println("DEBUG: Found " + count + " raw 'AUTO-TARGETING ERROR' text occurrences");
+            }
+            
+        } else {
+            System.err.println("DEBUG: Console output is EMPTY - this is the problem!");
+        }
+        
+        // Count AUTO-TARGETING ERROR patterns for debugging
+        int autoTargetingErrorCount = 0;
+        int defenseMessageCount = 0;
+        
         for (String line : lines) {
             // Look for [DEFENSE] debug messages
             if (line.contains("[DEFENSE]")) {
                 defenseAttempts.incrementAndGet();
+                defenseMessageCount++;
                 System.out.println("Found DEFENSE message: " + line.trim());
+            }
+            
+            // Look for AUTO-TARGETING ERROR messages and add to problem collection
+            if (line.contains("[AUTO-TARGETING ERROR]")) {
+                autoTargetingErrorCount++;
+                // Extract the error message for problem collection
+                String trimmedLine = line.trim();
+                System.err.println("DEBUG: Found AUTO-TARGETING ERROR #" + autoTargetingErrorCount + ", adding to problems: " + trimmedLine);
+                addProblem("Rapid attack scheduling detected: " + trimmedLine);
+                System.out.println("Found AUTO-TARGETING ERROR: " + trimmedLine);
             }
             
             // Enhanced exception detection - look for common exception patterns in console output
@@ -712,9 +796,9 @@ public class MeleeCombatTestAutomated {
                 line.contains("IllegalStateException") || line.contains("NullPointerException") ||
                 line.contains("Caused by:") || line.contains("java.lang.")) {
                 
-                // Only flag as exception if it's not just a debug message about exceptions
+                // Only flag as exception if it's not just a debug message about exceptions or auto-targeting errors
                 if (!line.contains("[AUTO-TARGETING ERROR]") && !line.contains("=== UNCAUGHT EXCEPTION DETECTED ===") && 
-                    !line.contains("INFO: Benign exception ignored")) {
+                    !line.contains("INFO: Benign exception ignored") && !line.contains("PROBLEM DETECTED:")) {
                     exceptionDetected.set(true);
                     testFailed.set(true);
                     if (failureReason.isEmpty()) {
@@ -748,8 +832,31 @@ public class MeleeCombatTestAutomated {
             }
         }
         
+        // DEBUG: Summary of what we found
+        System.err.println("DEBUG: Analysis summary:");
+        System.err.println("  - Lines analyzed: " + lines.length);
+        System.err.println("  - AUTO-TARGETING ERROR messages found: " + autoTargetingErrorCount);
+        System.err.println("  - DEFENSE messages found: " + defenseMessageCount);
+        System.err.println("  - Problems added to collection: " + problems.size());
+        
         System.out.println("Defense analysis complete: " + defenseAttempts.get() + " defense attempts, " + 
                           nonZeroDefenseModifiers.get() + " non-zero modifiers");
+    }
+    
+    /**
+     * Add a problem to the collection instead of failing immediately.
+     * This allows the test to run to completion and report all issues.
+     * 
+     * @param problem Description of the problem found
+     */
+    private void addProblem(String problem) {
+        problems.add(problem);
+        System.err.println("PROBLEM DETECTED: " + problem);
+        System.err.println("DEBUG: Problems collection now has " + problems.size() + " items");
+        testFailed.set(true);
+        if (failureReason.isEmpty()) {
+            failureReason = problem;
+        }
     }
     
     /**
@@ -789,9 +896,34 @@ public class MeleeCombatTestAutomated {
      * @param characterName The character name for error messages
      */
     private void validateCharacterWounds(combat.Character character, String characterName) {
-        // Check for multiple critical wounds
-        if (character.woundsInflictedCritical > 1) {
-            fail(characterName + " has " + character.woundsInflictedCritical + " critical wounds - should have at most 1");
+        // Count critical wounds RECEIVED by this character (not inflicted by them)
+        int criticalWoundsReceived = 0;
+        int totalWounds = 0;
+        
+        System.err.println("DEBUG: " + characterName + " wounds list size: " + (character.wounds != null ? character.wounds.size() : "null"));
+        System.err.println("DEBUG: " + characterName + " woundsReceived counter: " + character.woundsReceived);
+        
+        if (character.wounds != null) {
+            for (Object woundObj : character.wounds) {
+                totalWounds++;
+                if (woundObj instanceof combat.Wound) {
+                    combat.Wound wound = (combat.Wound) woundObj;
+                    System.err.println("DEBUG: " + characterName + " wound " + totalWounds + ": " + wound.getSeverity() + " on " + wound.getBodyPart());
+                    if (combat.WoundSeverity.CRITICAL.equals(wound.getSeverity())) {
+                        criticalWoundsReceived++;
+                    }
+                } else {
+                    System.err.println("DEBUG: " + characterName + " wound " + totalWounds + ": not a Wound object, type: " + woundObj.getClass().getSimpleName());
+                }
+            }
+        }
+        
+        System.err.println("DEBUG: Validating " + characterName + " wounds - received critical: " + criticalWoundsReceived + " total: " + totalWounds + " (inflicted: " + character.woundsInflictedCritical + ")");
+        
+        // Check for multiple critical wounds received
+        if (criticalWoundsReceived > 1) {
+            System.err.println("DEBUG: Found multiple critical wounds received by " + characterName + ": " + criticalWoundsReceived);
+            addProblem(characterName + " has " + criticalWoundsReceived + " critical wounds - should have at most 1");
         }
         
         // Check wound list for wounds after critical wounds
@@ -809,7 +941,7 @@ public class MeleeCombatTestAutomated {
                         foundCritical = true;
                     } else if (foundCritical) {
                         // Found a non-critical wound after a critical wound
-                        fail(characterName + " has wound '" + wound.getSeverity() + "' at position " + woundIndex + 
+                        addProblem(characterName + " has wound '" + wound.getSeverity() + "' at position " + woundIndex + 
                              " after a critical wound - no wounds should occur after critical wounds");
                     }
                 }
@@ -825,8 +957,11 @@ public class MeleeCombatTestAutomated {
      * @param characterName The character name for error messages
      */
     private void validateCharacterHealth(combat.Character character, String characterName) {
+        System.err.println("DEBUG: Validating " + characterName + " health: " + character.currentHealth);
+        
         if (character.currentHealth < -59) {
-            fail(characterName + " has health " + character.currentHealth + " which is below the minimum threshold of -59");
+            System.err.println("DEBUG: Found excessive health damage for " + characterName + ": " + character.currentHealth);
+            addProblem(characterName + " has health " + character.currentHealth + " which is below the minimum threshold of -59");
         }
     }
     
@@ -835,6 +970,8 @@ public class MeleeCombatTestAutomated {
      * Fails if any character makes 2 attacks within a 10 tick time period.
      */
     private void validateAttackTiming() {
+        System.err.println("DEBUG: Starting attack timing validation...");
+        
         // Parse console output for attack messages and extract timing
         String output = consoleOutput.toString();
         String[] lines = output.split("\\n");
@@ -880,7 +1017,7 @@ public class MeleeCombatTestAutomated {
                 long timeDifference = currentAttack - previousAttack;
                 
                 if (timeDifference <= 10) {
-                    fail(characterName + " made 2 attacks within " + timeDifference + " ticks " +
+                    addProblem(characterName + " made 2 attacks within " + timeDifference + " ticks " +
                          "(at tick " + previousAttack + " and tick " + currentAttack + ") - " +
                          "attacks should be at least 10 ticks apart");
                 }
@@ -896,6 +1033,8 @@ public class MeleeCombatTestAutomated {
      * Fails if any character attacks more than 1 time per 30 ticks.
      */
     private void validateAttackFrequency() {
+        System.err.println("DEBUG: Starting attack frequency validation...");
+        
         // Parse console output for attack messages and extract timing
         String output = consoleOutput.toString();
         String[] lines = output.split("\\n");
@@ -961,7 +1100,7 @@ public class MeleeCombatTestAutomated {
             }
             
             if (attackCount > expectedMaxAttacks) {
-                fail(characterName + " made " + attackCount + " attacks in " + totalTestTicks + " ticks " +
+                addProblem(characterName + " made " + attackCount + " attacks in " + totalTestTicks + " ticks " +
                      "(expected maximum: " + expectedMaxAttacks + " attacks for 1 attack per 30 ticks) - " +
                      "attack frequency too high");
             }
@@ -969,5 +1108,27 @@ public class MeleeCombatTestAutomated {
             System.out.println("Attack frequency validation: " + characterName + " made " + attackCount + 
                              " attacks in " + totalTestTicks + " ticks (max allowed: " + expectedMaxAttacks + ")");
         }
+    }
+    
+    /**
+     * Report all collected problems at the end of the test.
+     * This provides a comprehensive view of all issues found during the test run.
+     */
+    private void reportAllProblems() {
+        System.out.println("\n=== DEBUG: Problems collection size: " + problems.size() + " ===");
+        
+        if (problems.isEmpty()) {
+            System.out.println("\n=== VALIDATION COMPLETE: NO PROBLEMS DETECTED ===");
+            return;
+        }
+        
+        System.err.println("\n=== COMPREHENSIVE PROBLEM REPORT ===");
+        System.err.println("Found " + problems.size() + " problem(s) during test execution:");
+        
+        for (int i = 0; i < problems.size(); i++) {
+            System.err.println("  " + (i + 1) + ". " + problems.get(i));
+        }
+        
+        System.err.println("=== END PROBLEM REPORT ===\n");
     }
 }
