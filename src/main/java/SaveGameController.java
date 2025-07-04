@@ -585,8 +585,9 @@ public class SaveGameController {
         // Restore defense timing (DevCycle 40)
         character.nextDefenseTick = data.nextDefenseTick;
         
-        // Restore skills
+        // Restore skills - clear both compatibility field and manager storage
         character.skills.clear();
+        combat.managers.CharacterSkillsManager.getInstance().cleanupCharacter(character.id); // Clear manager storage
         for (CharacterData.SkillData skillData : data.skills) {
             character.addSkill(new Skill(skillData.skillName, skillData.level));
         }

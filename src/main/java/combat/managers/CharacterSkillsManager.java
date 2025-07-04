@@ -63,6 +63,17 @@ public class CharacterSkillsManager implements ICharacterSkillsManager {
     @Override
     public void addSkill(int characterId, Skill skill) {
         List<Skill> skills = characterSkills.computeIfAbsent(characterId, k -> new ArrayList<>());
+        
+        // Check for existing skill with same name to prevent duplicates
+        for (Skill existingSkill : skills) {
+            if (existingSkill.skillName.equals(skill.skillName)) {
+                // Update existing skill level instead of adding duplicate
+                existingSkill.level = skill.level;
+                return;
+            }
+        }
+        
+        // Add new skill if not found
         skills.add(skill);
     }
     
