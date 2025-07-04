@@ -56,6 +56,10 @@ public class MeleeCombatTestAutomated {
     private java.io.ByteArrayOutputStream consoleOutput = new java.io.ByteArrayOutputStream();
     private java.io.PrintStream originalOut;
     
+    // Exception detection enhancement
+    private Thread.UncaughtExceptionHandler originalExceptionHandler;
+    private final java.util.List<Throwable> capturedExceptions = new java.util.concurrent.CopyOnWriteArrayList<>();
+    
     private combat.Character soldierAlpha;
     private combat.Character soldierBeta;
     private Unit alphaUnit;
@@ -76,6 +80,41 @@ public class MeleeCombatTestAutomated {
             }
         }));
         
+        // Enhanced exception detection - capture uncaught exceptions from any thread
+        originalExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
+            // Filter out known benign exceptions that shouldn't fail the test
+            boolean isBenignException = isKnownBenignException(exception);
+            
+            // Always capture the exception for analysis
+            capturedExceptions.add(exception);
+            
+            // Log the exception with full stack trace
+            System.err.println("=== UNCAUGHT EXCEPTION DETECTED ===");
+            System.err.println("Thread: " + thread.getName());
+            System.err.println("Exception: " + exception.getClass().getSimpleName() + ": " + exception.getMessage());
+            System.err.println("Benign: " + isBenignException);
+            exception.printStackTrace();
+            System.err.println("=== END EXCEPTION ===");
+            
+            // Only fail the test for non-benign exceptions
+            if (!isBenignException) {
+                exceptionDetected.set(true);
+                testFailed.set(true);
+                failureReason = "Uncaught exception in thread " + thread.getName() + ": " + exception.getMessage();
+                
+                // Signal test completion due to exception
+                combatCompleteLatch.countDown();
+            } else {
+                System.out.println("INFO: Benign exception ignored for test purposes: " + exception.getClass().getSimpleName());
+            }
+            
+            // Call original handler if it exists
+            if (originalExceptionHandler != null) {
+                originalExceptionHandler.uncaughtException(thread, exception);
+            }
+        });
+        
         // Initialize JavaFX if not already initialized
         if (!Platform.isFxApplicationThread()) {
             CountDownLatch fxLatch = new CountDownLatch(1);
@@ -95,6 +134,19 @@ public class MeleeCombatTestAutomated {
         combatCompleteLatch = new CountDownLatch(1);
         
         System.out.println("✓ Test setup complete");
+    }
+    
+    @org.junit.jupiter.api.AfterEach
+    public void tearDown() throws Exception {
+        // Restore original exception handler
+        Thread.setDefaultUncaughtExceptionHandler(originalExceptionHandler);
+        
+        // Restore original System.out
+        if (originalOut != null) {
+            System.setOut(originalOut);
+        }
+        
+        System.out.println("✓ Test cleanup complete");
     }
     
     @Test
@@ -131,9 +183,30 @@ public class MeleeCombatTestAutomated {
         // Analyze console output for defense system activity
         analyzeDefenseActivity();
         
+        // Enhanced exception reporting
+        if (exceptionDetected.get()) {
+            StringBuilder exceptionReport = new StringBuilder();
+            exceptionReport.append("Exception detected during combat execution!\n");
+            exceptionReport.append("Failure Reason: ").append(failureReason).append("\n");
+            
+            if (!capturedExceptions.isEmpty()) {
+                exceptionReport.append("Captured Exceptions (").append(capturedExceptions.size()).append("):\n");
+                for (int i = 0; i < capturedExceptions.size(); i++) {
+                    Throwable exception = capturedExceptions.get(i);
+                    exceptionReport.append("  ").append(i + 1).append(". ")
+                                  .append(exception.getClass().getSimpleName())
+                                  .append(": ").append(exception.getMessage()).append("\n");
+                }
+            }
+            
+            System.err.println("=== EXCEPTION DETECTION SUMMARY ===");
+            System.err.println(exceptionReport.toString());
+            System.err.println("=== END SUMMARY ===");
+        }
+        
         // Verify success criteria (restored to original requirements with attack validation)
         assertFalse(testFailed.get(), "Test failed: " + failureReason);
-        assertFalse(exceptionDetected.get(), "Exception detected during combat");
+        assertFalse(exceptionDetected.get(), "Exception detected during combat. See detailed exception report above.");
         
         // Primary success criteria: No exceptions AND at least one defense attempt
         assertTrue(defenseAttempts.get() >= 1, "At least one defense attempt should have occurred. Actual: " + defenseAttempts.get());
@@ -462,11 +535,16 @@ public class MeleeCombatTestAutomated {
                             }
                             
                         } catch (Exception e) {
+                            // Capture exception for detailed reporting
+                            capturedExceptions.add(e);
                             testFailed.set(true);
                             exceptionDetected.set(true);
                             failureReason = "Exception during combat monitoring: " + e.getMessage();
-                            System.err.println("Exception during combat: " + e.getMessage());
+                            System.err.println("=== COMBAT MONITORING EXCEPTION ===");
+                            System.err.println("Exception during combat monitoring: " + e.getMessage());
+                            System.err.println("Exception type: " + e.getClass().getSimpleName());
                             e.printStackTrace();
+                            System.err.println("=== END MONITORING EXCEPTION ===");
                             combatCompleteLatch.countDown();
                         }
                     });
@@ -489,11 +567,16 @@ public class MeleeCombatTestAutomated {
                 failureReason = "Monitoring thread interrupted";
                 combatCompleteLatch.countDown();
             } catch (Exception e) {
+                // Capture exception for detailed reporting
+                capturedExceptions.add(e);
                 testFailed.set(true);
                 exceptionDetected.set(true);
                 failureReason = "Unexpected error in monitoring: " + e.getMessage();
+                System.err.println("=== MONITORING THREAD EXCEPTION ===");
                 System.err.println("Unexpected exception in monitoring: " + e.getMessage());
+                System.err.println("Exception type: " + e.getClass().getSimpleName());
                 e.printStackTrace();
+                System.err.println("=== END MONITORING THREAD EXCEPTION ===");
                 combatCompleteLatch.countDown();
             }
         });
@@ -583,10 +666,10 @@ public class MeleeCombatTestAutomated {
     
     /**
      * Analyze captured console output for defense system activity.
-     * Looks for [DEFENSE] debug messages and non-zero Defense modifier values.
+     * Looks for [DEFENSE] debug messages, non-zero Defense modifier values, and exception patterns.
      */
     private void analyzeDefenseActivity() {
-        // Parse console output for defense debug messages
+        // Parse console output for defense debug messages and exceptions
         String output = consoleOutput.toString();
         String[] lines = output.split("\n");
         
@@ -595,6 +678,23 @@ public class MeleeCombatTestAutomated {
             if (line.contains("[DEFENSE]")) {
                 defenseAttempts.incrementAndGet();
                 System.out.println("Found DEFENSE message: " + line.trim());
+            }
+            
+            // Enhanced exception detection - look for common exception patterns in console output
+            if (line.contains("Exception") || line.contains("Error") || 
+                line.contains("at java.") || line.contains("at combat.") ||
+                line.contains("IllegalStateException") || line.contains("NullPointerException") ||
+                line.contains("Caused by:") || line.contains("java.lang.")) {
+                
+                // Only flag as exception if it's not just a debug message about exceptions
+                if (!line.contains("[AUTO-TARGETING ERROR]") && !line.contains("=== UNCAUGHT EXCEPTION DETECTED ===")) {
+                    exceptionDetected.set(true);
+                    testFailed.set(true);
+                    if (failureReason.isEmpty()) {
+                        failureReason = "Exception detected in console output: " + line.trim();
+                    }
+                    System.err.println("Found exception pattern in console: " + line.trim());
+                }
             }
             
             // Look for non-zero "Defense modifier:" values
@@ -623,5 +723,34 @@ public class MeleeCombatTestAutomated {
         
         System.out.println("Defense analysis complete: " + defenseAttempts.get() + " defense attempts, " + 
                           nonZeroDefenseModifiers.get() + " non-zero modifiers");
+    }
+    
+    /**
+     * Determines if an exception is known to be benign and shouldn't cause test failure.
+     * Benign exceptions are typically environment-related issues (like audio/media)
+     * that don't affect combat system functionality.
+     */
+    private boolean isKnownBenignException(Throwable exception) {
+        String className = exception.getClass().getSimpleName();
+        String message = exception.getMessage() != null ? exception.getMessage() : "";
+        
+        // Media/Audio related exceptions that are common in test environments
+        if (className.contains("MediaException") || 
+            className.contains("AudioClip") ||
+            message.contains("Could not create player") ||
+            message.contains("audio") ||
+            message.contains("media")) {
+            return true;
+        }
+        
+        // JavaFX Platform exceptions that don't affect combat
+        if (className.contains("Platform") && 
+            (message.contains("toolkit") || message.contains("startup"))) {
+            return true;
+        }
+        
+        // Add other known benign exceptions here as needed
+        
+        return false;
     }
 }
