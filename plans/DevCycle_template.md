@@ -17,6 +17,9 @@
 ## System Implementations
 
 ### 1. [System Name] ⭕ **[STATUS]**
+
+**Implementation Status**: ⭕ PLANNING / 🔄 IN PROGRESS / ⚠️ AWAITING TEST VERIFICATION / ✅ COMPLETE
+
 - [ ] **[Major Component 1]**
   - [ ] [Specific implementation task 1]
   - [ ] [Specific implementation task 2]
@@ -29,6 +32,18 @@
   - [ ] [Specific implementation task 2]
   - [ ] [Performance testing task]
   - [ ] [Edge case handling]
+
+#### Critical Test Verification (MANDATORY before completion)
+- [ ] **HeadlessGunfightTest**: ❌ Not Run / ✅ Passed / ❌ Failed
+- [ ] **BasicMissTestSimple**: ❌ Not Run / ✅ Passed / ❌ Failed  
+- [ ] **BasicMissTestAutomated**: ❌ Not Run / ✅ Passed / ❌ Failed
+- [ ] **GunfightTestAutomated**: ❌ Not Run / ✅ Passed / ❌ Failed
+
+#### User Confirmation
+- [ ] User has tested and confirmed system works correctly
+- [ ] User approval documented with date and details
+
+**🚨 Status can only be marked ✅ COMPLETE when ALL critical tests pass AND user confirms. 🚨**
 
 **Design Specifications:**
 - **[Key Specification 1]**: [Detailed requirement with measurable criteria]
@@ -45,7 +60,23 @@
 - **Backwards Compatibility**: [Compatibility requirements with existing saves/features]
 
 ### 2. [System Name] ⭕ **[STATUS]**
-[Follow same structure as System 1]
+
+**Implementation Status**: ⭕ PLANNING / 🔄 IN PROGRESS / ⚠️ AWAITING TEST VERIFICATION / ✅ COMPLETE
+
+- [ ] **[Major Component 1]**
+  - [ ] [Implementation tasks]
+
+#### Critical Test Verification (MANDATORY before completion)
+- [ ] **HeadlessGunfightTest**: ❌ Not Run / ✅ Passed / ❌ Failed
+- [ ] **BasicMissTestSimple**: ❌ Not Run / ✅ Passed / ❌ Failed  
+- [ ] **BasicMissTestAutomated**: ❌ Not Run / ✅ Passed / ❌ Failed
+- [ ] **GunfightTestAutomated**: ❌ Not Run / ✅ Passed / ❌ Failed
+
+#### User Confirmation
+- [ ] User has tested and confirmed system works correctly
+- [ ] User approval documented with date and details
+
+**🚨 Status can only be marked ✅ COMPLETE when ALL critical tests pass AND user confirms. 🚨**
 
 ### [Additional Systems as Needed]
 

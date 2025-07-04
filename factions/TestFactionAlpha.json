@@ -122,6 +122,10 @@
         {
           "skillName": "skl_rifle",
           "level": 1
+        },
+        {
+          "skillName": "skl_knife",
+          "level": 1
         }
       ],
       "wounds": [],

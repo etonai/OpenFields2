@@ -379,94 +379,30 @@ public class CombatResolver {
         attacker.character.attacksAttempted++;
         attacker.character.meleeAttacksAttempted++;
         
-        // Check if target can defend (DevCycle 23)
-        // DevCycle 33: System 15 - Add configuration check to prevent entire defensive logic when blocking disabled
-        boolean defenseAttempted = false;
-        boolean defenseSuccessful = false;
-        
-        if (!config.DebugConfig.getInstance().isDefensiveBlockingDisabled() && target.character.canDefend(attackTick)) {
-            defenseAttempted = true;
-            target.character.defensiveAttempts++; // Track defense attempt
-            defenseSuccessful = combat.managers.DefenseManager.getInstance().attemptBlock(target.character, attacker, attackTick);
-            
-            if (defenseSuccessful) {
-                target.character.defensiveSuccesses++; // Track successful defense
-                if (combatDebugEnabled) {
-                    System.out.println(">>> " + target.character.getDisplayName() + " successfully defends against the attack!");
-                }
-                
-                // Grant counter-attack opportunity
-                int counterAttackWindow = 60; // 1 second window (60 ticks)
-                target.character.grantCounterAttackOpportunity(counterAttackWindow, attackTick);
-                
-                // Start defense cooldown using defender's weapon
-                int defenseCooldown = 60; // Default 60 ticks
-                if (target.character.meleeWeapon != null) {
-                    defenseCooldown = target.character.meleeWeapon.getDefenseCooldown();
-                }
-                target.character.startDefenseCooldown(defenseCooldown, attackTick);
-                
-                // Schedule counter-attack if automatic
-                scheduleCounterAttack(target, attacker, attackTick);
-                
-                return; // Attack blocked, no damage
-            } else {
-                // Failed defense still triggers cooldown using defender's weapon
-                int defenseCooldown = 60; // Default 60 ticks
-                if (target.character.meleeWeapon != null) {
-                    defenseCooldown = target.character.meleeWeapon.getDefenseCooldown();
-                }
-                target.character.startDefenseCooldown(defenseCooldown, attackTick);
-                
-                if (debugMode) {
-                    System.out.println(">>> " + target.character.getDisplayName() + " attempts to defend but fails");
-                }
-            }
-        }
-        
-        // Calculate hit probability (only if defense failed or not attempted)
-        boolean hits = calculateMeleeHit(attacker, target, weapon);
+        // DevCycle 40: Defense system now integrated into hit calculation
+        // Calculate hit probability using unified combat system with defense integration
+        HitResult hitResult = CombatCalculator.determineHit(attacker, target, 3.0, weapon.getTotalReach(), weapon.getWeaponAccuracy(), weapon.getDamage(), combatDebugEnabled, 0, attackTick, true);
+        boolean hits = hitResult.isHit();
         
         if (hits) {
+            // Add strength damage bonus to the hit result damage (applied after wound severity)
+            int strengthBonus = GameConstants.getStrengthDamageBonus(attacker.character.strength);
+            int finalDamage = Math.max(1, hitResult.getActualDamage() + strengthBonus);
+            
+            // Create updated hit result with strength bonus
+            HitResult finalHitResult = new HitResult(true, hitResult.getHitLocation(), hitResult.getWoundSeverity(), finalDamage);
+            
             if (combatDebugEnabled) {
                 System.out.println("=== MELEE DAMAGE CALCULATION DEBUG ===");
-            }
-            
-            // Determine hit location first (needed for wound severity calculation)
-            BodyPart hitLocation = determineHitLocation();
-            
-            // Determine wound severity (like ranged combat does)
-            double hitQuality = Math.random() * 100; // Random roll for wound severity
-            double chanceToHit = 100.0; // Assume 100% since we already hit
-            WoundSeverity woundSeverity = CombatCalculator.determineWoundSeverity(hitQuality, chanceToHit, hitLocation);
-            
-            // Calculate base weapon damage with wound severity scaling (like ranged combat)
-            int weaponDamage = weapon.getDamage();
-            int scaledDamage = CombatCalculator.calculateActualDamage(weaponDamage, woundSeverity, hitLocation);
-            
-            // Add strength damage bonus to the scaled damage (applied after wound severity)
-            int strengthBonus = GameConstants.getStrengthDamageBonus(attacker.character.strength);
-            int actualDamage = Math.max(1, scaledDamage + strengthBonus);
-            
-            if (combatDebugEnabled) {
-                System.out.println("Base Weapon Damage: " + weaponDamage);
-                System.out.println("Hit Location: " + hitLocation.name().toLowerCase());
-                System.out.println("Wound Severity: " + woundSeverity.name().toLowerCase());
-                System.out.println("Scaled Damage (after wound severity): " + scaledDamage);
+                System.out.println("Base Hit Result Damage: " + hitResult.getActualDamage());
                 System.out.println("Attacker Strength: " + attacker.character.strength + " (bonus: " + strengthBonus + ")");
-                System.out.println("Final Damage: " + scaledDamage + " + " + strengthBonus + " = " + actualDamage);
-            }
-            
-            // Create hit result
-            HitResult hitResult = new HitResult(true, hitLocation, woundSeverity, actualDamage);
-            
-            // Apply damage and wound
-            resolveCombatImpact(attacker, target, weapon, attackTick, hitResult);
-            
-            if (combatDebugEnabled) {
-                System.out.println(">>> Melee hit! " + weapon.getName() + " deals " + actualDamage + " damage to " + hitLocation.name().toLowerCase());
+                System.out.println("Final Damage: " + hitResult.getActualDamage() + " + " + strengthBonus + " = " + finalDamage);
+                System.out.println(">>> Melee hit! " + weapon.getName() + " deals " + finalDamage + " damage to " + hitResult.getHitLocation().name().toLowerCase());
                 System.out.println("========================================");
             }
+            
+            // Apply damage and wound
+            resolveCombatImpact(attacker, target, weapon, attackTick, finalHitResult);
         } else {
             if (combatDebugEnabled) {
                 System.out.println(">>> Melee attack missed!");

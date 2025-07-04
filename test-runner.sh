@@ -8,10 +8,11 @@ show_help() {
     echo "Usage: $0 [option]"
     echo ""
     echo "Options:"
-    echo "  -f, --fast         Run fast tests only (headless)"
-    echo "  -a, --all          Run all critical tests (default)"
-    echo "  -s, --single TEST  Run single test by name"
-    echo "  -h, --help         Show this help"
+    echo "  -f, --fast              Run fast tests only (headless)"
+    echo "  -a, --all               Run all critical tests (default)"
+    echo "  -c, --completion-check  Run critical tests + system completion validation"
+    echo "  -s, --single TEST       Run single test by name"
+    echo "  -h, --help              Show this help"
     echo ""
     echo "Fast tests:"
     echo "  - HeadlessGunfightTest"
@@ -21,6 +22,11 @@ show_help() {
     echo "  - BasicMissTestAutomated" 
     echo "  - BasicMissTestSimple"
     echo "  - HeadlessGunfightTest"
+    echo ""
+    echo "Completion check:"
+    echo "  - Runs all critical tests"
+    echo "  - Validates results for system completion"
+    echo "  - Provides completion status summary"
 }
 
 run_fast_tests() {
@@ -79,6 +85,38 @@ run_single_test() {
     return $?
 }
 
+run_completion_check() {
+    echo "🚨 SYSTEM COMPLETION VALIDATION 🚨"
+    echo "Running all critical tests for system completion verification..."
+    echo ""
+    
+    # Run all critical tests first
+    if ! run_all_tests; then
+        echo ""
+        echo "❌ COMPLETION CHECK FAILED"
+        echo "🚫 Critical tests failed - system CANNOT be marked as complete"
+        echo ""
+        echo "Required actions:"
+        echo "1. Fix failing tests"
+        echo "2. Re-run completion check"
+        echo "3. Only mark system complete after ALL tests pass"
+        return 1
+    fi
+    
+    echo ""
+    echo "✅ CRITICAL TESTS VALIDATION COMPLETE"
+    echo "🎉 All critical tests passed - ready for system completion"
+    echo ""
+    echo "📋 NEXT STEPS FOR SYSTEM COMPLETION:"
+    echo "1. ✅ Critical tests verified (COMPLETE)"
+    echo "2. ⏳ Request user testing and confirmation"
+    echo "3. ⏳ Wait for explicit user approval"
+    echo "4. ⏳ Only then mark system as ✅ COMPLETE"
+    echo ""
+    echo "⚠️  REMINDER: Do NOT mark system complete without user confirmation!"
+    return 0
+}
+
 # Main script
 case "${1:-}" in
     -f|--fast)
@@ -86,6 +124,9 @@ case "${1:-}" in
         ;;
     -a|--all|"")
         run_all_tests
+        ;;
+    -c|--completion-check)
+        run_completion_check
         ;;
     -s|--single)
         if [ -z "$2" ]; then

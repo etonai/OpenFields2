@@ -2,19 +2,28 @@ package combat.managers;
 
 import combat.DefenseState;
 import combat.Character;
+import combat.MeleeWeapon;
+import combat.Weapon;
 import game.IEventSchedulingService;
 import game.EventSchedulingService;
 import game.interfaces.IUnit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Singleton manager for defensive mechanics including blocking and counter-attacks.
  * Handles defense states, cooldowns, and counter-attack opportunities.
+ * 
+ * DevCycle 40: Enhanced with new defense calculation system
+ * - Defense eligibility based on nextDefenseTick
+ * - Defense value calculations with stat and skill modifiers
+ * - Integration with melee combat hit calculations
  */
 public class DefenseManager implements IDefenseManager {
     
     private static DefenseManager instance;
+    private final Random random = new Random();
     
     // Per-character state tracking
     private final Map<Integer, DefenseState> defenseStates = new HashMap<>();
@@ -254,5 +263,137 @@ public class DefenseManager implements IDefenseManager {
     private int getCounterAttackWindowDuration(Character character) {
         // Placeholder - would be based on weapon/skill
         return 30; // 0.5 second default
+    }
+    
+    // ========== DEVCYCLE 40: NEW DEFENSE SYSTEM ==========
+    
+    /**
+     * Check if a character can defend against an attack
+     * DevCycle 40: Uses nextDefenseTick for timing
+     * 
+     * @param defender The defending character
+     * @param currentTick Current game tick
+     * @return true if the character can defend
+     */
+    public boolean canDefendAgainstAttack(Character defender, long currentTick) {
+        // Check if character is incapacitated
+        if (defender.isIncapacitated()) {
+            return false;
+        }
+        
+        // Check if defense is on cooldown
+        if (currentTick < defender.getNextDefenseTick()) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Calculate defense value for a character
+     * DevCycle 40: Implements the defense calculation formula
+     * 
+     * @param defender The defending character
+     * @return The total defense value to apply as negative modifier
+     */
+    public int calculateDefenseValue(Character defender) {
+        // Base roll: 1-50
+        int baseRoll = random.nextInt(50) + 1;
+        
+        // Dexterity modifier
+        int dexterityModifier = utils.GameConstants.statToModifier(defender.getDexterity());
+        
+        // Melee weapon skill bonus (+5 per skill level)
+        int skillBonus = 0;
+        Weapon currentWeapon = defender.isMeleeCombatMode ? defender.meleeWeapon : defender.weapon;
+        if (currentWeapon != null) {
+            // Get skill for current weapon type
+            String skillName = getWeaponSkillName(currentWeapon);
+            int skillLevel = CharacterSkillsManager.getInstance().getSkillLevel(defender.id, skillName);
+            skillBonus = skillLevel * 5;
+        }
+        
+        // Weapon defense bonus
+        int weaponDefenseBonus = 0;
+        if (currentWeapon != null) {
+            weaponDefenseBonus = currentWeapon.getDefenseBonus();
+        }
+        
+        // Calculate total
+        int totalDefense = baseRoll + dexterityModifier + skillBonus + weaponDefenseBonus;
+        
+        // Debug output
+        if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
+            System.out.println(String.format("[DEFENSE] %s defends: roll(%d) + dex(%d) + skill(%d) + weapon(%d) = total(%d)",
+                defender.getDisplayName(), baseRoll, dexterityModifier, skillBonus, weaponDefenseBonus, totalDefense));
+        }
+        
+        // Update statistics
+        defender.defensiveAttempts++;
+        
+        return totalDefense;
+    }
+    
+    /**
+     * Apply defense to an attack and update cooldown
+     * DevCycle 40: Main entry point for defense system
+     * 
+     * @param defender The defending character
+     * @param currentTick Current game tick
+     * @return Defense value to apply as negative modifier to attack
+     */
+    public int performDefense(Character defender, long currentTick) {
+        if (!canDefendAgainstAttack(defender, currentTick)) {
+            return 0;
+        }
+        
+        // Calculate defense value
+        int defenseValue = calculateDefenseValue(defender);
+        
+        // Update next defense tick (current + 60)
+        defender.setNextDefenseTick(currentTick + 60);
+        
+        // Track successful defense
+        if (defenseValue > 0) {
+            defender.defensiveSuccesses++;
+        }
+        
+        return defenseValue;
+    }
+    
+    /**
+     * Get the appropriate skill name for a weapon
+     * 
+     * @param weapon The weapon to check
+     * @return The skill name for that weapon type
+     */
+    private String getWeaponSkillName(Weapon weapon) {
+        if (weapon instanceof MeleeWeapon) {
+            MeleeWeapon meleeWeapon = (MeleeWeapon) weapon;
+            switch (meleeWeapon.getMeleeType()) {
+                case SHORT:
+                    return "Knife"; // Short weapons use knife skill
+                case MEDIUM:
+                    return "Sword"; // Medium weapons use sword skill
+                case LONG:
+                    return "Spear"; // Long weapons use spear skill
+                case UNARMED:
+                    return ""; // No weapon skill for unarmed
+                case TWO_WEAPON:
+                    return "Sword"; // Two weapon fighting uses sword skill
+                default:
+                    return "Melee"; // Generic melee skill fallback
+            }
+        }
+        
+        // For ranged weapons being used defensively
+        switch (weapon.getWeaponType()) {
+            case PISTOL:
+                return "Pistol";
+            case RIFLE:
+                return "Rifle";
+            default:
+                return ""; // No skill bonus for other weapon types
+        }
     }
 }

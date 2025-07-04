@@ -15,6 +15,7 @@ public class MeleeWeapon extends Weapon {
     private boolean isOneHanded; // true for one-handed weapons
     private boolean isMeleeVersionOfRanged; // true if melee version of ranged weapon
     private int defenseCooldown = 60; // DevCycle 23: ticks before next defense attempt (default 60)
+    private int defenseBonus = 0; // DevCycle 40: Defense bonus value (0-20) for defense calculations
 
     public MeleeWeapon(String weaponId, String name, int damage, String soundFile, MeleeWeaponType meleeType, 
                        int defendScore, int attackSpeed, int attackCooldown, double weaponLength, 
@@ -167,6 +168,20 @@ public class MeleeWeapon extends Weapon {
      */
     public void setDefenseCooldown(int defenseCooldown) {
         this.defenseCooldown = Math.max(0, defenseCooldown);
+    }
+    
+    /**
+     * Get defense bonus value (DevCycle 40)
+     */
+    public int getDefenseBonus() {
+        return defenseBonus;
+    }
+    
+    /**
+     * Set defense bonus value (DevCycle 40)
+     */
+    public void setDefenseBonus(int defenseBonus) {
+        this.defenseBonus = Math.max(0, Math.min(20, defenseBonus)); // Clamp to 0-20
     }
     
     /**

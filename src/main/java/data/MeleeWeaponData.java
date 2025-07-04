@@ -50,6 +50,9 @@ public class MeleeWeaponData {
     @JsonProperty("defenseCooldown")
     public int defenseCooldown = 60; // DevCycle 23: default 60 ticks
     
+    @JsonProperty("defenseBonus")
+    public int defenseBonus = 0; // DevCycle 40: Defense bonus value (0-20) for defense calculations
+    
     @JsonProperty("woundDescription")
     public String woundDescription; // Renamed from projectileName (DevCycle 17)
     
@@ -66,7 +69,7 @@ public class MeleeWeaponData {
     public MeleeWeaponData(String id, String name, WeaponType type, int damage, String soundFile, 
                           double weaponLength, int weaponAccuracy, MeleeWeaponType meleeType, 
                           int defendScore, int attackSpeed, int attackCooldown, int readyingTime, 
-                          boolean isOneHanded, boolean isMeleeVersionOfRanged, String woundDescription, String combatSkill) {
+                          boolean isOneHanded, boolean isMeleeVersionOfRanged, int defenseBonus, String woundDescription, String combatSkill) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -81,6 +84,7 @@ public class MeleeWeaponData {
         this.readyingTime = readyingTime;
         this.isOneHanded = isOneHanded;
         this.isMeleeVersionOfRanged = isMeleeVersionOfRanged;
+        this.defenseBonus = defenseBonus;
         this.woundDescription = woundDescription;
         this.combatSkill = combatSkill;
     }

@@ -16,6 +16,7 @@
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
       "defenseCooldown": 60,
+      "defenseBonus": 6,
       "combatSkill": "skl_knife",
       "woundDescription": "knife strike",
       "states": [
@@ -42,6 +43,7 @@
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
       "defenseCooldown": 60,
+      "defenseBonus": 12,
       "combatSkill": "skl_knife",
       "woundDescription": "sabre slash",
       "states": [
@@ -68,6 +70,7 @@
       "isOneHanded": false,
       "isMeleeVersionOfRanged": true,
       "defenseCooldown": 60,
+      "defenseBonus": 14,
       "combatSkill": "skl_rifle_melee",
       "woundDescription": "bayonet thrust",
       "states": [
@@ -94,6 +97,7 @@
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
       "defenseCooldown": 60,
+      "defenseBonus": 8,
       "combatSkill": "skl_tomahawk",
       "woundDescription": "tomahawk strike",
       "states": [
@@ -120,6 +124,7 @@
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
       "defenseCooldown": 60,
+      "defenseBonus": 13,
       "combatSkill": "skl_knife",
       "woundDescription": "officer's blade",
       "states": [
