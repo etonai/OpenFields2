@@ -282,24 +282,42 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
   - `mvn test -Dtest=BasicMissTestAutomated`
   - `mvn test -Dtest=BasicMissTestSimple`
   - `mvn test -Dtest=HeadlessGunfightTest`
+- ✅ **Enhanced Test Runners Available**:
+  - `./test-runner.sh --completion-check` (system completion validation)
+  - `./test-runner.sh --all` (all critical tests)
+  - `./test-runner.sh --fast` (HeadlessGunfightTest only)
 - ✅ **No Exceptions**: This rule applies to ALL systems and cycles, no exceptions allowed
 
 **Rationale**: These tests represent core game functionality, combat mechanics, and regression detection. If any of these tests fail, it indicates fundamental issues that must be resolved before any completion.
 
-### System Completion Confirmation Requirements (MANDATORY)
-**System Completion Requirement**: No system can be marked as ✅ **COMPLETE** until the user has explicitly confirmed that the implementation works correctly.
+### System Completion Workflow (MANDATORY)
+**System Completion Requirement**: No system can be marked as ✅ **COMPLETE** until ALL mandatory steps are completed in order.
+
+**MANDATORY Completion Steps (No Exceptions):**
+
+**Step 1: Critical Test Verification**
+- ✅ **Run ALL 4 critical tests first**: Execute all critical tests and verify they pass
+  - `mvn test -Dtest=HeadlessGunfightTest` (fastest verification)
+  - `mvn test -Dtest=BasicMissTestSimple`
+  - `mvn test -Dtest=BasicMissTestAutomated`
+  - `mvn test -Dtest=GunfightTestAutomated`
+- ✅ **Document test results**: Update system documentation with test verification status
+- ✅ **All tests must pass**: If any test fails, system cannot be marked complete
+
+**Step 2: User Confirmation Process**
+- ✅ **Implementation Status**: Use "IMPLEMENTED, AWAITING USER CONFIRMATION" status
+- ✅ **Request user testing**: Ask user to test the implementation
+- ✅ **Wait for explicit confirmation**: Never mark complete without user approval
+
+**Step 3: Final Completion**
+- ✅ **Only after Steps 1 & 2**: Change status to ✅ **COMPLETE**
+- ✅ **Update documentation**: Record completion with test verification and user confirmation
 
 **Enforcement Rules:**
-- ✅ **User Confirmation Required**: Claude must NEVER mark any system as "COMPLETE" without explicit user confirmation
-- ✅ **Implementation Status**: Use "IMPLEMENTED, AWAITING USER CONFIRMATION" status instead of "COMPLETE"
-- ✅ **Confirmation Process**: After implementation, Claude must:
-  1. State "System X implementation complete"
-  2. Request user to test the implementation
-  3. Wait for explicit user confirmation before marking as ✅ **COMPLETE**
-- ✅ **No Assumptions**: Never assume implementation works correctly without user testing
+- ✅ **Mandatory Order**: Steps must be completed in exact order (Tests → User → Complete)
+- ✅ **No Shortcuts**: Cannot skip critical tests or user confirmation
 - ✅ **No Self-Completion**: Claude cannot mark own work as complete
-
-**Violation Consequences**: Marking systems complete without user confirmation violates established workflow and must be immediately corrected.
+- ✅ **Violation Consequences**: Marking systems complete without following this workflow violates established procedures and must be corrected immediately
 
 **Process Example:**
 ```
@@ -307,6 +325,31 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 ⚠️ Status: IMPLEMENTED, AWAITING USER CONFIRMATION  
 ❌ Do NOT mark as COMPLETE until user confirms it works
 ```
+
+## 🚨 CRITICAL REMINDER: System Completion Checklist
+
+**BEFORE marking ANY system as ✅ COMPLETE, Claude MUST verify:**
+
+### ✅ Step 1: Critical Test Verification
+- [ ] **HeadlessGunfightTest PASSED** - `mvn test -Dtest=HeadlessGunfightTest`
+- [ ] **BasicMissTestSimple PASSED** - `mvn test -Dtest=BasicMissTestSimple`  
+- [ ] **BasicMissTestAutomated PASSED** - `mvn test -Dtest=BasicMissTestAutomated`
+- [ ] **GunfightTestAutomated PASSED** - `mvn test -Dtest=GunfightTestAutomated`
+- [ ] **Test results documented** in DevCycle plan
+
+### ✅ Step 2: User Confirmation
+- [ ] **User has tested** the implementation
+- [ ] **User explicitly confirmed** implementation works correctly
+- [ ] **User approval documented** in DevCycle plan
+
+### ✅ Step 3: Final Completion
+- [ ] **All above steps completed** in order
+- [ ] **Documentation updated** with completion summary
+- [ ] **Status changed** to ✅ **COMPLETE**
+
+**🚨 THIS CHECKLIST IS MANDATORY AND HAS NO EXCEPTIONS 🚨**
+
+**If ANY item is unchecked, the system CANNOT be marked as complete.**
 
 ### DevCycle Closure Enforcement
 To prevent missing the branch merge step in future cycles:
