@@ -49,7 +49,12 @@ public class MeleeCombatTestAutomated {
     private AtomicBoolean testFailed = new AtomicBoolean(false);
     private AtomicBoolean exceptionDetected = new AtomicBoolean(false);
     private AtomicInteger defenseAttempts = new AtomicInteger(0);
+    private AtomicInteger nonZeroDefenseModifiers = new AtomicInteger(0);
     private String failureReason = "";
+    
+    // Capture console output to analyze defense messages
+    private java.io.ByteArrayOutputStream consoleOutput = new java.io.ByteArrayOutputStream();
+    private java.io.PrintStream originalOut;
     
     private combat.Character soldierAlpha;
     private combat.Character soldierBeta;
@@ -59,6 +64,17 @@ public class MeleeCombatTestAutomated {
     @BeforeEach
     public void setUp() throws Exception {
         System.out.println("=== Melee Combat Test Automated Setup ===");
+        
+        // Capture console output to analyze defense messages
+        originalOut = System.out;
+        consoleOutput = new java.io.ByteArrayOutputStream();
+        System.setOut(new java.io.PrintStream(new java.io.OutputStream() {
+            @Override
+            public void write(int b) throws java.io.IOException {
+                consoleOutput.write(b);
+                originalOut.write(b); // Still show output normally
+            }
+        }));
         
         // Initialize JavaFX if not already initialized
         if (!Platform.isFxApplicationThread()) {
@@ -72,6 +88,7 @@ public class MeleeCombatTestAutomated {
         testFailed.set(false);
         exceptionDetected.set(false);
         defenseAttempts.set(0);
+        nonZeroDefenseModifiers.set(0);
         failureReason = "";
         
         gameReadyLatch = new CountDownLatch(1);
@@ -111,12 +128,18 @@ public class MeleeCombatTestAutomated {
         // Wait for combat completion or timeout (1 minute = 60 seconds)
         assertTrue(combatCompleteLatch.await(65, TimeUnit.SECONDS), "Combat should complete within 1 minute");
         
+        // Analyze console output for defense system activity
+        analyzeDefenseActivity();
+        
         // Verify success criteria (restored to original requirements with attack validation)
         assertFalse(testFailed.get(), "Test failed: " + failureReason);
         assertFalse(exceptionDetected.get(), "Exception detected during combat");
         
         // Primary success criteria: No exceptions AND at least one defense attempt
         assertTrue(defenseAttempts.get() >= 1, "At least one defense attempt should have occurred. Actual: " + defenseAttempts.get());
+        
+        // Additional criteria: At least one non-zero defense modifier (indicating successful defense)
+        assertTrue(nonZeroDefenseModifiers.get() >= 1, "At least one non-zero defense modifier should have occurred. Actual: " + nonZeroDefenseModifiers.get());
         
         // Enhanced success criteria: At least one attack performed
         int totalAttacks = soldierAlpha.getAttacksAttempted() + soldierBeta.getAttacksAttempted();
@@ -556,5 +579,49 @@ public class MeleeCombatTestAutomated {
         System.out.println("  Attacks: " + character.getAttacksAttempted() + " attempted, " + character.getAttacksSuccessful() + " successful");
         System.out.println("  Wounds Inflicted: " + totalWoundsInflicted);
         System.out.println("=== End " + characterName + " Stats ===");
+    }
+    
+    /**
+     * Analyze captured console output for defense system activity.
+     * Looks for [DEFENSE] debug messages and non-zero Defense modifier values.
+     */
+    private void analyzeDefenseActivity() {
+        // Parse console output for defense debug messages
+        String output = consoleOutput.toString();
+        String[] lines = output.split("\n");
+        
+        for (String line : lines) {
+            // Look for [DEFENSE] debug messages
+            if (line.contains("[DEFENSE]")) {
+                defenseAttempts.incrementAndGet();
+                System.out.println("Found DEFENSE message: " + line.trim());
+            }
+            
+            // Look for non-zero "Defense modifier:" values
+            if (line.contains("Defense modifier:")) {
+                // Extract the numeric value
+                try {
+                    String[] parts = line.split("Defense modifier:\\s*");
+                    if (parts.length > 1) {
+                        String modifierPart = parts[1].trim();
+                        // Extract number before any additional text
+                        String[] modifierParts = modifierPart.split("\\s+");
+                        if (modifierParts.length > 0) {
+                            double modifierValue = Double.parseDouble(modifierParts[0]);
+                            if (modifierValue != 0.0) {
+                                nonZeroDefenseModifiers.incrementAndGet();
+                                System.out.println("Found non-zero Defense modifier: " + modifierValue + " from line: " + line.trim());
+                            }
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    // Skip lines that don't contain valid numbers
+                    System.out.println("Could not parse Defense modifier from line: " + line.trim());
+                }
+            }
+        }
+        
+        System.out.println("Defense analysis complete: " + defenseAttempts.get() + " defense attempts, " + 
+                          nonZeroDefenseModifiers.get() + " non-zero modifiers");
     }
 }
