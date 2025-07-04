@@ -240,8 +240,9 @@ public class AutoTargetingSystem {
             double dy = unit.getY() - selfUnit.getY();
             double distance = Math.hypot(dx, dy);
             
-            // Check weapon range limitations
-            if (character.weapon != null && distance / 7.0 > ((RangedWeapon)character.weapon).getMaximumRange()) {
+            // Check weapon range limitations (only for ranged weapons)
+            if (character.weapon != null && character.weapon instanceof RangedWeapon && 
+                distance / 7.0 > ((RangedWeapon)character.weapon).getMaximumRange()) {
                 continue; // Skip targets beyond weapon range
             }
             

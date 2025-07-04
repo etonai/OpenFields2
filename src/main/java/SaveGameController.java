@@ -462,9 +462,18 @@ public class SaveGameController {
             for (UnitData unitData : saveData.units) {
                 combat.Character character = characterRegistry.getCharacter(unitData.characterId);
                 if (character != null) {
-                    // Apply scenario-specific weapon and state
+                    // Apply scenario-specific weapon and state - handle both ranged and melee weapons (DevCycle 40)
                     if (unitData.weaponId != null && !unitData.weaponId.isEmpty()) {
-                        character.weapon = WeaponFactory.createWeapon(unitData.weaponId);
+                        // First try to create as melee weapon
+                        DataManager dataManager = DataManager.getInstance();
+                        if (dataManager.getMeleeWeapon(unitData.weaponId) != null) {
+                            character.meleeWeapon = MeleeWeaponFactory.createWeapon(unitData.weaponId);
+                            character.weapon = character.meleeWeapon; // Set as primary weapon
+                        } else {
+                            // Fall back to ranged weapon
+                            character.weapon = WeaponFactory.createWeapon(unitData.weaponId);
+                        }
+                        
                         if (character.weapon != null && unitData.currentWeaponState != null) {
                             character.currentWeaponState = character.weapon.getStateByName(unitData.currentWeaponState);
                             if (character.currentWeaponState == null) {
@@ -550,9 +559,18 @@ public class SaveGameController {
         character.currentMovementType = data.currentMovementType;
         character.currentAimingSpeed = data.currentAimingSpeed;
         
-        // Restore weapon
+        // Restore weapon - handle both ranged and melee weapons (DevCycle 40)
         if (data.weaponId != null && !data.weaponId.isEmpty()) {
-            character.weapon = WeaponFactory.createWeapon(data.weaponId);
+            // First try to create as melee weapon
+            DataManager dataManager = DataManager.getInstance();
+            if (dataManager.getMeleeWeapon(data.weaponId) != null) {
+                character.meleeWeapon = MeleeWeaponFactory.createWeapon(data.weaponId);
+                character.weapon = character.meleeWeapon; // Set as primary weapon
+            } else {
+                // Fall back to ranged weapon
+                character.weapon = WeaponFactory.createWeapon(data.weaponId);
+            }
+            
             if (character.weapon != null && data.currentWeaponState != null) {
                 character.currentWeaponState = character.weapon.getStateByName(data.currentWeaponState);
                 if (character.currentWeaponState == null) {
@@ -560,6 +578,12 @@ public class SaveGameController {
                 }
             }
         }
+        
+        // Restore melee combat mode (DevCycle 40)
+        character.isMeleeCombatMode = data.isMeleeCombatMode;
+        
+        // Restore defense timing (DevCycle 40)
+        character.nextDefenseTick = data.nextDefenseTick;
         
         // Restore skills
         character.skills.clear();

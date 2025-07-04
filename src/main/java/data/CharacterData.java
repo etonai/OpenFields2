@@ -161,6 +161,14 @@ public class CharacterData {
     @JsonProperty("multipleShootCount")
     public int multipleShootCount = 1;
     
+    // DevCycle 40: Melee combat mode
+    @JsonProperty("isMeleeCombatMode")
+    public boolean isMeleeCombatMode = false;
+    
+    // DevCycle 40: Defense system timing
+    @JsonProperty("nextDefenseTick")
+    public long nextDefenseTick = 0;
+    
     public CharacterData() {
         // Default constructor for Jackson
         this.skills = new ArrayList<>();
