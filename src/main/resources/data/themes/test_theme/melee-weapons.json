@@ -16,6 +16,7 @@
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
       "defenseCooldown": 60,
+      "defenseBonus": 13,
       "combatSkill": "skl_knife",
       "woundDescription": "magical slash",
       "states": [
@@ -42,6 +43,7 @@
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
       "defenseCooldown": 60,
+      "defenseBonus": 5,
       "combatSkill": "skl_knife",
       "woundDescription": "dagger strike",
       "states": [
@@ -67,6 +69,7 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseBonus": 11,
       "woundDescription": "sword slash",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -91,6 +94,7 @@
       "readyingTime": 90,
       "isOneHanded": false,
       "isMeleeVersionOfRanged": false,
+      "defenseBonus": 10,
       "woundDescription": "axe blow",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -115,6 +119,7 @@
       "readyingTime": 30,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseBonus": 4,
       "woundDescription": "wand strike",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -139,6 +144,7 @@
       "readyingTime": 45,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseBonus": 6,
       "woundDescription": "knife strike",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -163,6 +169,7 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseBonus": 12,
       "woundDescription": "sabre slash",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -187,6 +194,7 @@
       "readyingTime": 90,
       "isOneHanded": false,
       "isMeleeVersionOfRanged": true,
+      "defenseBonus": 14,
       "woundDescription": "bayonet thrust",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -211,6 +219,7 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseBonus": 8,
       "woundDescription": "tomahawk strike",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},
@@ -235,6 +244,7 @@
       "readyingTime": 75,
       "isOneHanded": true,
       "isMeleeVersionOfRanged": false,
+      "defenseBonus": 13,
       "woundDescription": "officer's blade",
       "states": [
         {"state": "sheathed", "action": "unsheathing", "ticks": 0},

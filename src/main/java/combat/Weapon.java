@@ -18,6 +18,7 @@ public abstract class Weapon {
     public String initialStateName;
     protected String woundDescription; // Wound description for combat messages (renamed from projectileName - DevCycle 17)
     protected String weaponId; // Unique weapon identifier from JSON data (DevCycle 17)
+    protected int defenseBonus = 0; // Defense bonus when using this weapon (DevCycle 40)
     
     // Note: Ranged-weapon-specific fields have been moved to RangedWeapon class to eliminate duplication
 
@@ -33,6 +34,15 @@ public abstract class Weapon {
         this.weaponAccuracy = weaponAccuracy;
         this.weaponType = weaponType;
         this.woundDescription = "projectile"; // Default value
+        this.defenseBonus = 0; // Default value
+    }
+    
+    /**
+     * Base constructor for all weapons with defense bonus (DevCycle 40)
+     */
+    public Weapon(String weaponId, String name, int damage, String soundFile, double weaponLength, int weaponAccuracy, WeaponType weaponType, int defenseBonus) {
+        this(weaponId, name, damage, soundFile, weaponLength, weaponAccuracy, weaponType);
+        this.defenseBonus = defenseBonus;
     }
 
     // Common getter methods
@@ -128,6 +138,22 @@ public abstract class Weapon {
     
     public void setWeaponId(String weaponId) {
         this.weaponId = weaponId;
+    }
+    
+    /**
+     * Get the defense bonus this weapon provides (DevCycle 40)
+     * @return Defense bonus value
+     */
+    public int getDefenseBonus() {
+        return defenseBonus;
+    }
+    
+    /**
+     * Set the defense bonus this weapon provides (DevCycle 40)
+     * @param defenseBonus Defense bonus value
+     */
+    public void setDefenseBonus(int defenseBonus) {
+        this.defenseBonus = defenseBonus;
     }
     
 }

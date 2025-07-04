@@ -4,6 +4,7 @@
  */
 
 import combat.*;
+import combat.managers.DefenseManager;
 import data.SkillsManager;
 import game.Unit;
 import utils.GameConstants;
@@ -12,6 +13,10 @@ import java.util.List;
 public final class CombatCalculator {
     
     public static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage, boolean debugMode, int stressModifier, long currentTick) {
+        return determineHit(shooter, target, distanceFeet, maximumRange, weaponAccuracy, weaponDamage, debugMode, stressModifier, currentTick, false);
+    }
+    
+    public static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage, boolean debugMode, int stressModifier, long currentTick, boolean isMeleeAttack) {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = calculateMovementModifier(shooter);
@@ -48,7 +53,15 @@ public final class CombatCalculator {
         double firingStateModifier = shooter.character.getFiresFromAimingState() ? 0.0 : -20.0; // -20 penalty for pointedfromhip firing
         double sizeModifier = 0.0;
         double coverModifier = 0.0;
-        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + burstAutoPenalty + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + firstAttackPenalty + firingStateModifier + sizeModifier + coverModifier;
+        
+        // DevCycle 40: Defense system for melee attacks only
+        double defenseModifier = 0.0;
+        if (isMeleeAttack) {
+            int defenseValue = DefenseManager.getInstance().performDefense(target.character, currentTick);
+            defenseModifier = -defenseValue; // Defense applied as negative modifier to attack
+        }
+        
+        double chanceToHit = 50.0 + GameConstants.statToModifier(shooter.character.dexterity) + stressMod + rangeModifier + weaponModifier + movementModifier + aimingSpeedModifier + burstAutoPenalty + targetMovementModifier + woundModifier + skillModifier + positionModifier + braveryModifier + firstAttackPenalty + firingStateModifier + sizeModifier + coverModifier + defenseModifier;
         
         if (distanceFeet <= maximumRange) {
             chanceToHit = Math.max(chanceToHit, 0.01);
@@ -94,6 +107,9 @@ public final class CombatCalculator {
             System.out.println("Firing state modifier: " + firingStateModifier + " (firing from " + (shooter.character.getFiresFromAimingState() ? "aiming" : "pointedfromhip") + ")");
             System.out.println("Size modifier: " + sizeModifier);
             System.out.println("Cover modifier: " + coverModifier);
+            if (isMeleeAttack && defenseModifier != 0.0) {
+                System.out.println("Defense modifier: " + defenseModifier + " (defender successfully defended)");
+            }
             System.out.println("Final chance to hit: " + String.format("%.2f", chanceToHit) + "%");
             System.out.println("Random roll: " + String.format("%.2f", randomRoll));
             System.out.println("Result: " + (randomRoll < chanceToHit ? "HIT" : "MISS"));

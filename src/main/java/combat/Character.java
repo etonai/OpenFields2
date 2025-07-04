@@ -162,6 +162,9 @@ public class Character implements ICharacter {
     public int counterAttacksExecuted = 0;      // Auto-updated when counter-attacks are performed
     public int counterAttacksSuccessful = 0;    // Auto-updated when counter-attacks hit
     
+    /** Defense system fields (DevCycle 40) */
+    public long nextDefenseTick = 0;            // Next tick when defense can be attempted
+    
     // AUTOMATIC FIRING STATE
     
     // Burst and full-auto firing state - now managed by BurstFireManager
@@ -1618,6 +1621,24 @@ public class Character implements ICharacter {
     public void grantCounterAttackOpportunity(int windowDurationTicks, long currentTick) {
         DefenseManager.getInstance().setCounterAttackWindow(id, currentTick + windowDurationTicks);
         DefenseManager.getInstance().setHasCounterAttackOpportunity(id, true);
+    }
+    
+    /**
+     * Gets the next tick when defense can be attempted
+     * DevCycle 40: Defense System
+     * @return The next defense tick
+     */
+    public long getNextDefenseTick() {
+        return nextDefenseTick;
+    }
+    
+    /**
+     * Sets the next tick when defense can be attempted
+     * DevCycle 40: Defense System
+     * @param tick The next defense tick
+     */
+    public void setNextDefenseTick(long tick) {
+        this.nextDefenseTick = tick;
     }
     
     /**
