@@ -6,6 +6,7 @@ import combat.Skill;
 import java.util.Date;
 import java.util.Calendar;
 import java.util.Random;
+import utils.RandomProvider;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.io.IOException;
  * Factory for creating characters with pre-defined archetypes and themes
  */
 public class CharacterFactory {
+    // Deprecated: Use RandomProvider instead for centralized random number generation
     private static final Random random = new Random();
     
     // Theme-based name data cache
@@ -83,7 +85,7 @@ public class CharacterFactory {
     
     private static Character createGunslinger() {
         String firstName = generateFirstName();
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
         
         Character character = new Character(
             0, // ID assigned by registry
@@ -110,7 +112,7 @@ public class CharacterFactory {
     
     private static Character createSoldier() {
         String firstName = generateFirstName();
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
         
         Character character = new Character(
             0,
@@ -136,7 +138,7 @@ public class CharacterFactory {
     
     private static Character createMedic() {
         String firstName = generateFirstName();
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
         
         Character character = new Character(
             0,
@@ -162,7 +164,7 @@ public class CharacterFactory {
     
     private static Character createScout() {
         String firstName = generateFirstName();
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
         
         Character character = new Character(
             0,
@@ -189,7 +191,7 @@ public class CharacterFactory {
     
     private static Character createMarksman() {
         String firstName = generateFirstName();
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
         
         Character character = new Character(
             0,
@@ -215,7 +217,7 @@ public class CharacterFactory {
     
     private static Character createBrawler() {
         String firstName = generateFirstName();
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
         
         Character character = new Character(
             0,
@@ -241,10 +243,10 @@ public class CharacterFactory {
     
     private static Character createBalanced() {
         // 50/50 gender split for balanced characters
-        String gender = random.nextBoolean() ? "male" : "female";
+        String gender = RandomProvider.nextBoolean() ? "male" : "female";
         String themeId = themeManager.getCurrentThemeId();
         String firstName = generateThemeBasedFirstName(gender, themeId);
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeId);
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeId);
         
         Character character = new Character(
             0,
@@ -274,37 +276,37 @@ public class CharacterFactory {
         
         // Generate dexterity with reroll if <= 20
         do {
-            int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
+            int dex1 = RandomProvider.nextInt(100) + 1, dex2 = RandomProvider.nextInt(100) + 1;
             avgDexterity = Math.max(1, (dex1 + dex2) / 2);
         } while (avgDexterity <= 20);
         
         // Generate coolness with reroll if <= 20
         do {
-            int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
+            int cool1 = RandomProvider.nextInt(100) + 1, cool2 = RandomProvider.nextInt(100) + 1;
             avgCoolness = Math.max(1, (cool1 + cool2) / 2);
         } while (avgCoolness <= 20);
         
         // Generate strength with reroll if <= 20
         do {
-            int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
+            int str1 = RandomProvider.nextInt(100) + 1, str2 = RandomProvider.nextInt(100) + 1;
             avgStrength = Math.max(1, (str1 + str2) / 2);
         } while (avgStrength <= 20);
         
         // Generate reflexes with reroll if <= 20
         do {
-            int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
+            int ref1 = RandomProvider.nextInt(100) + 1, ref2 = RandomProvider.nextInt(100) + 1;
             avgReflexes = Math.max(1, (ref1 + ref2) / 2);
         } while (avgReflexes <= 20);
         
         // Generate health with reroll if <= 20
         do {
-            int health1 = random.nextInt(100) + 1, health2 = random.nextInt(100) + 1;
+            int health1 = RandomProvider.nextInt(100) + 1, health2 = RandomProvider.nextInt(100) + 1;
             avgHealth = Math.max(1, (health1 + health2) / 2);
         } while (avgHealth <= 20);
         
         // Realistic handedness distribution: 89% right, 10% left, 1% ambidextrous
         Handedness randomHandedness;
-        int handednessRoll = random.nextInt(100) + 1; // 1-100
+        int handednessRoll = RandomProvider.nextInt(100) + 1; // 1-100
         if (handednessRoll <= 89) {
             randomHandedness = Handedness.RIGHT_HANDED; // 89%
         } else if (handednessRoll <= 99) {
@@ -314,10 +316,10 @@ public class CharacterFactory {
         }
         
         // 50/50 gender split for weighted_random
-        String gender = random.nextBoolean() ? "male" : "female";
+        String gender = RandomProvider.nextBoolean() ? "male" : "female";
         String themeId = themeManager.getCurrentThemeId();
         String firstName = generateThemeBasedFirstName(gender, themeId);
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeId);
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeId);
         
         Character character = new Character(
             0, // ID assigned by registry
@@ -340,11 +342,11 @@ public class CharacterFactory {
     
     private static Character createConfederateSoldier() {
         // Use the same random stat generation as weighted_random
-        int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
+        int dex1 = RandomProvider.nextInt(100) + 1, dex2 = RandomProvider.nextInt(100) + 1;
         int health1 = 100, health2 = 100; // Health base 100 consistent with character stats
-        int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
-        int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
-        int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
+        int cool1 = RandomProvider.nextInt(100) + 1, cool2 = RandomProvider.nextInt(100) + 1;
+        int str1 = RandomProvider.nextInt(100) + 1, str2 = RandomProvider.nextInt(100) + 1;
+        int ref1 = RandomProvider.nextInt(100) + 1, ref2 = RandomProvider.nextInt(100) + 1;
         
         // Calculate averages
         int avgDexterity = (dex1 + dex2) / 2;
@@ -354,11 +356,11 @@ public class CharacterFactory {
         int avgReflexes = (ref1 + ref2) / 2;
         
         // Random handedness
-        Handedness randomHandedness = random.nextBoolean() ? 
+        Handedness randomHandedness = RandomProvider.nextBoolean() ? 
             Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
         
         String firstName = generateFirstName();
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
         
         Character character = new Character(
             0, // ID assigned by registry
@@ -383,10 +385,10 @@ public class CharacterFactory {
     
     private static Character createUnionSoldier() {
         // Use the same random stat generation as weighted_random
-        int dex1 = random.nextInt(100) + 1, dex2 = random.nextInt(100) + 1;
-        int cool1 = random.nextInt(100) + 1, cool2 = random.nextInt(100) + 1;
-        int str1 = random.nextInt(100) + 1, str2 = random.nextInt(100) + 1;
-        int ref1 = random.nextInt(100) + 1, ref2 = random.nextInt(100) + 1;
+        int dex1 = RandomProvider.nextInt(100) + 1, dex2 = RandomProvider.nextInt(100) + 1;
+        int cool1 = RandomProvider.nextInt(100) + 1, cool2 = RandomProvider.nextInt(100) + 1;
+        int str1 = RandomProvider.nextInt(100) + 1, str2 = RandomProvider.nextInt(100) + 1;
+        int ref1 = RandomProvider.nextInt(100) + 1, ref2 = RandomProvider.nextInt(100) + 1;
         
         // Calculate averages
         int avgDexterity = (dex1 + dex2) / 2;
@@ -395,11 +397,11 @@ public class CharacterFactory {
         int avgReflexes = (ref1 + ref2) / 2;
         
         // Random handedness
-        Handedness randomHandedness = random.nextBoolean() ? 
+        Handedness randomHandedness = RandomProvider.nextBoolean() ? 
             Handedness.LEFT_HANDED : Handedness.RIGHT_HANDED;
         
         String firstName = generateFirstName();
-        String nickname = (random.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
+        String nickname = (RandomProvider.nextInt(100) < 80) ? firstName : generateCreativeNickname(themeManager.getCurrentThemeId());
         
         Character character = new Character(
             0, // ID assigned by registry
@@ -428,7 +430,7 @@ public class CharacterFactory {
         String firstName = generateThemeBasedFirstName("male", themeId);
         
         // 80% of time use first name, 20% use creative nickname
-        if (random.nextInt(100) < 80) {
+        if (RandomProvider.nextInt(100) < 80) {
             return firstName;
         } else {
             return generateCreativeNickname(themeId);
@@ -455,8 +457,8 @@ public class CharacterFactory {
             JsonNode nameNicknames = nicknames.get(firstName);
             if (nameNicknames.isArray() && nameNicknames.size() > 0) {
                 // 50% chance to use nickname vs first name
-                if (random.nextBoolean()) {
-                    int index = random.nextInt(nameNicknames.size());
+                if (RandomProvider.nextBoolean()) {
+                    int index = RandomProvider.nextInt(nameNicknames.size());
                     return nameNicknames.get(index).asText();
                 } else {
                     return firstName;
@@ -508,7 +510,7 @@ public class CharacterFactory {
                 return generateFallbackFirstName();
             }
             
-            return weightedNames.get(random.nextInt(weightedNames.size()));
+            return weightedNames.get(RandomProvider.nextInt(weightedNames.size()));
             
         } catch (Exception e) {
             return generateFallbackFirstName();
@@ -517,7 +519,7 @@ public class CharacterFactory {
     
     private static String generateFallbackFirstName() {
         String[] maleNames = {"John", "William", "James", "Charles", "George", "Frank", "Joseph", "Thomas", "Henry", "Robert"};
-        return maleNames[random.nextInt(maleNames.length)];
+        return maleNames[RandomProvider.nextInt(maleNames.length)];
     }
     
     private static String generateLastName() {
@@ -607,7 +609,7 @@ public class CharacterFactory {
                 return generateFallbackFirstName();
             }
             
-            return weightedNames.get(random.nextInt(weightedNames.size()));
+            return weightedNames.get(RandomProvider.nextInt(weightedNames.size()));
             
         } catch (Exception e) {
             return generateFallbackFirstName();
@@ -647,7 +649,7 @@ public class CharacterFactory {
                 return generateFallbackLastName();
             }
             
-            return weightedLastNames.get(random.nextInt(weightedLastNames.size()));
+            return weightedLastNames.get(RandomProvider.nextInt(weightedLastNames.size()));
             
         } catch (Exception e) {
             return generateFallbackLastName();
@@ -678,7 +680,7 @@ public class CharacterFactory {
                 return generateFallbackFirstName();
             }
             
-            return nicknameList.get(random.nextInt(nicknameList.size()));
+            return nicknameList.get(RandomProvider.nextInt(nicknameList.size()));
             
         } catch (Exception e) {
             return generateFallbackFirstName();
@@ -687,7 +689,7 @@ public class CharacterFactory {
     
     private static String generateFallbackLastName() {
         String[] lastNames = {"Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Wilson", "Moore", "Taylor"};
-        return lastNames[random.nextInt(lastNames.length)];
+        return lastNames[RandomProvider.nextInt(lastNames.length)];
     }
 
     
@@ -723,7 +725,7 @@ public class CharacterFactory {
             }
             
             // Generate age between 18-45
-            int age = 18 + random.nextInt(28);
+            int age = 18 + RandomProvider.nextInt(28);
             Calendar birthdate = Calendar.getInstance();
             birthdate.setTime(current.getTime());
             birthdate.add(Calendar.YEAR, -age);
@@ -736,9 +738,9 @@ public class CharacterFactory {
     
     private static Date generateFallbackBirthdate() {
         Calendar cal = Calendar.getInstance();
-        int year = 1850 + random.nextInt(20);
-        int month = random.nextInt(12);
-        int day = 1 + random.nextInt(28);
+        int year = 1850 + RandomProvider.nextInt(20);
+        int month = RandomProvider.nextInt(12);
+        int day = 1 + RandomProvider.nextInt(28);
         cal.set(year, month, day);
         return cal.getTime();
     }
@@ -751,25 +753,25 @@ public class CharacterFactory {
     private static int generateArchetypeHealth(String archetype) {
         switch (archetype.toLowerCase()) {
             case "gunslinger":
-                return 70 + random.nextInt(31); // 70-100 (hardy background)
+                return 70 + RandomProvider.nextInt(31); // 70-100 (hardy background)
             case "soldier":
-                return 80 + random.nextInt(21); // 80-100 (very hardy, military training)
+                return 80 + RandomProvider.nextInt(21); // 80-100 (very hardy, military training)
             case "medic":
-                return 60 + random.nextInt(31); // 60-90 (average physical condition)
+                return 60 + RandomProvider.nextInt(31); // 60-90 (average physical condition)
             case "scout":
-                return 50 + random.nextInt(41); // 50-90 (varied backgrounds)
+                return 50 + RandomProvider.nextInt(41); // 50-90 (varied backgrounds)
             case "marksman":
-                return 40 + random.nextInt(41); // 40-80 (focused, less hardy)
+                return 40 + RandomProvider.nextInt(41); // 40-80 (focused, less hardy)
             case "brawler":
-                return 85 + random.nextInt(16); // 85-100 (very hardy, physical background)
+                return 85 + RandomProvider.nextInt(16); // 85-100 (very hardy, physical background)
             case "confederate_soldier":
             case "union_soldier":
-                return 75 + random.nextInt(26); // 75-100 (military training)
+                return 75 + RandomProvider.nextInt(26); // 75-100 (military training)
             case "balanced":
-                return 65 + random.nextInt(36); // 65-100 (well-rounded)
+                return 65 + RandomProvider.nextInt(36); // 65-100 (well-rounded)
             case "weighted_random":
             default:
-                return 21 + random.nextInt(80); // 21-100 (general range)
+                return 21 + RandomProvider.nextInt(80); // 21-100 (general range)
         }
     }
 

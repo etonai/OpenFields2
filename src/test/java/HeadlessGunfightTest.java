@@ -20,6 +20,7 @@ import game.GameCallbacks;
 import game.ScheduledEvent;
 import game.GameClock;
 import java.util.Random;
+import utils.GameConfiguration;
 
 /**
  * Enhanced headless gunfight test using real OpenFields2 game instance - DevCycle 39.
@@ -70,7 +71,8 @@ public class HeadlessGunfightTest {
         assertTrue(gameInstance.initializeHeadless(), "Game should initialize in headless mode");
         
         // Set up deterministic random seed for consistent test results
-        // TODO: Implement random seed control when available
+        GameConfiguration.setDeterministicMode(true, 12345L);
+        System.out.println("✓ Deterministic mode enabled with seed 12345");
         
         System.out.println("✓ Headless gunfight test environment initialized");
     }
@@ -87,6 +89,10 @@ public class HeadlessGunfightTest {
         if (testPlatform != null) {
             testPlatform.shutdown();
         }
+        
+        // Reset deterministic mode to avoid interfering with other tests
+        GameConfiguration.reset();
+        System.out.println("✓ Deterministic mode reset");
         
         System.out.println("✓ Headless test environment cleaned up");
     }

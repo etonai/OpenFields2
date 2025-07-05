@@ -8,7 +8,9 @@ import combat.managers.DefenseManager;
 import data.SkillsManager;
 import game.Unit;
 import utils.GameConstants;
+import utils.RandomProvider;
 import java.util.List;
+import java.util.Random;
 
 public final class CombatCalculator {
     
@@ -17,6 +19,14 @@ public final class CombatCalculator {
     }
     
     public static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage, boolean debugMode, int stressModifier, long currentTick, boolean isMeleeAttack) {
+        return determineHit(shooter, target, distanceFeet, maximumRange, weaponAccuracy, weaponDamage, debugMode, stressModifier, currentTick, isMeleeAttack, RandomProvider.getCurrentRandom());
+    }
+    
+    /**
+     * Test-specific overload for determineHit with custom Random instance.
+     * Allows precise control over random number generation for testing.
+     */
+    public static HitResult determineHit(Unit shooter, Unit target, double distanceFeet, double maximumRange, int weaponAccuracy, int weaponDamage, boolean debugMode, int stressModifier, long currentTick, boolean isMeleeAttack, Random testRandom) {
         double weaponModifier = weaponAccuracy;
         double rangeModifier = calculateRangeModifier(distanceFeet, maximumRange);
         double movementModifier = calculateMovementModifier(shooter);
@@ -67,7 +77,7 @@ public final class CombatCalculator {
             chanceToHit = Math.max(chanceToHit, 0.01);
         }
         
-        double randomRoll = Math.random() * 100;
+        double randomRoll = testRandom.nextDouble() * 100;
         
         if (debugMode) {
             System.out.println("=== HIT CALCULATION DEBUG ===");
@@ -122,8 +132,8 @@ public final class CombatCalculator {
         int actualDamage = 0;
         
         if (hit) {
-            hitLocation = determineHitLocation(randomRoll, chanceToHit);
-            woundSeverity = determineWoundSeverity(randomRoll, chanceToHit, hitLocation);
+            hitLocation = determineHitLocation(randomRoll, chanceToHit, testRandom);
+            woundSeverity = determineWoundSeverity(randomRoll, chanceToHit, hitLocation, testRandom);
             actualDamage = calculateActualDamage(weaponDamage, woundSeverity, hitLocation);
         }
         
@@ -365,12 +375,19 @@ public final class CombatCalculator {
     }
     
     public static BodyPart determineHitLocation(double randomRoll, double chanceToHit) {
+        return determineHitLocation(randomRoll, chanceToHit, RandomProvider.getCurrentRandom());
+    }
+    
+    /**
+     * Test-specific overload for determineHitLocation with custom Random instance.
+     */
+    public static BodyPart determineHitLocation(double randomRoll, double chanceToHit, Random testRandom) {
         double excellentThreshold = chanceToHit * 0.2;
         double goodThreshold = chanceToHit * 0.7;
         
         if (randomRoll < excellentThreshold) {
             // Excellent shots have a small chance for headshots
-            double headshotRoll = Math.random() * 100;
+            double headshotRoll = testRandom.nextDouble() * 100;
             if (headshotRoll < 15) { // 15% chance for headshot on excellent shots
                 return BodyPart.HEAD;
             } else {
@@ -378,19 +395,26 @@ public final class CombatCalculator {
             }
         } else if (randomRoll < goodThreshold) {
             // Good shots rarely hit the head (2% chance)
-            double headshotRoll = Math.random() * 100;
+            double headshotRoll = testRandom.nextDouble() * 100;
             if (headshotRoll < 2) {
                 return BodyPart.HEAD;
             } else {
-                return Math.random() < 0.5 ? BodyPart.CHEST : BodyPart.ABDOMEN;
+                return testRandom.nextDouble() < 0.5 ? BodyPart.CHEST : BodyPart.ABDOMEN;
             }
         } else {
-            return getRandomBodyPart();
+            return getRandomBodyPart(testRandom);
         }
     }
     
     public static BodyPart getRandomBodyPart() {
-        double roll = Math.random() * 100;
+        return getRandomBodyPart(RandomProvider.getCurrentRandom());
+    }
+    
+    /**
+     * Test-specific overload for getRandomBodyPart with custom Random instance.
+     */
+    public static BodyPart getRandomBodyPart(Random testRandom) {
+        double roll = testRandom.nextDouble() * 100;
         
         if (roll < 12) return BodyPart.LEFT_ARM;
         else if (roll < 24) return BodyPart.RIGHT_ARM;
@@ -402,6 +426,13 @@ public final class CombatCalculator {
     }
     
     public static WoundSeverity determineWoundSeverity(double randomRoll, double chanceToHit, BodyPart hitLocation) {
+        return determineWoundSeverity(randomRoll, chanceToHit, hitLocation, RandomProvider.getCurrentRandom());
+    }
+    
+    /**
+     * Test-specific overload for determineWoundSeverity with custom Random instance.
+     */
+    public static WoundSeverity determineWoundSeverity(double randomRoll, double chanceToHit, BodyPart hitLocation, Random testRandom) {
         double excellentThreshold = chanceToHit * 0.2;
         
         // Excellent shots are always critical
@@ -410,7 +441,7 @@ public final class CombatCalculator {
         }
         
         // Determine wound severity based on hit location
-        double severityRoll = Math.random() * 100;
+        double severityRoll = testRandom.nextDouble() * 100;
         
         if (isVitalArea(hitLocation)) {
             // HEAD/CHEST/ABDOMEN: 30% Critical, 40% Serious, 25% Light, 5% Scratch
