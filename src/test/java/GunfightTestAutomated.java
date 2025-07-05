@@ -27,8 +27,27 @@ import java.security.SecureRandom;
  * - Seed Reporting: Outputs seed at start and completion for easy reproduction
  * 
  * USAGE EXAMPLES:
+ * 
+ * Basic Usage:
  * mvn test -Dtest=GunfightTestAutomated                     # Random seed testing
- * mvn test -Dtest=GunfightTestAutomated -Dtest.seed=54321  # Reproduce specific seed
+ * mvn test -Dtest=GunfightTestAutomated -Dtest.seed=54321  # Positive seed reproduction
+ * 
+ * Cross-Platform Seed Reproduction:
+ * 
+ * Windows PowerShell (recommended - always quote properties):
+ * mvn test "-Dtest=GunfightTestAutomated" "-Dtest.seed=4292768217366888882"
+ * 
+ * Windows Command Prompt (standard syntax):
+ * mvn test -Dtest=GunfightTestAutomated -Dtest.seed=4292768217366888882
+ * 
+ * macOS/Linux (bash/zsh):
+ * mvn test -Dtest=GunfightTestAutomated -Dtest.seed=4292768217366888882
+ * 
+ * TROUBLESHOOTING:
+ * - If you see "Unknown lifecycle phase .seed=" errors, quote the -D properties
+ * - Windows PowerShell has parsing issues with -D properties, always use quotes
+ * - Use Windows Command Prompt as alternative if PowerShell fails
+ * - All seeds (positive and negative) produce deterministic results
  * 
  * Test Sequence:
  * 1. Generate random seed or use manual override from -Dtest.seed property
@@ -105,13 +124,18 @@ public class GunfightTestAutomated {
                 // Invalid seed format, fall back to random
                 testSeed = new SecureRandom().nextLong();
                 System.out.println("⚠️ Invalid seed format '" + seedProperty + "', using random seed: " + testSeed);
+                System.out.println("💡 HELP: If on Windows PowerShell, try quoting the properties:");
+                System.out.println("   mvn test \"-Dtest=GunfightTestAutomated\" \"-Dtest.seed=" + seedProperty + "\"");
+                System.out.println("   Or use Windows Command Prompt instead of PowerShell");
+                System.out.println("   Valid seed format: any positive or negative long integer");
             }
         } else {
             // Generate random seed for normal operation
             testSeed = new SecureRandom().nextLong();
             System.out.println("=== RANDOM SEED TESTING ===");
             System.out.println("Generated random seed: " + testSeed);
-            System.out.println("To reproduce this test: mvn test -Dtest=GunfightTestAutomated -Dtest.seed=" + testSeed);
+            System.out.println("To reproduce this test (Windows PowerShell): mvn test \"-Dtest=GunfightTestAutomated\" \"-Dtest.seed=" + testSeed + "\"");
+            System.out.println("To reproduce this test (CMD/Linux/macOS): mvn test -Dtest=GunfightTestAutomated -Dtest.seed=" + testSeed);
             System.out.println("============================");
         }
         
@@ -129,7 +153,8 @@ public class GunfightTestAutomated {
         // Report final seed for reference and reproduction
         System.out.println("=== TEST COMPLETION SUMMARY ===");
         System.out.println("Test seed used: " + testSeed);
-        System.out.println("To reproduce: mvn test -Dtest=GunfightTestAutomated -Dtest.seed=" + testSeed);
+        System.out.println("To reproduce (Windows PowerShell): mvn test \"-Dtest=GunfightTestAutomated\" \"-Dtest.seed=" + testSeed + "\"");
+        System.out.println("To reproduce (CMD/Linux/macOS): mvn test -Dtest=GunfightTestAutomated -Dtest.seed=" + testSeed);
         System.out.println("===============================");
         
         // Reset deterministic mode to avoid interfering with other tests
