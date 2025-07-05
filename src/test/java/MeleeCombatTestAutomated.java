@@ -14,25 +14,39 @@ import java.util.List;
 import combat.*;
 import data.*;
 import game.*;
+import utils.GameConfiguration;
+import java.security.SecureRandom;
 
 /**
  * Automated test for Melee Combat scenario as specified in DevCycle 40 System 2.
+ * Enhanced in DevCycle 41 with random seed generation and reproduction capabilities.
+ * 
+ * SEED MANAGEMENT:
+ * - Normal Operation: Uses randomly generated seed each run to discover edge cases
+ * - Bug Reproduction: Use -Dtest.seed=123456789 to reproduce specific test scenarios
+ * - Seed Reporting: Outputs seed at start and completion for easy reproduction
+ * 
+ * USAGE EXAMPLES:
+ * mvn test -Dtest=MeleeCombatTestAutomated                     # Random seed testing
+ * mvn test -Dtest=MeleeCombatTestAutomated -Dtest.seed=54321  # Reproduce specific seed
  * 
  * Test Sequence:
- * 1. Start game and activate debug mode
- * 2. Load test_d.json save file
- * 3. Verify both soldiers are loaded correctly (60 HP, knife skill level 1, mel_bowie_knife)
- * 4. Confirm auto-targeting and melee combat mode are enabled for both characters
- * 5. Select both characters with rectangle selection
- * 6. Unpause game and monitor combat execution
- * 7. Monitor for exceptions and defense attempts
- * 8. Track combat until one character is incapacitated or 1 minute timeout
- * 9. Output detailed stats for both characters at completion
+ * 1. Generate random seed or use manual override from -Dtest.seed property
+ * 2. Start game and activate debug mode with deterministic seed
+ * 3. Load test_d.json save file
+ * 4. Verify both soldiers are loaded correctly (60 HP, knife skill level 1, mel_bowie_knife)
+ * 5. Confirm auto-targeting and melee combat mode are enabled for both characters
+ * 6. Select both characters with rectangle selection
+ * 7. Unpause game and monitor combat execution
+ * 8. Monitor for exceptions and defense attempts
+ * 9. Track combat until one character is incapacitated or 1 minute timeout
+ * 10. Output detailed stats and final seed for reproduction
  * 
  * Success Criteria: No exceptions thrown AND at least one character attempts defense at least once
  * Failure Conditions: Exception thrown, or combat duration exceeds 1 minute
  * 
  * @author DevCycle 40 System 2 - Melee Combat Defense Test
+ * @author DevCycle 41 System 4 - Random Seed Generation and Reporting
  */
 public class MeleeCombatTestAutomated {
     
@@ -56,6 +70,9 @@ public class MeleeCombatTestAutomated {
     // Use synchronized collection for thread safety
     private final java.util.List<String> problems = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
     
+    // Random seed for deterministic testing with reproducibility
+    private long testSeed;
+    
     // Capture console output to analyze defense messages (both stdout and stderr)
     private java.io.ByteArrayOutputStream consoleOutput = new java.io.ByteArrayOutputStream();
     private java.io.PrintStream originalOut;
@@ -73,6 +90,33 @@ public class MeleeCombatTestAutomated {
     @BeforeEach
     public void setUp() throws Exception {
         System.out.println("=== Melee Combat Test Automated Setup ===");
+        
+        // Generate or use override seed for deterministic testing
+        String seedProperty = System.getProperty("test.seed");
+        if (seedProperty != null && !seedProperty.trim().isEmpty()) {
+            // Use manual seed override for bug reproduction
+            try {
+                testSeed = Long.parseLong(seedProperty.trim());
+                System.out.println("=== MANUAL SEED OVERRIDE ===");
+                System.out.println("Using manual seed: " + testSeed);
+                System.out.println("============================");
+            } catch (NumberFormatException e) {
+                // Invalid seed format, fall back to random
+                testSeed = new SecureRandom().nextLong();
+                System.out.println("⚠️ Invalid seed format '" + seedProperty + "', using random seed: " + testSeed);
+            }
+        } else {
+            // Generate random seed for normal operation
+            testSeed = new SecureRandom().nextLong();
+            System.out.println("=== RANDOM SEED TESTING ===");
+            System.out.println("Generated random seed: " + testSeed);
+            System.out.println("To reproduce this test: mvn test -Dtest=MeleeCombatTestAutomated -Dtest.seed=" + testSeed);
+            System.out.println("============================");
+        }
+        
+        // Set up deterministic mode with generated or override seed
+        GameConfiguration.setDeterministicMode(true, testSeed);
+        System.out.println("✓ Deterministic mode enabled with seed " + testSeed);
         
         // Capture console output to analyze defense messages (both stdout and stderr)
         originalOut = System.out;
@@ -155,6 +199,18 @@ public class MeleeCombatTestAutomated {
     
     @org.junit.jupiter.api.AfterEach
     public void tearDown() throws Exception {
+        System.out.println("=== Melee Combat Test Automated Teardown ===");
+        
+        // Report final seed for reference and reproduction
+        System.out.println("=== TEST COMPLETION SUMMARY ===");
+        System.out.println("Test seed used: " + testSeed);
+        System.out.println("To reproduce: mvn test -Dtest=MeleeCombatTestAutomated -Dtest.seed=" + testSeed);
+        System.out.println("===============================");
+        
+        // Reset deterministic mode to avoid interfering with other tests
+        GameConfiguration.reset();
+        System.out.println("✓ Deterministic mode reset");
+        
         // Restore original exception handler
         Thread.setDefaultUncaughtExceptionHandler(originalExceptionHandler);
         
@@ -166,7 +222,7 @@ public class MeleeCombatTestAutomated {
             System.setErr(originalErr);
         }
         
-        System.out.println("✓ Test cleanup complete");
+        System.out.println("✓ Test teardown complete");
     }
     
     @Test
