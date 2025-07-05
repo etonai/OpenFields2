@@ -7,7 +7,6 @@ import game.Unit;
 import java.awt.Rectangle;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.Random;
 
 /**
  * Handles automatic target acquisition and attack initiation for characters.
@@ -242,7 +241,7 @@ public class AutoTargetingSystem {
         double nearestZoneDistance = Double.MAX_VALUE;
         double nearestGlobalDistance = Double.MAX_VALUE;
         int hostilesFound = 0;
-        Random random = new Random();
+        // Removed: Using RandomProvider for centralized random number generation
         
         for (IUnit unit : allUnits) {
             // Skip self
@@ -282,7 +281,7 @@ public class AutoTargetingSystem {
                     nearestZoneTarget = unit;
                 } else if (distance == nearestZoneDistance && nearestZoneTarget != null) {
                     // Random selection for equidistant targets
-                    if (random.nextBoolean()) {
+                    if (utils.RandomProvider.nextBoolean()) {
                         nearestZoneTarget = unit;
                     }
                 }
@@ -293,7 +292,7 @@ public class AutoTargetingSystem {
                     nearestGlobalTarget = unit;
                 } else if (distance == nearestGlobalDistance && nearestGlobalTarget != null) {
                     // Random selection for equidistant targets
-                    if (random.nextBoolean()) {
+                    if (utils.RandomProvider.nextBoolean()) {
                         nearestGlobalTarget = unit;
                     }
                 }

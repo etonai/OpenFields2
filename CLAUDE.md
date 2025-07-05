@@ -291,6 +291,8 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 **Rationale**: These tests represent core game functionality, combat mechanics, and regression detection. If any of these tests fail, it indicates fundamental issues that must be resolved before any completion.
 
 ### System Completion Workflow (MANDATORY)
+🚨 **CRITICAL SAFEGUARD**: Claude can ONLY mark systems as ✅ **COMPLETE** when user explicitly commands: "Please mark System X as complete"
+
 **System Completion Requirement**: No system can be marked as ✅ **COMPLETE** until ALL mandatory steps are completed in order.
 
 **MANDATORY Completion Steps (No Exceptions):**
@@ -310,6 +312,7 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 - ✅ **Wait for explicit confirmation**: Never mark complete without user approval
 
 **Step 3: Final Completion**
+- ✅ **EXPLICIT USER COMMAND REQUIRED**: Claude can ONLY mark systems as ✅ **COMPLETE** when user explicitly commands: "Please mark System X as complete"
 - ✅ **Only after Steps 1 & 2**: Change status to ✅ **COMPLETE**
 - ✅ **Update documentation**: Record completion with test verification and user confirmation
 
@@ -317,6 +320,7 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 - ✅ **Mandatory Order**: Steps must be completed in exact order (Tests → User → Complete)
 - ✅ **No Shortcuts**: Cannot skip critical tests or user confirmation
 - ✅ **No Self-Completion**: Claude cannot mark own work as complete
+- 🚨 **EXPLICIT COMMAND REQUIRED**: Claude MUST wait for explicit user command like "mark System X as complete" before changing any system status to COMPLETE
 - ✅ **Violation Consequences**: Marking systems complete without following this workflow violates established procedures and must be corrected immediately
 
 **Process Example:**
@@ -344,6 +348,7 @@ When closing ANY DevCycle, Claude MUST complete ALL of these steps:
 
 ### ✅ Step 3: Final Completion
 - [ ] **All above steps completed** in order
+- [ ] **USER EXPLICITLY COMMANDED**: User said "Please mark System X as complete" or similar explicit command
 - [ ] **Documentation updated** with completion summary
 - [ ] **Status changed** to ✅ **COMPLETE**
 

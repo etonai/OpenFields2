@@ -9,7 +9,7 @@ import game.EventSchedulingService;
 import game.interfaces.IUnit;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import utils.RandomProvider;
 
 /**
  * Singleton manager for defensive mechanics including blocking and counter-attacks.
@@ -23,7 +23,7 @@ import java.util.Random;
 public class DefenseManager implements IDefenseManager {
     
     private static DefenseManager instance;
-    private final Random random = new Random();
+    // Removed: Direct Random instance replaced with RandomProvider
     
     // Per-character state tracking
     private final Map<Integer, DefenseState> defenseStates = new HashMap<>();
@@ -231,7 +231,7 @@ public class DefenseManager implements IDefenseManager {
         // - Defender's defensive skills
         // - Attacker's offensive skills
         // - Random factors
-        return Math.random() < 0.5; // 50% chance for now
+        return RandomProvider.nextDouble() < 0.5; // 50% chance for now
     }
     
     /**
@@ -244,7 +244,7 @@ public class DefenseManager implements IDefenseManager {
         // - Initiate a melee attack
         // - Apply counter-attack modifiers
         // - Check for success
-        return Math.random() < 0.7; // 70% chance for now
+        return RandomProvider.nextDouble() < 0.7; // 70% chance for now
     }
     
     /**
@@ -298,7 +298,7 @@ public class DefenseManager implements IDefenseManager {
      */
     public int calculateDefenseValue(Character defender) {
         // Base roll: 1-50
-        int baseRoll = random.nextInt(50) + 1;
+        int baseRoll = RandomProvider.nextInt(50) + 1;
         
         // Dexterity modifier
         int dexterityModifier = utils.GameConstants.statToModifier(defender.getDexterity());

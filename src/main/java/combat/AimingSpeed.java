@@ -55,7 +55,7 @@ public enum AimingSpeed {
     // Get random additional aiming time for very careful aiming (2-5 seconds)
     public long getVeryCarefulAdditionalTime() {
         if (this == VERY_CAREFUL) {
-            return (long) (120 + Math.random() * 180); // 2-5 seconds in ticks (60 ticks/second)
+            return (long) (120 + utils.RandomProvider.nextDouble() * 180); // 2-5 seconds in ticks (60 ticks/second)
         }
         return 0;
     }

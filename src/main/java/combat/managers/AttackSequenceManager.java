@@ -127,7 +127,7 @@ public class AttackSequenceManager {
                 AccumulatedAimingBonus earnedBonus = character.calculateEarnedAimingBonus(currentTick);
                 if (earnedBonus == AccumulatedAimingBonus.VERY_CAREFUL && "aiming".equals(currentState)) {
                     // Add 2-5 seconds random time, same as selected Very Careful
-                    long additionalTime = 120 + (long)(Math.random() * 181); // 120-300 ticks
+                    long additionalTime = 120 + (long)(utils.RandomProvider.nextDouble() * 181); // 120-300 ticks
                     fireDelay += additionalTime;
                     
                     // Log aiming speed usage for burst/auto modes

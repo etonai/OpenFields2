@@ -1,5 +1,6 @@
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Timeout;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -13,6 +14,7 @@ import java.util.List;
 import combat.*;
 import data.*;
 import game.*;
+import utils.GameConfiguration;
 
 /**
  * Automated test for Gunfight scenario as specified in DevCycle 35.
@@ -74,7 +76,22 @@ public class GunfightTestAutomated {
         gameReadyLatch = new CountDownLatch(1);
         combatCompleteLatch = new CountDownLatch(1);
         
+        // Set up deterministic random seed for consistent test results
+        GameConfiguration.setDeterministicMode(true, 54321L);
+        System.out.println("✓ Deterministic mode enabled with seed 54321");
+        
         System.out.println("✓ Test setup complete");
+    }
+    
+    @AfterEach
+    public void tearDown() {
+        System.out.println("=== Gunfight Test Automated Teardown ===");
+        
+        // Reset deterministic mode to avoid interfering with other tests
+        GameConfiguration.reset();
+        System.out.println("✓ Deterministic mode reset");
+        
+        System.out.println("✓ Test teardown complete");
     }
     
     @Test

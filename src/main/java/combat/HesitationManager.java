@@ -242,7 +242,7 @@ public class HesitationManager {
         int targetNumber = 50 + coolnessModifier;
         
         // Roll d100 for bravery check
-        double roll = Math.random() * 100;
+        double roll = utils.RandomProvider.nextDouble() * 100;
         
         System.out.println(">>> BRAVERY CHECK: " + character.getDisplayName() + " rolls " + String.format("%.1f", roll) + " vs " + targetNumber + " (" + reason + ")");
         
