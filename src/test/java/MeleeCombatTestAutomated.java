@@ -525,6 +525,19 @@ public class MeleeCombatTestAutomated {
                 assertEquals("mel_bowie_knife", soldierAlpha.weapon.getWeaponId(), "SoldierAlpha should have mel_bowie_knife");
                 assertEquals("mel_bowie_knife", soldierBeta.weapon.getWeaponId(), "SoldierBeta should have mel_bowie_knife");
                 
+                // DevCycle 41: System 7 - Set both characters to running speed
+                soldierAlpha.setCurrentMovementType(combat.MovementType.RUN);
+                soldierBeta.setCurrentMovementType(combat.MovementType.RUN);
+                System.out.println("✓ Both characters set to running speed");
+                System.out.println("  SoldierAlpha movement: " + soldierAlpha.currentMovementType.getDisplayName() + 
+                                 " (speed multiplier: " + soldierAlpha.currentMovementType.getSpeedMultiplier() + "x)");
+                System.out.println("  SoldierBeta movement: " + soldierBeta.currentMovementType.getDisplayName() + 
+                                 " (speed multiplier: " + soldierBeta.currentMovementType.getSpeedMultiplier() + "x)");
+                
+                // Verify movement type was set correctly
+                assertEquals(combat.MovementType.RUN, soldierAlpha.currentMovementType, "SoldierAlpha should be at running speed");
+                assertEquals(combat.MovementType.RUN, soldierBeta.currentMovementType, "SoldierBeta should be at running speed");
+                
             } catch (Exception e) {
                 testFailed.set(true);
                 failureReason = "Error verifying soldier configuration: " + e.getMessage();
