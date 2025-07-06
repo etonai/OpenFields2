@@ -408,6 +408,15 @@ public class CombatCoordinator {
      * @param gameCallbacks Game callback interface
      */
     public void handleAttackContinuation(Character character, IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        // DevCycle 41: System 6 - Enhanced attack continuation debugging (always enabled)
+        System.out.println("[ATTACK-CONTINUATION] " + character.getDisplayName() + 
+                         " handleAttackContinuation called at tick " + currentTick + 
+                         " (persistent: " + character.persistentAttack + 
+                         ", auto-targeting: " + character.usesAutomaticTargeting + 
+                         ", attacking: " + character.isAttacking + 
+                         ", melee recovery: " + (character.isMeleeCombatMode ? character.isInMeleeRecovery(currentTick) : "N/A") + 
+                         ", currentTarget: " + (character.currentTarget != null ? character.currentTarget.getCharacter().getDisplayName() : "null") + ")");
+        
         // DevCycle 33: System 2 - Debug logging to trace attack continuation call sources
         if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
             System.out.println("[ATTACK-CONTINUATION] " + character.getDisplayName() + 
@@ -420,6 +429,8 @@ public class CombatCoordinator {
         
         // Continue only if persistent attack is enabled OR auto-targeting is enabled
         if (!character.persistentAttack && !character.usesAutomaticTargeting) {
+            System.out.println("[ATTACK-CONTINUATION] " + character.getDisplayName() + 
+                             " attack continuation blocked - no persistent attack or auto-targeting");
             return;
         }
         
@@ -428,12 +439,27 @@ public class CombatCoordinator {
             return;
         }
         
-        // DevCycle 33: System 1 - Skip if character is in melee recovery
-        if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick)) {
-            if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
-                System.out.println("[COMBAT-RECOVERY] " + character.getDisplayName() + " attack continuation blocked - in recovery until tick " + character.meleeRecoveryEndTick);
-            }
+        // DevCycle 41: System 6 - Improved melee recovery logic
+        // Only block if character is still attacking OR in melee recovery AND not called from recovery callback
+        if (character.isMeleeCombatMode && character.isAttacking) {
+            System.out.println("[ATTACK-CONTINUATION] " + character.getDisplayName() + 
+                             " attack continuation blocked - character is still attacking");
             return;
+        }
+        
+        // DevCycle 33: System 1 - Skip if character is in melee recovery (but allow recovery callbacks to proceed)
+        if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick)) {
+            // However, if we're NOT attacking and we have a valid target, this might be a recovery callback
+            // Allow attack continuation to proceed if isAttacking is false (recovery completed)
+            if (character.isAttacking) {
+                System.out.println("[ATTACK-CONTINUATION] " + character.getDisplayName() + 
+                                 " attack continuation blocked - in recovery until tick " + character.meleeRecoveryEndTick + 
+                                 " and still attacking");
+                return;
+            } else {
+                System.out.println("[ATTACK-CONTINUATION] " + character.getDisplayName() + 
+                                 " allowing attack continuation despite recovery tick - isAttacking is false (recovery callback)");
+            }
         }
         
         // Handle case where we have auto-targeting enabled but no current target
@@ -476,7 +502,7 @@ public class CombatCoordinator {
             }
             return;
         }
-        if (character.weapon == null) {
+        if (character.weapon == null && character.meleeWeapon == null) {
             character.persistentAttack = false;
             character.currentTarget = null;
             character.isAttacking = false;
@@ -488,8 +514,18 @@ public class CombatCoordinator {
             return;
         }
         
-        // Handle different firing modes for continuous attacks
-        BurstFireManager.getInstance().handleContinuousFiring(character, shooter, currentTick, gameCallbacks);
+        // DevCycle 41: System 6 - Handle melee vs ranged attack continuation differently
+        if (character.isMeleeCombatMode && character.meleeWeapon != null) {
+            // Handle melee attack continuation directly
+            System.out.println("[ATTACK-CONTINUATION] " + character.getDisplayName() + 
+                             " initiating melee attack continuation at tick " + currentTick);
+            
+            // Start new melee attack sequence
+            character.startMeleeAttackSequence(shooter, character.currentTarget, currentTick, eventQueue, ownerId, gameCallbacks);
+        } else {
+            // Handle different firing modes for continuous ranged attacks
+            BurstFireManager.getInstance().handleContinuousFiring(character, shooter, currentTick, gameCallbacks);
+        }
     }
 
     /**

@@ -1513,6 +1513,12 @@ public class Character implements ICharacter {
     }
     
     public void checkContinuousAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        // DevCycle 41: System 6 - Debug auto-targeting chain
+        System.out.println("[AUTO-TARGETING-CHAIN] " + getDisplayName() + 
+                         " checkContinuousAttack called at tick " + currentTick + 
+                         " (persistent: " + persistentAttack + ", auto-targeting: " + usesAutomaticTargeting + 
+                         ", isAttacking: " + isAttacking + ", melee mode: " + isMeleeCombatMode + ")");
+        
         // Delegate to CombatCoordinator following DevCycle 31 refactoring pattern
         CombatCoordinator.getInstance().handleAttackContinuation(this, shooter, currentTick, eventQueue, ownerId, gameCallbacks);
     }

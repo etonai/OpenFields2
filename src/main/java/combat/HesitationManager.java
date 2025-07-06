@@ -135,6 +135,7 @@ public class HesitationManager {
         character.isAttacking = false;
         System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " attack state reset to allow new combat actions");
         
+        
         // DevCycle 36+38: Fix weapon state recovery after hesitation
         // Check if character is stuck in "recovering" or "firing" state and schedule proper transition
         if (character.currentWeaponState != null && 
