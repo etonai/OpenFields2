@@ -4,20 +4,54 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import combat.*;
 import data.*;
+import utils.GameConfiguration;
+import java.security.SecureRandom;
 
 /**
  * Simple automated test for BasicMissTest scenario.
+ * Enhanced in DevCycle 41 with deterministic mode and random seed generation.
  * 
  * This test validates that the test infrastructure (test factions, test weapons, test save)
  * is properly configured and can be loaded for automated testing.
  * 
+ * SEED MANAGEMENT:
+ * - Normal Operation: Uses randomly generated seed each run to discover edge cases
+ * - Bug Reproduction: Use -Dtest.seed=123456789 to reproduce specific test scenarios
+ * - Seed Reporting: Outputs seed at start and completion for easy reproduction
+ * 
+ * USAGE EXAMPLES:
+ * 
+ * Basic Usage:
+ * mvn test -Dtest=BasicMissTestSimple                     # Random seed testing
+ * mvn test -Dtest=BasicMissTestSimple -Dtest.seed=54321  # Positive seed reproduction
+ * 
+ * Cross-Platform Seed Reproduction:
+ * 
+ * Windows PowerShell (recommended - always quote properties):
+ * mvn test "-Dtest=BasicMissTestSimple" "-Dtest.seed=4292768217366888882"
+ * 
+ * Windows Command Prompt (standard syntax):
+ * mvn test -Dtest=BasicMissTestSimple -Dtest.seed=4292768217366888882
+ * 
+ * macOS/Linux (bash/zsh):
+ * mvn test -Dtest=BasicMissTestSimple -Dtest.seed=4292768217366888882
+ * 
+ * TROUBLESHOOTING:
+ * - If you see "Unknown lifecycle phase .seed=" errors, quote the -D properties
+ * - Windows PowerShell has parsing issues with -D properties, always use quotes
+ * - Use Windows Command Prompt as alternative if PowerShell fails
+ * - All seeds (positive and negative) produce deterministic results
+ * 
  * Test Sequence:
- * 1. Load test save data (test_a.json)
- * 2. Verify test characters are loaded correctly
- * 3. Verify test weapons are assigned properly
- * 4. Validate positioning and setup for miss testing
+ * 1. Generate random seed or use manual override from -Dtest.seed property
+ * 2. Enable deterministic mode with generated/specified seed
+ * 3. Load test save data (test_a.json)
+ * 4. Verify test characters are loaded correctly
+ * 5. Verify test weapons are assigned properly
+ * 6. Validate positioning and setup for miss testing
  * 
  * @author DevCycle 34 - Automated Testing Foundation
+ * @author DevCycle 41 System 8 - Deterministic Mode Standardization
  */
 public class BasicMissTestSimple {
     
@@ -25,8 +59,31 @@ public class BasicMissTestSimple {
     private UniversalCharacterRegistry characterRegistry;
     private SaveData testSaveData;
     
+    // Random seed for deterministic testing with reproducibility
+    private long testSeed;
+    
     @BeforeEach
     public void setUp() {
+        // DevCycle 41: System 8 - Deterministic mode and seed management
+        String seedProperty = System.getProperty("test.seed");
+        if (seedProperty != null && !seedProperty.isEmpty()) {
+            try {
+                testSeed = Long.parseLong(seedProperty);
+                System.out.println("=== MANUAL SEED OVERRIDE ===");
+                System.out.println("Using manual seed: " + testSeed);
+                System.out.println("============================");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid seed format: " + seedProperty + ", generating random seed");
+                testSeed = new SecureRandom().nextLong();
+            }
+        } else {
+            testSeed = new SecureRandom().nextLong();
+        }
+        
+        // Enable deterministic mode
+        GameConfiguration.setDeterministicMode(true, testSeed);
+        System.out.println("Deterministic mode ENABLED with seed: " + testSeed);
+        
         // Initialize data systems
         DataManager dataManager = DataManager.getInstance();
         saveGameManager = SaveGameManager.getInstance();
@@ -98,6 +155,12 @@ public class BasicMissTestSimple {
         System.out.println("✓ Character positioning verified: " + String.format("%.1f", distance) + " feet apart");
         
         System.out.println("=== BasicMissTest Infrastructure VALIDATED ===");
+        
+        System.out.println("=== TEST COMPLETION SUMMARY ===");
+        System.out.println("Test seed used: " + testSeed);
+        System.out.println("To reproduce (Windows PowerShell): mvn test \"-Dtest=BasicMissTestSimple\" \"-Dtest.seed=" + testSeed + "\"");
+        System.out.println("To reproduce (CMD/Linux/macOS): mvn test -Dtest=BasicMissTestSimple -Dtest.seed=" + testSeed);
+        System.out.println("===============================");
     }
     
     private double calculateDistance(double x1, double y1, double x2, double y2) {
@@ -133,6 +196,12 @@ public class BasicMissTestSimple {
         System.out.println("✓ Weapon capacity confirmed: " + testWeapon.getMaxAmmunition() + " rounds");
         
         System.out.println("=== Miss Scenario Setup VALIDATED ===");
+        
+        System.out.println("=== TEST COMPLETION SUMMARY ===");
+        System.out.println("Test seed used: " + testSeed);
+        System.out.println("To reproduce (Windows PowerShell): mvn test \"-Dtest=BasicMissTestSimple\" \"-Dtest.seed=" + testSeed + "\"");
+        System.out.println("To reproduce (CMD/Linux/macOS): mvn test -Dtest=BasicMissTestSimple -Dtest.seed=" + testSeed);
+        System.out.println("===============================");
     }
     
     // Main method for standalone testing

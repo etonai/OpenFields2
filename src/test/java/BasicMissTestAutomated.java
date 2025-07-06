@@ -14,23 +14,57 @@ import java.util.List;
 import combat.*;
 import data.*;
 import game.*;
+import utils.GameConfiguration;
+import java.security.SecureRandom;
 
 /**
  * Automated test for BasicMissTest scenario as specified in DevCycle 34.
+ * Enhanced in DevCycle 41 with deterministic mode and random seed generation.
+ * 
+ * SEED MANAGEMENT:
+ * - Normal Operation: Uses randomly generated seed each run to discover edge cases
+ * - Bug Reproduction: Use -Dtest.seed=123456789 to reproduce specific test scenarios
+ * - Seed Reporting: Outputs seed at start and completion for easy reproduction
+ * 
+ * USAGE EXAMPLES:
+ * 
+ * Basic Usage:
+ * mvn test -Dtest=BasicMissTestAutomated                     # Random seed testing
+ * mvn test -Dtest=BasicMissTestAutomated -Dtest.seed=54321  # Positive seed reproduction
+ * 
+ * Cross-Platform Seed Reproduction:
+ * 
+ * Windows PowerShell (recommended - always quote properties):
+ * mvn test "-Dtest=BasicMissTestAutomated" "-Dtest.seed=4292768217366888882"
+ * 
+ * Windows Command Prompt (standard syntax):
+ * mvn test -Dtest=BasicMissTestAutomated -Dtest.seed=4292768217366888882
+ * 
+ * macOS/Linux (bash/zsh):
+ * mvn test -Dtest=BasicMissTestAutomated -Dtest.seed=4292768217366888882
+ * 
+ * TROUBLESHOOTING:
+ * - If you see "Unknown lifecycle phase .seed=" errors, quote the -D properties
+ * - Windows PowerShell has parsing issues with -D properties, always use quotes
+ * - Use Windows Command Prompt as alternative if PowerShell fails
+ * - All seeds (positive and negative) produce deterministic results
  * 
  * Test Sequence:
- * 1. Start game and activate debug mode
- * 2. Load test_a.json save file
- * 3. Select MissBot character programmatically
- * 4. Enable auto-targeting mode on MissBot
- * 5. Unpause game and monitor combat execution
- * 6. Verify 6 shots fired at TargetDummy
- * 7. Confirm reload sequence initiation
- * 8. Validate 2nd round loading completion
+ * 1. Generate random seed or use manual override from -Dtest.seed property
+ * 2. Enable deterministic mode with generated/specified seed
+ * 3. Start game and activate debug mode
+ * 4. Load test_a.json save file
+ * 5. Select MissBot character programmatically
+ * 6. Enable auto-targeting mode on MissBot
+ * 7. Unpause game and monitor combat execution
+ * 8. Verify 6 shots fired at TargetDummy
+ * 9. Confirm reload sequence initiation
+ * 10. Validate 2nd round loading completion
  * 
  * Success Criteria: All 6 shots fired, reload initiated, 2nd round successfully loaded
  * 
  * @author DevCycle 34 - Automated Testing Foundation
+ * @author DevCycle 41 System 8 - Deterministic Mode Standardization
  */
 public class BasicMissTestAutomated {
     
@@ -52,9 +86,32 @@ public class BasicMissTestAutomated {
     private combat.Character targetDummy;
     private Unit missBotUnit;
     
+    // Random seed for deterministic testing with reproducibility
+    private long testSeed;
+    
     @BeforeEach
     public void setUp() throws Exception {
         System.out.println("=== BasicMissTest Automated Setup ===");
+        
+        // DevCycle 41: System 8 - Deterministic mode and seed management
+        String seedProperty = System.getProperty("test.seed");
+        if (seedProperty != null && !seedProperty.isEmpty()) {
+            try {
+                testSeed = Long.parseLong(seedProperty);
+                System.out.println("=== MANUAL SEED OVERRIDE ===");
+                System.out.println("Using manual seed: " + testSeed);
+                System.out.println("============================");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid seed format: " + seedProperty + ", generating random seed");
+                testSeed = new SecureRandom().nextLong();
+            }
+        } else {
+            testSeed = new SecureRandom().nextLong();
+        }
+        
+        // Enable deterministic mode
+        GameConfiguration.setDeterministicMode(true, testSeed);
+        System.out.println("Deterministic mode ENABLED with seed: " + testSeed);
         
         // Initialize JavaFX if not already initialized
         if (!Platform.isFxApplicationThread()) {
@@ -116,6 +173,12 @@ public class BasicMissTestAutomated {
         System.out.println("=== BasicMissTest Automated SUCCESS ===");
         System.out.println("Final results: " + shotsFired.get() + " shots fired, reload initiated: " + 
                          reloadInitiated.get() + ", 2nd round loaded: " + secondRoundLoaded.get());
+        
+        System.out.println("=== TEST COMPLETION SUMMARY ===");
+        System.out.println("Test seed used: " + testSeed);
+        System.out.println("To reproduce (Windows PowerShell): mvn test \"-Dtest=BasicMissTestAutomated\" \"-Dtest.seed=" + testSeed + "\"");
+        System.out.println("To reproduce (CMD/Linux/macOS): mvn test -Dtest=BasicMissTestAutomated -Dtest.seed=" + testSeed);
+        System.out.println("===============================");
     }
     
     private void startGameAndActivateDebugMode() throws Exception {
