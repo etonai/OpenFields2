@@ -1,6 +1,8 @@
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import combat.AutoTargetingSystem;
+import utils.GameConfiguration;
+import java.security.SecureRandom;
 import combat.Handedness;
 import combat.WeaponState;
 import combat.WeaponType;
@@ -20,6 +22,38 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for DevCycle 37 System 2: Reaiming State After Target Incapacitation
  * Validates that characters enter a reaiming state when switching targets
  * after incapacitating opponents in auto-targeting mode.
+ * Enhanced in DevCycle 41 with deterministic mode and random seed generation.
+ * 
+ * SEED MANAGEMENT:
+ * - Normal Operation: Uses randomly generated seed each run to discover edge cases
+ * - Bug Reproduction: Use -Dtest.seed=123456789 to reproduce specific test scenarios
+ * - Seed Reporting: Outputs seed at start and completion for easy reproduction
+ * 
+ * USAGE EXAMPLES:
+ * 
+ * Basic Usage:
+ * mvn test -Dtest=TargetSwitchDelayTest                     # Random seed testing
+ * mvn test -Dtest=TargetSwitchDelayTest -Dtest.seed=54321  # Positive seed reproduction
+ * 
+ * Cross-Platform Seed Reproduction:
+ * 
+ * Windows PowerShell (recommended - always quote properties):
+ * mvn test "-Dtest=TargetSwitchDelayTest" "-Dtest.seed=4292768217366888882"
+ * 
+ * Windows Command Prompt (standard syntax):
+ * mvn test -Dtest=TargetSwitchDelayTest -Dtest.seed=4292768217366888882
+ * 
+ * macOS/Linux (bash/zsh):
+ * mvn test -Dtest=TargetSwitchDelayTest -Dtest.seed=4292768217366888882
+ * 
+ * TROUBLESHOOTING:
+ * - If you see "Unknown lifecycle phase .seed=" errors, quote the -D properties
+ * - Windows PowerShell has parsing issues with -D properties, always use quotes
+ * - Use Windows Command Prompt as alternative if PowerShell fails
+ * - All seeds (positive and negative) produce deterministic results
+ * 
+ * @author DevCycle 37 System 2 - Reaiming State After Target Incapacitation
+ * @author DevCycle 41 System 8 - Deterministic Mode Standardization
  */
 public class TargetSwitchDelayTest {
     
@@ -32,8 +66,31 @@ public class TargetSwitchDelayTest {
     private PriorityQueue<ScheduledEvent> eventQueue;
     private MockGameCallbacks gameCallbacks;
     
+    // Random seed for deterministic testing with reproducibility
+    private long testSeed;
+    
     @BeforeEach
     public void setUp() {
+        // DevCycle 41: System 8 - Deterministic mode and seed management
+        String seedProperty = System.getProperty("test.seed");
+        if (seedProperty != null && !seedProperty.isEmpty()) {
+            try {
+                testSeed = Long.parseLong(seedProperty);
+                System.out.println("=== MANUAL SEED OVERRIDE ===");
+                System.out.println("Using manual seed: " + testSeed);
+                System.out.println("============================");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid seed format: " + seedProperty + ", generating random seed");
+                testSeed = new SecureRandom().nextLong();
+            }
+        } else {
+            testSeed = new SecureRandom().nextLong();
+        }
+        
+        // Enable deterministic mode
+        GameConfiguration.setDeterministicMode(true, testSeed);
+        System.out.println("Deterministic mode ENABLED with seed: " + testSeed);
+        
         // Create test characters with different reflexes
         alice = new combat.Character("Alice", 70, 80, 60, 50, 55, Handedness.RIGHT_HANDED); // Baseline reflexes (50)
         drake = new combat.Character("Drake", 70, 80, 60, 50, 10, Handedness.RIGHT_HANDED); // Low reflexes (10)
@@ -206,6 +263,12 @@ public class TargetSwitchDelayTest {
         // Verify reaiming state has 15 tick duration
         assertEquals(15, alice.currentWeaponState.ticks,
                     "Reaiming state should have 15 tick duration");
+        
+        System.out.println("=== TEST COMPLETION SUMMARY ===");
+        System.out.println("Test seed used: " + testSeed);
+        System.out.println("To reproduce (Windows PowerShell): mvn test \"-Dtest=TargetSwitchDelayTest\" \"-Dtest.seed=" + testSeed + "\"");
+        System.out.println("To reproduce (CMD/Linux/macOS): mvn test -Dtest=TargetSwitchDelayTest -Dtest.seed=" + testSeed);
+        System.out.println("===============================");
     }
     
     // Mock GameCallbacks implementation for testing

@@ -1,0 +1,379 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< org.openfields:OpenFields2 >---------------------
+[INFO] Building OpenFields2 1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] 6 problems were encountered while building the effective model for org.openjfx:javafx-controls:jar:21.0.2 during dependency collection step for project (use -X to see details)
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ OpenFields2 ---
+[INFO] Copying 30 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ OpenFields2 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ OpenFields2 ---
+[INFO] Copying 0 resource from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ OpenFields2 ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:3.1.2:test (default-test) @ OpenFields2 ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running MeleeCombatTestAutomated
+=== Melee Combat Test Automated Setup ===
+=== MANUAL SEED OVERRIDE ===
+Using manual seed: 2188411688274419722
+============================
+Deterministic mode ENABLED with seed: 2188411688274419722
+✓ Deterministic mode enabled with seed 2188411688274419722
+Jul 05, 2025 8:39:44 PM com.sun.javafx.application.PlatformImpl startup
+WARNING: Unsupported JavaFX configuration: classes were loaded from 'unnamed module @1d29cf23'
+��� Test setup complete
+Starting Melee Combat automated test...
+Game configuration loaded successfully from /config/game-config.json
+*** Loaded character registry from resources
+*** Loaded test character: -1001:MissBot (ID: -1001)
+*** Loaded test character: -1002:GunfighterAlpha (ID: -1002)
+*** Loaded test character: -1003:SoldierAlpha (ID: -1003)
+*** Loaded test character: -2001:TargetDummy (ID: -2001)
+*** Loaded test character: -2002:GunfighterBeta (ID: -2002)
+*** Loaded test character: -2003:SoldierBeta (ID: -2003)
+
+*********************************
+***       OPEN FIELDS 2      ***
+*********************************
+*** Themes loaded successfully: 2 themes available
+*** Default theme: test_theme
+Theme: Test Theme
+
+Debug configuration loaded from debug-config.json
+Debug Settings:
+  Auto-targeting: visible=false, verbose=false
+  Combat debug: true
+  Movement debug: false
+  Weapons debug: true
+  Event queue debug: false
+  Blocking: defensive=DISABLED, recovery=DISABLED
+Failed to apply auto-targeting debug configuration: combat.Character.setAutoTargetDebugVisible(boolean)
+*** Initializing Faction System ***
+Loaded faction registry with 4 factions, nextCharacterId: 1
+=== FACTION REGISTRY ===
+Next Character ID: 1
+Factions:
+  Faction{id=0, name='NONE', allies=[], enemies=[], victories=0, defeats=0, participations=0}
+  Faction{id=1, name='Union', allies=[3], enemies=[2], victories=0, defeats=0, participations=0}
+  Faction{id=2, name='Confederacy', allies=[], enemies=[1, 3], victories=0, defeats=0, participations=0}
+  Faction{id=3, name='Southern Unionists', allies=[1], enemies=[2], victories=0, defeats=0, participations=0}
+*** Faction System Ready ***
+*** Loaded melee weapon type: MELEE_UNARMED with 4 states
+*** Loaded melee weapon type: MELEE_SHORT with 6 states
+*** Loaded melee weapon type: MELEE_MEDIUM with 6 states
+*** Loaded melee weapon type: MELEE_LONG with 6 states
+*** Data loaded successfully: 16 weapons, 8 weapon types, 11 skills, 10 melee weapons
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Steel Dagger (type: MELEE_SHORT, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Officer's Sword (type: MELEE_MEDIUM, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Bowie Knife (type: MELEE_SHORT, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Cavalry Sabre (type: MELEE_MEDIUM, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Bowie Knife (type: MELEE_SHORT, initial: sheathed)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Indian Tomahawk (type: MELEE_MEDIUM, initial: sheathed)
+***********************
+*** SYSTEM VALIDATION ***
+��� Faction registry operational (4 factions)
+��� Character persistence manager operational
+��� Theme manager operational (2 themes available)
+��� Weapon factory operational (16 weapons available)
+*** VALIDATION COMPLETE ***
+***********************
+***********************
+*** Game is paused
+***********************
+��� Game started and debug mode activated
+*** Game loaded from test slot d: saves/test_d.json
+[MELEE-RANGE] Unarmed (UNARMED) total reach: 5.5 feet (4.0 base + 1.5 weapon)
+[MELEE-RANGE] Bowie Knife (SHORT) total reach: 5.0 feet (4.0 base + 1.0 weapon)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Bowie Knife (type: MELEE_SHORT, initial: sheathed)
+[MELEE-RANGE] Unarmed (UNARMED) total reach: 5.5 feet (4.0 base + 1.5 weapon)
+[MELEE-RANGE] Bowie Knife (SHORT) total reach: 5.0 feet (4.0 base + 1.0 weapon)
+[MELEE-WEAPON-FACTORY] Loaded 6 states for Bowie Knife (type: MELEE_SHORT, initial: sheathed)
+*** Restored 2 units ***
+*** Game loaded successfully from test slot d ***
+*** Loaded at tick 0 ***
+��� Melee combat save loaded
+��� Both soldiers verified
+��� Auto-targeting and melee combat mode confirmed
+��� Both characters selected and game unpaused
+Auto-targeting confirmed: Alpha=true, Beta=true
+Melee combat mode confirmed: Alpha=true, Beta=true
+Combat targets set: Alpha -> Beta, Beta -> Alpha
+��� Rectangle selection successful: Both characters selected
+  Selection count: 2
+  Selected units: SoldierAlpha and SoldierBeta
+Game unpaused, combat monitoring active
+*** -1003:SoldierAlpha weapon progression: current=sheathed, target=melee_ready, tick=1 ***
+*** -1003:SoldierAlpha scheduling transition from sheathed to unsheathing in 0 ticks (at tick 1) ***
+*** -2003:SoldierBeta weapon progression: current=sheathed, target=melee_ready, tick=1 ***
+*** -2003:SoldierBeta scheduling transition from sheathed to unsheathing in 0 ticks (at tick 1) ***
+*** -1003:SoldierAlpha weapon state: sheathed -> unsheathing ***
+*** -1003:SoldierAlpha weapon progression: current=unsheathing, target=melee_ready, tick=1 ***
+*** -1003:SoldierAlpha scheduling transition from unsheathing to melee_ready in 60 ticks (at tick 61) ***
+*** -2003:SoldierBeta weapon state: sheathed -> unsheathing ***
+*** -2003:SoldierBeta weapon progression: current=unsheathing, target=melee_ready, tick=1 ***
+*** -2003:SoldierBeta scheduling transition from unsheathing to melee_ready in 60 ticks (at tick 61) ***
+*** -1003:SoldierAlpha weapon state: unsheathing -> melee_ready ***
+*** -1003:SoldierAlpha weapon progression: current=melee_ready, target=melee_ready, tick=61 ***
+*** -2003:SoldierBeta weapon state: unsheathing -> melee_ready ***
+*** -2003:SoldierBeta weapon progression: current=melee_ready, target=melee_ready, tick=61 ***
+[MELEE-ATTACK] -1003:SoldierAlpha startMeleeAttackSequence called at tick 177
+[MELEE-ATTACK] -1003:SoldierAlpha scheduling melee attack on -2003:SoldierBeta in 60 ticks at tick 177
+[MELEE-ATTACK] -2003:SoldierBeta startMeleeAttackSequence called at tick 177
+[MELEE-ATTACK] -2003:SoldierBeta scheduling melee attack on -1003:SoldierAlpha in 60 ticks at tick 177
+[MELEE-ATTACK] -1003:SoldierAlpha executes melee attack on -2003:SoldierBeta at tick 237
+[MELEE-EVENT] Melee attack impact scheduled at tick 247
+[MELEE-EVENT] Attacker: -1003:SoldierAlpha -> Target: -2003:SoldierBeta
+[MELEE-EVENT] Weapon: Bowie Knife
+[COMBAT-RECOVERY] -1003:SoldierAlpha starts melee recovery for 60 ticks (until tick 297)
+[MELEE-ATTACK] -2003:SoldierBeta executes melee attack on -1003:SoldierAlpha at tick 237
+[MELEE-EVENT] Melee attack impact scheduled at tick 247
+[MELEE-EVENT] Attacker: -2003:SoldierBeta -> Target: -1003:SoldierAlpha
+[MELEE-EVENT] Weapon: Bowie Knife
+[COMBAT-RECOVERY] -2003:SoldierBeta starts melee recovery for 60 ticks (until tick 297)
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 297
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 297
+[MELEE-EVENT] Executing melee impact resolution at tick 247
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+>>> Resolving melee attack: -1003:SoldierAlpha attacks -2003:SoldierBeta with Bowie Knife
+=== UNCAUGHT EXCEPTION DETECTED ===
+Thread: Thread-3
+Exception: MediaException: Could not create player!
+Benign: true
+com.sun.media.jfxmedia.MediaException: Could not create player!
+	at com.sun.media.jfxmediaimpl.NativeMediaManager.getPlayer(NativeMediaManager.java:299)
+	at com.sun.media.jfxmedia.MediaManager.getPlayer(MediaManager.java:118)
+	at com.sun.media.jfxmediaimpl.NativeMediaAudioClipPlayer.play(NativeMediaAudioClipPlayer.java:319)
+	at com.sun.media.jfxmediaimpl.NativeMediaAudioClipPlayer.clipScheduler(NativeMediaAudioClipPlayer.java:112)
+	at com.sun.media.jfxmediaimpl.NativeMediaAudioClipPlayer$Enthreaderator.lambda$static$0(NativeMediaAudioClipPlayer.java:85)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+=== END EXCEPTION ===
+INFO: Benign exception ignored for test purposes: MediaException
+[DEFENSE] -2003:SoldierBeta defends: roll(49) + dex(0) + skill(0) + weapon(6) = total(55)
+=== HIT CALCULATION DEBUG ===
+Shooter: -1003:SoldierAlpha -> Target: -2003:SoldierBeta
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: 0.0 (coolness: 50:0)
+Range modifier: -8.57 (distance: 3.00 feet, max: 5.00 feet)
+Weapon modifier: 20.0 (accuracy: 20)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 0.0 (weapon type: Short Melee, no skill bonus)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: -15.0 (first attack: true, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Defense modifier: -55.0 (defender successfully defended)
+Final chance to hit: 6.43%
+Random roll: 37.42
+Result: MISS
+=============================
+>>> Melee attack missed!
+>>> Calculated recovery time for Bowie Knife: 120 ticks
+[COMBAT-RECOVERY] -1003:SoldierAlpha starts melee recovery for 120 ticks (until tick 367)
+>>> -1003:SoldierAlpha enters recovery period for 120 ticks (until tick 367)
+[MELEE-EVENT] Executing melee impact resolution at tick 247
+*** Attempting to play sound: /Slap0003.wav
+*** Sound loaded successfully, playing...
+>>> Resolving melee attack: -2003:SoldierBeta attacks -1003:SoldierAlpha with Bowie Knife
+[DEFENSE] -1003:SoldierAlpha defends: roll(21) + dex(0) + skill(0) + weapon(6) = total(27)
+=== HIT CALCULATION DEBUG ===
+Shooter: -2003:SoldierBeta -> Target: -1003:SoldierAlpha
+Base chance: 50.0
+Dexterity modifier: 0 (dex: 50)
+Stress modifier: 0.0 (coolness: 50:0)
+Range modifier: -8.57 (distance: 3.00 feet, max: 5.00 feet)
+Weapon modifier: 20.0 (accuracy: 20)
+Movement modifier: 0.0
+Aiming speed modifier: 15.0 (selected Careful)
+Target movement modifier: 0.0 (target stationary)
+Wound modifier: 0.0 (no wounds)
+Skill modifier: 0.0 (weapon type: Short Melee, no skill bonus)
+Position modifier: 0.0 (target: Standing)
+Bravery modifier: 0.0 (no bravery penalty)
+First attack penalty: -15.0 (first attack: true, very careful benefits: false)
+Firing state modifier: 0.0 (firing from aiming)
+Size modifier: 0.0
+Cover modifier: 0.0
+Defense modifier: -27.0 (defender successfully defended)
+Final chance to hit: 34.43%
+Random roll: 44.01
+Result: MISS
+=============================
+>>> Melee attack missed!
+>>> Calculated recovery time for Bowie Knife: 120 ticks
+[COMBAT-RECOVERY] -2003:SoldierBeta starts melee recovery for 120 ticks (until tick 367)
+>>> -2003:SoldierBeta enters recovery period for 120 ticks (until tick 367)
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+Defense system engagement detected - combat has begun
+  Alpha attacks: 1, Beta attacks: 1
+  Health changed: false
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -1003:SoldierAlpha auto-targeting skipped - in melee recovery until tick 367
+[AUTO-TARGETING] -2003:SoldierBeta auto-targeting skipped - in melee recovery until tick 367
+Combat monitoring: 50 checks
+  Alpha: health=60, state=melee_attacking, attacks=1, target=SoldierBeta
+  Beta: health=60, state=melee_attacking, attacks=1, target=SoldierAlpha
+  Distance: 33.6 pixels, Defense attempts: 1
+  Alpha melee mode: true, Beta melee mode: true
+[AUTO-TARGETING-CHAIN] -2003:SoldierBeta checkContinuousAttack called at tick 297 (persistent: true, auto-targeting: true, isAttacking: false, melee mode: true, hesitationEndedAt: -1)
+[ATTACK-CONTINUATION] -2003:SoldierBeta handleAttackContinuation called at tick 297 (persistent: true, auto-targeting: true, attacking: false, melee recovery: true, currentTarget: -1003:SoldierAlpha)
+[ATTACK-CONTINUATION] -2003:SoldierBeta handleAttackContinuation called at tick 297 (persistent: true, auto-targeting: true, attacking: false, melee recovery: true)
+[ATTACK-CONTINUATION] -2003:SoldierBeta allowing attack continuation despite recovery tick - isAttacking is false (recovery callback)
+[ATTACK-CONTINUATION] -2003:SoldierBeta initiating melee attack continuation at tick 297
+[AUTO-TARGETING-CHAIN] -1003:SoldierAlpha checkContinuousAttack called at tick 297 (persistent: true, auto-targeting: true, isAttacking: false, melee mode: true, hesitationEndedAt: -1)
+[ATTACK-CONTINUATION] -1003:SoldierAlpha handleAttackContinuation called at tick 297 (persistent: true, auto-targeting: true, attacking: false, melee recovery: true, currentTarget: -2003:SoldierBeta)
+[ATTACK-CONTINUATION] -1003:SoldierAlpha handleAttackContinuation called at tick 297 (persistent: true, auto-targeting: true, attacking: false, melee recovery: true)
+[ATTACK-CONTINUATION] -1003:SoldierAlpha allowing attack continuation despite recovery tick - isAttacking is false (recovery callback)
+[ATTACK-CONTINUATION] -1003:SoldierAlpha initiating melee attack continuation at tick 297

@@ -144,7 +144,7 @@ public class CombatResolver {
         double directionY = dy / distance;
         
         // Calculate how far the missed shot travels (extend beyond target)
-        double missDistance = distance + (Math.random() * 140 + 70); // 10-30 feet beyond target
+        double missDistance = distance + (utils.RandomProvider.nextDouble() * 140 + 70); // 10-30 feet beyond target
         
         // Calculate the actual impact point of the missed shot
         double missX = shooter.x + directionX * missDistance;
@@ -160,7 +160,7 @@ public class CombatResolver {
         totalProbability = Math.min(totalProbability, 50.0);
         
         if (totalProbability > 0) {
-            double strayRoll = Math.random() * 100;
+            double strayRoll = utils.RandomProvider.nextDouble() * 100;
             
             if (strayRoll < totalProbability) {
                 // Stray shot occurs - select target based on position weights
@@ -198,7 +198,7 @@ public class CombatResolver {
     
     public WoundSeverity determineStrayWoundSeverity() {
         // Stray shots tend to be less severe
-        double roll = Math.random() * 100;
+        double roll = utils.RandomProvider.nextDouble() * 100;
         
         if (roll < 5) return WoundSeverity.CRITICAL;      // 5% critical
         else if (roll < 20) return WoundSeverity.SERIOUS; // 15% serious  
@@ -226,7 +226,7 @@ public class CombatResolver {
         }
         
         // Select random target based on weights
-        double random = Math.random() * totalWeight;
+        double random = utils.RandomProvider.nextDouble() * totalWeight;
         double currentWeight = 0.0;
         
         for (Unit unit : potentialTargets) {
@@ -248,7 +248,7 @@ public class CombatResolver {
         double positionModifier = strayTarget.character.getCurrentPosition().getTargetingPenalty();
         double finalChance = Math.max(1.0, baseChance + positionModifier);
         
-        double roll = Math.random() * 100;
+        double roll = utils.RandomProvider.nextDouble() * 100;
         
         if (roll < finalChance) {
             // Stray hit successful! Calculate hit details
@@ -512,7 +512,7 @@ public class CombatResolver {
         hitChance = Math.max(5, Math.min(95, hitChance));
         
         // Roll for hit
-        int roll = (int)(Math.random() * 100) + 1;
+        int roll = utils.RandomProvider.nextInt(100) + 1;
         boolean hits = roll <= hitChance;
         
         if (combatDebugEnabled) {
@@ -615,7 +615,7 @@ public class CombatResolver {
         }
         
         // Roll for defense success
-        double roll = Math.random() * 100;
+        double roll = utils.RandomProvider.nextDouble() * 100;
         boolean success = roll < totalChance;
         
         if (debugMode) {
@@ -652,7 +652,7 @@ public class CombatResolver {
      * Determine hit location for melee attacks (simplified)
      */
     private BodyPart determineHitLocation() {
-        int roll = (int)(Math.random() * 100) + 1;
+        int roll = utils.RandomProvider.nextInt(100) + 1;
         
         if (roll <= 10) return BodyPart.HEAD;
         if (roll <= 25) return BodyPart.LEFT_ARM;

@@ -46,6 +46,7 @@ public class HesitationManager {
             // Start new hesitation
             character.isHesitating = true;
             character.hesitationEndTick = currentTick + hesitationDuration;
+            character.hesitationEndedAtTick = -1; // Reset the hesitation ended tick when new hesitation begins
             System.out.println(">>> HESITATION STARTED: " + character.getDisplayName() + " begins hesitating for " + hesitationDuration + " ticks due to " + woundSeverity.name().toLowerCase() + " wound");
             
             // Pause current actions by removing character's events and storing them
@@ -126,14 +127,32 @@ public class HesitationManager {
         }
         
         character.isHesitating = false;
+        character.hesitationEndedAtTick = currentTick; // Record the tick when hesitation ended
         System.out.println(">>> HESITATION ENDED: " + character.getDisplayName() + " recovers from hesitation at tick " + currentTick);
         
-        // Clear paused events as they are no longer valid
-        character.pausedEvents.clear();
+        // DevCycle 41: System 6 - Debug logging for hesitation/melee recovery coordination
+        if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick)) {
+            System.out.println("[HESITATION-MELEE COORDINATION] " + character.getDisplayName() + 
+                             " is still in melee recovery (until tick " + character.meleeRecoveryEndTick + 
+                             ") - auto-targeting will be allowed for 5 ticks despite recovery");
+        }
+        
+        // DevCycle 41: System 6 - Reschedule paused events instead of clearing them
+        // This ensures recovery events execute after hesitation ends
+        if (!character.pausedEvents.isEmpty()) {
+            System.out.println("[HESITATION-RECOVERY] " + character.getDisplayName() + 
+                             " resuming " + character.pausedEvents.size() + " paused events");
+            for (ScheduledEvent pausedEvent : character.pausedEvents) {
+                // Reschedule the event to execute immediately
+                eventQueue.add(new ScheduledEvent(currentTick, pausedEvent.action, pausedEvent.getOwnerId()));
+            }
+            character.pausedEvents.clear();
+        }
         
         // CRITICAL FIX: Always reset attack state to allow new commands, regardless of weapon state
         character.isAttacking = false;
         System.out.println(">>> HESITATION RECOVERY: " + character.getDisplayName() + " attack state reset to allow new combat actions");
+        
         
         // DevCycle 36+38: Fix weapon state recovery after hesitation
         // Check if character is stuck in "recovering" or "firing" state and schedule proper transition
@@ -242,7 +261,7 @@ public class HesitationManager {
         int targetNumber = 50 + coolnessModifier;
         
         // Roll d100 for bravery check
-        double roll = Math.random() * 100;
+        double roll = utils.RandomProvider.nextDouble() * 100;
         
         System.out.println(">>> BRAVERY CHECK: " + character.getDisplayName() + " rolls " + String.format("%.1f", roll) + " vs " + targetNumber + " (" + reason + ")");
         

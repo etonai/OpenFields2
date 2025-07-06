@@ -73,7 +73,7 @@ public class ConsoleEntityFactory implements EntityFactory {
             this.baseColor = color;
             
             // Initialize with random facing direction
-            this.currentFacing = Math.random() * 360.0;
+            this.currentFacing = utils.RandomProvider.nextDouble() * 360.0;
             this.targetFacing = this.currentFacing;
         }
         

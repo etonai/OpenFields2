@@ -7,7 +7,6 @@ import game.Unit;
 import java.awt.Rectangle;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.Random;
 
 /**
  * Handles automatic target acquisition and attack initiation for characters.
@@ -47,7 +46,11 @@ public class AutoTargetingSystem {
         }
         
         // DevCycle 33: System 2 - Skip if character is in melee recovery to prevent excessive attack continuation calls
-        if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick)) {
+        // DevCycle 41: System 6 - Allow auto-targeting when hesitation recently ended to fix coordination issues
+        boolean recentlyFinishedHesitating = character.getHesitationEndedAtTick() >= 0 && 
+                                              (currentTick - character.getHesitationEndedAtTick()) <= 5;
+        
+        if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick) && !recentlyFinishedHesitating) {
             if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
                 System.out.println("[AUTO-TARGETING] " + character.getDisplayName() + 
                                  " auto-targeting skipped - in melee recovery until tick " + character.meleeRecoveryEndTick);
@@ -163,16 +166,28 @@ public class AutoTargetingSystem {
             
             // Only initiate attack sequence if not already in progress
             // DevCycle 33: System 2 - Prevent attacks during melee recovery to eliminate excessive attack continuation calls
+            // DevCycle 41: System 6 - Allow auto-targeting when hesitation recently ended to fix coordination issues
+            // Note: recentlyFinishedHesitating is already defined at the top of the method
+            
             if (character.isMovingToMelee || character.isAttacking || 
-                (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick))) {
+                (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick) && !recentlyFinishedHesitating)) {
                 
                 // Debug logging for recovery blocking
                 if (character.isMeleeCombatMode && character.isInMeleeRecovery(currentTick) && 
                     config.DebugConfig.getInstance().isCombatDebugEnabled()) {
-                    System.out.println("[AUTO-TARGETING] " + character.getDisplayName() + 
-                                     " attack blocked - in melee recovery until tick " + character.meleeRecoveryEndTick);
+                    if (recentlyFinishedHesitating) {
+                        System.out.println("[AUTO-TARGETING] " + character.getDisplayName() + 
+                                         " allowing attack despite melee recovery (hesitation ended at tick " + 
+                                         character.getHesitationEndedAtTick() + ", current tick " + currentTick + ")");
+                    } else {
+                        System.out.println("[AUTO-TARGETING] " + character.getDisplayName() + 
+                                         " attack blocked - in melee recovery until tick " + character.meleeRecoveryEndTick);
+                    }
                 }
-                return;
+                // Only return if we should actually block
+                if (!recentlyFinishedHesitating) {
+                    return;
+                }
             }
             
             // Calculate distance for logging
@@ -242,7 +257,7 @@ public class AutoTargetingSystem {
         double nearestZoneDistance = Double.MAX_VALUE;
         double nearestGlobalDistance = Double.MAX_VALUE;
         int hostilesFound = 0;
-        Random random = new Random();
+        // Removed: Using RandomProvider for centralized random number generation
         
         for (IUnit unit : allUnits) {
             // Skip self
@@ -282,7 +297,7 @@ public class AutoTargetingSystem {
                     nearestZoneTarget = unit;
                 } else if (distance == nearestZoneDistance && nearestZoneTarget != null) {
                     // Random selection for equidistant targets
-                    if (random.nextBoolean()) {
+                    if (utils.RandomProvider.nextBoolean()) {
                         nearestZoneTarget = unit;
                     }
                 }
@@ -293,7 +308,7 @@ public class AutoTargetingSystem {
                     nearestGlobalTarget = unit;
                 } else if (distance == nearestGlobalDistance && nearestGlobalTarget != null) {
                     // Random selection for equidistant targets
-                    if (random.nextBoolean()) {
+                    if (utils.RandomProvider.nextBoolean()) {
                         nearestGlobalTarget = unit;
                     }
                 }

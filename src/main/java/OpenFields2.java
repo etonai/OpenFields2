@@ -586,7 +586,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         
         if (randomRoll < excellentThreshold) {
             // Excellent shots have a small chance for headshots
-            double headshotRoll = Math.random() * 100;
+            double headshotRoll = utils.RandomProvider.nextDouble() * 100;
             if (headshotRoll < 15) { // 15% chance for headshot on excellent shots
                 return combat.BodyPart.HEAD;
             } else {
@@ -594,11 +594,11 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
             }
         } else if (randomRoll < goodThreshold) {
             // Good shots rarely hit the head (2% chance)
-            double headshotRoll = Math.random() * 100;
+            double headshotRoll = utils.RandomProvider.nextDouble() * 100;
             if (headshotRoll < 2) {
                 return combat.BodyPart.HEAD;
             } else {
-                return Math.random() < 0.5 ? combat.BodyPart.CHEST : combat.BodyPart.ABDOMEN;
+                return utils.RandomProvider.nextDouble() < 0.5 ? combat.BodyPart.CHEST : combat.BodyPart.ABDOMEN;
             }
         } else {
             return getRandomBodyPart();
@@ -606,7 +606,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     }
     
     private static combat.BodyPart getRandomBodyPart() {
-        double roll = Math.random() * 100;
+        double roll = utils.RandomProvider.nextDouble() * 100;
         
         if (roll < 12) return combat.BodyPart.LEFT_ARM;
         else if (roll < 24) return combat.BodyPart.RIGHT_ARM;
@@ -641,7 +641,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         }
         
         // Determine wound severity based on hit location
-        double severityRoll = Math.random() * 100;
+        double severityRoll = utils.RandomProvider.nextDouble() * 100;
         
         if (isVitalArea(hitLocation)) {
             // HEAD/CHEST/ABDOMEN: 30% Critical, 40% Serious, 25% Light, 5% Scratch
@@ -873,7 +873,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         double directionY = dy / distance;
         
         // Calculate how far the missed shot travels (extend beyond target)
-        double missDistance = distance + (Math.random() * 140 + 70); // 10-30 feet beyond target
+        double missDistance = distance + (utils.RandomProvider.nextDouble() * 140 + 70); // 10-30 feet beyond target
         
         // Calculate the actual impact point of the missed shot
         double missX = shooter.x + directionX * missDistance;
@@ -924,7 +924,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
         double distancePenalty = distanceFeet * 2.0; // -2% per foot from miss point
         double finalChance = Math.max(1.0, baseChance - distancePenalty);
         
-        double roll = Math.random() * 100;
+        double roll = utils.RandomProvider.nextDouble() * 100;
         
         if (roll < finalChance) {
             // Stray hit! Calculate reduced damage
@@ -987,7 +987,7 @@ public class OpenFields2 extends Application implements GameCallbacks, InputMana
     
     private combat.WoundSeverity determineStrayWoundSeverity() {
         // Stray shots tend to be less severe
-        double roll = Math.random() * 100;
+        double roll = utils.RandomProvider.nextDouble() * 100;
         
         if (roll < 5) return combat.WoundSeverity.CRITICAL;      // 5% critical
         else if (roll < 20) return combat.WoundSeverity.SERIOUS; // 15% serious  

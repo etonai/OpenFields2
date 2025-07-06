@@ -20,9 +20,12 @@ import game.GameCallbacks;
 import game.ScheduledEvent;
 import game.GameClock;
 import java.util.Random;
+import utils.GameConfiguration;
+import java.security.SecureRandom;
 
 /**
  * Enhanced headless gunfight test using real OpenFields2 game instance - DevCycle 39.
+ * Enhanced in DevCycle 41 with deterministic mode and random seed generation.
  * 
  * This test provides a complete JavaFX-independent version of the gunfight test scenario,
  * using the real OpenFields2 game instance in headless mode to ensure actual combat
@@ -38,12 +41,44 @@ import java.util.Random;
  * This test mirrors the exact sequence of GunfightTestAutomated but uses the actual
  * game systems for true validation of combat mechanics.
  * 
+ * SEED MANAGEMENT:
+ * - Normal Operation: Uses randomly generated seed each run to discover edge cases
+ * - Bug Reproduction: Use -Dtest.seed=123456789 to reproduce specific test scenarios
+ * - Seed Reporting: Outputs seed at start and completion for easy reproduction
+ * 
+ * USAGE EXAMPLES:
+ * 
+ * Basic Usage:
+ * mvn test -Dtest=HeadlessGunfightTest                     # Random seed testing
+ * mvn test -Dtest=HeadlessGunfightTest -Dtest.seed=54321  # Positive seed reproduction
+ * 
+ * Cross-Platform Seed Reproduction:
+ * 
+ * Windows PowerShell (recommended - always quote properties):
+ * mvn test "-Dtest=HeadlessGunfightTest" "-Dtest.seed=4292768217366888882"
+ * 
+ * Windows Command Prompt (standard syntax):
+ * mvn test -Dtest=HeadlessGunfightTest -Dtest.seed=4292768217366888882
+ * 
+ * macOS/Linux (bash/zsh):
+ * mvn test -Dtest=HeadlessGunfightTest -Dtest.seed=4292768217366888882
+ * 
+ * TROUBLESHOOTING:
+ * - If you see "Unknown lifecycle phase .seed=" errors, quote the -D properties
+ * - Windows PowerShell has parsing issues with -D properties, always use quotes
+ * - Use Windows Command Prompt as alternative if PowerShell fails
+ * - All seeds (positive and negative) produce deterministic results
+ * 
  * @author DevCycle 39 - Headless Combat Testing Enhancement
+ * @author DevCycle 41 System 8 - Deterministic Mode Standardization
  */
 public class HeadlessGunfightTest {
     
     private TestPlatform testPlatform;
     private OpenFields2 gameInstance;
+    
+    // Random seed for deterministic testing with reproducibility
+    private long testSeed;
     
     // Test configuration
     private static final String TEST_SAVE_FILE = "test_b.json";
@@ -60,6 +95,22 @@ public class HeadlessGunfightTest {
     public void setUp() {
         System.out.println("=== HeadlessGunfightTest Setup ===");
         
+        // DevCycle 41: System 8 - Deterministic mode and seed management
+        String seedProperty = System.getProperty("test.seed");
+        if (seedProperty != null && !seedProperty.isEmpty()) {
+            try {
+                testSeed = Long.parseLong(seedProperty);
+                System.out.println("=== MANUAL SEED OVERRIDE ===");
+                System.out.println("Using manual seed: " + testSeed);
+                System.out.println("============================");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid seed format: " + seedProperty + ", generating random seed");
+                testSeed = new SecureRandom().nextLong();
+            }
+        } else {
+            testSeed = new SecureRandom().nextLong();
+        }
+        
         // Initialize headless platform
         testPlatform = new TestPlatform();
         assertTrue(testPlatform.initialize(800, 600, "Headless Gunfight Test"),
@@ -70,7 +121,8 @@ public class HeadlessGunfightTest {
         assertTrue(gameInstance.initializeHeadless(), "Game should initialize in headless mode");
         
         // Set up deterministic random seed for consistent test results
-        // TODO: Implement random seed control when available
+        GameConfiguration.setDeterministicMode(true, testSeed);
+        System.out.println("✓ Deterministic mode enabled with seed " + testSeed);
         
         System.out.println("✓ Headless gunfight test environment initialized");
     }
@@ -87,6 +139,10 @@ public class HeadlessGunfightTest {
         if (testPlatform != null) {
             testPlatform.shutdown();
         }
+        
+        // Reset deterministic mode to avoid interfering with other tests
+        GameConfiguration.reset();
+        System.out.println("✓ Deterministic mode reset");
         
         System.out.println("✓ Headless test environment cleaned up");
     }
@@ -111,6 +167,12 @@ public class HeadlessGunfightTest {
         validateCombatResults();
         
         System.out.println("✓ Headless gunfight simulation completed successfully");
+        
+        System.out.println("=== TEST COMPLETION SUMMARY ===");
+        System.out.println("Test seed used: " + testSeed);
+        System.out.println("To reproduce (Windows PowerShell): mvn test \"-Dtest=HeadlessGunfightTest\" \"-Dtest.seed=" + testSeed + "\"");
+        System.out.println("To reproduce (CMD/Linux/macOS): mvn test -Dtest=HeadlessGunfightTest -Dtest.seed=" + testSeed);
+        System.out.println("===============================");
     }
     
     private void setupTestCharacters() {

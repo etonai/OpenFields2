@@ -174,28 +174,80 @@ public class MeleeCombatSequenceManager {
             
             // Schedule recovery back to ready state (after visual delay + recovery period)
             long recoveryTime = Math.round(character.meleeWeapon.getStateBasedAttackCooldown() * character.calculateAttackSpeedMultiplier());
+            long recoveryTick = attackTick + visualDelay + recoveryTime;
+            
+            // DevCycle 41: System 6 - Enhanced recovery debugging
+            System.out.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                             " scheduling recovery event at tick " + recoveryTick + 
+                             " (attack=" + attackTick + " + visual=" + visualDelay + " + recovery=" + recoveryTime + ")");
             
             WeaponState readyState = character.getActiveWeapon().getStateByName("melee_ready");
             if (readyState != null) {
-                eventQueue.add(new ScheduledEvent(attackTick + visualDelay + recoveryTime, () -> {
+                eventQueue.add(new ScheduledEvent(recoveryTick, () -> {
+                    // DevCycle 41: System 6 - Debug recovery callback execution
+                    System.out.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                                     " recovery callback executing at tick " + recoveryTick + 
+                                     " (current state: " + (character.currentWeaponState != null ? character.currentWeaponState.getState() : "null") + 
+                                     ", isAttacking: " + character.isAttacking + 
+                                     ", hesitating: " + character.isHesitating + ")");
+                    
+                    // DevCycle 41: System 6 - If character is hesitating, defer recovery until hesitation ends
+                    if (character.isHesitating) {
+                        System.out.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                                         " recovery deferred - character is hesitating until tick " + character.hesitationEndTick);
+                        
+                        // Reschedule recovery for after hesitation ends (add small buffer)
+                        long deferredRecoveryTick = character.hesitationEndTick + 5;
+                        eventQueue.add(new ScheduledEvent(deferredRecoveryTick, () -> {
+                            System.out.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                                             " deferred recovery executing at tick " + deferredRecoveryTick);
+                            
+                            character.currentWeaponState = readyState;
+                            character.isAttacking = false;
+                            character.meleeRecoveryEndTick = -1;
+                            
+                            System.out.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                                             " deferred recovery complete - state set to melee_ready, isAttacking cleared");
+                            
+                            // Trigger attack continuation
+                            character.checkContinuousAttack(attacker, deferredRecoveryTick, eventQueue, ownerId, gameCallbacks);
+                        }, ownerId));
+                        return;
+                    }
+                    
                     character.currentWeaponState = readyState;
                     // DevCycle 40: Fix for multiple attack scheduling bug
                     // Clear attacking flag AFTER recovery completes, not at the start
                     // This prevents auto-targeting from scheduling multiple attacks during recovery
                     character.isAttacking = false;
                     
+                    // DevCycle 41: System 6 - Clear melee recovery end tick to allow attack continuation
+                    character.meleeRecoveryEndTick = -1;
+                    
+                    System.out.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                                     " recovery complete - state set to melee_ready, isAttacking cleared, recovery end tick cleared");
+                    
                     // Additional debug: check if auto-targeting should continue
                     if (character.usesAutomaticTargeting) {
+                        System.out.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                                         " calling checkContinuousAttack for auto-targeting resumption");
+                        
                         if (config.DebugConfig.getInstance().isCombatDebugEnabled()) {
                             System.out.println("[ATTACK-SEQUENCE] " + character.getDisplayName() + 
-                                             " attack sequence complete at tick " + (attackTick + visualDelay + recoveryTime) + 
+                                             " attack sequence complete at tick " + recoveryTick + 
                                              ", isAttacking cleared, auto-targeting can resume");
                         }
                     }
                     
                     // Call checkContinuousAttack to trigger auto-targeting re-evaluation (similar to ranged weapon recovery)
-                    character.checkContinuousAttack(attacker, attackTick + visualDelay + recoveryTime, eventQueue, ownerId, gameCallbacks);
+                    character.checkContinuousAttack(attacker, recoveryTick, eventQueue, ownerId, gameCallbacks);
                 }, ownerId));
+                
+                System.out.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                                 " recovery event added to queue successfully");
+            } else {
+                System.err.println("[MELEE-RECOVERY] " + character.getDisplayName() + 
+                                 " ERROR: melee_ready state not found in weapon states!");
             }
         }, ownerId));
     }

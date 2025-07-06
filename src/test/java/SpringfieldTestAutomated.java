@@ -13,26 +13,60 @@ import java.util.List;
 import combat.*;
 import data.*;
 import game.*;
+import utils.GameConfiguration;
+import java.security.SecureRandom;
 
 /**
  * Automated test for Springfield 1861 Musket 2v2 combat scenario as specified in DevCycle 38 System 6.
+ * Enhanced in DevCycle 41 with deterministic mode and random seed generation.
+ * 
+ * SEED MANAGEMENT:
+ * - Normal Operation: Uses randomly generated seed each run to discover edge cases
+ * - Bug Reproduction: Use -Dtest.seed=123456789 to reproduce specific test scenarios
+ * - Seed Reporting: Outputs seed at start and completion for easy reproduction
+ * 
+ * USAGE EXAMPLES:
+ * 
+ * Basic Usage:
+ * mvn test -Dtest=SpringfieldTestAutomated                     # Random seed testing
+ * mvn test -Dtest=SpringfieldTestAutomated -Dtest.seed=54321  # Positive seed reproduction
+ * 
+ * Cross-Platform Seed Reproduction:
+ * 
+ * Windows PowerShell (recommended - always quote properties):
+ * mvn test "-Dtest=SpringfieldTestAutomated" "-Dtest.seed=4292768217366888882"
+ * 
+ * Windows Command Prompt (standard syntax):
+ * mvn test -Dtest=SpringfieldTestAutomated -Dtest.seed=4292768217366888882
+ * 
+ * macOS/Linux (bash/zsh):
+ * mvn test -Dtest=SpringfieldTestAutomated -Dtest.seed=4292768217366888882
+ * 
+ * TROUBLESHOOTING:
+ * - If you see "Unknown lifecycle phase .seed=" errors, quote the -D properties
+ * - Windows PowerShell has parsing issues with -D properties, always use quotes
+ * - Use Windows Command Prompt as alternative if PowerShell fails
+ * - All seeds (positive and negative) produce deterministic results
  * 
  * Test Sequence:
- * 1. Start game and activate debug mode
- * 2. Load test factions (TestFactionAlpha and TestFactionBeta)
- * 3. Create save file with 2v2 Springfield 1861 combat setup
- * 4. Verify all 4 soldiers are loaded correctly (50 stats, rifle level 1, Springfield 1861 muskets)
- * 5. Position characters: allies 3 feet apart, enemies 100 feet apart
- * 6. Enable auto-targeting for all characters
- * 7. Draw rectangle around all characters to select them
- * 8. Unpause game and monitor combat execution for 5 minutes
- * 9. Monitor for exceptions in console output
- * 10. Output detailed stats for all characters at completion
+ * 1. Generate random seed or use manual override from -Dtest.seed property
+ * 2. Enable deterministic mode with generated/specified seed
+ * 3. Start game and activate debug mode
+ * 4. Load test factions (TestFactionAlpha and TestFactionBeta)
+ * 5. Create save file with 2v2 Springfield 1861 combat setup
+ * 6. Verify all 4 soldiers are loaded correctly (50 stats, rifle level 1, Springfield 1861 muskets)
+ * 7. Position characters: allies 3 feet apart, enemies 100 feet apart
+ * 8. Enable auto-targeting for all characters
+ * 9. Draw rectangle around all characters to select them
+ * 10. Unpause game and monitor combat execution for 5 minutes
+ * 11. Monitor for exceptions in console output
+ * 12. Output detailed stats for all characters at completion
  * 
  * Success Criteria: Combat completes without exceptions within 5 minutes
  * Failure Conditions: Exception thrown during combat
  * 
  * @author DevCycle 38 System 6 - SpringfieldTestAutomated Implementation
+ * @author DevCycle 41 System 8 - Deterministic Mode Standardization
  */
 public class SpringfieldTestAutomated {
     
@@ -60,9 +94,32 @@ public class SpringfieldTestAutomated {
     private Unit soldierBetaUnit;
     private Unit gunfighterBetaUnit;
     
+    // Random seed for deterministic testing with reproducibility
+    private long testSeed;
+    
     @BeforeEach
     public void setUp() throws Exception {
         System.out.println("=== Springfield Test Automated Setup ===");
+        
+        // DevCycle 41: System 8 - Deterministic mode and seed management
+        String seedProperty = System.getProperty("test.seed");
+        if (seedProperty != null && !seedProperty.isEmpty()) {
+            try {
+                testSeed = Long.parseLong(seedProperty);
+                System.out.println("=== MANUAL SEED OVERRIDE ===");
+                System.out.println("Using manual seed: " + testSeed);
+                System.out.println("============================");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid seed format: " + seedProperty + ", generating random seed");
+                testSeed = new SecureRandom().nextLong();
+            }
+        } else {
+            testSeed = new SecureRandom().nextLong();
+        }
+        
+        // Enable deterministic mode
+        GameConfiguration.setDeterministicMode(true, testSeed);
+        System.out.println("Deterministic mode ENABLED with seed: " + testSeed);
         
         // Initialize JavaFX if not already initialized
         if (!Platform.isFxApplicationThread()) {
@@ -128,6 +185,12 @@ public class SpringfieldTestAutomated {
         
         System.out.println("=== Springfield Test Automated SUCCESS ===");
         System.out.println("2v2 combat completed without exceptions");
+        
+        System.out.println("=== TEST COMPLETION SUMMARY ===");
+        System.out.println("Test seed used: " + testSeed);
+        System.out.println("To reproduce (Windows PowerShell): mvn test \"-Dtest=SpringfieldTestAutomated\" \"-Dtest.seed=" + testSeed + "\"");
+        System.out.println("To reproduce (CMD/Linux/macOS): mvn test -Dtest=SpringfieldTestAutomated -Dtest.seed=" + testSeed);
+        System.out.println("===============================");
         
         // Pause for 5 seconds after test completion
         System.out.println("Pausing for 5 seconds...");

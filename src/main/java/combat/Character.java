@@ -188,6 +188,7 @@ public class Character implements ICharacter {
     /** Hesitation state management */
     public boolean isHesitating = false;        // Currently hesitating due to wound
     public long hesitationEndTick = 0;          // When hesitation will end
+    public long hesitationEndedAtTick = -1;     // Tick when hesitation ended (for coordination with other systems)
     public List<ScheduledEvent> pausedEvents = new ArrayList<>(); // Events paused during hesitation
     
     /** Bravery check system */
@@ -1164,6 +1165,14 @@ public class Character implements ICharacter {
         return isHesitating;
     }
     
+    /**
+     * Gets the tick when hesitation ended, used for coordination with other systems
+     * @return The tick when hesitation ended, or -1 if not yet ended
+     */
+    public long getHesitationEndedAtTick() {
+        return hesitationEndedAtTick;
+    }
+    
     @Override
     public boolean isAutomaticFiring() {
         return BurstFireManager.getInstance().isAutomaticFiring(this.id);
@@ -1513,6 +1522,13 @@ public class Character implements ICharacter {
     }
     
     public void checkContinuousAttack(IUnit shooter, long currentTick, java.util.PriorityQueue<ScheduledEvent> eventQueue, int ownerId, GameCallbacks gameCallbacks) {
+        // DevCycle 41: System 6 - Debug auto-targeting chain
+        System.out.println("[AUTO-TARGETING-CHAIN] " + getDisplayName() + 
+                         " checkContinuousAttack called at tick " + currentTick + 
+                         " (persistent: " + persistentAttack + ", auto-targeting: " + usesAutomaticTargeting + 
+                         ", isAttacking: " + isAttacking + ", melee mode: " + isMeleeCombatMode + 
+                         ", hesitationEndedAt: " + hesitationEndedAtTick + ")");
+        
         // Delegate to CombatCoordinator following DevCycle 31 refactoring pattern
         CombatCoordinator.getInstance().handleAttackContinuation(this, shooter, currentTick, eventQueue, ownerId, gameCallbacks);
     }

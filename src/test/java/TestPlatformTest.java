@@ -4,9 +4,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import platform.TestPlatform;
 import platform.api.*;
+import utils.GameConfiguration;
+import java.security.SecureRandom;
 
 /**
  * Proof-of-concept test for headless testing architecture - System 4 of DevCycle 36.
+ * Enhanced in DevCycle 41 with deterministic mode and random seed generation.
  * 
  * This test demonstrates that:
  * 1. TestPlatform can be created and initialized without UI dependencies
@@ -15,15 +18,70 @@ import platform.api.*;
  * 
  * This establishes the foundation for more complex headless tests in the future.
  * 
+ * SEED MANAGEMENT:
+ * - Normal Operation: Uses randomly generated seed each run to discover edge cases
+ * - Bug Reproduction: Use -Dtest.seed=123456789 to reproduce specific test scenarios
+ * - Seed Reporting: Outputs seed at start and completion for easy reproduction
+ * 
+ * USAGE EXAMPLES:
+ * 
+ * Basic Usage:
+ * mvn test -Dtest=TestPlatformTest                     # Random seed testing
+ * mvn test -Dtest=TestPlatformTest -Dtest.seed=54321  # Positive seed reproduction
+ * 
+ * Cross-Platform Seed Reproduction:
+ * 
+ * Windows PowerShell (recommended - always quote properties):
+ * mvn test "-Dtest=TestPlatformTest" "-Dtest.seed=4292768217366888882"
+ * 
+ * Windows Command Prompt (standard syntax):
+ * mvn test -Dtest=TestPlatformTest -Dtest.seed=4292768217366888882
+ * 
+ * macOS/Linux (bash/zsh):
+ * mvn test -Dtest=TestPlatformTest -Dtest.seed=4292768217366888882
+ * 
+ * TROUBLESHOOTING:
+ * - If you see "Unknown lifecycle phase .seed=" errors, quote the -D properties
+ * - Windows PowerShell has parsing issues with -D properties, always use quotes
+ * - Use Windows Command Prompt as alternative if PowerShell fails
+ * - All seeds (positive and negative) produce deterministic results
+ * 
+ * NOTE: This test doesn't use random numbers but includes deterministic mode for consistency.
+ * 
  * @author DevCycle 36 - System 4: Non-JavaFX Gunfight Test Creation
+ * @author DevCycle 41 System 8 - Deterministic Mode Standardization
  */
 public class TestPlatformTest {
     
     private TestPlatform testPlatform;
     
+    // Random seed for deterministic testing with reproducibility
+    private long testSeed;
+    
     @BeforeEach
     public void setUp() {
         System.out.println("=== TestPlatform Test Setup ===");
+        
+        // DevCycle 41: System 8 - Deterministic mode and seed management
+        String seedProperty = System.getProperty("test.seed");
+        if (seedProperty != null && !seedProperty.isEmpty()) {
+            try {
+                testSeed = Long.parseLong(seedProperty);
+                System.out.println("=== MANUAL SEED OVERRIDE ===");
+                System.out.println("Using manual seed: " + testSeed);
+                System.out.println("============================");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid seed format: " + seedProperty + ", generating random seed");
+                testSeed = new SecureRandom().nextLong();
+            }
+        } else {
+            testSeed = new SecureRandom().nextLong();
+        }
+        
+        // Enable deterministic mode
+        GameConfiguration.setDeterministicMode(true, testSeed);
+        System.out.println("Deterministic mode ENABLED with seed: " + testSeed);
+        
         testPlatform = new TestPlatform();
         System.out.println("✓ TestPlatform created successfully");
     }
@@ -227,5 +285,11 @@ public class TestPlatformTest {
         System.out.println("✓ Headless capability verified - no UI dependencies required");
         System.out.println("=== TestPlatform Test SUCCESS ===");
         System.out.println("Headless testing architecture is functional!");
+        
+        System.out.println("=== TEST COMPLETION SUMMARY ===");
+        System.out.println("Test seed used: " + testSeed);
+        System.out.println("To reproduce (Windows PowerShell): mvn test \"-Dtest=TestPlatformTest\" \"-Dtest.seed=" + testSeed + "\"");
+        System.out.println("To reproduce (CMD/Linux/macOS): mvn test -Dtest=TestPlatformTest -Dtest.seed=" + testSeed);
+        System.out.println("===============================");
     }
 }
